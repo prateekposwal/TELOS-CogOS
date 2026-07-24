@@ -150,6 +150,19 @@ class SelectPhase(Phase):
                 omega_threshold = pipeline._omega_threshold_learner.get_threshold()
             
             blend = 1.0 / (1.0 + math.exp(-steepness * (omega_value - omega_threshold)))
+            
+            # ── Curiosity Drive Modulation ─────────────────────────────────
+            # When curiosity is high (>0.6), the blend shifts toward inquiry
+            # (more exploration) regardless of the omega value.
+            curiosity_state = getattr(ctx, 'curiosity_state', None)
+            if curiosity_state and curiosity_state.get('curiosity_level', 0.0) > 0.6:
+                curiosity_boost = (curiosity_state['curiosity_level'] - 0.6) * 2.0  # 0-0.8 boost
+                blend = min(1.0, blend + curiosity_boost * 0.3)
+                logger.debug(
+                    f"Curiosity boosted blend: {getattr(ctx, 'inquiry_blend', 0.0):.3f} "
+                    f"-> {blend:.3f} (curiosity={curiosity_state['curiosity_level']:.2f})"
+                )
+            
             ctx.inquiry_blend = blend
 
             # ── Change 2: Per-axis modulation ──

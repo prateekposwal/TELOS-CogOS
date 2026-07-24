@@ -169,6 +169,10 @@ class PhaseContext:
     identity_cost_weight: float = 1.0
     omega_modulation: Optional[Dict[str, float]] = None
 
+    # ── Curiosity Drive (intrinsic motivation) ──────────────────────────────
+    curiosity_state: Optional[Dict] = None           # CuriosityDrive.get_report()
+    curiosity_bonus: float = 1.0                     # CuriosityDrive.get_curiosity_bonus()
+
 
 class Phase(ABC):
     name: str = "phase"

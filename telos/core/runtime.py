@@ -69,6 +69,7 @@ from telos.core.trace_builder import build_trace
 from telos.world.world import World
 from telos.world.facts import DomainFacts
 from telos.core.planning_horizon import PlanningHorizon
+from telos.core.curiosity.drive import CuriosityDrive
 from telos.intent_ir import IntentIR
 
 
@@ -141,6 +142,9 @@ class TelosV14Pipeline:
         self._commitment_optimizer = CommitmentOptimizer()
         self._resource_gradient_tracker = ResourceGradientTracker()
         self._omega_threshold_learner = OmegaThresholdLearner()
+        # ── Curiosity Drive: intrinsic motivation to reduce uncertainty ──
+        self._curiosity_drive = CuriosityDrive()
+        self._prev_uncertainty: float = 0.0
         self._last_sim_score: float = 0.0
         self._last_predicted_state = None
         self._carryover_budget: float = 0.0
@@ -501,6 +505,47 @@ class TelosV14Pipeline:
             # ── Compute resource budgets after STREAMS phase (before Evaluate) ──
             if phase.name == "streams":
                 ctx.resource_budgets = self._compute_resource_budgets(ctx)
+
+            # ── Curiosity Drive: Inject self-intent and modulate exploration ──
+            if phase.name == "streams":
+                # Inject self-originating intent if curiosity is high enough
+                if self._curiosity_drive.should_generate_self_intent():
+                    from telos.intent_ir import IntentIR
+                    curiosity_intent = IntentIR(
+                        intent_type="curiosity_explore",
+                        confidence=min(1.0, self._curiosity_drive.state.curiosity_level),
+                        params={
+                            "curiosity_level": self._curiosity_drive.state.curiosity_level,
+                            "self_initiated": True,
+                            "reason": "curiosity_drive_intrinsic_inquiry",
+                        },
+                        metadata={
+                            "stream": "curiosity",
+                            "curiosity_level": self._curiosity_drive.state.curiosity_level,
+                            "novelty_seeking": self._curiosity_drive.state.novelty_seeking,
+                        },
+                    )
+                    ctx.intents.append((curiosity_intent, self._curiosity_drive.state.curiosity_level))
+                    logger.info(
+                        f"Curiosity Drive: injected self-intent "
+                        f"(curiosity={self._curiosity_drive.state.curiosity_level:.2f})"
+                    )
+                
+                # Modulate exploration budget by curiosity bonus
+                curiosity_bonus = self._curiosity_drive.get_curiosity_bonus()
+                ctx.curiosity_bonus = curiosity_bonus
+                if hasattr(self, '_infra_manager') and hasattr(self._infra_manager, 'policy'):
+                    self._infra_manager.policy.apply_curiosity_modulation(curiosity_bonus)
+                # Scale effective_n_worlds by curiosity
+                if curiosity_bonus > 1.0:
+                    ctx.effective_n_worlds = max(
+                        1, int(ctx.effective_n_worlds * curiosity_bonus)
+                    )
+                    logger.debug(
+                        f"Curiosity bonus: n_worlds scaled by x{curiosity_bonus:.2f} "
+                        f"-> {ctx.effective_n_worlds}"
+                    )
+
 
             # ── Law of Attention: Project attention after PERCEIVE phase ──
             if phase.name == "perceive":
@@ -896,6 +941,45 @@ class TelosV14Pipeline:
                     # Maintenance vs Recovery cost telemetry from infra_manager
                     "cost_tracker": self._infra_manager.cost_tracker.stats,
                 }
+                # ── Curiosity Drive: Update learning progress after act phase ──
+                if phase.name == "act":
+                    # Compute total uncertainty composite from tripartite U
+                    total_uncertainty = (
+                        getattr(self._tripartite_u, 'U_W', 0.0)
+                        + getattr(self._tripartite_u, 'U_I', 0.0)
+                        + getattr(self._tripartite_u, 'U_O', 0.0)
+                    ) / 3.0
+                    
+                    # was_blocked from governance or council
+                    was_blocked = (
+                        getattr(ctx, 'governance_blocked', False)
+                        or getattr(ctx, 'council_blocked', False)
+                    )
+                    
+                    # council_disagreement from computation above
+                    council_disagreement = getattr(self._tripartite_u, 'U_O', 0.0)
+                    
+                    # Update curiosity drive with learning progress
+                    curiosity_report = self._curiosity_drive.update(
+                        uncertainty_before=self._prev_uncertainty,
+                        uncertainty_after=total_uncertainty,
+                        was_blocked=was_blocked,
+                        council_disagreement=council_disagreement,
+                    )
+                    self._prev_uncertainty = total_uncertainty
+                    
+                    # Store on context for trace
+                    ctx.curiosity_state = curiosity_report
+                    if not hasattr(ctx, 'curiosity_bonus') or ctx.curiosity_bonus <= 1.0:
+                        ctx.curiosity_bonus = self._curiosity_drive.get_curiosity_bonus()
+                    
+                    logger.debug(
+                        f"Curiosity: level={curiosity_report['curiosity_level']:.3f}, "
+                        f"learned={curiosity_report['learning_rate']:.4f}, "
+                        f"bored={curiosity_report['boredom_count']}, "
+                        f"self_intent={curiosity_report['self_intent_active']}"
+                    )
+
 
             if getattr(ctx, 'governance_blocked', False) and phase.name not in ("act", "reflect"):
                 continue
