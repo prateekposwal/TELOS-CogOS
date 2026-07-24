@@ -9,8 +9,9 @@ next-best alternative — satisfying Axiom 4.3 (Possibility Preservation).
 
 import logging
 
-from telos.core.council.base import ValidationSignal
+from telos.core.council.base import ValidationSignal, CouncilConfig
 from telos.core.phases.base import Phase, PhaseContext
+from telos.core.trace.psdt import PSDT
 
 logger = logging.getLogger('telos_pipeline')
 
@@ -32,6 +33,12 @@ class CouncilPhase(Phase):
         except Exception:
             pass
 
+        # ── Configure voting threshold based on decision criticality ──
+        criticality = getattr(ctx, 'decision_criticality', 'medium')
+        pipeline.council._config = CouncilConfig.from_criticality(criticality)
+        logger.debug(f"Council configured: criticality={criticality}, "
+                      f"threshold={pipeline.council._config.voting_threshold}")
+
         # Evaluate the primary selected intent
         ctx.verdict = pipeline.council.evaluate(
             ctx.world, ctx.selected_intent, ctx.domain_facts,
@@ -41,6 +48,14 @@ class CouncilPhase(Phase):
         )
         for sig in ctx.verdict.signals:
             logger.debug(f"Cycle {ctx.cycle_count}: Council {sig.validator_name} verdict={sig.verdict} (conf={sig.confidence:+.2f}, weight={sig.evidence_weight:.2f})")
+
+        # ── PSDT: Finalize with council verdict ──
+        psdt = getattr(ctx, 'psdt', None)
+        if psdt is None:
+            psdt = PSDT()
+            ctx.psdt = psdt
+        verdict_summary = f"{'VALIDATED' if ctx.verdict.validated else 'BLOCKED'}:{ctx.verdict.decision_integrity:.3f}:{ctx.verdict.mission_drift:.3f}"
+        psdt.finalize(verdict_summary)
 
         if ctx.verdict.escalation_requested:
             logger.warning(f"Cycle {ctx.cycle_count}: Council escalation requested — "

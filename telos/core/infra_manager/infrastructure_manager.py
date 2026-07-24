@@ -315,6 +315,9 @@ class InfrastructureManager:
         cycle_num = getattr(result, 'decision_trace', None) and result.decision_trace.cycle_id or 0
         self._mutation_guard.begin_cycle(cycle_num)
 
+        # Bitcoin-inspired exploration budget halving check
+        self.policy.check_halving(cycle_num)
+
         # Phase 3: Increment component cycle counters
         for component in self.audit._component_maturities.values():
             component.cycles_active += 1

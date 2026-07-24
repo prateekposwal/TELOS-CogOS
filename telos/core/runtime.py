@@ -61,6 +61,7 @@ from telos.core.phases import (
     PerceivePhase, StreamPhase, SimulatePhase,
     EvaluatePhase, SynthesisPhase, SelectPhase, CouncilPhase, ActPhase,
 )
+from telos.core.mempool import DecisionMempool
 from telos.core.types import (
     PipelinePhase, PipelineConfig, PipelineResult, DecisionTrace,
 )
@@ -147,6 +148,9 @@ class TelosV14Pipeline:
         self._token_budget = TokenBudgetManager()
         self._display = ThinkingDisplay(enabled=self.config.debug)
 
+        self._mempool = DecisionMempool(max_pending=100)
+        self._prev_trace_id: Optional[str] = None
+        self._decision_timelocks: Dict[str, int] = {}  # Bitcoin-inspired: timelock intent_types
         self._phases = self._build_phases()
 
         if self.config.checkpoint_path:
@@ -298,6 +302,47 @@ class TelosV14Pipeline:
     def _default_ollama_chat(self, messages) -> str:
         """Default no-op chat function when no LLM is configured."""
         return '{}'
+
+
+    # ── Bitcoin-inspired Decision Timelocks ──────────────────────────────────
+    def _apply_timelock_penalties(self, ctx) -> None:
+        """Deprioritize intent types that were selected within the timelock window.
+        
+        Prevents flip-flopping between competing intents.
+        Called during pipeline execution, after EVALUATE and before SELECT phase.
+        """
+        timelock_window = getattr(self.config, 'timelock_window_cycles', 3)
+        now = ctx.cycle_count
+        new_intents = []
+        for intent, weight in ctx.intents:
+            intent_type = intent.intent_type
+            last_selected = self._decision_timelocks.get(intent_type)
+            if last_selected is not None:
+                cycles_since = now - last_selected
+                if cycles_since < timelock_window:
+                    # Linear penalty: more recent = stronger penalty
+                    penalty = 1.0 - (1.0 - cycles_since / timelock_window) * 0.5
+                    new_weight = weight * max(0.1, penalty)
+                    logger.info(
+                        f"Timelock active for {intent_type} — {cycles_since} cycles since last selection, "
+                        f"penalty={penalty:.3f}, weight: {weight:.3f}→{new_weight:.3f}"
+                    )
+                    new_intents.append((intent, new_weight))
+                    continue
+            new_intents.append((intent, weight))
+        ctx.intents = new_intents
+    
+    def _record_timelock(self, ctx, selected_intent) -> None:
+        """Record the selected intent type for future timelock checks."""
+        intent_type = selected_intent.intent_type
+        self._decision_timelocks[intent_type] = ctx.cycle_count
+        # Store timelock state for DecisionTrace
+        ctx._intent_timelock_state = {
+            'intent_type': intent_type,
+            'cycles_since_last_selection': 0,
+            'timelock_active': False,
+            'all_timelocks': dict(self._decision_timelocks),
+        }
 
     def _compute_resource_budgets(self, ctx) -> dict:
         """Compute resource budgets from available data (called before Evaluate phase).
@@ -471,11 +516,44 @@ class TelosV14Pipeline:
                 except Exception:
                     pass
 
+            # ── Bitcoin-inspired Decision Timelock: Apply penalties after EVALUATE ──
+            if phase.name == "evaluate":
+                self._apply_timelock_penalties(ctx)
+
+            # ── Bitcoin-inspired Decision Timelock: Record after SELECT ──
+            if phase.name == "select":
+                selected_intent = getattr(ctx, 'selected_intent', None)
+                if selected_intent is not None:
+                    self._record_timelock(ctx, selected_intent)
+
             # ── Store plan in PlanningHorizon after SELECT phase ──
             if phase.name == "select":
                 selected = getattr(ctx, 'selected_intent', None)
                 if selected is not None:
                     self.planning_horizon.set_plan([selected])
+
+            # ── Submit selected intent to Decision Mempool before council ──
+            if phase.name == "select":
+                selected = getattr(ctx, 'selected_intent', None)
+                if selected is not None:
+                    stream_name = ""
+                    for sa in getattr(ctx, 'stream_activations', []):
+                        if sa.activated and sa.intent is selected:
+                            stream_name = sa.stream_name
+                            break
+                    intent_id = self._mempool.submit(selected, stream_name=stream_name)
+                    ctx._mempool_intent_id = intent_id
+                    logger.debug(f"Mempool: submitted intent {intent_id} for council review")
+
+            # ── Confirm/reject from mempool after council phase ──
+            if phase.name == "council":
+                intent_id = getattr(ctx, '_mempool_intent_id', None)
+                if intent_id:
+                    if getattr(ctx, 'verdict', None) and ctx.verdict.validated:
+                        self._mempool.confirm(intent_id)
+                    else:
+                        reason = getattr(ctx.verdict, 'blocking_reason', 'council_blocked') if ctx.verdict else 'council_blocked'
+                        self._mempool.reject(intent_id, reason=reason)
 
             # ── Law of Attention: Record trajectory after ACT phase ──
             if phase.name == "act":
@@ -902,7 +980,9 @@ class TelosV14Pipeline:
             infra_manager=self._infra_manager,
             last_quality_report=self._last_quality_report,
             perception_explanation=perception_explanation,
+            prev_trace_id=self._prev_trace_id,
         )
+        self._prev_trace_id = trace.produced_ctx_id
 
         status = "BLOCKED" if ctx.governance_blocked else "APPROVED"
         escalation_tag = f" [ESCALATED: {ctx.verdict.escalation_reason}]" if (ctx.verdict and ctx.verdict.escalation_requested) else ""

@@ -100,6 +100,26 @@ class DecisionTrace:
 
     # Relational Reasoning scaffolding
     relational_coherence: float = 1.0
+
+    # ── UTXO Chain fields (Bitcoin-inspired) ──────────────────────────────
+    spent_ctx_id: Optional[str] = None   # Which previous trace this consumes
+    produced_ctx_id: Optional[str] = None  # What this trace produces (links to next)
+    # ── Merkle Proof of Reasoning (Bitcoin-inspired) ──────────────────────
+    merkle_root: str = ""
+
+    # ── PSDT: Partially Signed Decision Trace (Bitcoin-inspired) ──────────
+    psdt: Optional[Dict] = None
+
+    # ── Decision Timelock (Bitcoin-inspired) ──────────────────────────────
+    intent_timelock: Optional[Dict] = None  # timelock state at decision time
+
+    # ── SegWit-style Separation: Reasoning vs Output (Bitcoin-inspired) ──
+    reasoning_witness: Optional[Dict] = None  # heavy reasoning data
+    decision_core: Optional[Dict] = None      # lightweight output
+
+    # ── Inquiry summary (alias used in decision_core) ─────────────────────
+    inquiry_summary: Optional[Dict] = None
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "cycle_id": self.cycle_id,
@@ -170,7 +190,44 @@ class DecisionTrace:
             "inquiry_omega_vector": self.inquiry_omega_vector,
             "inquiry_blend": self.inquiry_blend,
             "relational_coherence": self.relational_coherence,
+            # UTXO chain
+            "spent_ctx_id": self.spent_ctx_id,
+            "produced_ctx_id": self.produced_ctx_id,
+            "merkle_root": self.merkle_root,
+            # PSDT
+            "psdt": self.psdt,
+            # Decision Timelock
+            "intent_timelock": self.intent_timelock,
+            # SegWit-style separation
+            "reasoning_witness": self.reasoning_witness,
+            "decision_core": self.decision_core,
+            "inquiry_summary": self.inquiry_summary,
         }
+
+    def to_dict_core_only(self) -> Dict[str, Any]:
+        """Return ONLY the lightweight decision core — minimal, fast queries."""
+        return {
+            "cycle_id": self.cycle_id,
+            "timestamp": self.timestamp,
+            "selected_intent": {
+                "type": self.selected_intent.intent_type,
+                "confidence": self.selected_intent.confidence,
+            } if self.selected_intent else None,
+            "selected_action": self.selected_action.tolist() if self.selected_action is not None else None,
+            "decision_integrity": self.decision_integrity,
+            "mission_drift": self.mission_drift,
+            "council_validated": self.council_validated,
+            "identity_state": self.identity_state,
+            "merkle_root": self.merkle_root,
+            "inquiry_summary": self.inquiry_summary,
+        }
+
+    def to_dict_with_witness(self) -> Dict[str, Any]:
+        """Return full trace including both decision_core and reasoning_witness."""
+        d = self.to_dict()
+        d["reasoning_witness"] = self.reasoning_witness
+        d["decision_core"] = self.decision_core
+        return d
 
 
 @dataclass
@@ -197,6 +254,8 @@ class PipelineConfig:
     experience_max_skills: int = 100
     experience_utility_threshold: float = 0.5
     experience_index_interval: int = 1
+    # Timelock configuration
+    timelock_window_cycles: int = 3
 
 
 @dataclass

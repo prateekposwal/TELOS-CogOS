@@ -146,6 +146,9 @@ class MissionPolicyManager:
         self._change_log = PolicyChangeLog()
         self._policy_history: list = []
         # Λ3.4: UCB exploration tracking
+        # Bitcoin-inspired exploration budget halving
+        self.exploration_halving_cycles: int = 100
+        self.halving_count: int = 0
         self._domain_pulls: Dict[str, int] = {}
         self._domain_rewards: Dict[str, float] = {}
 
@@ -170,6 +173,33 @@ class MissionPolicyManager:
             self._current.risk_tolerance = new_val
             self._change_log.record('risk_tolerance', old, new_val, reason, caller, cycle)
             logger.info(f"MissionPolicy: risk_tolerance {old:.2f} → {new_val:.2f} ({reason})")
+
+    def check_halving(self, cycle_count: int) -> None:
+        """Check if exploration budget should be halved (Bitcoin-inspired).
+
+        Every exploration_halving_cycles cycles, the exploration budget
+        is halved. This mirrors Bitcoin block reward halving and
+        ensures the system transitions from exploration to exploitation
+        over time.
+
+        Args:
+            cycle_count: Current pipeline cycle number.
+        """
+        if cycle_count > 0 and cycle_count % self.exploration_halving_cycles == 0:
+            old_budget = self._current.exploration_budget
+            new_budget = old_budget * 0.5
+            self._current.exploration_budget = new_budget
+            self.halving_count += 1
+            self._change_log.record(
+                "exploration_budget", old_budget, new_budget,
+                reason=f"halving #{self.halving_count} at cycle {cycle_count}",
+                caller="check_halving",
+                cycle=cycle_count,
+            )
+            logger.info(
+                f"Exploration budget halved to {new_budget:.3f}"
+                f" (halving #{self.halving_count}, cycle {cycle_count})"
+            )
 
     def set_readiness_gate(self, infra_readiness: float) -> None:
         """Gate risk tolerance by infrastructure readiness.

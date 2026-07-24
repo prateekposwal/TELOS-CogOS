@@ -71,6 +71,81 @@ class ResourceBudgetTracker:
         return self.stats
 
 
+
+@dataclass
+class AttentionBid:
+    """A bid from a cognitive stream for compute budget (Bitcoin-inspired auction).
+
+    In the attention budget auction, streams bid compute milliseconds for
+    their processing. The highest bidder gets priority; all winners pay
+    the lowest winning bid (single-price auction).
+
+    Attributes:
+        stream_name: Name of the bidding stream
+        bid_amount_ms: How many milliseconds this stream requests
+        priority_multiplier: Priority-derived multiplier (higher = can outbid)
+        base_budget_ms: Stream's base budget before bidding
+    """
+    stream_name: str
+    bid_amount_ms: float
+    priority_multiplier: float = 1.0
+    base_budget_ms: float = 5.0
+
+    @property
+    def effective_bid(self) -> float:
+        """Priority-weighted bid amount."""
+        return self.bid_amount_ms * self.priority_multiplier
+
+
+def run_attention_auction(bids: List[AttentionBid],
+                           total_budget_ms: float) -> Dict[str, float]:
+    """Run a single-price attention budget auction.
+
+    All streams submit bids for compute ms. The highest bidder wins and
+    gets their full requested budget. Lower bidders get what remains.
+    All winners pay the lowest winning bid (single-price auction).
+
+    Args:
+        bids: List of AttentionBid from each stream
+        total_budget_ms: Total compute budget available
+
+    Returns:
+        Dict mapping stream_name -> allocated budget in ms
+    """
+    if not bids:
+        return {}
+
+    # Sort by effective bid descending
+    sorted_bids = sorted(bids, key=lambda b: b.effective_bid, reverse=True)
+
+    # Determine winners: allocate until budget exhausted
+    allocated = {}
+    remaining = total_budget_ms
+
+    for bid in sorted_bids:
+        if remaining <= 0:
+            allocated[bid.stream_name] = 0.0
+            continue
+
+        # Winner gets their requested amount (if enough budget)
+        award = min(bid.bid_amount_ms, remaining)
+        allocated[bid.stream_name] = award
+        remaining -= award
+
+    # Single-price: all winners pay the lowest winning bid amount
+    winning_bids = [b for b in sorted_bids if allocated.get(b.stream_name, 0) > 0]
+    if winning_bids:
+        lowest_winning = min(
+            allocated[b.stream_name] for b in winning_bids
+            if allocated.get(b.stream_name, 0) > 0
+        )
+        # Apply single-price: cap each winner at the lowest winning amount
+        for b in winning_bids:
+            allocated[b.stream_name] = min(allocated[b.stream_name], lowest_winning)
+
+    return allocated
+
+
 @dataclass
 class BudgetManager:
     """
@@ -114,6 +189,8 @@ class BudgetManager:
 
 
 __all__ = [
+    "AttentionBid",
+    "run_attention_auction",
     "BudgetManager",
     "ResourceBudgetTracker",
     "TokenBudgetManager",
