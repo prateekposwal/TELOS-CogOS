@@ -1,0 +1,453 @@
+"""
+SelectPhase — selects the best intent from synthesized options.
+
+Also integrates the Ω Operator (InquiryStream) to decide whether to
+enter Inquiry Mode (generate a question) or proceed with normal action
+selection.
+
+When the InquiryStream produces a high-value question (Ω > 0.5), the
+pipeline enters Inquiry Mode and the question becomes the selected intent.
+Otherwise, proceeds with normal action selection (commitment optimization).
+
+Fix 3 (Inquiry-to-Action Bridge): Maps question types to concrete sub-pipeline
+actions instead of just setting a passive question intent.
+
+Changes for Continuous Omega Modulator:
+- Sigmoid blend replaces binary inquiry gate
+- Per-axis modulation via omega_vector
+- Tripartite U computed from available SELECT-phase data
+"""
+
+import math
+import numpy as np
+
+from telos.core.phases.base import Phase, PhaseContext
+from telos.core.uncertainty.tripartite import TripartiteUncertainty
+
+
+class SelectPhase(Phase):
+    name = "select"
+
+    def _compute_tripartite_from_available(self, pipeline, ctx):
+        """Compute tripartite uncertainty from data available during SELECT phase.
+        
+        This fixes the timing issue where tripartite U was computed in ACT phase
+        but consumed in SELECT phase.
+        """
+        # Prediction error from attention trajectory divergences
+        attn = getattr(pipeline, '_attention_engine', None)
+        prediction_error = 0.0
+        if attn and hasattr(attn, '_trajectory_divergences') and attn._trajectory_divergences:
+            recent_divs = attn._trajectory_divergences[-3:]
+            prediction_error = min(1.0, sum(recent_divs) / max(len(recent_divs), 1) * 0.5)
+        
+        # Identity entropy — guard against mock/non-numeric values in tests
+        identity_entropy = getattr(pipeline, '_identity_entropy', None)
+        identity_entropy_val = 0.0
+        if identity_entropy is not None:
+            try:
+                raw = identity_entropy.collapse_rate
+                identity_entropy_val = abs(float(raw))
+            except (TypeError, ValueError):
+                identity_entropy_val = 0.0
+        
+        # Council signals (from current or previous cycle)
+        council_signals = []
+        if ctx.verdict:
+            try:
+                council_signals = ctx.verdict.signals
+            except Exception:
+                council_signals = []
+        elif ctx.council and ctx.council.verdict:
+            try:
+                council_signals = ctx.council.verdict.signals
+            except Exception:
+                council_signals = []
+        
+        # Use the classmethod to compute from available data
+        return TripartiteUncertainty.compute_from_available(
+            prediction_error=prediction_error,
+            identity_entropy=identity_entropy_val,
+            council_signals=council_signals,
+        )
+
+    def execute(self, pipeline, ctx: PhaseContext) -> None:
+        # ── Phase 0: Compute tripartite U from SELECT-phase data (Change 3) ──
+        # This replaces the stale ACT-phase values that were previously consumed here
+        tripartite_u = self._compute_tripartite_from_available(pipeline, ctx)
+        pipeline._tripartite_u = tripartite_u
+        
+        # ── Phase 1: Check if InquiryStream has a question worth asking ──
+        # Run the Ω Operator to determine if we should enter Inquiry Mode
+        inquiry_stream = None
+        for stream in pipeline.streams:
+            if stream.__class__.__name__ == "InquiryStream":
+                inquiry_stream = stream
+                break
+
+        if inquiry_stream is not None:
+            # Gather inputs for Ω Operator
+            council_signals = []
+            if ctx.verdict:
+                council_signals = [
+                    {
+                        "validator_name": s.validator_name,
+                        "passed": s.passed,
+                        "confidence": s.confidence,
+                        "reason": s.reason,
+                        "evidence_weight": s.evidence_weight,
+                        "verdict": s.verdict,
+                    }
+                    for s in ctx.verdict.signals
+                ]
+            elif ctx.council and ctx.council.verdict:
+                council_signals = [
+                    {
+                        "validator_name": s.validator_name,
+                        "passed": s.passed,
+                        "confidence": s.confidence,
+                        "reason": s.reason,
+                        "evidence_weight": s.evidence_weight,
+                        "verdict": s.verdict,
+                    }
+                    for s in ctx.council.verdict.signals
+                ]
+
+            meta_state = ctx.meta_cognition if hasattr(ctx, 'meta_cognition') else None
+            budget = {
+                "remaining_ms": max(
+                    0, getattr(pipeline.budget_manager, 'total_budget_ms', 100)
+                    - getattr(pipeline.budget_manager, 'consumed_ms', 0)
+                )
+            }
+
+            # Get or create the OmegaOperator
+            omega_operator = getattr(pipeline, '_omega_operator', None)
+            if omega_operator is None:
+                from telos.core.decision.omega_operator import OmegaOperator
+                omega_operator = OmegaOperator()
+                pipeline._omega_operator = omega_operator
+
+            # Compute the best question and its Ω value
+            sim_engine = getattr(pipeline, '_sim_engine', None)
+            if tripartite_u is not None:
+                best_question, omega_value, omega_vector = omega_operator.compute(
+                    tripartite_u, council_signals, meta_state, budget,
+                    sim_engine=sim_engine,
+                )
+            else:
+                best_question, omega_value, omega_vector = None, 0.0, {
+                    'world': 0.0, 'identity': 0.0, 'other': 0.0,
+                }
+
+            # Store omega_vector in PhaseContext for DecisionTrace
+            ctx.inquiry_omega_vector = omega_vector
+
+            # ── Change 1: Continuous sigmoid blend replaces binary gate ──
+            steepness = 10.0
+            omega_threshold = 0.5
+            if hasattr(pipeline, '_omega_threshold_learner'):
+                omega_threshold = pipeline._omega_threshold_learner.get_threshold()
+            
+            blend = 1.0 / (1.0 + math.exp(-steepness * (omega_value - omega_threshold)))
+            ctx.inquiry_blend = blend
+
+            # ── Change 2: Per-axis modulation ──
+            base_n_worlds = getattr(ctx, 'effective_n_worlds', 5) or 5
+            modulated_n_worlds = int(base_n_worlds * (1.0 + omega_vector.get('world', 0.0) * 2.0))
+            modulated_n_worlds = max(1, min(100, modulated_n_worlds))
+            ctx.effective_n_worlds = modulated_n_worlds
+            
+            identity_cost_weight = 1.0 + omega_vector.get('identity', 0.0)
+            ctx.identity_cost_weight = identity_cost_weight
+            
+            # Store modulation params for downstream phases
+            ctx.omega_modulation = {
+                'n_worlds': modulated_n_worlds,
+                'identity_cost_weight': identity_cost_weight,
+                'other_tolerance': 1.0 + 0.2 * omega_vector.get('other', 0.0),
+            }
+
+            # ── Three regimes based on blend ──
+            if blend < 0.05:
+                # Pure action mode (matches current behavior for Ω << threshold)
+                ctx.inquiry_skipped = True
+                ctx.selected_question = None
+                ctx.inquiry_omega_value = omega_value
+                if inquiry_stream:
+                    inquiry_stream.inquiry_active = False
+                    inquiry_stream.last_question = None
+                    inquiry_stream.last_omega = omega_value
+
+            elif blend > 0.95:
+                # Pure inquiry mode (matches current behavior for Ω >> threshold)
+                ctx.inquiry_skipped = False
+                ctx.selected_question = best_question
+                ctx.inquiry_omega_value = omega_value
+                if inquiry_stream:
+                    inquiry_stream.inquiry_active = True
+                    inquiry_stream.last_question = best_question
+                    inquiry_stream.last_omega = omega_value
+
+                # ── Inquiry-to-Action Bridge (unchanged from original) ──
+                from telos.intent_ir import IntentIR
+                question_id = best_question.get('id', '') if best_question else ''
+                question_type = best_question.get('type', 'proceed') if best_question else 'proceed'
+
+                skip_inquiry = False
+
+                if question_id == 'explore_terrain':
+                    angle = np.random.uniform(0, 2 * np.pi)
+                    action_vec = np.array([np.cos(angle), np.sin(angle)]) * 0.5
+                    ctx.selected_intent = IntentIR(
+                        intent_type="inquiry_explore",
+                        confidence=min(1.0, omega_value),
+                        params={
+                            "question": best_question,
+                            "omega_value": omega_value,
+                            "inquiry_mode": True,
+                            "action_vector": action_vec,
+                            "is_exploratory": True,
+                        },
+                        metadata={
+                            "stream": "inquiry",
+                            "question_id": question_id,
+                            "bridge_action": "random_walk",
+                        },
+                    )
+
+                elif question_id == 'recalibrate_identity':
+                    ctx.selected_intent = IntentIR(
+                        intent_type="inquiry_recalibrate",
+                        confidence=min(1.0, omega_value),
+                        params={
+                            "question": best_question,
+                            "omega_value": omega_value,
+                            "inquiry_mode": True,
+                            "identity_repair": True,
+                            "recovery_mode": True,
+                        },
+                        metadata={
+                            "stream": "inquiry",
+                            "question_id": question_id,
+                            "bridge_action": "identity_repair",
+                        },
+                    )
+                    if hasattr(pipeline, '_meta_cognition'):
+                        try:
+                            pipeline._meta_cognition._force_recovery = True
+                        except AttributeError:
+                            pass
+
+                elif question_id == 'resolve_disagreement':
+                    if hasattr(pipeline, 'council') and ctx.verdict:
+                        for signal in ctx.verdict.signals:
+                            signal.evidence_weight = min(
+                                1.0, signal.evidence_weight * 1.5
+                            )
+                    ctx.selected_intent = IntentIR(
+                        intent_type="inquiry_resolve",
+                        confidence=min(1.0, omega_value),
+                        params={
+                            "question": best_question,
+                            "omega_value": omega_value,
+                            "inquiry_mode": True,
+                            "re_run_council": True,
+                            "higher_evidence_weight": True,
+                        },
+                        metadata={
+                            "stream": "inquiry",
+                            "question_id": question_id,
+                            "bridge_action": "re_weight_council",
+                        },
+                    )
+
+                elif question_id == 'default_navigate':
+                    skip_inquiry = True
+
+                else:
+                    ctx.selected_intent = IntentIR(
+                        intent_type=f"inquiry_{question_type}",
+                        confidence=min(1.0, omega_value),
+                        params={
+                            "question": best_question,
+                            "omega_value": omega_value,
+                            "inquiry_mode": True,
+                        },
+                        metadata={
+                            "stream": "inquiry",
+                            "question_id": question_id,
+                        },
+                    )
+
+                # Record the answer in tripartite uncertainty
+                if hasattr(tripartite_u, 'record_answer'):
+                    tripartite_u.record_answer(question_type)
+
+                if not skip_inquiry:
+                    return  # Skip normal action selection, we're in Inquiry Mode
+                else:
+                    ctx.selected_question = None
+                    ctx.inquiry_skipped = True
+                    ctx.selected_intent = None
+                    if inquiry_stream:
+                        inquiry_stream.inquiry_active = False
+                        inquiry_stream.last_question = None
+
+            else:
+                # Blended mode: composite intent between action and inquiry
+                ctx.inquiry_skipped = False
+                ctx.selected_question = best_question
+                ctx.inquiry_omega_value = omega_value
+                if inquiry_stream:
+                    inquiry_stream.inquiry_active = True
+                    inquiry_stream.last_question = best_question
+                    inquiry_stream.last_omega = omega_value
+
+                # Build a blended intent that mixes action and exploration
+                from telos.intent_ir import IntentIR
+                question_id = best_question.get('id', '') if best_question else ''
+                question_type = best_question.get('type', 'proceed') if best_question else 'proceed'
+
+                # action_vector = (1-blend) * goal_direction + blend * explore_direction
+                # Use the question type to determine exploration direction
+                if question_id == 'explore_terrain':
+                    angle = np.random.uniform(0, 2 * np.pi)
+                    explore_vec = np.array([np.cos(angle), np.sin(angle)]) * 0.5
+                else:
+                    explore_vec = np.array([0.0, 0.0])
+
+                # Get goal direction from world state if available
+                goal_dir = np.array([0.0, 0.0])
+                if hasattr(pipeline, '_goal') and pipeline._goal is not None:
+                    goal = pipeline._goal
+                    if hasattr(ctx, 'state') and ctx.state is not None:
+                        diff = np.array(goal, dtype=float) - ctx.state[:2]
+                        norm = np.linalg.norm(diff)
+                        if norm > 0:
+                            goal_dir = diff / norm
+
+                blended_action = (1.0 - blend) * goal_dir + blend * explore_vec
+                blended_confidence = max(0.5, omega_value) * (0.5 + 0.5 * blend)
+
+                ctx.selected_intent = IntentIR(
+                    intent_type="blended_inquiry",
+                    confidence=min(1.0, blended_confidence),
+                    params={
+                        "question": best_question,
+                        "omega_value": omega_value,
+                        "inquiry_blend": blend,
+                        "inquiry_mode": True,
+                        "action_vector": blended_action,
+                        "is_blended": True,
+                        "goal_weight": 1.0 - blend,
+                        "explore_weight": blend,
+                    },
+                    metadata={
+                        "stream": "inquiry",
+                        "question_id": question_id,
+                        "bridge_action": "blended",
+                        "blend": round(blend, 3),
+                    },
+                )
+
+                # Record the answer in tripartite uncertainty
+                if hasattr(tripartite_u, 'record_answer'):
+                    tripartite_u.record_answer(question_type)
+
+                # Fall through to normal action selection (don't return early)
+                # The blended intent is already set in ctx.selected_intent
+
+        # ── Phase 2: Normal action selection (Commitment Optimization) ──
+        # If Synthesis produced a reconciled intent (and it's not irreconcilable), use it
+        if ctx.synthesis and ctx.synthesis.reconciled_intent and not ctx.synthesis.irreconcilable:
+            # In blended mode, blend the reconciled intent with inquiry intent
+            blend = getattr(ctx, 'inquiry_blend', 0.0)
+            if 0.05 <= blend <= 0.95 and ctx.selected_intent is not None:
+                # Blend: use inquiry intent's action but synthesis confidence
+                blended_conf = max(ctx.selected_intent.confidence, ctx.synthesis.reconciled_intent.confidence) * (0.5 + 0.5 * blend)
+                ctx.selected_intent.confidence = min(1.0, blended_conf)
+                # Keep the blended intent as primary
+            else:
+                ctx.selected_intent = ctx.synthesis.reconciled_intent
+            return
+
+        if ctx.intents:
+            # ── TELOS Commitment Theory (Axiom 5.1): compute C* from all signals ──
+            try:
+                commitment_opt = getattr(pipeline, '_commitment_optimizer', None)
+                infra = getattr(pipeline, '_infra_manager', None)
+                sim = getattr(pipeline, '_sim_engine', None)
+                identity_entropy = getattr(pipeline, '_identity_entropy', None)
+                attn = getattr(pipeline, '_attention_engine', None)
+
+                if commitment_opt and infra:
+                    # Gather signals from tracked components
+                    cost = getattr(infra, 'cost_tracker', None)
+                    if cost is None:
+                        recovery_r = 0.0
+                        maint_r = 0.5
+                    else:
+                        recovery_r = cost.recovery_ratio
+                        maint_r = cost.maintenance_ratio
+                    collapse_rate = identity_entropy.collapse_rate if identity_entropy else 0.0
+                    div = sim.rolling_diversity if sim else 0.0
+                    # Prediction error from attention trajectory divergences
+                    pe = 0.0
+                    if attn and hasattr(attn, '_trajectory_divergences') and attn._trajectory_divergences:
+                        recent_divs = attn._trajectory_divergences[-3:]
+                        pe = min(1.0, sum(recent_divs) / max(len(recent_divs), 1) * 0.5)
+
+                    # Per-axis modulation: identity cost weight
+                    identity_cost_weight = getattr(ctx, 'identity_cost_weight', 1.0)
+
+                    # Low diversity penalty
+                    future_val = min(1.0, div * 2.0) if div > 0 else 0.0
+                    if div < 0.3 and sim and sim.rolling_diversity < 0.3:
+                        future_val = max(0.0, future_val - 0.3)
+
+                    score = commitment_opt.evaluate(
+                        expected_reward=ctx.simulation_confidence or 1.0,
+                        maintenance_cost=maint_r,
+                        recovery_cost=recovery_r,
+                        identity_cost=abs(collapse_rate) * 0.5 * identity_cost_weight,
+                        future_option_value=future_val,
+                        identity_entropy=collapse_rate,
+                        recovery_ratio=recovery_r,
+                        counterfactual_diversity=div,
+                        prediction_error=pe,
+                    )
+                    commitment_mod = score.commitment
+
+                    # Record strain
+                    commitment_opt.strain.record_strain(maint_r, recovery_r)
+                    # Store per-term J(τ) breakdown in context
+                    ctx.j_term_breakdown = {
+                        "expected_reward": score.expected_reward,
+                        "maintenance_cost": score.maintenance_cost,
+                        "recovery_cost": score.recovery_cost,
+                        "identity_cost": score.identity_cost,
+                        "future_option_value": score.future_option_value,
+                        "counterfactual_diversity": score.counterfactual_diversity,
+                        "prediction_error": score.prediction_error,
+                        "commitment": score.commitment,
+                    }
+                else:
+                    commitment_mod = 1.0
+            except Exception:
+                commitment_mod = 1.0
+
+            ctx.commitment_score = commitment_mod if 'score' in dir() else None
+            
+            # Apply blend to intent weighting
+            blend = getattr(ctx, 'inquiry_blend', 0.0)
+            if 0.05 <= blend <= 0.95 and ctx.selected_intent is not None:
+                # In blended mode, keep the blended intent but adjust its weight
+                pass  # ctx.selected_intent already set from blended mode
+            else:
+                ctx.intents = [
+                    (intent, weight * ctx.simulation_confidence * commitment_mod)
+                    for intent, weight in ctx.intents
+                ]
+                ctx.intents.sort(key=lambda x: x[1], reverse=True)
+                ctx.selected_intent = ctx.intents[0][0]

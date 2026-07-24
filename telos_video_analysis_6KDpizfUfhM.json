@@ -1,0 +1,238 @@
+{
+  "video": {
+    "path": "/tmp/telos_video/6KDpizfUfhM.mp4",
+    "duration": 10.043366666666667,
+    "fps": 29.97002997002997,
+    "resolution": "360x640"
+  },
+  "summary": {
+    "segments": 3,
+    "avg_di": 1.0,
+    "avg_md": 1.218,
+    "events": 3,
+    "highlights": 0,
+    "anomalies": 0
+  },
+  "pipeline_results": [
+    {
+      "segment": {
+        "start_frame": 0,
+        "end_frame": 135,
+        "start_time": 0.0,
+        "end_time": 4.5,
+        "avg_brightness": 0.41,
+        "avg_motion": 6.784,
+        "avg_edge_density": 0.087,
+        "face_count": 0,
+        "has_significant_motion": "True",
+        "is_dark": "False",
+        "tags": [
+          "fast-motion",
+          "opening"
+        ],
+        "telos_action": "tag_event",
+        "telos_di": 1.0,
+        "telos_md": 1.406,
+        "council_validated": true
+      },
+      "pipeline": {
+        "cycle": 1,
+        "intent": "perceive",
+        "action": "tag_event",
+        "di": 1.0,
+        "md": 1.406,
+        "council_validated": true,
+        "streams": [
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent": "reflex"
+          },
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": true,
+            "intent": "perceive"
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent": "memory_miss"
+          },
+          {
+            "name": "PlanningStream",
+            "priority": 0.5,
+            "activated": true,
+            "intent": "plan_trajectory"
+          }
+        ],
+        "futures": [
+          {
+            "score": 2.993983815842123
+          },
+          {
+            "score": 2.786590650196441
+          },
+          {
+            "score": 2.6622292801616876
+          },
+          {
+            "score": 2.2550703886234844
+          },
+          {
+            "score": 2.0367178583105496
+          }
+        ]
+      }
+    },
+    {
+      "segment": {
+        "start_frame": 150,
+        "end_frame": 285,
+        "start_time": 5.0,
+        "end_time": 9.51,
+        "avg_brightness": 0.438,
+        "avg_motion": 5.458,
+        "avg_edge_density": 0.034,
+        "face_count": 0,
+        "has_significant_motion": "True",
+        "is_dark": "False",
+        "tags": [
+          "fast-motion",
+          "smooth",
+          "climax"
+        ],
+        "telos_action": "tag_event",
+        "telos_di": 1.0,
+        "telos_md": 1.167,
+        "council_validated": true
+      },
+      "pipeline": {
+        "cycle": 2,
+        "intent": "plan_trajectory",
+        "action": "tag_event",
+        "di": 1.0,
+        "md": 1.167,
+        "council_validated": true,
+        "streams": [
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent": "reflex"
+          },
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": true,
+            "intent": "perceive"
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent": "memory_miss"
+          },
+          {
+            "name": "PlanningStream",
+            "priority": 0.5,
+            "activated": true,
+            "intent": "plan_trajectory"
+          }
+        ],
+        "futures": [
+          {
+            "score": 2.5498120697904794
+          },
+          {
+            "score": 2.44829916589457
+          },
+          {
+            "score": 2.313637768798146
+          },
+          {
+            "score": 2.2603307627493434
+          },
+          {
+            "score": 2.1937493370639856
+          }
+        ]
+      }
+    },
+    {
+      "segment": {
+        "start_frame": 300,
+        "end_frame": 300,
+        "start_time": 10.01,
+        "end_time": 10.01,
+        "avg_brightness": 0.463,
+        "avg_motion": 6.156,
+        "avg_edge_density": 0.08,
+        "face_count": 0,
+        "has_significant_motion": "True",
+        "is_dark": "False",
+        "tags": [
+          "fast-motion",
+          "climax"
+        ],
+        "telos_action": "tag_event",
+        "telos_di": 1.0,
+        "telos_md": 1.081,
+        "council_validated": true
+      },
+      "pipeline": {
+        "cycle": 3,
+        "intent": "memory_miss",
+        "action": "tag_event",
+        "di": 1.0,
+        "md": 1.081,
+        "council_validated": true,
+        "streams": [
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent": "reflex"
+          },
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": true,
+            "intent": "perceive"
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent": "memory_miss"
+          },
+          {
+            "name": "PlanningStream",
+            "priority": 0.5,
+            "activated": true,
+            "intent": "plan_trajectory"
+          }
+        ],
+        "futures": [
+          {
+            "score": 3.462641054462714
+          },
+          {
+            "score": 3.2879914653657347
+          },
+          {
+            "score": 3.188031794748632
+          },
+          {
+            "score": 3.087133695121575
+          },
+          {
+            "score": 2.8506052607022974
+          }
+        ]
+      }
+    }
+  ]
+}
