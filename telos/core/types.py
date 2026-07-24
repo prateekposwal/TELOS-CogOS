@@ -256,6 +256,8 @@ class PipelineConfig:
     experience_index_interval: int = 1
     # Timelock configuration
     timelock_window_cycles: int = 3
+    # Deterministic execution seed
+    deterministic_seed: Optional[int] = None
 
 
 @dataclass

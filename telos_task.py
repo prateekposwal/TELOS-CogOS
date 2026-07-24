@@ -336,6 +336,7 @@ def main():
         ledger_path="/tmp/telos_ledger.json",
         identity_path="/tmp/telos_identity.json",
         pattern_path="/tmp/telos_patterns.json",
+        deterministic_seed=42,  # Ensures reproducible pipeline runs
     ))
     skill_lib = SkillLibrary()
     experience_mgr = ExperienceManager(

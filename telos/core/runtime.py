@@ -160,7 +160,10 @@ class TelosV14Pipeline:
             )
 
         if self.config.simulator:
-            self._sim_engine = CounterfactualEngine(self.config.simulator)
+            self._sim_engine = CounterfactualEngine(
+                self.config.simulator,
+                seed=self.config.deterministic_seed,
+            )
             self._planner = RepresentationPlanner(self.budget_manager)
 
         if self.config.checkpoint_path and self._checkpointer:
