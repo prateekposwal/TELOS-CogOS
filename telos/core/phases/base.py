@@ -163,6 +163,8 @@ class PhaseContext:
     inquiry_omega_vector: Optional[Dict[str, float]] = None
     # Change 4: Continuous omega blend factor
     inquiry_blend: float = 0.0
+    # Bitcoin-inspired voting: decision criticality for Council
+    decision_criticality: str = 'medium'  # 'low', 'medium', 'high', 'critical'
     # Change 2: Per-axis modulation params
     identity_cost_weight: float = 1.0
     omega_modulation: Optional[Dict[str, float]] = None

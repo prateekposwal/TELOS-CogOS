@@ -51,6 +51,8 @@ class CheckpointData:
     session_essence: Optional[Dict] = None
     truncated_history: Optional[List[Dict]] = None
     omega_threshold_learner_data: Optional[Dict] = None
+    # ── Bitcoin-inspired Chain ──────────────────────────────────────────
+    prev_checkpoint_hash: str = ""  # SHA-256 of the previous checkpoint
 
 
 class CheckpointManager:
@@ -70,6 +72,22 @@ class CheckpointManager:
         self._last_save_path: Optional[Path] = None
         self._save_count: int = 0
         self._hmac_key = os.environ.get('TELOS_CHECKPOINT_SECRET', 'telos-dev-key').encode()
+        # ── Checkpoint Chain ────────────────────────────────────────────
+        self._last_checkpoint_hash: str = ""  # SHA-256 of last saved checkpoint
+        # On init, load the latest checkpoint's hash to continue the chain
+        latest = self.latest_path
+        if latest:
+            try:
+                with open(latest) as lf:
+                    raw = json.load(lf)
+                # Reconstruct the hash that was stored as prev_checkpoint_hash
+                # for the NEXT checkpoint
+                stored_prev = raw.get("prev_checkpoint_hash", "")
+                if stored_prev:
+                    self._last_checkpoint_hash = stored_prev
+                    logger.debug(f"CheckpointChain initialized with prev_hash={stored_prev[:16]}...")
+            except Exception:
+                pass
         CHECKPOINT_SCHEMA = {
             "type": "object",
             "properties": {
@@ -161,7 +179,15 @@ class CheckpointManager:
             "session_essence": data.session_essence,
             "truncated_history": data.truncated_history,
             "omega_threshold_learner": data.omega_threshold_learner_data,
+            # ── Checkpoint Chain ───────────────────────────────────────────
+            "prev_checkpoint_hash": self._last_checkpoint_hash,
         }
+        # Compute this checkpoint's own hash for chain continuity
+        raw_for_hash = json.dumps(payload, default=str, sort_keys=True)
+        checkpoint_hash = hashlib.sha256(raw_for_hash.encode()).hexdigest()
+        data.prev_checkpoint_hash = checkpoint_hash
+        payload["prev_checkpoint_hash"] = checkpoint_hash
+        self._last_checkpoint_hash = checkpoint_hash
         payload["hmac"] = self._compute_hmac(payload)
         with open(tmp_path, "w") as f:
             json.dump(payload, f, indent=2, default=str)
@@ -207,7 +233,45 @@ class CheckpointManager:
                 session_essence=raw.get("session_essence"),
                 truncated_history=raw.get("truncated_history"),
                 omega_threshold_learner_data=raw.get("omega_threshold_learner"),
+                prev_checkpoint_hash=raw.get("prev_checkpoint_hash", ""),
             )
+
+            # ── Checkpoint Chain Verification ────────────────────────────────
+            # Every checkpoint stores prev_checkpoint_hash which is the hash of
+            # the previous checkpoint. Verify chain continuity.
+            if data.prev_checkpoint_hash:
+                # Load the previous checkpoint and verify its hash matches
+                prev_path = self._path / f"checkpoint_{max(0, data.cycle - 1):04d}.json"
+                if prev_path.exists():
+                    try:
+                        with open(prev_path) as pf:
+                            prev_raw = json.load(pf)
+                        # Verify: compute hash of previous checkpoint
+                        prev_hmac = prev_raw.pop("hmac", None)
+                        prev_raw_for_hash = json.dumps(prev_raw, default=str, sort_keys=True)
+                        prev_computed_hash = hashlib.sha256(prev_raw_for_hash.encode()).hexdigest()
+                        # The current checkpoint's prev_checkpoint_hash should match
+                        # the hash of the previous checkpoint
+                        stored_prev_hash = data.prev_checkpoint_hash
+                        if stored_prev_hash != prev_computed_hash:
+                            logger.warning(
+                                f"Checkpoint chain MISMATCH: checkpoint {data.cycle} "
+                                f"claims prev_hash={stored_prev_hash[:16]}... but "
+                                f"checkpoint {data.cycle-1} computes to {prev_computed_hash[:16]}..."
+                            )
+                        else:
+                            logger.debug(
+                                f"Checkpoint chain verified: cycle {data.cycle} → "
+                                f"prev_hash matches cycle {data.cycle-1}"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Checkpoint chain verification failed: {e}")
+                else:
+                    logger.debug(f"Checkpoint chain: no previous checkpoint to verify (cycle {data.cycle})")
+
+                # Update the chain tracker
+                self._last_checkpoint_hash = data.prev_checkpoint_hash
+
             logger.info(f"Checkpoint loaded: {path} (cycle {data.cycle})")
             return data
         except (json.JSONDecodeError, OSError) as e:

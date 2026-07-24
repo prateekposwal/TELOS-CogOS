@@ -87,6 +87,33 @@ class CouncilVerdict:
         esc = f" | ESCALATED by: {', '.join(escalations)}" if escalations else ""
         return f"Council: {passed}/{total} passed, DI={self.decision_integrity:.3f}, MD={self.mission_drift:.3f}, {blk}{esc}"
 
+@dataclass
+class CouncilConfig:
+    voting_threshold: str = "unanimous"
+    decision_criticality: str = "medium"
+
+    def resolve_threshold(self, n_validators: int) -> int:
+        if self.voting_threshold == "unanimous":
+            return n_validators
+        elif self.voting_threshold == "supermajority_2/3":
+            import math
+            return max(1, math.ceil(2.0 / 3.0 * n_validators))
+        elif self.voting_threshold == "simple_majority":
+            return max(1, n_validators // 2 + 1)
+        else:
+            return n_validators
+
+    @classmethod
+    def from_criticality(cls, criticality: str) -> "CouncilConfig":
+        mapping = {
+            "critical": "unanimous",
+            "high": "supermajority_2/3",
+            "medium": "simple_majority",
+            "low": "simple_majority",
+        }
+        threshold = mapping.get(criticality, "simple_majority")
+        return cls(voting_threshold=threshold, decision_criticality=criticality)
+
 
 class Validator(ABC):
     """Abstract interface for all Council Advisors.

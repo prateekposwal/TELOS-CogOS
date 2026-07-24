@@ -1,10 +1,16 @@
+"""
+StreamPhase — executes cognitive streams with attention auction.
+"""
 import time
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Tuple, Optional
 import numpy as np
+import hashlib
 
 from telos.core.phases.base import Phase, PhaseContext, StreamActivation
+from telos.core.attention import AttentionBid, run_attention_auction
+from telos.core.trace.psdt import PSDT, PartialDecision
 
 logger = logging.getLogger('telos_pipeline')
 
@@ -32,6 +38,9 @@ class StreamPhase(Phase):
     name = "streams"
 
     def execute(self, pipeline, ctx: PhaseContext) -> None:
+        # ── PSDT: Initialize Partially Signed Decision Trace for this cycle ──
+        ctx.psdt = PSDT()
+
         plan_shortcut = pipeline.planning_horizon.has_plan
         if plan_shortcut:
             planned_intent = pipeline.planning_horizon.get_next_step()
@@ -144,6 +153,34 @@ class StreamPhase(Phase):
 
             stream_tasks.append((stream, stream_name, influence))
 
+        # ── Bitcoin-inspired Attention Budget Auction ─────────────────────
+        # Before executing streams, collect bids and run the auction.
+        # Each stream bids for compute ms; the highest bidder wins priority.
+        if stream_tasks:
+            auction_bids = []
+            for stream, name, influence in stream_tasks:
+                base_budget = getattr(stream, 'estimated_cost_ms', 5.0)
+                priority = stream.priority
+                # Streams can bid their base budget plus extra from unused budget
+                bid_amount = base_budget * (1.0 + influence * 0.5)  # influence-weighted bid
+                auction_bids.append(AttentionBid(
+                    stream_name=name,
+                    bid_amount_ms=bid_amount,
+                    priority_multiplier=priority,
+                    base_budget_ms=base_budget,
+                ))
+
+            # Run the auction
+            total_remaining = pipeline.budget_manager.total_budget_ms - pipeline.budget_manager.consumed_ms
+            auction_results = run_attention_auction(auction_bids, total_remaining)
+            logger.debug(f"Attention auction results: {auction_results}")
+
+            # Apply auction results: filter out streams that got zero allocation
+            stream_tasks = [
+                (s, n, inf) for s, n, inf in stream_tasks
+                if auction_results.get(n, 0) > 0
+            ]
+
         # Execute streams — parallel if configured and enough streams
         parallel = getattr(pipeline.config, 'parallel_streams', False)
         if parallel and len(stream_tasks) >= 2:
@@ -193,6 +230,19 @@ class StreamPhase(Phase):
                 budget_remaining_ms=pipeline.budget_manager.total_budget_ms - pipeline.budget_manager.consumed_ms,
                 activated=True,
             ))
+
+            # ── PSDT: Record partial decision for this stream ──
+            if hasattr(ctx, 'psdt') and ctx.psdt is not None:
+                evidence_raw = f"{stream_name}:{int(intent.confidence * 100)}:{int(cost)}:{ctx.cycle_count}"
+                evidence_hash = hashlib.sha256(evidence_raw.encode()).hexdigest()[:16]
+                partial = PartialDecision(
+                    stream_name=stream_name,
+                    stream_priority=stream.priority,
+                    intent_type=intent.intent_type,
+                    confidence=intent.confidence,
+                    evidence_hash=evidence_hash,
+                )
+                ctx.psdt.add_partial(partial)
 
             if intent.confidence < 0.3:
                 if calibrator is not None:
