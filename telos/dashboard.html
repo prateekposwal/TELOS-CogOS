@@ -170,6 +170,18 @@
     <div class="value" id="omega-value" style="font-size:14px;">—</div>
     <div class="sub" id="omega-sub">Inquiry stream</div>
   </div>
+  
+  <div class="metric-card" id="score-card" style="display:none;">
+    <div class="label">🏆 Score</div>
+    <div class="value" id="score-value" style="font-size:18px;">100</div>
+    <div class="sub">Time pressure (⬇1/cycle)</div>
+  </div>
+  
+  <div class="metric-card" id="agent2-card" style="display:none;">
+    <div class="label">🔵 Agent2</div>
+    <div class="value" id="agent2-value" style="font-size:16px;">—</div>
+    <div class="sub">Competitor status</div>
+  </div>
 
   <div>
     <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;font-weight:700;margin-bottom:4px;">Cognitive Streams</div>
@@ -273,6 +285,7 @@ const state = {
   traces: [], diHistory: [], mdHistory: [], cycleLabels: [],
   gridSize: 5, blocked: [[1,1],[2,2],[3,1]], rewards: {'0,4':10,'4,0':5},
   goal: [4,4], position: [0,0], animPos: [0,0], prevPos: [0,0], animT: 0,
+  agent2Pos: [4,0], agent2Reward: 0,
   visited: [], time: 0,
   selectedCycle: -1, autoRefresh: false, rewardFlash: 0,
   particles: [],
@@ -1216,6 +1229,7 @@ function drawGrid3D(canvas) {
   
   // === TELOS orb ===
   drawTELOS(ctx);
+  drawAgent2(ctx);
   // ── Second Agent (upgrade 5) ──
   drawAgent2(ctx);
   
@@ -1364,6 +1378,57 @@ function drawTELOS(ctx) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText('TELOS', sx, floatY - orbRadius - 3);
+}
+
+// ─── Agent2 Character (Blue competitor) ───
+function drawAgent2(ctx) {
+  if (!state.agent2Pos) return;
+  const { hs } = ISO;
+  const { sx, sy } = isoToScreen(state.agent2Pos[0], state.agent2Pos[1]);
+  const tt = getTerrainAt(state.agent2Pos[0], state.agent2Pos[1]);
+  const hPx = (TH[tt] || 0) * hs;
+  const breath = Math.sin(state.time * 1.5) * 1.5;
+  const topY = hPx >= 0 ? sy - hPx + breath : sy + breath;
+  const floatY = topY - 28 + Math.sin(state.time * 2 + 1.5) * 3;
+  const orbPulse = Math.sin(state.time * 3 + 1) * 0.15 + 0.85;
+  const orbRadius = 8 + Math.sin(state.time * 2.5 + 1) * 1.5;
+  
+  // Outer glow
+  const grad = ctx.createRadialGradient(sx, floatY, 0, sx, floatY, orbRadius * 4);
+  grad.addColorStop(0, `rgba(74,144,255,${orbPulse * 0.3})`);
+  grad.addColorStop(0.4, `rgba(74,144,255,${orbPulse * 0.1})`);
+  grad.addColorStop(1, 'rgba(74,144,255,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(sx, floatY, orbRadius * 4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Orb body
+  const orbGrad = ctx.createRadialGradient(
+    sx - orbRadius * 0.3, floatY - orbRadius * 0.3, 0,
+    sx, floatY, orbRadius
+  );
+  orbGrad.addColorStop(0, `rgba(200,220,255,${orbPulse})`);
+  orbGrad.addColorStop(0.3, `rgba(100,180,255,${orbPulse * 0.9})`);
+  orbGrad.addColorStop(0.7, `rgba(50,120,255,${orbPulse * 0.7})`);
+  orbGrad.addColorStop(1, `rgba(20,60,200,${orbPulse * 0.3})`);
+  ctx.fillStyle = orbGrad;
+  ctx.beginPath();
+  ctx.arc(sx, floatY, orbRadius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Inner core
+  ctx.fillStyle = `rgba(255,255,255,${orbPulse * 0.4})`;
+  ctx.beginPath();
+  ctx.arc(sx - orbRadius * 0.2, floatY - orbRadius * 0.2, orbRadius * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Label
+  ctx.fillStyle = `rgba(150,200,255,${0.3 + Math.sin(state.time * 2 + 1) * 0.1})`;
+  ctx.font = 'bold 8px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('Agent2', sx, floatY - orbRadius - 3);
 }
 
 // ─── Second Agent (blue marker, upgrade 5) ───
@@ -1737,6 +1802,10 @@ function applyTrace(trace) {
   // ── Upgrades: agent2, score, terrain ──
   if (trace.agent2_pos) {
     state.agent2Pos = trace.agent2_pos;
+    var a2val = document.getElementById('agent2-value');
+    var a2card = document.getElementById('agent2-card');
+    if (a2val) a2val.textContent = `(${trace.agent2_pos[0]},${trace.agent2_pos[1]})`;
+    if (a2card) a2card.style.display = '';
   }
   if (trace.agent2_reward !== undefined) {
     state.agent2Reward = trace.agent2_reward;
@@ -1744,7 +1813,9 @@ function applyTrace(trace) {
   if (trace.score !== undefined) {
     state.score = trace.score;
     var scoreEl = document.getElementById('score-value');
+    var scoreCard = document.getElementById('score-card');
     if (scoreEl) scoreEl.textContent = Math.round(state.score);
+    if (scoreCard) scoreCard.style.display = '';
   }
   if (trace.terrain_changes && trace.terrain_changes.length > 0) {
     state.terrainChanges = trace.terrain_changes;
