@@ -212,12 +212,15 @@
           <span title="Sandy terrain, slight penalty">🏜️ Desert · ×1.5 · Sandy</span>
           <span title="Very slow, costs 4x">⛰️ Mountain · ×4 · Very Slow</span>
           <span title="Impassable, cannot enter">🧱 Blocked · Cannot enter</span>
+          <span title="Dynamic — changes every 3 cycles">🌋 Dynamic terrain</span>
+          <span title="Beyond distance 2 — hidden">🌫️ Fog of war</span>
+          <span title="Competing for rewards">🔵 Agent2</span>
         </div>
-        <div style="text-align:center;margin-top:8px;font-size:14px;color:#888;">
-          TELOS (⚡) avoids high-cost terrain and blocked cells, prefers Plains & Desert
+        <div style="text-align:center;margin-top:8px;font-size:13px;color:#888;line-height:1.6;">
+          TELOS (⚡) navigates foggy, shifting terrain toward Goal (🔮) · Collect ⭐ Rewards (+10, +5, +3, +2) · Compete with 🔵 Agent2 · Time costs 1 pt/cycle
         </div>
-        <div style="margin-top:10px;padding:12px 16px;background:#181825;border-radius:8px;font-size:14px;color:#999;line-height:1.7;">
-          <b style="color:#ccc;">Navigation Flow:</b> TELOS senses terrain cost per cell → chooses lowest-cost path toward Goal (🔮) → ⭐ Rewards boost score → blocking validators check obstacles & drift
+        <div style="margin-top:10px;padding:12px 16px;background:#181825;border-radius:8px;font-size:13px;color:#999;line-height:1.7;">
+          <b style="color:#ccc;">Navigation Flow:</b> TELOS sees only nearby cells (🌫️ fog) → senses terrain cost per cell → terrain shifts every 3 cycles (🌋 dynamic) → chooses path toward Goal (🔮) → ⭐ Rewards boost score but 🔵 Agent2 competes for them → time pressure (-1 pt/cycle) → Council validates → Curiosity Drive generates self-intents when bored
         </div>
       </div>
       <div class="pipeline-panel">
