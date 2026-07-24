@@ -152,6 +152,40 @@ class MissionPolicyManager:
         self._domain_pulls: Dict[str, int] = {}
         self._domain_rewards: Dict[str, float] = {}
 
+
+    def apply_curiosity_modulation(self, curiosity_bonus: float) -> None:
+        """Temporarily modulate exploration budget by curiosity bonus.
+
+        When curiosity is high, the system allocates more compute to
+        simulation (counterfactual worlds). This is a multiplicative
+        modulation applied on top of the base exploration_budget.
+
+        The effect is temporary - the base budget is not permanently changed;
+        the caller (Pipeline) applies the bonus when computing n_worlds.
+        This method is informational - it logs the modulation and records
+        it in the change log for audit transparency.
+
+        Args:
+            curiosity_bonus: Multiplier from CuriosityDrive.get_curiosity_bonus()
+                            (1.0 = no modulation, 1.5 = 50% more exploration).
+        """
+        if curiosity_bonus <= 1.0:
+            return  # no modulation needed
+        modulated_budget = min(1.0, self._current.exploration_budget * curiosity_bonus)
+        logger.info(
+            "Curiosity modulation: exploration_budget "
+            f"{self._current.exploration_budget:.3f} x {curiosity_bonus:.2f} "
+            f"-> {modulated_budget:.3f} (effective)"
+        )
+        self._change_log.record(
+            "exploration_budget_effective",
+            self._current.exploration_budget,
+            modulated_budget,
+            reason=f"curiosity_bonus={curiosity_bonus:.2f}",
+            caller="curiosity_drive",
+            cycle=0,
+        )
+
     def set_policy(self, policy: MissionPolicy) -> None:
         """Replace the current policy and reset budget anchor."""
         self._policy_history.append({

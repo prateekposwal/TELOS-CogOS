@@ -150,6 +150,9 @@ def build_trace(
         intent_timelock=intent_timelock,
         # ── Inquiry Summary ─────────────────────────────────────────────
         inquiry_summary=inquiry_summary,
+        # ── Curiosity Drive ──────────────────────────────────────────────
+        curiosity_state=getattr(ctx, 'curiosity_state', None),
+        curiosity_bonus=getattr(ctx, 'curiosity_bonus', 1.0),
     )
 
     # ── Merkle Proof of Reasoning (Bitcoin-inspired) ──────────────────────

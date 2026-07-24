@@ -120,6 +120,10 @@ class DecisionTrace:
     # ── Inquiry summary (alias used in decision_core) ─────────────────────
     inquiry_summary: Optional[Dict] = None
 
+    # ── Curiosity Drive (intrinsic motivation) ─────────────────────────────
+    curiosity_state: Optional[Dict] = None           # CuriosityDrive.get_report()
+    curiosity_bonus: float = 1.0                     # CuriosityDrive.get_curiosity_bonus()
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "cycle_id": self.cycle_id,
@@ -202,6 +206,8 @@ class DecisionTrace:
             "reasoning_witness": self.reasoning_witness,
             "decision_core": self.decision_core,
             "inquiry_summary": self.inquiry_summary,
+            "curiosity_state": self.curiosity_state,
+            "curiosity_bonus": self.curiosity_bonus,
         }
 
     def to_dict_core_only(self) -> Dict[str, Any]:
@@ -220,6 +226,8 @@ class DecisionTrace:
             "identity_state": self.identity_state,
             "merkle_root": self.merkle_root,
             "inquiry_summary": self.inquiry_summary,
+            "curiosity_state": self.curiosity_state,
+            "curiosity_bonus": self.curiosity_bonus,
         }
 
     def to_dict_with_witness(self) -> Dict[str, Any]:
