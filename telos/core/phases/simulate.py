@@ -42,6 +42,7 @@ class SimulatePhase(Phase):
                 ctx.sim_options = pipeline._sim_engine.generate_options(
                     ctx.state, ctx.effective_horizon, ctx.effective_n_worlds,
                     attention_allocation=alloc_dict,
+                    cycle=getattr(ctx, 'cycle_count', 0),
                 )
                 ctx.worlds_generated = len(ctx.sim_options)
                 ctx.strategic_options_data = [

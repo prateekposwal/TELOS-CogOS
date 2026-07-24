@@ -83,8 +83,8 @@ class CounterfactualEngine:
 
     def __init__(self, simulator: DomainSimulator, n_repetitions: int = 3, seed: Optional[int] = None):
         self.simulator = simulator
-        self._rng = np.random.RandomState(seed) if seed is not None else None
         self._seed = seed
+        self._rng = None  # Per-cycle: initialized in generate_options
         self._last_options: List[StrategicOption] = []
         self._last_state: Optional[np.ndarray] = None
         self._last_horizon: int = 0
@@ -238,6 +238,7 @@ class CounterfactualEngine:
         horizon: int,
         n_worlds: int,
         attention_allocation: Optional[Dict] = None,
+        cycle: int = 0,
     ) -> List[StrategicOption]:
         """Generate and rank alternative futures with uncertainty quantification.
 
@@ -250,6 +251,11 @@ class CounterfactualEngine:
 
         Returns options sorted by mean score descending.
         """
+        # Per-cycle seed: different each cycle, but same cycle + same base seed = reproducible
+        if self._seed is not None:
+            self._rng = np.random.RandomState(self._seed + cycle)
+        else:
+            self._rng = None
         worlds = self.generate_worlds(state, horizon, n_worlds, attention_allocation)
         if not worlds:
             self._last_options = []
