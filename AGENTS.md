@@ -17,6 +17,9 @@
 - **3D isometric GridWorld** dashboard with orbit/zoom/click controls
 - **12 Bitcoin-inspired upgrades** — UTXO traces, Merkle proofs, PSDT, timelocks, SegWit split, checkpoint chain, difficulty adjustment, voting thresholds, mempool, attention auction, halving, constraint opcodes
 - **Deterministic execution** — cycle-aware seeding for reproducible runs
+- **Curiosity Drive** — intrinsic motivation via learning progress + boredom detection
+- **5 GridWorld upgrades** — Dynamic terrain, Fog of war, Multiple goals, Time pressure, Second agent
+- **135 Python files, 24,091 lines, 15 git commits**
 
 ## All shipping blockers fixed
 - ✅ Firewall loop detection tuned (3→4 threshold, available_moves check)
