@@ -16,7 +16,6 @@ import json
 import http.client
 import time
 import os
-import random
 from typing import Set, Dict, Tuple, Optional, List
 
 logger = logging.getLogger('telos_task')
@@ -56,7 +55,7 @@ GOAL = np.array([4, 4])
 
 # ─── P0: Obstacles + Rewards + Terrain ──────────────────────────────────────────
 DEFAULT_BLOCKED: Set[Tuple[int, int]] = {(1, 1), (2, 2), (3, 1)}
-DEFAULT_REWARDS: Dict[Tuple[int, int], float] = {(0, 4): 10.0, (4, 0): 5.0, (2, 4): 3.0, (4, 2): 2.0}
+DEFAULT_REWARDS: Dict[Tuple[int, int], float] = {(0, 4): 10.0, (4, 0): 5.0}
 GRID_SIZE = 5
 
 # Terrain types: each cell gets a terrain biome that affects movement cost
@@ -141,42 +140,9 @@ class GridSim(DomainSimulator):
         self.blocked = blocked or DEFAULT_BLOCKED
         self.rewards = rewards or DEFAULT_REWARDS
         self.position = np.array([0.0, 0.0])
-        self._cycle: int = 0
-        self.terrain_changes: List[Dict] = []
 
     def initialize(self): pass
     def cleanup(self): pass
-
-    @property
-    def visible_cells(self) -> Set[Tuple[int, int]]:
-        """Fog of War: cells within Manhattan distance <= 2 of TELOS."""
-        pos = (int(round(self.position[0])), int(round(self.position[1])))
-        return {(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)
-                if abs(x - pos[0]) + abs(y - pos[1]) <= 2}
-
-    def maybe_shift_terrain(self) -> List[Dict]:
-        """Dynamic Terrain: every 3 cycles, shift 2 random cells."""
-        self._cycle += 1
-        self.terrain_changes = []
-        if self._cycle % 3 != 0:
-            return []
-        cells = [(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)]
-        # Don't change blocked, goal, or cells with >= 4 cost
-        candidates = [(x, y) for x, y in cells
-                      if (x, y) not in self.blocked and (x, y) != (4, 4)]
-        if len(candidates) < 2:
-            return []
-        chosen = random.sample(candidates, 2)
-        terrain_types = ['plains', 'forest', 'water', 'desert', 'mountain']
-        changes = []
-        for cx, cy in chosen:
-            old = TERRAIN.get((cx, cy), 'plains')
-            new = random.choice([t for t in terrain_types if t != old])
-            TERRAIN[(cx, cy)] = new
-            changes.append({'x': cx, 'y': cy, 'old': old, 'new': new})
-            logger.info(f"🌋 Cell ({cx},{cy}) changed: {old} → {new}")
-        self.terrain_changes = changes
-        return changes
 
     def legal_transitions(self, s):
         moves = [np.array([1, 0]), np.array([-1, 0]), np.array([0, 1]), np.array([0, -1])]
@@ -214,25 +180,19 @@ class GridSim(DomainSimulator):
     def get_facts(self, s):
         dist = float(np.linalg.norm(GOAL - s))
         key = (int(round(s[0])), int(round(s[1])))
-        self.position = s.copy()  # Track position for visible_cells
-        visible = self.visible_cells
-        # Fog of War: only return data for visible cells
-        visible_terrain = {str(k): TERRAIN.get(k, 'unknown') for k in visible}
-        visible_blocked = [list(b) for b in self.blocked if tuple(b) in visible]
-        visible_rewards = {str(k): v for k, v in self.rewards.items() if k in visible}
-        terrain_here = TERRAIN.get(key, 'unknown')
-        cost = TERRAIN_COST.get(terrain_here, 1.0) if terrain_here != 'unknown' else 1.0
-        reward = self.rewards.get(key, 0.0) if key in visible else 0.0
+        reward = self.rewards.get(key, 0.0)
         near_reward = max(
             (v for k, v in self.rewards.items()
-             if k in visible and np.linalg.norm(np.array(k) - s) < 2.0),
+             if np.linalg.norm(np.array(k) - s) < 2.0),
             default=0.0,
         )
+        terrain_here = TERRAIN.get(key, 'plains')
+        cost = TERRAIN_COST.get(terrain_here, 1.0)
         return DomainFacts(
             state=s.copy(),
             resources={"distance": dist, "reward_near": near_reward, "terrain_cost": cost},
             constraints=["obstacle_near"] if any(
-                np.linalg.norm(np.array(b) - s) < 1.5 for b in self.blocked if tuple(b) in visible
+                np.linalg.norm(np.array(b) - s) < 1.5 for b in self.blocked
             ) else [],
             events=["on_reward"] if reward > 0 else [],
             metrics={"distance": dist, "uncertainty": 0.1, "reward": reward, "terrain_cost": cost},
@@ -242,14 +202,11 @@ class GridSim(DomainSimulator):
                 "rewards": {str(k): v for k, v in self.rewards.items()},
                 "terrain": {str(k): v for k, v in TERRAIN.items()},
                 "current_terrain": terrain_here,
-                "visible_terrain": visible_terrain,
-                "visible_blocked": visible_blocked,
-                "visible_rewards": visible_rewards,
                 "causal_edges": [
-                    "position -> distance",
-                    "action -> position",
-                    "position -> nearby_obstacles",
-                    "position -> terrain_type",
+                    "position → distance",
+                    "action → position",
+                    "position → nearby_obstacles",
+                    "position → terrain_type",
                 ],
             },
         )
@@ -281,79 +238,11 @@ class GridAdpt(DomainAdapter):
     def name(self): return "gridworld"
 
 
-
-# ─── GridAgent: Second Agent (upgrade 5) ──────────────────────────────────────
-
-class GridAgent:
-    """Simple agent that moves toward nearest unvisited reward."""
-
-    def __init__(self, start_pos=(4, 0), blocked=None, rewards=None):
-        self.position = np.array(start_pos, dtype=float)
-        self.blocked = blocked or DEFAULT_BLOCKED
-        self.rewards = rewards or DEFAULT_REWARDS
-        self.visited = set()
-        self.visited.add(start_pos)
-        self.total_reward = 0.0
-        self.goal_reached = False
-
-    def decide_action(self) -> np.ndarray:
-        """Move toward nearest unvisited reward."""
-        pos_key = (int(round(self.position[0])), int(round(self.position[1])))
-
-        # Find nearest unvisited reward
-        best_dist = float('inf')
-        best_target = None
-        for r_pos, r_val in self.rewards.items():
-            if r_pos in self.visited:
-                continue
-            d = np.linalg.norm(np.array(r_pos) - self.position)
-            if d < best_dist:
-                best_dist = d
-                best_target = r_pos
-
-        if best_target is None:
-            best_target = (4, 4)  # Move toward goal
-
-        # Pick best cardinal direction toward target
-        diff = np.array(best_target) - self.position
-        if np.linalg.norm(diff) < 0.5:
-            return np.array([0, 0])
-
-        moves = [np.array([1, 0]), np.array([-1, 0]), np.array([0, 1]), np.array([0, -1])]
-        best_move = None
-        best_score = float('inf')
-
-        for a in moves:
-            n = np.clip(self.position + a, 0, GRID_SIZE - 1)
-            key = (int(round(n[0])), int(round(n[1])))
-            if key in self.blocked:
-                continue
-            new_dist = np.linalg.norm(np.array(best_target) - n)
-            if new_dist < best_score:
-                best_score = new_dist
-                best_move = a
-
-        return best_move if best_move is not None else np.array([0, 0])
-
-    def step(self) -> Tuple[int, int]:
-        """Execute one step: decide action and move."""
-        action = self.decide_action()
-        new_pos = np.clip(self.position + action, 0, GRID_SIZE - 1)
-        key = (int(round(new_pos[0])), int(round(new_pos[1])))
-        if key not in self.blocked:
-            self.position = new_pos
-        self.visited.add(key)
-        if key == (4, 4):
-            self.goal_reached = True
-        return key
-
-
 # ─── P1: ASCII Grid Rendering ───────────────────────────────────────────────
 
 def render_grid(state: np.ndarray, blocked: Set[Tuple[int, int]],
-                rewards: Dict[Tuple[int, int], float],
-                agent2_pos: Optional[np.ndarray] = None) -> str:
-    """Render a 5x5 grid with terrain, TELOS, goal, obstacles, rewards, and second agent."""
+                rewards: Dict[Tuple[int, int], float]) -> str:
+    """Render a 5x5 grid with terrain, TELOS, goal, obstacles, and rewards."""
     lines = ["    0  1  2  3  4"]
     for y in range(GRID_SIZE):
         row = [f"  {y} "]
@@ -362,13 +251,11 @@ def render_grid(state: np.ndarray, blocked: Set[Tuple[int, int]],
             terrain_emoji = TERRAIN_EMOJI.get(TERRAIN.get(pos, 'plains'), '·')
             if int(round(state[0])) == x and int(round(state[1])) == y:
                 row.append("🔴T")
-            elif agent2_pos is not None and int(round(agent2_pos[0])) == x and int(round(agent2_pos[1])) == y:
-                row.append("🔵A")
             elif (GOAL == np.array([x, y])).all():
                 row.append("🟩G")
             elif pos in blocked:
                 row.append("🧱 ")
-            elif pos in rewards and rewards[pos] > 0:
+            elif pos in rewards:
                 row.append("⭐ ")
             else:
                 row.append(terrain_emoji)
@@ -376,13 +263,12 @@ def render_grid(state: np.ndarray, blocked: Set[Tuple[int, int]],
         lines.append("".join(row))
     return "\n".join(lines)
 
+
 # ─── P2: Benchmark Metrics ──────────────────────────────────────────────────
 
 class BenchmarkMetrics:
-    """Tracks and reports pipeline performance metrics across a session.
-    
-    Includes time pressure scoring (upgrade 4).
-    """
+    """Tracks and reports pipeline performance metrics across a session."""
+
     def __init__(self):
         self.steps: int = 0
         self.blocks: int = 0
@@ -393,13 +279,8 @@ class BenchmarkMetrics:
         self.start_time: float = time.time()
         self.recovery_cycles: int = 0
         self.last_blocked: bool = False
-        # Time pressure (upgrade 4)
-        self.total_score: float = 100.0
-        self.time_cost: float = 0.0
-        self.reward_collected: float = 0.0
-        self.goal_bonus: float = 0.0
 
-    def record_step(self, result, trace, reward_collected=0.0):
+    def record_step(self, result, trace):
         self.steps += 1
         if trace:
             self.di_history.append(trace.decision_integrity)
@@ -412,18 +293,9 @@ class BenchmarkMetrics:
             self.last_blocked = True
         else:
             self.last_blocked = False
-        # Time pressure: each cycle costs 1 point
-        self.time_cost += 1.0
-        self.total_score -= 1.0
-        # Add collected rewards
-        if reward_collected > 0:
-            self.reward_collected += reward_collected
-            self.total_score += reward_collected
 
     def mark_goal(self):
         self.goal_reached = True
-        self.goal_bonus = 50.0
-        self.total_score += 50.0
 
     def report(self) -> str:
         elapsed = time.time() - self.start_time
@@ -444,10 +316,10 @@ class BenchmarkMetrics:
             f"  Mean Alternatives: {alt_mean:.1f} per cycle",
             f"  Total Worlds Sim:  {sum(self.worlds_history)}",
             f"  Elapsed:           {elapsed:.1f}s",
-            f"  Final Score:       {self.total_score:.1f} (time cost: {self.time_cost:.0f}, rewards: {self.reward_collected:.1f}, goal bonus: +{self.goal_bonus:.0f})",
             "=" * 50,
         ]
         return "\n".join(lines)
+
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
@@ -520,11 +392,6 @@ def main():
 
     metrics = BenchmarkMetrics()
 
-    # ─── Initialize second agent (upgrade 5) ───────────────────────────────
-    agent2 = GridAgent(start_pos=(4, 0), blocked=sim.blocked, rewards=sim.rewards)
-    print(f"🔵 Second Agent starts at (4,0) — moves toward nearest unvisited reward")
-
-
     print("\nTELOS is performing a task: Navigate from (0,0) to (4,4)")
     print("Avoid obstacles (█), collect rewards (⭐), reach the goal (G).")
     print("TELOS now remembers who you are across cycles.")
@@ -546,7 +413,7 @@ def main():
         kg_context = kg_ingestion.pre_cycle(USER_NAME, step_count)
 
         # Render the grid
-        grid = render_grid(state, sim.blocked, sim.rewards, agent2.position)
+        grid = render_grid(state, sim.blocked, sim.rewards)
         print(grid)
 
         try:
@@ -560,23 +427,14 @@ def main():
         result = pipeline.execute(state, user_name=USER_NAME)
         experience_mgr.observe(result)
         trace = result.decision_trace
-        # metrics.record_step now called after reward collection
+        metrics.record_step(result, trace)
         step_count += 1
-        # Dynamic Terrain: shift 2 cells every 3 cycles (upgrade 1)
-        terrain_changes = sim.maybe_shift_terrain()
-
 
         # Broadcast trace to live dashboard via WebSocket
         try:
             from telos.serve_dashboard import broadcast_trace_sync, websocket_clients
             if websocket_clients:
                 trace_dict = trace.to_dict() if hasattr(trace, 'to_dict') else trace
-                # Augment trace with dashboard extras (upgrades 1,4,5)
-                if isinstance(trace_dict, dict):
-                    trace_dict['agent2_pos'] = agent2.position.tolist()
-                    trace_dict['agent2_reward'] = agent2.total_reward
-                    trace_dict['score'] = metrics.total_score
-                    trace_dict['terrain_changes'] = sim.terrain_changes
                 broadcast_trace_sync(trace_dict)
         except (ImportError, Exception):
             pass
@@ -666,41 +524,10 @@ def main():
         if trace and trace.selected_action is not None and not result.firewall_blocked:
             state = sim.transition(state, trace.selected_action)
 
-        # ─── Move second agent (upgrade 5) ────────────────────────────────────
-        agent2_key = agent2.step()
-        print(f"  🔵 Agent2 moves to ({agent2.position[0]:.0f},{agent2.position[1]:.0f})")
-
-        # ─── Reward collection (upgrade 3, 5) ────────────────────────────────
-        telos_key = (int(round(state[0])), int(round(state[1])))
-        reward_collected = 0.0
-        if telos_key in sim.rewards and sim.rewards[telos_key] > 0:
-            # Check if both agents on same cell → split reward
-            if telos_key == agent2_key:
-                split_reward = sim.rewards[telos_key] / 2.0
-                reward_collected = split_reward
-                agent2.total_reward += split_reward
-                print(f"  🤝 Both agents on {telos_key}: reward split! TELOS gets {split_reward:.1f}, Agent2 gets {split_reward:.1f}")
-            else:
-                reward_collected = sim.rewards[telos_key]
-                print(f"  ⭐ TELOS collected reward at {telos_key}: +{reward_collected:.1f}!")
-            # Remove collected reward
-            sim.rewards[telos_key] = 0.0
-
-        # Also check if agent2 collected a reward alone
-        if agent2_key in sim.rewards and sim.rewards[agent2_key] > 0 and agent2_key != telos_key:
-            agent2_reward = sim.rewards[agent2_key]
-            agent2.total_reward += agent2_reward
-            print(f"  🔵 Agent2 collected reward at {agent2_key}: +{agent2_reward:.1f}!")
-            sim.rewards[agent2_key] = 0.0
-
-        # ─── Time pressure score update (upgrade 4) ──────────────────────────
-        metrics.record_step(result, trace, reward_collected=reward_collected)
-
         dist = np.linalg.norm(GOAL - state)
-        print(f"  📊 Score: {metrics.total_score:.1f} (time cost: {metrics.time_cost:.0f}, rewards: {metrics.reward_collected:.1f})")
         if dist < 0.5:
             print(f"\n✅ GOAL REACHED in {step_count} steps!")
-            print(render_grid(state, sim.blocked, sim.rewards, agent2.position))
+            print(render_grid(state, sim.blocked, sim.rewards))
             metrics.mark_goal()
             break
 

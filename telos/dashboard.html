@@ -156,6 +156,11 @@
     <div class="sub" id="terrain-sub">Current biome</div>
   </div>
   <div class="metric-card">
+    <div class="label">Score</div>
+    <div class="value" id="score-value">100</div>
+    <div class="sub">Time pressure (⬇1/cycle)</div>
+  </div>
+  <div class="metric-card">
     <div class="label">Worlds</div>
     <div class="value" id="worlds-value">—</div>
     <div class="sub">This cycle</div>
@@ -880,16 +885,98 @@ function drawGrid3D(canvas) {
       ctx.fillText(visIdx + 1, sx, topY + 6);
     }
     
-    // Reward star
+    // Reward star with value (upgrade 3)
     if (isR && !isT) {
       const pulse = Math.sin(state.time * 3 + x + y) * 0.15 + 0.85;
       ctx.globalAlpha = pulse;
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = `${ISO.th * 0.32}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('⭐', sx, topY + 1);
+      ctx.fillStyle = "#fbbf24";
+      ctx.font = `${ISO.th * 0.28}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("⭐", sx, topY - 2);
+      // Show reward value
+      const rewKey = `${Math.round(x)},${Math.round(y)}`;
+      const rewVal = state.rewards[rewKey];
+      if (rewVal && rewVal > 0) {
+        ctx.fillStyle = "rgba(255,255,200,0.9)";
+        ctx.font = `bold ${ISO.th * 0.18}px sans-serif`;
+        ctx.fillText("+" + rewVal, sx, topY + ISO.th * 0.22);
+      }
       ctx.globalAlpha = 1;
+    }
+  }
+  
+
+  // ── Terrain transition flash (upgrade 1) ──
+  for (let y = 0; y < state.gridSize; y++) {
+    for (let x = 0; x < state.gridSize; x++) {
+      const key = x + "," + y;
+      const flash = state.terrainFlash ? state.terrainFlash[key] : null;
+      if (flash) {
+        const elapsed = state.time - flash.start;
+        if (elapsed < 2.0) {
+          const intensity = Math.max(0, 1.0 - elapsed / 2.0);
+          const { sx, sy } = isoToScreen(x, y);
+          const ttt = getTerrainAt(x, y);
+          const hpx = (TH[ttt] || 0) * hs;
+          const topY = hpx >= 0 ? sy - hpx + breath : sy + breath;
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(sx, topY - ISO.th / 2);
+          ctx.lineTo(sx + ISO.tw / 2, topY);
+          ctx.lineTo(sx, topY + ISO.th / 2);
+          ctx.lineTo(sx - ISO.tw / 2, topY);
+          ctx.closePath();
+          ctx.fillStyle = `rgba(255,200,100,${intensity * 0.4})`;
+          ctx.fill();
+          ctx.shadowColor = "#ffc864";
+          ctx.shadowBlur = 20 * intensity;
+          ctx.fillStyle = `rgba(255,200,100,${intensity * 0.15})`;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.restore();
+        } else {
+          delete state.terrainFlash[key];
+        }
+      }
+    }
+  }
+  
+  // ── Fog of War: hide cells beyond distance 2 (upgrade 2) ──
+  for (let y = 0; y < state.gridSize; y++) {
+    for (let x = 0; x < state.gridSize; x++) {
+      const pos_x = state.animPos[0] !== undefined ? state.animPos[0] : (state.position ? state.position[0] : 0);
+      const pos_y = state.animPos[1] !== undefined ? state.animPos[1] : (state.position ? state.position[1] : 0);
+      const dist = Math.abs(x - Math.round(pos_x)) + Math.abs(y - Math.round(pos_y));
+      if (dist > 2) {
+        const { sx, sy } = isoToScreen(x, y);
+        const ttt = getTerrainAt(x, y);
+        const hpx = (TH[ttt] || 0) * hs;
+        const topY = hpx >= 0 ? sy - hpx + breath : sy + breath;
+        const fogGrad = ctx.createRadialGradient(sx, topY, 0, sx, topY, ISO.tw * 0.6);
+        fogGrad.addColorStop(0, "rgba(10,10,15,0.85)");
+        fogGrad.addColorStop(0.6, "rgba(8,8,12,0.90)");
+        fogGrad.addColorStop(1, "rgba(5,5,8,0.95)");
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(sx, topY - ISO.th / 2);
+        ctx.lineTo(sx + ISO.tw / 2, topY);
+        ctx.lineTo(sx, topY + ISO.th / 2);
+        ctx.lineTo(sx - ISO.tw / 2, topY);
+        ctx.closePath();
+        ctx.fillStyle = fogGrad;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(20,20,30,0.3)";
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+        // Draw "?" symbol
+        ctx.fillStyle = "rgba(100,100,120,0.5)";
+        ctx.font = `bold ${ISO.th * 0.3}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("?", sx, topY + 1);
+        ctx.restore();
+      }
     }
   }
   
@@ -1126,6 +1213,8 @@ function drawGrid3D(canvas) {
   
   // === TELOS orb ===
   drawTELOS(ctx);
+  // ── Second Agent (upgrade 5) ──
+  drawAgent2(ctx);
   
   // === Particles ===
   drawParticles(ctx);
@@ -1272,6 +1361,72 @@ function drawTELOS(ctx) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText('TELOS', sx, floatY - orbRadius - 3);
+}
+
+// ─── Second Agent (blue marker, upgrade 5) ───
+function drawAgent2(ctx) {
+  if (!state.agent2Pos) return;
+  const { hs } = ISO;
+  const { sx, sy } = isoToScreen(state.agent2Pos[0], state.agent2Pos[1]);
+  const tt = getTerrainAt(state.agent2Pos[0], state.agent2Pos[1]);
+  const hPx = (TH[tt] || 0) * hs;
+  const breath = Math.sin(state.time * 1.5) * 1.5;
+  const topY = hPx >= 0 ? sy - hPx + breath : sy + breath;
+  
+  const floatY = topY - 24 + Math.sin(state.time * 1.8 + 1.0) * 2;
+  const orbRadius = 7 + Math.sin(state.time * 2) * 1.0;
+  
+  // Outer glow (blue)
+  const outerGrad = ctx.createRadialGradient(sx, floatY, 0, sx, floatY, orbRadius * 3.5);
+  outerGrad.addColorStop(0, "rgba(74,144,255,0.3)");
+  outerGrad.addColorStop(0.5, "rgba(74,144,255,0.08)");
+  outerGrad.addColorStop(1, "rgba(74,144,255,0)");
+  ctx.fillStyle = outerGrad;
+  ctx.beginPath();
+  ctx.arc(sx, floatY, orbRadius * 3.5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Orb body (blue)
+  const orbGrad = ctx.createRadialGradient(
+    sx - orbRadius * 0.3, floatY - orbRadius * 0.3, 0,
+    sx, floatY, orbRadius
+  );
+  orbGrad.addColorStop(0, "rgba(180,210,255,0.9)");
+  orbGrad.addColorStop(0.3, "rgba(74,144,255,0.8)");
+  orbGrad.addColorStop(0.7, "rgba(40,90,200,0.6)");
+  orbGrad.addColorStop(1, "rgba(20,50,150,0.3)");
+  ctx.fillStyle = orbGrad;
+  ctx.beginPath();
+  ctx.arc(sx, floatY, orbRadius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Inner core
+  ctx.fillStyle = "rgba(200,220,255,0.5)";
+  ctx.beginPath();
+  ctx.arc(sx - orbRadius * 0.2, floatY - orbRadius * 0.2, orbRadius * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Lightning bolts
+  ctx.strokeStyle = "rgba(150,200,255,0.12)";
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < 3; i++) {
+    const angle = i * Math.PI * 2 / 3 + state.time * 1.2 + 1.0;
+    const r1 = orbRadius * 1.1;
+    const r2 = orbRadius * 1.6 + Math.sin(state.time * 4 + i + 1) * 2;
+    const r3 = orbRadius * 1.3;
+    ctx.beginPath();
+    ctx.moveTo(sx + Math.cos(angle) * r1, floatY + Math.sin(angle) * r1);
+    ctx.lineTo(sx + Math.cos(angle + 0.3) * r2, floatY + Math.sin(angle + 0.3) * r2);
+    ctx.lineTo(sx + Math.cos(angle + 0.6) * r3, floatY + Math.sin(angle + 0.6) * r3);
+    ctx.stroke();
+  }
+  
+  // Label
+  ctx.fillStyle = "rgba(150,200,255,0.4)";
+  ctx.font = "bold 7px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText("Agent2", sx, floatY - orbRadius - 2);
 }
 
 // ─── Particle System ───
@@ -1576,6 +1731,26 @@ function applyTrace(trace) {
     document.getElementById('step-counter').textContent = `Step ${state.visited.length}`;
   }
   // Feature 4: Extract alternative paths from strategic_options
+  // ── Upgrades: agent2, score, terrain ──
+  if (trace.agent2_pos) {
+    state.agent2Pos = trace.agent2_pos;
+  }
+  if (trace.agent2_reward !== undefined) {
+    state.agent2Reward = trace.agent2_reward;
+  }
+  if (trace.score !== undefined) {
+    state.score = trace.score;
+    var scoreEl = document.getElementById('score-value');
+    if (scoreEl) scoreEl.textContent = Math.round(state.score);
+  }
+  if (trace.terrain_changes && trace.terrain_changes.length > 0) {
+    state.terrainChanges = trace.terrain_changes;
+    // Trigger terrain flash animation
+    trace.terrain_changes.forEach(function(c) {
+      var key = c.x + "," + c.y;
+      state.terrainFlash[key] = { start: state.time, old: c.old, new: c.new };
+    });
+  }
   if (trace.world_state && trace.strategic_options && trace.strategic_options.length > 0) {
     const cx = Math.round(trace.world_state[0]), cy = Math.round(trace.world_state[1]);
     const dirMap = {
