@@ -1,0 +1,3051 @@
+{
+  "cycle_id": 1,
+  "timestamp": 1784525286.68664,
+  "world_state": [
+    180.0,
+    320.0,
+    18.0,
+    0.0,
+    0.7490118577075099,
+    0.3,
+    18.0,
+    301.0,
+    220.0,
+    506.0
+  ],
+  "domain_facts": {
+    "resources": {
+      "frames": 506.0,
+      "detections": 379.0,
+      "coverage": 0.7490118577075099
+    },
+    "constraints": [
+      "physical_bounds",
+      "speed_ceiling",
+      "erratic_motion"
+    ],
+    "events": [
+      "high_speed",
+      "frequent_dir",
+      "proxy"
+    ],
+    "metrics": {
+      "consistency": 0.5204,
+      "det_rate": 0.749,
+      "avg_speed": 18.0,
+      "max_speed": 301.0,
+      "dir_changes": 220.0,
+      "frames": 506.0,
+      "quality": 0.3,
+      "is_realistic": 0.0
+    }
+  },
+  "stream_activations": [
+    {
+      "name": "ReflexStream",
+      "priority": 1.0,
+      "activated": true,
+      "intent_type": "reflex",
+      "cost_ms": 0.013113021850585938,
+      "budget_remaining_ms": 249.9868869781494
+    },
+    {
+      "name": "PerceptionStream",
+      "priority": 0.9,
+      "activated": true,
+      "intent_type": "perceive",
+      "cost_ms": 0.07700920104980469,
+      "budget_remaining_ms": 249.9098777770996
+    },
+    {
+      "name": "MemoryStream",
+      "priority": 0.7,
+      "activated": true,
+      "intent_type": "memory_miss",
+      "cost_ms": 0.00286102294921875,
+      "budget_remaining_ms": 249.9070167541504
+    },
+    {
+      "name": "ProxyStream",
+      "priority": 0.6,
+      "activated": true,
+      "intent_type": "proxy_idle",
+      "cost_ms": 0.00095367431640625,
+      "budget_remaining_ms": 249.90606307983398
+    },
+    {
+      "name": "PlanningStream",
+      "priority": 0.5,
+      "activated": true,
+      "intent_type": "plan_trajectory",
+      "cost_ms": 41.86606407165527,
+      "budget_remaining_ms": 208.0399990081787
+    }
+  ],
+  "selected_intent": {
+    "type": "perceive",
+    "confidence": 0.85
+  },
+  "selected_action": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "representation": "polar",
+  "budget_consumed_ms": 59.96000099182129,
+  "budget_total_ms": 250.0,
+  "worlds_simulated": 320,
+  "cycle_duration_ms": 49.01695251464844,
+  "council_validated": true,
+  "decision_integrity": 1.0,
+  "mission_drift": 71.85782449717492,
+  "blocking_validator": null,
+  "council_signals": [
+    {
+      "validator": "RealityValidator",
+      "passed": true,
+      "confidence": 0.9,
+      "reason": "state and action are physically plausible",
+      "evidence_weight": 0.3
+    },
+    {
+      "validator": "ConstraintValidator",
+      "passed": true,
+      "confidence": 0.95,
+      "reason": "all constraints satisfied",
+      "evidence_weight": 0.2
+    },
+    {
+      "validator": "MemoryAdvisor",
+      "passed": true,
+      "confidence": 0.5,
+      "reason": "no contradictory historical evidence",
+      "evidence_weight": 0.1
+    },
+    {
+      "validator": "MissionDriftDetector",
+      "passed": true,
+      "confidence": 0.7,
+      "reason": "drift within bounds (0.00 < 5.0)",
+      "evidence_weight": 0.0
+    }
+  ],
+  "semantic_depths": [
+    {
+      "entity_id": "ent_52bb8811",
+      "observable_state": {
+        "state_norm": 728.3444590430842,
+        "state_mean": 156.40490118577074,
+        "state_std": 169.07416120432356,
+        "state_dim": 10,
+        "sparsity": 0.09999999999999998,
+        "energy": 530485.651018763
+      },
+      "historical_context": "newly_discovered",
+      "mission_context": "relevance_0.00",
+      "semantic_identity": "high_energy_region_low_mission_priority"
+    }
+  ],
+  "governance_signals": [
+    {
+      "check": "all_governance_checks",
+      "passed": true,
+      "reason": "All governance checks passed"
+    }
+  ],
+  "firewall_blocked": false,
+  "firewall_blocked_by": null,
+  "strategic_options": [
+    {
+      "rank": 1,
+      "score": 3.3517,
+      "horizon": 8,
+      "metadata": {
+        "index": 199,
+        "state_norm": 751.1060377100565
+      }
+    },
+    {
+      "rank": 2,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 0,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 3,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 32,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 4,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 64,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 5,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 96,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 6,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 128,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 7,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 160,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 8,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 192,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 9,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 224,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 10,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 256,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 11,
+      "score": 3.3515,
+      "horizon": 8,
+      "metadata": {
+        "index": 288,
+        "state_norm": 731.2043787022272
+      }
+    },
+    {
+      "rank": 12,
+      "score": 3.3512,
+      "horizon": 8,
+      "metadata": {
+        "index": 135,
+        "state_norm": 750.1792348811596
+      }
+    },
+    {
+      "rank": 13,
+      "score": 3.3509,
+      "horizon": 8,
+      "metadata": {
+        "index": 1,
+        "state_norm": 734.0450707054781
+      }
+    },
+    {
+      "rank": 14,
+      "score": 3.3509,
+      "horizon": 8,
+      "metadata": {
+        "index": 33,
+        "state_norm": 734.0450707054781
+      }
+    },
+    {
+      "rank": 15,
+      "score": 3.3509,
+      "horizon": 8,
+      "metadata": {
+        "index": 65,
+        "state_norm": 734.0450707054781
+      }
+    },
+    {
+      "rank": 16,
+      "score": 3.3509,
+      "horizon": 8,
+      "metadata": {
+        "index": 129,
+        "state_norm": 734.0450707054781
+      }
+    },
+    {
+      "rank": 17,
+      "score": 3.3509,
+      "horizon": 8,
+      "metadata": {
+        "index": 161,
+        "state_norm": 734.0450707054781
+      }
+    },
+    {
+      "rank": 18,
+      "score": 3.3509,
+      "horizon": 8,
+      "metadata": {
+        "index": 193,
+        "state_norm": 734.0450707054781
+      }
+    },
+    {
+      "rank": 19,
+      "score": 3.3509,
+      "horizon": 8,
+      "metadata": {
+        "index": 257,
+        "state_norm": 734.0450707054781
+      }
+    },
+    {
+      "rank": 20,
+      "score": 3.3509,
+      "horizon": 8,
+      "metadata": {
+        "index": 289,
+        "state_norm": 734.0450707054781
+      }
+    },
+    {
+      "rank": 21,
+      "score": 3.35,
+      "horizon": 8,
+      "metadata": {
+        "index": 2,
+        "state_norm": 736.848891904299
+      }
+    },
+    {
+      "rank": 22,
+      "score": 3.35,
+      "horizon": 8,
+      "metadata": {
+        "index": 34,
+        "state_norm": 736.848891904299
+      }
+    },
+    {
+      "rank": 23,
+      "score": 3.35,
+      "horizon": 8,
+      "metadata": {
+        "index": 66,
+        "state_norm": 736.848891904299
+      }
+    },
+    {
+      "rank": 24,
+      "score": 3.35,
+      "horizon": 8,
+      "metadata": {
+        "index": 130,
+        "state_norm": 736.848891904299
+      }
+    },
+    {
+      "rank": 25,
+      "score": 3.35,
+      "horizon": 8,
+      "metadata": {
+        "index": 194,
+        "state_norm": 736.848891904299
+      }
+    },
+    {
+      "rank": 26,
+      "score": 3.35,
+      "horizon": 8,
+      "metadata": {
+        "index": 258,
+        "state_norm": 736.848891904299
+      }
+    },
+    {
+      "rank": 27,
+      "score": 3.3491,
+      "horizon": 8,
+      "metadata": {
+        "index": 198,
+        "state_norm": 748.0854798045768
+      }
+    },
+    {
+      "rank": 28,
+      "score": 3.349,
+      "horizon": 8,
+      "metadata": {
+        "index": 105,
+        "state_norm": 741.436956975922
+      }
+    },
+    {
+      "rank": 29,
+      "score": 3.3488,
+      "horizon": 8,
+      "metadata": {
+        "index": 3,
+        "state_norm": 739.6018382876739
+      }
+    },
+    {
+      "rank": 30,
+      "score": 3.3488,
+      "horizon": 8,
+      "metadata": {
+        "index": 35,
+        "state_norm": 739.6018382876739
+      }
+    },
+    {
+      "rank": 31,
+      "score": 3.3488,
+      "horizon": 8,
+      "metadata": {
+        "index": 131,
+        "state_norm": 739.6018382876739
+      }
+    },
+    {
+      "rank": 32,
+      "score": 3.3488,
+      "horizon": 8,
+      "metadata": {
+        "index": 195,
+        "state_norm": 739.6018382876739
+      }
+    },
+    {
+      "rank": 33,
+      "score": 3.3488,
+      "horizon": 8,
+      "metadata": {
+        "index": 259,
+        "state_norm": 739.6018382876739
+      }
+    },
+    {
+      "rank": 34,
+      "score": 3.3476,
+      "horizon": 8,
+      "metadata": {
+        "index": 232,
+        "state_norm": 731.9456545325507
+      }
+    },
+    {
+      "rank": 35,
+      "score": 3.3475,
+      "horizon": 8,
+      "metadata": {
+        "index": 4,
+        "state_norm": 742.2944391927183
+      }
+    },
+    {
+      "rank": 36,
+      "score": 3.3475,
+      "horizon": 8,
+      "metadata": {
+        "index": 36,
+        "state_norm": 742.2944391927183
+      }
+    },
+    {
+      "rank": 37,
+      "score": 3.3475,
+      "horizon": 8,
+      "metadata": {
+        "index": 132,
+        "state_norm": 742.2944391927183
+      }
+    },
+    {
+      "rank": 38,
+      "score": 3.3475,
+      "horizon": 8,
+      "metadata": {
+        "index": 196,
+        "state_norm": 742.2944391927183
+      }
+    },
+    {
+      "rank": 39,
+      "score": 3.3475,
+      "horizon": 8,
+      "metadata": {
+        "index": 260,
+        "state_norm": 742.2944391927183
+      }
+    },
+    {
+      "rank": 40,
+      "score": 3.346,
+      "horizon": 8,
+      "metadata": {
+        "index": 5,
+        "state_norm": 744.922250185595
+      }
+    },
+    {
+      "rank": 41,
+      "score": 3.346,
+      "horizon": 8,
+      "metadata": {
+        "index": 37,
+        "state_norm": 744.922250185595
+      }
+    },
+    {
+      "rank": 42,
+      "score": 3.346,
+      "horizon": 8,
+      "metadata": {
+        "index": 133,
+        "state_norm": 744.922250185595
+      }
+    },
+    {
+      "rank": 43,
+      "score": 3.346,
+      "horizon": 8,
+      "metadata": {
+        "index": 197,
+        "state_norm": 744.922250185595
+      }
+    },
+    {
+      "rank": 44,
+      "score": 3.346,
+      "horizon": 8,
+      "metadata": {
+        "index": 261,
+        "state_norm": 744.922250185595
+      }
+    },
+    {
+      "rank": 45,
+      "score": 3.3443,
+      "horizon": 8,
+      "metadata": {
+        "index": 6,
+        "state_norm": 747.4858999864231
+      }
+    },
+    {
+      "rank": 46,
+      "score": 3.3443,
+      "horizon": 8,
+      "metadata": {
+        "index": 38,
+        "state_norm": 747.4858999864231
+      }
+    },
+    {
+      "rank": 47,
+      "score": 3.3443,
+      "horizon": 8,
+      "metadata": {
+        "index": 134,
+        "state_norm": 747.4858999864231
+      }
+    },
+    {
+      "rank": 48,
+      "score": 3.3443,
+      "horizon": 8,
+      "metadata": {
+        "index": 262,
+        "state_norm": 747.4858999864231
+      }
+    },
+    {
+      "rank": 49,
+      "score": 3.3442,
+      "horizon": 8,
+      "metadata": {
+        "index": 264,
+        "state_norm": 727.045502807415
+      }
+    },
+    {
+      "rank": 50,
+      "score": 3.3442,
+      "horizon": 8,
+      "metadata": {
+        "index": 290,
+        "state_norm": 737.0871985961106
+      }
+    },
+    {
+      "rank": 51,
+      "score": 3.343,
+      "horizon": 8,
+      "metadata": {
+        "index": 97,
+        "state_norm": 736.6769905989632
+      }
+    },
+    {
+      "rank": 52,
+      "score": 3.3425000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 7,
+        "state_norm": 749.9906917385774
+      }
+    },
+    {
+      "rank": 53,
+      "score": 3.3425000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 39,
+        "state_norm": 749.9906917385774
+      }
+    },
+    {
+      "rank": 54,
+      "score": 3.3425000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 263,
+        "state_norm": 749.9906917385774
+      }
+    },
+    {
+      "rank": 55,
+      "score": 3.3415,
+      "horizon": 8,
+      "metadata": {
+        "index": 104,
+        "state_norm": 735.8803002653702
+      }
+    },
+    {
+      "rank": 56,
+      "score": 3.3386,
+      "horizon": 8,
+      "metadata": {
+        "index": 162,
+        "state_norm": 736.2849769812543
+      }
+    },
+    {
+      "rank": 57,
+      "score": 3.3365,
+      "horizon": 8,
+      "metadata": {
+        "index": 291,
+        "state_norm": 739.9112496183787
+      }
+    },
+    {
+      "rank": 58,
+      "score": 3.3357,
+      "horizon": 8,
+      "metadata": {
+        "index": 225,
+        "state_norm": 737.3486811828694
+      }
+    },
+    {
+      "rank": 59,
+      "score": 3.3349,
+      "horizon": 8,
+      "metadata": {
+        "index": 98,
+        "state_norm": 741.8531150402221
+      }
+    },
+    {
+      "rank": 60,
+      "score": 3.3346,
+      "horizon": 8,
+      "metadata": {
+        "index": 296,
+        "state_norm": 725.45374071526
+      }
+    },
+    {
+      "rank": 61,
+      "score": 3.3333,
+      "horizon": 8,
+      "metadata": {
+        "index": 136,
+        "state_norm": 724.129690363587
+      }
+    },
+    {
+      "rank": 62,
+      "score": 3.3319,
+      "horizon": 8,
+      "metadata": {
+        "index": 67,
+        "state_norm": 738.6524479071404
+      }
+    },
+    {
+      "rank": 63,
+      "score": 3.3304,
+      "horizon": 8,
+      "metadata": {
+        "index": 169,
+        "state_norm": 723.4457380709259
+      }
+    },
+    {
+      "rank": 64,
+      "score": 3.3295,
+      "horizon": 8,
+      "metadata": {
+        "index": 292,
+        "state_norm": 742.8221737835361
+      }
+    },
+    {
+      "rank": 65,
+      "score": 3.3287,
+      "horizon": 8,
+      "metadata": {
+        "index": 297,
+        "state_norm": 724.8875142426303
+      }
+    },
+    {
+      "rank": 66,
+      "score": 3.3277,
+      "horizon": 8,
+      "metadata": {
+        "index": 99,
+        "state_norm": 747.0544740153719
+      }
+    },
+    {
+      "rank": 67,
+      "score": 3.3237,
+      "horizon": 8,
+      "metadata": {
+        "index": 138,
+        "state_norm": 723.8193263621342
+      }
+    },
+    {
+      "rank": 68,
+      "score": 3.3232,
+      "horizon": 8,
+      "metadata": {
+        "index": 293,
+        "state_norm": 745.8079822637814
+      }
+    },
+    {
+      "rank": 69,
+      "score": 3.3221000000000003,
+      "horizon": 8,
+      "metadata": {
+        "index": 163,
+        "state_norm": 739.8388498966343
+      }
+    },
+    {
+      "rank": 70,
+      "score": 3.322,
+      "horizon": 8,
+      "metadata": {
+        "index": 201,
+        "state_norm": 726.154081077677
+      }
+    },
+    {
+      "rank": 71,
+      "score": 3.3219,
+      "horizon": 8,
+      "metadata": {
+        "index": 168,
+        "state_norm": 727.0931443675679
+      }
+    },
+    {
+      "rank": 72,
+      "score": 3.3215,
+      "horizon": 8,
+      "metadata": {
+        "index": 100,
+        "state_norm": 752.2609706827936
+      }
+    },
+    {
+      "rank": 73,
+      "score": 3.3208,
+      "horizon": 8,
+      "metadata": {
+        "index": 226,
+        "state_norm": 742.992162355494
+      }
+    },
+    {
+      "rank": 74,
+      "score": 3.3199,
+      "horizon": 8,
+      "metadata": {
+        "index": 298,
+        "state_norm": 731.1743692249004
+      }
+    },
+    {
+      "rank": 75,
+      "score": 3.3181000000000003,
+      "horizon": 8,
+      "metadata": {
+        "index": 137,
+        "state_norm": 723.0982586134957
+      }
+    },
+    {
+      "rank": 76,
+      "score": 3.3176,
+      "horizon": 8,
+      "metadata": {
+        "index": 294,
+        "state_norm": 748.8619854402987
+      }
+    },
+    {
+      "rank": 77,
+      "score": 3.3168,
+      "horizon": 8,
+      "metadata": {
+        "index": 8,
+        "state_norm": 735.0663386216955
+      }
+    },
+    {
+      "rank": 78,
+      "score": 3.316,
+      "horizon": 8,
+      "metadata": {
+        "index": 101,
+        "state_norm": 757.4583585703625
+      }
+    },
+    {
+      "rank": 79,
+      "score": 3.3153,
+      "horizon": 8,
+      "metadata": {
+        "index": 40,
+        "state_norm": 733.1272778736997
+      }
+    },
+    {
+      "rank": 80,
+      "score": 3.3147,
+      "horizon": 8,
+      "metadata": {
+        "index": 266,
+        "state_norm": 729.7200060679769
+      }
+    },
+    {
+      "rank": 81,
+      "score": 3.3142,
+      "horizon": 8,
+      "metadata": {
+        "index": 265,
+        "state_norm": 729.4370333629952
+      }
+    },
+    {
+      "rank": 82,
+      "score": 3.3131,
+      "horizon": 8,
+      "metadata": {
+        "index": 9,
+        "state_norm": 733.5480445066637
+      }
+    },
+    {
+      "rank": 83,
+      "score": 3.3127,
+      "horizon": 8,
+      "metadata": {
+        "index": 200,
+        "state_norm": 729.2343953920742
+      }
+    },
+    {
+      "rank": 84,
+      "score": 3.3125,
+      "horizon": 8,
+      "metadata": {
+        "index": 295,
+        "state_norm": 751.9821800721804
+      }
+    },
+    {
+      "rank": 85,
+      "score": 3.3117,
+      "horizon": 8,
+      "metadata": {
+        "index": 68,
+        "state_norm": 739.9091634394978
+      }
+    },
+    {
+      "rank": 86,
+      "score": 3.3113,
+      "horizon": 8,
+      "metadata": {
+        "index": 102,
+        "state_norm": 762.6382867654276
+      }
+    },
+    {
+      "rank": 87,
+      "score": 3.3113,
+      "horizon": 8,
+      "metadata": {
+        "index": 170,
+        "state_norm": 719.6185721485614
+      }
+    },
+    {
+      "rank": 88,
+      "score": 3.3098,
+      "horizon": 8,
+      "metadata": {
+        "index": 202,
+        "state_norm": 729.7086960087397
+      }
+    },
+    {
+      "rank": 89,
+      "score": 3.3083,
+      "horizon": 8,
+      "metadata": {
+        "index": 11,
+        "state_norm": 736.8033186132336
+      }
+    },
+    {
+      "rank": 90,
+      "score": 3.3078,
+      "horizon": 8,
+      "metadata": {
+        "index": 10,
+        "state_norm": 737.9624914917738
+      }
+    },
+    {
+      "rank": 91,
+      "score": 3.3076,
+      "horizon": 8,
+      "metadata": {
+        "index": 299,
+        "state_norm": 731.0566774505969
+      }
+    },
+    {
+      "rank": 92,
+      "score": 3.3073,
+      "horizon": 8,
+      "metadata": {
+        "index": 103,
+        "state_norm": 767.797885393088
+      }
+    },
+    {
+      "rank": 93,
+      "score": 3.3073,
+      "horizon": 8,
+      "metadata": {
+        "index": 227,
+        "state_norm": 748.8071136476034
+      }
+    },
+    {
+      "rank": 94,
+      "score": 3.3069,
+      "horizon": 8,
+      "metadata": {
+        "index": 164,
+        "state_norm": 743.4825050890927
+      }
+    },
+    {
+      "rank": 95,
+      "score": 3.3068,
+      "horizon": 8,
+      "metadata": {
+        "index": 72,
+        "state_norm": 733.9505588349342
+      }
+    },
+    {
+      "rank": 96,
+      "score": 3.3036,
+      "horizon": 8,
+      "metadata": {
+        "index": 174,
+        "state_norm": 714.4980297936535
+      }
+    },
+    {
+      "rank": 97,
+      "score": 3.3025,
+      "horizon": 8,
+      "metadata": {
+        "index": 171,
+        "state_norm": 718.4920444060492
+      }
+    },
+    {
+      "rank": 98,
+      "score": 3.3022,
+      "horizon": 8,
+      "metadata": {
+        "index": 173,
+        "state_norm": 715.2063743606041
+      }
+    },
+    {
+      "rank": 99,
+      "score": 3.3015,
+      "horizon": 8,
+      "metadata": {
+        "index": 267,
+        "state_norm": 735.3352058248273
+      }
+    },
+    {
+      "rank": 100,
+      "score": 3.2988,
+      "horizon": 8,
+      "metadata": {
+        "index": 139,
+        "state_norm": 731.7377893922653
+      }
+    },
+    {
+      "rank": 101,
+      "score": 3.2951,
+      "horizon": 8,
+      "metadata": {
+        "index": 73,
+        "state_norm": 731.6761060028879
+      }
+    },
+    {
+      "rank": 102,
+      "score": 3.295,
+      "horizon": 8,
+      "metadata": {
+        "index": 228,
+        "state_norm": 754.7622485214345
+      }
+    },
+    {
+      "rank": 103,
+      "score": 3.293,
+      "horizon": 8,
+      "metadata": {
+        "index": 69,
+        "state_norm": 741.6185793062067
+      }
+    },
+    {
+      "rank": 104,
+      "score": 3.293,
+      "horizon": 8,
+      "metadata": {
+        "index": 165,
+        "state_norm": 747.3838708106731
+      }
+    },
+    {
+      "rank": 105,
+      "score": 3.2919,
+      "horizon": 8,
+      "metadata": {
+        "index": 233,
+        "state_norm": 743.0946107379673
+      }
+    },
+    {
+      "rank": 106,
+      "score": 3.2916,
+      "horizon": 8,
+      "metadata": {
+        "index": 175,
+        "state_norm": 724.3930922791233
+      }
+    },
+    {
+      "rank": 107,
+      "score": 3.2902,
+      "horizon": 8,
+      "metadata": {
+        "index": 106,
+        "state_norm": 751.3956498623468
+      }
+    },
+    {
+      "rank": 108,
+      "score": 3.2896,
+      "horizon": 8,
+      "metadata": {
+        "index": 75,
+        "state_norm": 731.8422286301478
+      }
+    },
+    {
+      "rank": 109,
+      "score": 3.2896,
+      "horizon": 8,
+      "metadata": {
+        "index": 172,
+        "state_norm": 716.2179895301456
+      }
+    },
+    {
+      "rank": 110,
+      "score": 3.2843,
+      "horizon": 8,
+      "metadata": {
+        "index": 74,
+        "state_norm": 731.5042368210829
+      }
+    },
+    {
+      "rank": 111,
+      "score": 3.2840000000000003,
+      "horizon": 8,
+      "metadata": {
+        "index": 229,
+        "state_norm": 760.8328271690417
+      }
+    },
+    {
+      "rank": 112,
+      "score": 3.2837,
+      "horizon": 8,
+      "metadata": {
+        "index": 234,
+        "state_norm": 735.4171602722852
+      }
+    },
+    {
+      "rank": 113,
+      "score": 3.2815,
+      "horizon": 8,
+      "metadata": {
+        "index": 203,
+        "state_norm": 728.5384353997584
+      }
+    },
+    {
+      "rank": 114,
+      "score": 3.2805,
+      "horizon": 8,
+      "metadata": {
+        "index": 271,
+        "state_norm": 734.3761693207351
+      }
+    },
+    {
+      "rank": 115,
+      "score": 3.2802000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 166,
+        "state_norm": 751.5232226826281
+      }
+    },
+    {
+      "rank": 116,
+      "score": 3.2795,
+      "horizon": 8,
+      "metadata": {
+        "index": 269,
+        "state_norm": 734.8464661389878
+      }
+    },
+    {
+      "rank": 117,
+      "score": 3.2766,
+      "horizon": 8,
+      "metadata": {
+        "index": 235,
+        "state_norm": 737.9258367827343
+      }
+    },
+    {
+      "rank": 118,
+      "score": 3.2741000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 140,
+        "state_norm": 733.181054846248
+      }
+    },
+    {
+      "rank": 119,
+      "score": 3.2741000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 230,
+        "state_norm": 767.0005478680358
+      }
+    },
+    {
+      "rank": 120,
+      "score": 3.2738,
+      "horizon": 8,
+      "metadata": {
+        "index": 108,
+        "state_norm": 746.017697988312
+      }
+    },
+    {
+      "rank": 121,
+      "score": 3.2714,
+      "horizon": 8,
+      "metadata": {
+        "index": 270,
+        "state_norm": 735.049470579505
+      }
+    },
+    {
+      "rank": 122,
+      "score": 3.2703,
+      "horizon": 8,
+      "metadata": {
+        "index": 107,
+        "state_norm": 748.1075978369458
+      }
+    },
+    {
+      "rank": 123,
+      "score": 3.2703,
+      "horizon": 8,
+      "metadata": {
+        "index": 204,
+        "state_norm": 732.9909762913502
+      }
+    },
+    {
+      "rank": 124,
+      "score": 3.2689,
+      "horizon": 8,
+      "metadata": {
+        "index": 41,
+        "state_norm": 737.3462505855156
+      }
+    },
+    {
+      "rank": 125,
+      "score": 3.2686,
+      "horizon": 8,
+      "metadata": {
+        "index": 167,
+        "state_norm": 755.8858174264549
+      }
+    },
+    {
+      "rank": 126,
+      "score": 3.2667,
+      "horizon": 8,
+      "metadata": {
+        "index": 268,
+        "state_norm": 738.124422071672
+      }
+    },
+    {
+      "rank": 127,
+      "score": 3.266,
+      "horizon": 8,
+      "metadata": {
+        "index": 205,
+        "state_norm": 736.4246045700216
+      }
+    },
+    {
+      "rank": 128,
+      "score": 3.2652,
+      "horizon": 8,
+      "metadata": {
+        "index": 231,
+        "state_norm": 773.2529861315571
+      }
+    },
+    {
+      "rank": 129,
+      "score": 3.2643,
+      "horizon": 8,
+      "metadata": {
+        "index": 44,
+        "state_norm": 738.5305973182841
+      }
+    },
+    {
+      "rank": 130,
+      "score": 3.2636000000000003,
+      "horizon": 8,
+      "metadata": {
+        "index": 70,
+        "state_norm": 744.1278749198973
+      }
+    },
+    {
+      "rank": 131,
+      "score": 3.2624,
+      "horizon": 8,
+      "metadata": {
+        "index": 46,
+        "state_norm": 741.843040795178
+      }
+    },
+    {
+      "rank": 132,
+      "score": 3.2604,
+      "horizon": 8,
+      "metadata": {
+        "index": 43,
+        "state_norm": 736.2273978324175
+      }
+    },
+    {
+      "rank": 133,
+      "score": 3.2595,
+      "horizon": 8,
+      "metadata": {
+        "index": 236,
+        "state_norm": 739.9950344674236
+      }
+    },
+    {
+      "rank": 134,
+      "score": 3.2583,
+      "horizon": 8,
+      "metadata": {
+        "index": 45,
+        "state_norm": 739.2559845514311
+      }
+    },
+    {
+      "rank": 135,
+      "score": 3.2583,
+      "horizon": 8,
+      "metadata": {
+        "index": 110,
+        "state_norm": 751.2518677552
+      }
+    },
+    {
+      "rank": 136,
+      "score": 3.2565,
+      "horizon": 8,
+      "metadata": {
+        "index": 12,
+        "state_norm": 737.3345605511621
+      }
+    },
+    {
+      "rank": 137,
+      "score": 3.2532,
+      "horizon": 8,
+      "metadata": {
+        "index": 206,
+        "state_norm": 738.6463594570479
+      }
+    },
+    {
+      "rank": 138,
+      "score": 3.2513,
+      "horizon": 8,
+      "metadata": {
+        "index": 109,
+        "state_norm": 751.0807207085593
+      }
+    },
+    {
+      "rank": 139,
+      "score": 3.2488,
+      "horizon": 8,
+      "metadata": {
+        "index": 42,
+        "state_norm": 735.5766154575657
+      }
+    },
+    {
+      "rank": 140,
+      "score": 3.2478000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 111,
+        "state_norm": 756.5886660440466
+      }
+    },
+    {
+      "rank": 141,
+      "score": 3.2458,
+      "horizon": 8,
+      "metadata": {
+        "index": 13,
+        "state_norm": 734.4503699025863
+      }
+    },
+    {
+      "rank": 142,
+      "score": 3.2438000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 141,
+        "state_norm": 733.7307970032384
+      }
+    },
+    {
+      "rank": 143,
+      "score": 3.239,
+      "horizon": 8,
+      "metadata": {
+        "index": 76,
+        "state_norm": 732.3179682135514
+      }
+    },
+    {
+      "rank": 144,
+      "score": 3.2386,
+      "horizon": 8,
+      "metadata": {
+        "index": 47,
+        "state_norm": 743.8148199287965
+      }
+    },
+    {
+      "rank": 145,
+      "score": 3.2363,
+      "horizon": 8,
+      "metadata": {
+        "index": 71,
+        "state_norm": 746.597447785192
+      }
+    },
+    {
+      "rank": 146,
+      "score": 3.2362,
+      "horizon": 8,
+      "metadata": {
+        "index": 207,
+        "state_norm": 739.0432945455289
+      }
+    },
+    {
+      "rank": 147,
+      "score": 3.2307,
+      "horizon": 8,
+      "metadata": {
+        "index": 142,
+        "state_norm": 730.3582373755457
+      }
+    },
+    {
+      "rank": 148,
+      "score": 3.2279,
+      "horizon": 8,
+      "metadata": {
+        "index": 14,
+        "state_norm": 734.1611224357457
+      }
+    },
+    {
+      "rank": 149,
+      "score": 3.2265,
+      "horizon": 8,
+      "metadata": {
+        "index": 78,
+        "state_norm": 734.2387145826672
+      }
+    },
+    {
+      "rank": 150,
+      "score": 3.2265,
+      "horizon": 8,
+      "metadata": {
+        "index": 79,
+        "state_norm": 734.7866968127232
+      }
+    },
+    {
+      "rank": 151,
+      "score": 3.225,
+      "horizon": 8,
+      "metadata": {
+        "index": 238,
+        "state_norm": 735.0237161453036
+      }
+    },
+    {
+      "rank": 152,
+      "score": 3.2226,
+      "horizon": 8,
+      "metadata": {
+        "index": 143,
+        "state_norm": 730.5486141258755
+      }
+    },
+    {
+      "rank": 153,
+      "score": 3.2226,
+      "horizon": 8,
+      "metadata": {
+        "index": 300,
+        "state_norm": 738.8018075848616
+      }
+    },
+    {
+      "rank": 154,
+      "score": 3.2224,
+      "horizon": 8,
+      "metadata": {
+        "index": 237,
+        "state_norm": 736.1198955080832
+      }
+    },
+    {
+      "rank": 155,
+      "score": 3.2222,
+      "horizon": 8,
+      "metadata": {
+        "index": 77,
+        "state_norm": 734.9784628483311
+      }
+    },
+    {
+      "rank": 156,
+      "score": 3.2159,
+      "horizon": 8,
+      "metadata": {
+        "index": 301,
+        "state_norm": 735.9887126935981
+      }
+    },
+    {
+      "rank": 157,
+      "score": 3.2135000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 15,
+        "state_norm": 735.165226477127
+      }
+    },
+    {
+      "rank": 158,
+      "score": 3.2121,
+      "horizon": 8,
+      "metadata": {
+        "index": 239,
+        "state_norm": 735.7141041969387
+      }
+    },
+    {
+      "rank": 159,
+      "score": 3.1908,
+      "horizon": 8,
+      "metadata": {
+        "index": 302,
+        "state_norm": 734.4759841765597
+      }
+    },
+    {
+      "rank": 160,
+      "score": 3.1869,
+      "horizon": 8,
+      "metadata": {
+        "index": 303,
+        "state_norm": 738.2391952127535
+      }
+    },
+    {
+      "rank": 161,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 16,
+        "state_norm": 626.2114847520363
+      }
+    },
+    {
+      "rank": 162,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 17,
+        "state_norm": 627.0100556637977
+      }
+    },
+    {
+      "rank": 163,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 18,
+        "state_norm": 628.1122641080225
+      }
+    },
+    {
+      "rank": 164,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 19,
+        "state_norm": 629.0295135113295
+      }
+    },
+    {
+      "rank": 165,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 20,
+        "state_norm": 629.9989957646475
+      }
+    },
+    {
+      "rank": 166,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 21,
+        "state_norm": 630.8163244179372
+      }
+    },
+    {
+      "rank": 167,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 22,
+        "state_norm": 631.6099791858028
+      }
+    },
+    {
+      "rank": 168,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 23,
+        "state_norm": 632.510813274034
+      }
+    },
+    {
+      "rank": 169,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 48,
+        "state_norm": 626.214235361817
+      }
+    },
+    {
+      "rank": 170,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 49,
+        "state_norm": 626.9080390092658
+      }
+    },
+    {
+      "rank": 171,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 50,
+        "state_norm": 627.9324544050049
+      }
+    },
+    {
+      "rank": 172,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 51,
+        "state_norm": 628.4903006631993
+      }
+    },
+    {
+      "rank": 173,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 52,
+        "state_norm": 629.1342872182491
+      }
+    },
+    {
+      "rank": 174,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 53,
+        "state_norm": 630.0993128866468
+      }
+    },
+    {
+      "rank": 175,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 54,
+        "state_norm": 630.9336916140309
+      }
+    },
+    {
+      "rank": 176,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 55,
+        "state_norm": 631.7759089924591
+      }
+    },
+    {
+      "rank": 177,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 80,
+        "state_norm": 625.5154203010312
+      }
+    },
+    {
+      "rank": 178,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 81,
+        "state_norm": 626.8824262028204
+      }
+    },
+    {
+      "rank": 179,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 82,
+        "state_norm": 627.9033402675065
+      }
+    },
+    {
+      "rank": 180,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 83,
+        "state_norm": 629.0326848226363
+      }
+    },
+    {
+      "rank": 181,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 84,
+        "state_norm": 629.7196886913392
+      }
+    },
+    {
+      "rank": 182,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 85,
+        "state_norm": 630.8354724696766
+      }
+    },
+    {
+      "rank": 183,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 86,
+        "state_norm": 631.9040767972509
+      }
+    },
+    {
+      "rank": 184,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 87,
+        "state_norm": 632.2413032889427
+      }
+    },
+    {
+      "rank": 185,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 112,
+        "state_norm": 625.8193857337861
+      }
+    },
+    {
+      "rank": 186,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 113,
+        "state_norm": 626.6008384164991
+      }
+    },
+    {
+      "rank": 187,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 114,
+        "state_norm": 627.1478996604409
+      }
+    },
+    {
+      "rank": 188,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 115,
+        "state_norm": 628.2770393951795
+      }
+    },
+    {
+      "rank": 189,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 116,
+        "state_norm": 629.2587763700703
+      }
+    },
+    {
+      "rank": 190,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 117,
+        "state_norm": 630.2784217977013
+      }
+    },
+    {
+      "rank": 191,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 118,
+        "state_norm": 630.752550542374
+      }
+    },
+    {
+      "rank": 192,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 119,
+        "state_norm": 631.3828277808826
+      }
+    },
+    {
+      "rank": 193,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 144,
+        "state_norm": 626.080790883264
+      }
+    },
+    {
+      "rank": 194,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 145,
+        "state_norm": 626.7325411341632
+      }
+    },
+    {
+      "rank": 195,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 146,
+        "state_norm": 627.3991189177706
+      }
+    },
+    {
+      "rank": 196,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 147,
+        "state_norm": 628.2137669604577
+      }
+    },
+    {
+      "rank": 197,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 148,
+        "state_norm": 628.2919850113129
+      }
+    },
+    {
+      "rank": 198,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 149,
+        "state_norm": 629.6508763484716
+      }
+    },
+    {
+      "rank": 199,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 150,
+        "state_norm": 630.3642516020686
+      }
+    },
+    {
+      "rank": 200,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 151,
+        "state_norm": 631.0521129910483
+      }
+    },
+    {
+      "rank": 201,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 176,
+        "state_norm": 625.9350226806829
+      }
+    },
+    {
+      "rank": 202,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 177,
+        "state_norm": 626.7821162710029
+      }
+    },
+    {
+      "rank": 203,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 178,
+        "state_norm": 627.3267295904295
+      }
+    },
+    {
+      "rank": 204,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 179,
+        "state_norm": 628.477953650039
+      }
+    },
+    {
+      "rank": 205,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 180,
+        "state_norm": 629.8186587938987
+      }
+    },
+    {
+      "rank": 206,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 181,
+        "state_norm": 630.4272820704552
+      }
+    },
+    {
+      "rank": 207,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 182,
+        "state_norm": 631.7148705718162
+      }
+    },
+    {
+      "rank": 208,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 183,
+        "state_norm": 632.4516634053971
+      }
+    },
+    {
+      "rank": 209,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 208,
+        "state_norm": 625.8689847916754
+      }
+    },
+    {
+      "rank": 210,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 209,
+        "state_norm": 626.5811427510232
+      }
+    },
+    {
+      "rank": 211,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 210,
+        "state_norm": 627.152637684212
+      }
+    },
+    {
+      "rank": 212,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 211,
+        "state_norm": 627.6723404009745
+      }
+    },
+    {
+      "rank": 213,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 212,
+        "state_norm": 628.5204862150499
+      }
+    },
+    {
+      "rank": 214,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 213,
+        "state_norm": 629.1262623779894
+      }
+    },
+    {
+      "rank": 215,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 214,
+        "state_norm": 629.6712260312289
+      }
+    },
+    {
+      "rank": 216,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 215,
+        "state_norm": 630.1652537634567
+      }
+    },
+    {
+      "rank": 217,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 240,
+        "state_norm": 626.2403077563914
+      }
+    },
+    {
+      "rank": 218,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 241,
+        "state_norm": 626.7779104751231
+      }
+    },
+    {
+      "rank": 219,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 242,
+        "state_norm": 627.5967897313118
+      }
+    },
+    {
+      "rank": 220,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 243,
+        "state_norm": 627.5904873884341
+      }
+    },
+    {
+      "rank": 221,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 244,
+        "state_norm": 628.8208045349629
+      }
+    },
+    {
+      "rank": 222,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 245,
+        "state_norm": 629.7283396083232
+      }
+    },
+    {
+      "rank": 223,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 246,
+        "state_norm": 629.8404085528394
+      }
+    },
+    {
+      "rank": 224,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 247,
+        "state_norm": 630.6627533489129
+      }
+    },
+    {
+      "rank": 225,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 272,
+        "state_norm": 625.6893961350814
+      }
+    },
+    {
+      "rank": 226,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 273,
+        "state_norm": 626.7446679492793
+      }
+    },
+    {
+      "rank": 227,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 274,
+        "state_norm": 627.5710668402957
+      }
+    },
+    {
+      "rank": 228,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 275,
+        "state_norm": 628.19077928367
+      }
+    },
+    {
+      "rank": 229,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 276,
+        "state_norm": 629.0228450578755
+      }
+    },
+    {
+      "rank": 230,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 277,
+        "state_norm": 629.4316361690927
+      }
+    },
+    {
+      "rank": 231,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 278,
+        "state_norm": 629.9671976689815
+      }
+    },
+    {
+      "rank": 232,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 279,
+        "state_norm": 630.5759878981542
+      }
+    },
+    {
+      "rank": 233,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 304,
+        "state_norm": 626.1052629906594
+      }
+    },
+    {
+      "rank": 234,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 305,
+        "state_norm": 626.7401606518358
+      }
+    },
+    {
+      "rank": 235,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 306,
+        "state_norm": 627.3814143765376
+      }
+    },
+    {
+      "rank": 236,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 307,
+        "state_norm": 627.881369521762
+      }
+    },
+    {
+      "rank": 237,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 308,
+        "state_norm": 628.5764636481808
+      }
+    },
+    {
+      "rank": 238,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 309,
+        "state_norm": 629.77165224444
+      }
+    },
+    {
+      "rank": 239,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 310,
+        "state_norm": 630.2397137284952
+      }
+    },
+    {
+      "rank": 240,
+      "score": 2.2888,
+      "horizon": 8,
+      "metadata": {
+        "index": 311,
+        "state_norm": 630.9404942993568
+      }
+    },
+    {
+      "rank": 241,
+      "score": 1.9659000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 280,
+        "state_norm": 2686.578972436511
+      }
+    },
+    {
+      "rank": 242,
+      "score": 1.7961000000000003,
+      "horizon": 8,
+      "metadata": {
+        "index": 281,
+        "state_norm": 2158.131107442825
+      }
+    },
+    {
+      "rank": 243,
+      "score": 1.6852999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 56,
+        "state_norm": 3398.4858345677776
+      }
+    },
+    {
+      "rank": 244,
+      "score": 1.6012,
+      "horizon": 8,
+      "metadata": {
+        "index": 312,
+        "state_norm": 3637.968974020811
+      }
+    },
+    {
+      "rank": 245,
+      "score": 1.5209,
+      "horizon": 8,
+      "metadata": {
+        "index": 24,
+        "state_norm": 3833.445144146792
+      }
+    },
+    {
+      "rank": 246,
+      "score": 1.4668999999999999,
+      "horizon": 8,
+      "metadata": {
+        "index": 57,
+        "state_norm": 2711.9958890461385
+      }
+    },
+    {
+      "rank": 247,
+      "score": 1.4473000000000003,
+      "horizon": 8,
+      "metadata": {
+        "index": 184,
+        "state_norm": 4022.250698737173
+      }
+    },
+    {
+      "rank": 248,
+      "score": 1.4118,
+      "horizon": 8,
+      "metadata": {
+        "index": 88,
+        "state_norm": 4103.657977684551
+      }
+    },
+    {
+      "rank": 249,
+      "score": 1.3683,
+      "horizon": 8,
+      "metadata": {
+        "index": 313,
+        "state_norm": 2916.798110029505
+      }
+    },
+    {
+      "rank": 250,
+      "score": 1.2741,
+      "horizon": 8,
+      "metadata": {
+        "index": 25,
+        "state_norm": 3062.501348034212
+      }
+    },
+    {
+      "rank": 251,
+      "score": 1.2535,
+      "horizon": 8,
+      "metadata": {
+        "index": 248,
+        "state_norm": 4512.900820288381
+      }
+    },
+    {
+      "rank": 252,
+      "score": 1.1878000000000002,
+      "horizon": 8,
+      "metadata": {
+        "index": 185,
+        "state_norm": 3210.376966805316
+      }
+    },
+    {
+      "rank": 253,
+      "score": 1.1461000000000001,
+      "horizon": 8,
+      "metadata": {
+        "index": 89,
+        "state_norm": 3267.010888762741
+      }
+    },
+    {
+      "rank": 254,
+      "score": 1.0917999999999999,
+      "horizon": 8,
+      "metadata": {
+        "index": 216,
+        "state_norm": 4932.187485387703
+      }
+    },
+    {
+      "rank": 255,
+      "score": 0.9753000000000001,
+      "horizon": 8,
+      "metadata": {
+        "index": 314,
+        "state_norm": 3342.011565071623
+      }
+    },
+    {
+      "rank": 256,
+      "score": 0.9603999999999997,
+      "horizon": 8,
+      "metadata": {
+        "index": 249,
+        "state_norm": 3589.5336465401742
+      }
+    },
+    {
+      "rank": 257,
+      "score": 0.948,
+      "horizon": 8,
+      "metadata": {
+        "index": 315,
+        "state_norm": 2812.974095049352
+      }
+    },
+    {
+      "rank": 258,
+      "score": 0.948,
+      "horizon": 8,
+      "metadata": {
+        "index": 316,
+        "state_norm": 2929.3193261415568
+      }
+    },
+    {
+      "rank": 259,
+      "score": 0.948,
+      "horizon": 8,
+      "metadata": {
+        "index": 317,
+        "state_norm": 2696.9230135598295
+      }
+    },
+    {
+      "rank": 260,
+      "score": 0.8985999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 26,
+        "state_norm": 3702.1337692082075
+      }
+    },
+    {
+      "rank": 261,
+      "score": 0.8985999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 27,
+        "state_norm": 3069.4811057248457
+      }
+    },
+    {
+      "rank": 262,
+      "score": 0.8985999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 28,
+        "state_norm": 3860.156196141268
+      }
+    },
+    {
+      "rank": 263,
+      "score": 0.8985999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 29,
+        "state_norm": 3135.877827846522
+      }
+    },
+    {
+      "rank": 264,
+      "score": 0.8985999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 30,
+        "state_norm": 3274.7031059786455
+      }
+    },
+    {
+      "rank": 265,
+      "score": 0.8985999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 31,
+        "state_norm": 2944.5178751788117
+      }
+    },
+    {
+      "rank": 266,
+      "score": 0.8741000000000001,
+      "horizon": 8,
+      "metadata": {
+        "index": 186,
+        "state_norm": 3361.950211592051
+      }
+    },
+    {
+      "rank": 267,
+      "score": 0.8533,
+      "horizon": 8,
+      "metadata": {
+        "index": 187,
+        "state_norm": 3014.3512769118734
+      }
+    },
+    {
+      "rank": 268,
+      "score": 0.8263999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 152,
+        "state_norm": 5654.7796709296135
+      }
+    },
+    {
+      "rank": 269,
+      "score": 0.7706999999999999,
+      "horizon": 8,
+      "metadata": {
+        "index": 217,
+        "state_norm": 3920.30475325861
+      }
+    },
+    {
+      "rank": 270,
+      "score": 0.5966999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 250,
+        "state_norm": 5119.406568667771
+      }
+    },
+    {
+      "rank": 271,
+      "score": 0.5966999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 251,
+        "state_norm": 4091.498688028592
+      }
+    },
+    {
+      "rank": 272,
+      "score": 0.5966999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 252,
+        "state_norm": 4046.9865063590028
+      }
+    },
+    {
+      "rank": 273,
+      "score": 0.5966999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 253,
+        "state_norm": 3769.8177255068676
+      }
+    },
+    {
+      "rank": 274,
+      "score": 0.5966999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 254,
+        "state_norm": 5061.062833294349
+      }
+    },
+    {
+      "rank": 275,
+      "score": 0.5966999999999998,
+      "horizon": 8,
+      "metadata": {
+        "index": 255,
+        "state_norm": 4091.4442003107847
+      }
+    },
+    {
+      "rank": 276,
+      "score": 0.4807999999999999,
+      "horizon": 8,
+      "metadata": {
+        "index": 318,
+        "state_norm": 5623.481105973135
+      }
+    },
+    {
+      "rank": 277,
+      "score": 0.4807999999999999,
+      "horizon": 8,
+      "metadata": {
+        "index": 319,
+        "state_norm": 4498.387267607901
+      }
+    },
+    {
+      "rank": 278,
+      "score": 0.47119999999999984,
+      "horizon": 8,
+      "metadata": {
+        "index": 153,
+        "state_norm": 4515.14158113846
+      }
+    },
+    {
+      "rank": 279,
+      "score": 0.47119999999999984,
+      "horizon": 8,
+      "metadata": {
+        "index": 154,
+        "state_norm": 5277.477898318657
+      }
+    },
+    {
+      "rank": 280,
+      "score": 0.47119999999999984,
+      "horizon": 8,
+      "metadata": {
+        "index": 155,
+        "state_norm": 4380.126992889802
+      }
+    },
+    {
+      "rank": 281,
+      "score": 0.47119999999999984,
+      "horizon": 8,
+      "metadata": {
+        "index": 156,
+        "state_norm": 4520.845176771889
+      }
+    },
+    {
+      "rank": 282,
+      "score": 0.47119999999999984,
+      "horizon": 8,
+      "metadata": {
+        "index": 157,
+        "state_norm": 4176.069402358747
+      }
+    },
+    {
+      "rank": 283,
+      "score": 0.47119999999999984,
+      "horizon": 8,
+      "metadata": {
+        "index": 158,
+        "state_norm": 4365.553528720853
+      }
+    },
+    {
+      "rank": 284,
+      "score": 0.47119999999999984,
+      "horizon": 8,
+      "metadata": {
+        "index": 159,
+        "state_norm": 4133.176588105108
+      }
+    },
+    {
+      "rank": 285,
+      "score": 0.38929999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 188,
+        "state_norm": 6014.654568238369
+      }
+    },
+    {
+      "rank": 286,
+      "score": 0.38929999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 189,
+        "state_norm": 4807.964421793764
+      }
+    },
+    {
+      "rank": 287,
+      "score": 0.38929999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 190,
+        "state_norm": 4348.13413241483
+      }
+    },
+    {
+      "rank": 288,
+      "score": 0.38929999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 191,
+        "state_norm": 4321.934811098491
+      }
+    },
+    {
+      "rank": 289,
+      "score": 0.34299999999999975,
+      "horizon": 8,
+      "metadata": {
+        "index": 58,
+        "state_norm": 6192.623548405465
+      }
+    },
+    {
+      "rank": 290,
+      "score": 0.34299999999999975,
+      "horizon": 8,
+      "metadata": {
+        "index": 59,
+        "state_norm": 4940.349102184331
+      }
+    },
+    {
+      "rank": 291,
+      "score": 0.34299999999999975,
+      "horizon": 8,
+      "metadata": {
+        "index": 60,
+        "state_norm": 4961.004404095225
+      }
+    },
+    {
+      "rank": 292,
+      "score": 0.34299999999999975,
+      "horizon": 8,
+      "metadata": {
+        "index": 61,
+        "state_norm": 4573.908559216435
+      }
+    },
+    {
+      "rank": 293,
+      "score": 0.34299999999999975,
+      "horizon": 8,
+      "metadata": {
+        "index": 62,
+        "state_norm": 4693.843014357531
+      }
+    },
+    {
+      "rank": 294,
+      "score": 0.34299999999999975,
+      "horizon": 8,
+      "metadata": {
+        "index": 63,
+        "state_norm": 4516.154933426117
+      }
+    },
+    {
+      "rank": 295,
+      "score": 0.32719999999999994,
+      "horizon": 8,
+      "metadata": {
+        "index": 282,
+        "state_norm": 6247.804999041361
+      }
+    },
+    {
+      "rank": 296,
+      "score": 0.32719999999999994,
+      "horizon": 8,
+      "metadata": {
+        "index": 283,
+        "state_norm": 4975.518234491271
+      }
+    },
+    {
+      "rank": 297,
+      "score": 0.32719999999999994,
+      "horizon": 8,
+      "metadata": {
+        "index": 284,
+        "state_norm": 4475.74950913644
+      }
+    },
+    {
+      "rank": 298,
+      "score": 0.32719999999999994,
+      "horizon": 8,
+      "metadata": {
+        "index": 285,
+        "state_norm": 4464.720331709656
+      }
+    },
+    {
+      "rank": 299,
+      "score": 0.32719999999999994,
+      "horizon": 8,
+      "metadata": {
+        "index": 286,
+        "state_norm": 4495.087058364609
+      }
+    },
+    {
+      "rank": 300,
+      "score": 0.32719999999999994,
+      "horizon": 8,
+      "metadata": {
+        "index": 287,
+        "state_norm": 4473.566227411869
+      }
+    },
+    {
+      "rank": 301,
+      "score": 0.32679999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 90,
+        "state_norm": 6262.0297070153665
+      }
+    },
+    {
+      "rank": 302,
+      "score": 0.32679999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 91,
+        "state_norm": 4996.577276698698
+      }
+    },
+    {
+      "rank": 303,
+      "score": 0.32679999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 92,
+        "state_norm": 5767.0153570255725
+      }
+    },
+    {
+      "rank": 304,
+      "score": 0.32679999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 93,
+        "state_norm": 4838.367155985353
+      }
+    },
+    {
+      "rank": 305,
+      "score": 0.32679999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 94,
+        "state_norm": 5298.16872697966
+      }
+    },
+    {
+      "rank": 306,
+      "score": 0.32679999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 95,
+        "state_norm": 4728.472829881664
+      }
+    },
+    {
+      "rank": 307,
+      "score": 0.29359999999999986,
+      "horizon": 8,
+      "metadata": {
+        "index": 120,
+        "state_norm": 7032.2252371537315
+      }
+    },
+    {
+      "rank": 308,
+      "score": 0.14329999999999976,
+      "horizon": 8,
+      "metadata": {
+        "index": 121,
+        "state_norm": 5596.420307572143
+      }
+    },
+    {
+      "rank": 309,
+      "score": 0.11939999999999995,
+      "horizon": 8,
+      "metadata": {
+        "index": 122,
+        "state_norm": 7134.376105154682
+      }
+    },
+    {
+      "rank": 310,
+      "score": 0.11939999999999995,
+      "horizon": 8,
+      "metadata": {
+        "index": 123,
+        "state_norm": 5674.88594107648
+      }
+    },
+    {
+      "rank": 311,
+      "score": 0.11939999999999995,
+      "horizon": 8,
+      "metadata": {
+        "index": 124,
+        "state_norm": 6305.675330549256
+      }
+    },
+    {
+      "rank": 312,
+      "score": 0.11939999999999995,
+      "horizon": 8,
+      "metadata": {
+        "index": 125,
+        "state_norm": 5463.425563456248
+      }
+    },
+    {
+      "rank": 313,
+      "score": 0.11939999999999995,
+      "horizon": 8,
+      "metadata": {
+        "index": 126,
+        "state_norm": 5711.599128450747
+      }
+    },
+    {
+      "rank": 314,
+      "score": 0.11939999999999995,
+      "horizon": 8,
+      "metadata": {
+        "index": 127,
+        "state_norm": 5290.175972584105
+      }
+    },
+    {
+      "rank": 315,
+      "score": -0.04730000000000012,
+      "horizon": 8,
+      "metadata": {
+        "index": 218,
+        "state_norm": 7847.0484030341795
+      }
+    },
+    {
+      "rank": 316,
+      "score": -0.04730000000000012,
+      "horizon": 8,
+      "metadata": {
+        "index": 219,
+        "state_norm": 6251.64123420867
+      }
+    },
+    {
+      "rank": 317,
+      "score": -0.04730000000000012,
+      "horizon": 8,
+      "metadata": {
+        "index": 220,
+        "state_norm": 5960.06273656258
+      }
+    },
+    {
+      "rank": 318,
+      "score": -0.04730000000000012,
+      "horizon": 8,
+      "metadata": {
+        "index": 221,
+        "state_norm": 5693.616385647956
+      }
+    },
+    {
+      "rank": 319,
+      "score": -0.04730000000000012,
+      "horizon": 8,
+      "metadata": {
+        "index": 222,
+        "state_norm": 5703.50732438416
+      }
+    },
+    {
+      "rank": 320,
+      "score": -0.04730000000000012,
+      "horizon": 8,
+      "metadata": {
+        "index": 223,
+        "state_norm": 5633.401190993297
+      }
+    }
+  ],
+  "perception_quality": {
+    "quality_score": 0.0,
+    "resolution": [
+      0,
+      0
+    ],
+    "target_size_px": null,
+    "notes": "Invalid frame dimensions",
+    "proxy_recommended": true
+  },
+  "gate_verdict": null
+}

@@ -1,0 +1,4 @@
+  File "<string>", line 174
+    print(f'\n{=*60}')
+                     ^
+SyntaxError: f-string: empty expression not allowed

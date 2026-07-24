@@ -1,0 +1,20 @@
+{
+  "ledger_version": "1.0",
+  "runtime_fingerprint": "4403ff43f1e831ce15bb1cd1c68a3b96e2c0fba6cbb633f159f55c48f828f8ec",
+  "domain_entries": [
+    {
+      "domain_id": "GridWorld_v1.0",
+      "plugin_fingerprint": "f4f2374bc37a1579e0fc853b85c14ab742d1f530e2f7ff39fd5c379e6b9f2bd1",
+      "ais": 1.0,
+      "dic": 0.0,
+      "compliance_status": "PASS"
+    },
+    {
+      "domain_id": "Chess_v1.0",
+      "plugin_fingerprint": "20f874caa12fba5a2578c23712e332a85c52a5d74c05011e9e3de8c37a04bd53",
+      "ais": 1.0,
+      "dic": 0.0,
+      "compliance_status": "PASS"
+    }
+  ]
+}

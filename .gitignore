@@ -1,0 +1,37 @@
+# Secrets & config
+.env
+*.key
+*secret*
+opencode.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.egg
+
+# TELOS runtime data (contains traces, identities, user data)
+/tmp/telos_checkpoints/
+/tmp/telos_identity*.json
+/tmp/telos_knowledge.json
+/tmp/telos_ledger.json
+/tmp/telos_server.log
+checkpoint_*.json
+system_self_*.json
+
+# Build artifacts
+*.pyc
+.pytest_cache/
+*.so
+*.egg-info/
+
+# IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db

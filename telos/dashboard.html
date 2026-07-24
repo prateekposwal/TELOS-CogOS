@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>TELOS — GridWorld Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; color: #e0e0e0; display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
+
+  .sidebar { width: 280px; background: #12121a; border-right: 1px solid #1e1e2e; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+  .sidebar h1 { font-size: 15px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #ff6b6b; }
+  .sidebar .status { font-size: 13px; color: #888; }
+
+  .metric-card { background: #181825; border-radius: 10px; padding: 12px; border: 1px solid #1e1e2e; }
+  .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #666; font-weight: 700; }
+  .metric-card .value { font-size: 28px; font-weight: 800; color: #fff; margin-top: 2px; }
+  .metric-card .sub { font-size: 12px; color: #888; margin-top: 1px; }
+
+  .stream-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #aaa; }
+  .stream-bar .bar { flex: 1; height: 7px; background: #1e1e2e; border-radius: 3px; overflow: hidden; }
+  .stream-bar .bar .fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+
+  .council-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; padding: 4px 8px; border-radius: 6px; background: #181825; margin-bottom: 2px; }
+  .council-item .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .council-item .dot.pass { background: #4ade80; }
+  .council-item .dot.block { background: #ff4444; }
+
+  .main { flex: 1; display: flex; flex-direction: column; padding: 16px; gap: 14px; overflow-y: auto; }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; }
+  .toolbar button { background: #181825; border: 1px solid #1e1e2e; border-radius: 8px; padding: 6px 12px; color: #aaa; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .toolbar button:hover { border-color: #ff6b6b; color: #fff; }
+  .toolbar button.active { background: #ff6b6b; border-color: #ff6b6b; color: #fff; }
+
+  .timeline-bar { display: flex; align-items: center; gap: 4px; padding: 8px 10px; background: #12121a; border-radius: 8px; border: 1px solid #1e1e2e; overflow-x: auto; flex: 1; }
+  .timeline-bar .t-dot { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+  .timeline-bar .t-dot:hover { transform: scale(1.2); }
+  .timeline-bar .t-dot.active { transform: scale(1.3); box-shadow: 0 0 8px rgba(255,107,107,0.5); }
+
+  .top-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .grid-panel { background: #12121a; border-radius: 12px; border: 1px solid #1e1e2e; padding: 14px; flex: 1; min-width: 500px; }
+  .grid-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 8px; }
+
+  .right-panels { display: flex; flex-direction: column; gap: 14px; flex: 1; min-width: 360px; }
+
+  .brain-panel { background: #0f0f18; border-radius: 12px; border: 1px solid #1e1e2e; padding: 14px; height: 1000px; }
+  .brain-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 8px; }
+  #brain-container { width: 100% !important; height: 960px !important; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at center, #0f0f1a 0%, #0a0a0f 100%); }
+
+  .pipeline-panel { background: #12121a; border-radius: 12px; border: 1px solid #1e1e2e; padding: 14px; }
+  .pipeline-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 8px; }
+  .phase-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1a1a2a; font-size: 13px; }
+  .phase-row:last-child { border: none; }
+  .phase-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .phase-dot.pending { background: #2a2a3a; }
+  .phase-dot.active { background: #fbbf24; box-shadow: 0 0 6px rgba(251,191,36,0.5); }
+  .phase-dot.done { background: #4ade80; }
+  .phase-dot.blocked { background: #ff4444; }
+  .phase-name { color: #ccc; flex: 1; }
+  .phase-timer { color: #555; font-family: monospace; font-size: 11px; min-width: 50px; text-align: right; }
+
+  .chart-panel { background: #12121a; border-radius: 12px; border: 1px solid #1e1e2e; padding: 14px; }
+  .chart-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 8px; }
+  .chart-panel canvas { display: block; border-radius: 8px; width: 100%; height: 200px; }
+
+  .knowledge-panel { background: #12121a; border-radius: 12px; border: 1px solid #1e1e2e; padding: 14px; display: flex; flex-direction: column; overflow: hidden; min-height: 860px; }
+  .knowledge-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 8px; }
+  .knowledge-panel canvas { display: block; border-radius: 8px; }
+  .node-count-label { font-size: 11px; color: #555; font-family: monospace; }
+
+  .memory-panel { background: #12121a; border-radius: 12px; border: 1px solid #1e1e2e; padding: 14px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .memory-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 8px; }
+  #memory-timeline { flex: 1; overflow-y: auto; padding-right: 4px; position: relative; }
+  #memory-timeline::-webkit-scrollbar { width: 3px; }
+  #memory-timeline::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+
+  .mem-node { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; position: relative; min-height: 42px; }
+  .mem-node .mem-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; position: relative; z-index: 2; margin-top: 4px; border: 2px solid transparent; transition: all 0.3s; }
+  .mem-node .mem-dot.green { background: #4ade80; border-color: rgba(74,222,128,0.3); box-shadow: 0 0 8px rgba(74,222,128,0.3); }
+  .mem-node .mem-dot.red { background: #ff4444; border-color: rgba(255,68,68,0.3); box-shadow: 0 0 8px rgba(255,68,68,0.3); }
+  .mem-node .mem-dot.green:hover { box-shadow: 0 0 14px rgba(74,222,128,0.6); }
+  .mem-node .mem-dot.red:hover { box-shadow: 0 0 14px rgba(255,68,68,0.6); }
+  .mem-node .mem-content { flex: 1; min-width: 0; }
+  .mem-node .mem-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .mem-node .mem-cycle { font-size: 13px; font-weight: 700; color: #ccc; }
+  .mem-node .mem-di { font-size: 12px; font-weight: 600; }
+  .mem-node .mem-status { font-size: 12px; margin-left: auto; }
+  .mem-node .mem-detail { display: flex; gap: 8px; font-size: 12px; color: #888; margin-top: 2px; flex-wrap: wrap; }
+  .mem-node .mem-terrain { color: #888; }
+  .mem-node .mem-intent { color: #666; font-style: italic; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty-state { text-align: center; padding: 24px 12px; color: #555; font-size: 13px; }
+
+  .bottom-row { display: flex; gap: 14px; }
+
+  .option-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; padding: 5px 0; border-bottom: 1px solid #1a1a2a; }
+  .option-row:last-child { border: none; }
+  .option-row .score-bar { flex: 1; height: 6px; background: #1e1e2e; border-radius: 3px; overflow: hidden; }
+  .option-row .score-bar .fill { height: 100%; border-radius: 3px; }
+
+  .chat-panel { width: 300px; background: #12121a; border-radius: 12px; border: 1px solid #1e1e2e; display: flex; flex-direction: column; overflow: hidden; }
+  .chat-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; padding: 12px 14px 0; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; max-height: 180px; }
+  .chat-msg { font-size: 14px; padding: 7px 10px; border-radius: 8px; max-width: 85%; line-height: 1.4; }
+  .chat-msg.user { background: #1e1e3e; color: #ccc; align-self: flex-end; }
+  .chat-msg.telos { background: #1a1a2a; color: #aaa; align-self: flex-start; border: 1px solid #1e1e2e; }
+  .chat-msg .time { font-size: 11px; color: #555; margin-top: 2px; display: block; }
+  .chat-input-row { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid #1a1a2a; }
+  .chat-input-row input { flex: 1; background: #181825; border: 1px solid #1e1e2e; border-radius: 6px; padding: 8px 10px; font-size: 14px; color: #ddd; outline: none; }
+  .chat-input-row button { background: #ff6b6b; border: none; border-radius: 6px; padding: 8px 14px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  .log-panel { background: #12121a; border-radius: 12px; border: 1px solid #1e1e2e; padding: 14px; max-height: 180px; overflow-y: auto; flex: 1; }
+  .log-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 8px; }
+  .log-entry { font-size: 12px; color: #666; padding: 2px 0; font-family: monospace; }
+  .log-entry .success { color: #4ade80; }
+  .log-entry .warn { color: #fbbf24; }
+
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; max-height: 200px; flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .sidebar h1 { width: 100%; }
+    .metric-card { flex: 1; min-width: 60px; }
+    .top-row { flex-direction: column; }
+    .bottom-row { flex-direction: column; }
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h1>⚡ TELOS</h1>
+  <div class="status">Status: <span id="status-text">Idle</span></div>
+  <div class="metric-card">
+    <div class="label">Decision Integrity</div>
+    <div class="value" id="di-value">—</div>
+    <div class="sub">Last cycle</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Mission Drift</div>
+    <div class="value" id="md-value">—</div>
+    <div class="sub">Last cycle</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Cycles</div>
+    <div class="value" id="cycles-value">0</div>
+    <div class="sub">Total executed</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Terrain</div>
+    <div class="value" id="terrain-value">—</div>
+    <div class="sub" id="terrain-sub">Current biome</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Worlds</div>
+    <div class="value" id="worlds-value">—</div>
+    <div class="sub">This cycle</div>
+  </div>
+  <div class="metric-card" id="omega-card" style="display:none;">
+    <div class="label">Ω Vector</div>
+    <div class="value" id="omega-value" style="font-size:14px;">—</div>
+    <div class="sub" id="omega-sub">Inquiry stream</div>
+  </div>
+
+  <div>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;font-weight:700;margin-bottom:4px;">Cognitive Streams</div>
+    <div id="streams-container"></div>
+  </div>
+  <div>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;font-weight:700;margin-bottom:4px;">Council</div>
+    <div id="council-container"></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="toolbar">
+    <span style="font-size:11px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Timeline</span>
+    <div id="timeline-container" class="timeline-bar" style="flex:1;"></div>
+    <button id="btn-auto-refresh" onclick="toggleAutoRefresh()">▶ Auto</button>
+    <button onclick="exportTraces()">⬇ Export</button>
+    <button id="btn-cost-view" onclick="toggleCostView()">📊 Costs</button>
+    <button id="btn-heat-mode" onclick="toggleHeatMode()">🔥 Heat</button>
+    <button id="btn-omega-heat" onclick="toggleOmegaHeatmap()">🌡️ Omega</button>
+  </div>
+
+  <div class="brain-panel" style="margin-bottom:10px;">
+    <h3>🧠 REDACTED — Cognitive Pipeline</h3>
+    <div id="brain-container"></div>
+  </div>
+
+  <div class="top-row">
+    <div class="right-panels">
+      <div class="grid-panel" style="min-height:600px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <h3 style="margin-bottom:0;">🌐 GRIDWORLD — 3D ISOMETRIC</h3>
+          <span style="font-size:11px;color:#555;font-family:monospace;" id="step-counter">Drag to orbit · Scroll to zoom · Click to set goal</span>
+        </div>
+        <canvas id="grid-canvas" width="1100" height="960" style="display:block;margin:0 auto;border-radius:10px;cursor:grab;"></canvas>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:14px;color:#ccc;line-height:1.8;">
+          <span title="Normal terrain, no movement penalty">🌿 Plains · ×1 · Normal speed</span>
+          <span title="Slows movement, costs double">🌲 Forest · ×2 · Slow</span>
+          <span title="Heavy resistance, costs triple">🌊 Water · ×3 · Heavy</span>
+          <span title="Sandy terrain, slight penalty">🏜️ Desert · ×1.5 · Sandy</span>
+          <span title="Very slow, costs 4x">⛰️ Mountain · ×4 · Very Slow</span>
+          <span title="Impassable, cannot enter">🧱 Blocked · Cannot enter</span>
+        </div>
+        <div style="text-align:center;margin-top:8px;font-size:14px;color:#888;">
+          TELOS (⚡) avoids high-cost terrain and blocked cells, prefers Plains & Desert
+        </div>
+        <div style="margin-top:10px;padding:12px 16px;background:#181825;border-radius:8px;font-size:14px;color:#999;line-height:1.7;">
+          <b style="color:#ccc;">Navigation Flow:</b> TELOS senses terrain cost per cell → chooses lowest-cost path toward Goal (🔮) → ⭐ Rewards boost score → blocking validators check obstacles & drift
+        </div>
+      </div>
+      <div class="pipeline-panel">
+        <h3>🔁 7 Phases</h3>
+        <div id="pipeline-container"></div>
+      </div>
+      <div class="chart-panel">
+        <h3>📈 DI / MD</h3>
+        <canvas id="chart-canvas" width="520" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-row" style="flex-direction:column;gap:10px;">
+    <!-- Full-width Knowledge Graph (matches GridWorld section size) -->
+    <div class="knowledge-panel" style="width:100%;flex:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h3 style="margin-bottom:0;">🧠 Knowledge Graph</h3>
+          <span id="node-count" class="node-count-label">0 nodes</span>
+        </div>
+        <canvas id="kg-canvas" style="display:block;border-radius:8px;width:100%;height:820px;background:#0f0f18;"></canvas>
+      </div>
+    <!-- Memory, Chat, Log side by side below KG -->
+    <div style="display:flex;gap:12px;width:100%;min-height:0;flex:1;">
+      <div class="memory-panel" style="flex:1;">
+        <h3>💾 Memory Timeline</h3>
+        <div id="memory-timeline"><div class="empty-state">No decision traces yet</div></div>
+      </div>
+      <div class="chat-panel" style="width:260px;flex-shrink:0;">
+        <h3>💬 Chat</h3>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-msg telos">Send a command. Try "navigate to goal"<span class="time">ready</span></div>
+        </div>
+        <div class="chat-input-row">
+          <input id="chat-input" type="text" placeholder="Type..." autocomplete="off">
+          <button id="chat-send">Send</button>
+        </div>
+      </div>
+      <div class="log-panel" style="flex:1;max-height:160px;">
+        <h3>📋 Log</h3>
+        <div id="log-container"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ───
+const state = {
+  traces: [], diHistory: [], mdHistory: [], cycleLabels: [],
+  gridSize: 5, blocked: [[1,1],[2,2],[3,1]], rewards: {'0,4':10,'4,0':5},
+  goal: [4,4], position: [0,0], animPos: [0,0], prevPos: [0,0], animT: 0,
+  visited: [], time: 0,
+  selectedCycle: -1, autoRefresh: false, rewardFlash: 0,
+  particles: [],
+  terrain: {
+    '0,0':'plains','1,0':'plains','2,0':'forest','3,0':'plains','4,0':'desert',
+    '0,1':'plains','1,1':'blocked','2,1':'plains','3,1':'blocked','4,1':'forest',
+    '0,2':'water','1,2':'plains','2,2':'blocked','3,2':'desert','4,2':'plains',
+    '0,3':'plains','1,3':'forest','2,3':'plains','3,3':'plains','4,3':'mountain',
+    '0,4':'desert','1,4':'plains','2,4':'plains','3,4':'forest','4,4':'plains',
+  },
+  showCosts: false,
+  heatMode: false,
+  omegaHeatmap: false,
+  visitCounts: {},
+  shortestPath: [],
+  hoveredCell: null,
+  hoverPos: null,
+  altPaths: [],
+};
+
+const TC = {'plains':'#1a2a1a','forest':'#0d2818','water':'#0a1628','desert':'#2a2418','mountain':'#1e1e2a','blocked':'#2a1a1a'};
+const TCOST = {'plains':1,'forest':2,'water':3,'desert':1.5,'mountain':4};
+const SC = {'Reflex':'#ff6b6b','Perception':'#4ade80','Memory':'#60a5fa','Planning':'#fbbf24'};
+const PN = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL'];
+
+// ─── 3D Isometric Parameters ───
+const ISO = {
+  tw: 164, th: 82, hs: 26,
+  ox: 550, oy: 420,
+  zoom: 1,
+  rotY: -0.6,   // yaw (horizontal rotation)
+  rotX: -0.4,   // pitch (vertical tilt)
+  camX: 0, camY: 0,
+  isDragging: false,
+  lastMX: 0, lastMY: 0,
+};
+
+const TH = {
+  'plains': 0, 'forest': 2.0, 'water': -0.5,
+  'desert': 0.5, 'mountain': 4.5, 'blocked': 3.5,
+};
+const TC3D = {
+  'plains':   { top: '#4a8a3a', left: '#2d5a22', right: '#386a2a', edge: '#5a9a4a' },
+  'forest':   { top: '#1a6a2a', left: '#0d3a18', right: '#145020', edge: '#2a8a3a' },
+  'water':    { top: '#1a5a9a', left: '#0d3a6a', right: '#144a7a', edge: '#2a7aba' },
+  'desert':   { top: '#d4b86a', left: '#a88e4a', right: '#c0a45a', edge: '#e4c87a' },
+  'mountain': { top: '#8a8a9a', left: '#5a5a6a', right: '#6a6a7a', edge: '#9a9aaa' },
+  'blocked':  { top: '#3a2a2a', left: '#2a1a1a', right: '#2a1a1a', edge: '#4a3a3a' },
+};
+
+// ─── 3D Rotation Helpers ───
+function isoToScreen(x, y, h) {
+  const cx = x - 2, cy = y - 2, cz = (h || 0) * 0.2;
+  const cY = Math.cos(ISO.rotY), sY = Math.sin(ISO.rotY);
+  const cX = Math.cos(ISO.rotX), sX = Math.sin(ISO.rotX);
+  const rx = cx * cY - cz * sY;
+  const rz = cx * sY + cz * cY;
+  const ry = cy * cX - rz * sX;
+  const rz2 = cy * sX + rz * cX;
+  const sc = ISO.zoom * ISO.tw / 2;
+  return {
+    sx: ISO.ox + ISO.camX + rx * sc,
+    sy: ISO.oy + ISO.camY - ry * sc * 0.7 + rz2 * sc * 0.35,
+  };
+}
+
+function screenToIso(mx, my) {
+  const sc = ISO.zoom * ISO.tw / 2;
+  const dx = (mx - ISO.ox - ISO.camX) / sc;
+  const dy = (my - ISO.oy - ISO.camY) / sc;
+  const cY = Math.cos(ISO.rotY), sY = Math.sin(ISO.rotY);
+  const cX = Math.cos(ISO.rotX), sX = Math.sin(ISO.rotX);
+  const det = cY * cX;
+  if (Math.abs(det) < 0.01) return [2, 2];
+  const rx = (dx * cX + dy * sY * sX) / det;
+  const ry = (dy * cY) / det;
+  return [rx + 2, ry + 2];
+}
+
+function getTerrainAt(x, y) {
+  const key = `${Math.round(x)},${Math.round(y)}`;
+  return state.terrain[key] || 'plains';
+}
+
+// --- Pathfinding & Cost Helpers ---
+function getTerrainCost(tt) {
+  return TCOST[tt] || 1;
+}
+
+function computeShortestPath() {
+  const { gridSize, goal, position, terrain, blocked } = state;
+  const GX = goal[0], GY = goal[1];
+  const SX = Math.round(position[0]), SY = Math.round(position[1]);
+  if (SX === GX && SY === GY) return [[SX, SY]];
+  const dist = {}, prev = {};
+  const visited = new Set();
+  const pq = [];
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      dist[`${x},${y}`] = Infinity;
+      prev[`${x},${y}`] = null;
+    }
+  }
+  dist[`${SX},${SY}`] = 0;
+  pq.push([0, SX, SY]);
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  while (pq.length > 0) {
+    pq.sort((a, b) => a[0] - b[0]);
+    const [d, cx, cy] = pq.shift();
+    const ck = `${cx},${cy}`;
+    if (visited.has(ck)) continue;
+    visited.add(ck);
+    if (cx === GX && cy === GY) break;
+    for (const [dx, dy] of dirs) {
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || nx >= gridSize || ny < 0 || ny >= gridSize) continue;
+      const nk = `${nx},${ny}`;
+      if (visited.has(nk)) continue;
+      const ntt = terrain[nk] || 'plains';
+      if (ntt === 'blocked') continue;
+      const nd = d + getTerrainCost(ntt);
+      if (nd < dist[nk]) {
+        dist[nk] = nd;
+        prev[nk] = [cx, cy];
+        pq.push([nd, nx, ny]);
+      }
+    }
+  }
+  const path = [];
+  let cx = GX, cy = GY;
+  if (dist[`${cx},${cy}`] === Infinity) return [];
+  while (prev[`${cx},${cy}`] !== null) {
+    path.unshift([cx, cy]);
+    [cx, cy] = prev[`${cx},${cy}`];
+  }
+  path.unshift([SX, SY]);
+  return path;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+
+// ─── 3D Block Drawing ───
+function drawBlock3D(ctx, cx, cy, hPx, colors, breath, opts) {
+  // cx, cy = center of the block's base at ground level
+  // hPx = height in pixels (positive = raised, negative = recessed)
+  // breath = breathing oscillation
+  
+  const { tw, th } = ISO;
+  const b = breath * ISO.zoom;
+  
+  // Determine top surface position and wall extent
+  // For positive height: top surface is ABOVE ground (lower Y on canvas)
+  // For negative height: top surface is BELOW ground (higher Y on canvas)
+  const topY = hPx >= 0 ? cy - hPx + b : cy + b;         // upper Y (higher visual)
+  const botY = hPx >= 0 ? cy + b : cy - hPx + b;         // lower Y (lower visual)
+  
+  // Diamond corners at top surface
+  const nTop = { x: cx, y: topY - th / 2 };
+  const eTop = { x: cx + tw / 2, y: topY };
+  const sTop = { x: cx, y: topY + th / 2 };
+  const wTop = { x: cx - tw / 2, y: topY };
+  
+  // Diamond corners at base (ground)
+  const nBot = { x: cx, y: botY - th / 2 };
+  const eBot = { x: cx + tw / 2, y: botY };
+  const sBot = { x: cx, y: botY + th / 2 };
+  const wBot = { x: cx - tw / 2, y: botY };
+  
+  // === Draw shadow (for raised blocks) ===
+  if (hPx > 3) {
+    const shadowOff = 6 + hPx * 0.08;
+    ctx.beginPath();
+    ctx.moveTo(cx + shadowOff, cy + shadowOff - th / 2);
+    ctx.lineTo(cx + tw / 2 + shadowOff, cy + shadowOff);
+    ctx.lineTo(cx + shadowOff, cy + shadowOff + th / 2);
+    ctx.lineTo(cx - tw / 2 + shadowOff, cy + shadowOff);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fill();
+  }
+  
+  // === Left wall (front-left face) ===
+  const useForNegative = hPx < 0;
+  if (hPx !== 0) {
+    ctx.beginPath();
+    if (hPx > 0) {
+      // Raised: walls from top surface DOWN to ground
+      ctx.moveTo(wTop.x, wTop.y);      // top-left corner of top surface
+      ctx.lineTo(sTop.x, sTop.y);      // bottom corner of top surface
+      ctx.lineTo(sBot.x, sBot.y);      // bottom corner at ground
+      ctx.lineTo(wBot.x, wBot.y);      // left corner at ground
+    } else {
+      // Recessed: walls from ground DOWN to top surface
+      ctx.moveTo(wBot.x, wBot.y);      // left corner at ground
+      ctx.lineTo(sBot.x, sBot.y);      // bottom corner at ground
+      ctx.lineTo(sTop.x, sTop.y);      // bottom corner of top surface
+      ctx.lineTo(wTop.x, wTop.y);      // left corner of top surface
+    }
+    ctx.closePath();
+    ctx.fillStyle = colors.left;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+  
+  // === Right wall (front-right face) ===
+  if (hPx !== 0) {
+    ctx.beginPath();
+    if (hPx > 0) {
+      ctx.moveTo(sTop.x, sTop.y);
+      ctx.lineTo(eTop.x, eTop.y);
+      ctx.lineTo(eBot.x, eBot.y);
+      ctx.lineTo(sBot.x, sBot.y);
+    } else {
+      ctx.moveTo(sBot.x, sBot.y);
+      ctx.lineTo(eBot.x, eBot.y);
+      ctx.lineTo(eTop.x, eTop.y);
+      ctx.lineTo(sTop.x, sTop.y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = colors.right;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+  
+  // === Top (or water) surface ===
+  ctx.beginPath();
+  ctx.moveTo(nTop.x, nTop.y);
+  ctx.lineTo(eTop.x, eTop.y);
+  ctx.lineTo(sTop.x, sTop.y);
+  ctx.lineTo(wTop.x, wTop.y);
+  ctx.closePath();
+  
+  // Determine surface color (water gets animated color)
+  if (opts && opts.tt === 'water') {
+    const wave = Math.sin(state.time * 2 + cx * 0.05 + cy * 0.08) * 8;
+    const r = 26 + wave, g = 90 + wave * 0.5, b2 = 154 + wave * 0.3;
+    ctx.fillStyle = `rgb(${Math.min(60,r)},${Math.min(120,g)},${Math.min(200,b2)})`;
+  } else {
+    ctx.fillStyle = colors.top;
+  }
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+}
+
+// ─── Terrain Features ───
+function drawTerrainFeature(ctx, cx, cy, hPx, tt, breath) {
+  const { tw, th } = ISO;
+  const topY = hPx >= 0 ? cy - hPx + breath : cy + breath;
+  const b = breath;
+  
+  // Clip to top face diamond
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx, topY - th / 2);
+  ctx.lineTo(cx + tw / 2, topY);
+  ctx.lineTo(cx, topY + th / 2);
+  ctx.lineTo(cx - tw / 2, topY);
+  ctx.closePath();
+  ctx.clip();
+  
+  switch (tt) {
+    case 'plains': {
+      // Subtle grass texture lines
+      ctx.strokeStyle = 'rgba(90,154,74,0.15)';
+      ctx.lineWidth = 0.5;
+      for (let i = -2; i <= 2; i += 0.5) {
+        const lx = cx + i * 8 + Math.sin(state.time * 0.5 + i) * 1;
+        const ly = topY + i * 4;
+        ctx.beginPath();
+        ctx.moveTo(lx - 4, ly);
+        ctx.lineTo(lx + 4, ly + 6);
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'forest': {
+      // Draw 3 small tree triangles
+      const treePos = [[-12, -4], [8, -6], [-2, -10]];
+      for (const tp of treePos) {
+        const sway = Math.sin(state.time * 1.2 + tp[0] * 0.1) * 1.5;
+        const tx = cx + tp[0] + sway;
+        const ty = topY + tp[1] - 5;
+        // Tree trunk
+        ctx.fillStyle = '#3a2a1a';
+        ctx.fillRect(tx - 1.5, ty + 2, 3, 8);
+        // Tree canopy (triangle)
+        ctx.beginPath();
+        ctx.moveTo(tx, ty - 8);
+        ctx.lineTo(tx - 8, ty + 4);
+        ctx.lineTo(tx + 8, ty + 4);
+        ctx.closePath();
+        ctx.fillStyle = '#0d5a1a';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'water': {
+      // Animated wave lines
+      const wavePhase = state.time * 2;
+      ctx.strokeStyle = 'rgba(100,180,255,0.3)';
+      ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i += 0.4) {
+        const wy = topY + i * 6;
+        const wx = cx + Math.sin(wavePhase + i * 1.5 + cx * 0.03) * 10;
+        ctx.beginPath();
+        ctx.moveTo(wx - 18, wy);
+        ctx.quadraticCurveTo(wx, wy - 3, wx + 18, wy);
+        ctx.stroke();
+      }
+      // Wave highlight
+      const hl = Math.sin(state.time * 1.5 + cx * 0.02) * 0.3 + 0.5;
+      ctx.fillStyle = `rgba(180,220,255,${hl * 0.08})`;
+      ctx.fillRect(cx - tw/2, topY - 2, tw, 4);
+      break;
+    }
+    case 'desert': {
+      // Gentle dune curves
+      ctx.strokeStyle = 'rgba(228,200,122,0.2)';
+      ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i += 0.3) {
+        const dy2 = topY + i * 5 + Math.sin(i * 0.8) * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - 20, dy2 + 3);
+        ctx.quadraticCurveTo(cx, dy2, cx + 20, dy2 + 3);
+        ctx.stroke();
+      }
+      // Small dune sparkle
+      if (Math.random() < 0.02) {
+        ctx.fillStyle = 'rgba(255,255,200,0.4)';
+        ctx.beginPath();
+        ctx.arc(cx + (Math.random() - 0.5) * 30, topY + (Math.random() - 0.5) * 15, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case 'mountain': {
+      // Rocky peak on top
+      const peakH = 18 + Math.sin(state.time * 0.3 + cx) * 2;
+      const peakX = cx + Math.sin(cx * 0.5) * 2;
+      const peakY = topY - th / 4 - peakH;
+      // Shadow side of peak
+      ctx.beginPath();
+      ctx.moveTo(peakX, peakY);
+      ctx.lineTo(cx + th / 4, topY - 2);
+      ctx.lineTo(cx, topY - 2);
+      ctx.closePath();
+      ctx.fillStyle = '#4a4a5a';
+      ctx.fill();
+      // Sunlit side
+      ctx.beginPath();
+      ctx.moveTo(peakX, peakY);
+      ctx.lineTo(cx, topY - 2);
+      ctx.lineTo(cx - th / 4, topY - 2);
+      ctx.closePath();
+      ctx.fillStyle = '#7a7a8a';
+      ctx.fill();
+      // Snow cap
+      if (peakH > 16) {
+        ctx.beginPath();
+        ctx.moveTo(peakX, peakY);
+        ctx.lineTo(peakX - 4, peakY + 6);
+        ctx.lineTo(peakX + 4, peakY + 6);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(200,200,220,0.5)';
+        ctx.fill();
+      }
+      // Rocky details
+      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < 3; i++) {
+        const rx = cx + (i - 1) * 6 + Math.sin(i * 2) * 3;
+        const ry = topY - 4 - i * 4;
+        ctx.beginPath();
+        ctx.moveTo(rx - 3, ry);
+        ctx.lineTo(rx + 3, ry + 3);
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'blocked': {
+      // Cross-hatch pattern
+      ctx.strokeStyle = 'rgba(255,0,0,0.08)';
+      ctx.lineWidth = 0.5;
+      for (let i = -1; i <= 1; i += 0.5) {
+        const bx = cx + i * 16;
+        ctx.beginPath();
+        ctx.moveTo(bx - 8, topY - 12);
+        ctx.lineTo(bx + 8, topY + 12);
+        ctx.stroke();
+      }
+      for (let i = -1; i <= 1; i += 0.5) {
+        const by = topY + i * 16;
+        ctx.beginPath();
+        ctx.moveTo(cx - 16, by - 8);
+        ctx.lineTo(cx + 16, by + 8);
+        ctx.stroke();
+      }
+      // Skull-like X
+      ctx.fillStyle = 'rgba(255,68,68,0.15)';
+      ctx.font = `${ISO.th * 0.3}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✕', cx, topY + 1);
+      break;
+    }
+  }
+  
+  ctx.restore();
+}
+
+// ─── Main 3D Drawing Function ───
+function drawGrid3D(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const { tw, th, hs, ox, oy } = ISO;
+  
+  // Clear
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, w, h);
+  
+  // Subtle background gradient
+  const bgGrad = ctx.createRadialGradient(ox, oy + 120, 20, ox, oy + 120, 360);
+  bgGrad.addColorStop(0, 'rgba(20,20,40,0.3)');
+  bgGrad.addColorStop(0.5, 'rgba(15,15,25,0.15)');
+  bgGrad.addColorStop(1, 'rgba(10,10,15,0)');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+  
+  // Ground shadow plane
+  ctx.beginPath();
+  ctx.moveTo(ox, oy - th / 2 * 4);
+  ctx.lineTo(ox + tw * 3, oy + th * 2);
+  ctx.lineTo(ox, oy + th / 2 * 8);
+  ctx.lineTo(ox - tw * 3, oy + th * 2);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.fill();
+  
+  // Breathing oscillation
+  const breath = Math.sin(state.time * 1.5) * 1.5;
+  
+  // Build cell data list
+  const z = ISO.zoom;
+  const cells = [];
+  for (let y = 0; y < state.gridSize; y++) {
+    for (let x = 0; x < state.gridSize; x++) {
+      const tt = getTerrainAt(x, y);
+      const hgt = TH[tt] || 0;
+      const hPx = hgt * hs * z;
+      const { sx, sy } = isoToScreen(x, y);
+      const isG = state.goal[0] === x && state.goal[1] === y;
+      const isR = !!state.rewards[`${x},${y}`];
+      const visIdx = state.visited.findIndex(p => Math.round(p[0]) === x && Math.round(p[1]) === y);
+      const isT = state.animPos[0] >= x - 0.4 && state.animPos[0] <= x + 0.4 &&
+                   state.animPos[1] >= y - 0.4 && state.animPos[1] <= y + 0.4;
+      
+      cells.push({ x, y, tt, hgt, hPx, sx, sy, isG, isR, isT, visIdx,
+        colors: TC3D[tt] || TC3D['plains'],
+        isB: tt === 'blocked',
+        sortKey: (x + y) * th * z / 2 + Math.max(0, hPx) + (isT ? 1000 : 0),
+      });
+    }
+  }
+  
+  // Sort back-to-front by visual depth
+  cells.sort((a, b) => a.sortKey - b.sortKey);
+  
+  // Draw cells
+  for (const c of cells) {
+    const { x, y, tt, hPx, sx, sy, colors, isG, isR, isT, visIdx, isB } = c;
+    
+    // Draw 3D block
+    drawBlock3D(ctx, sx, sy, hPx, colors, breath, { tt });
+    
+    const topY = hPx >= 0 ? sy - hPx + breath : sy + breath;
+    
+    // ── REDACTED B: Omega Heatmap Mode ──
+    if (state.omegaHeatmap) {
+      // Color cells by uncertainty contribution based on position relative to TELOS
+      const pos = state.animPos || state.position;
+      const dx = x - pos[0];
+      const dy = y - pos[1];
+      const dist = Math.sqrt(dx*dx + dy*dy) || 0.01;
+      const maxDist = state.gridSize * 1.5;
+      
+      // Unexplored cells far from TELOS get high Ω_W (blue glow)
+      const vk = `${x},${y}`;
+      const visited = state.visitCounts[vk] || 0;
+      const isBlocked = tt === 'blocked';
+      
+      let omegaColor;
+      if (isBlocked) {
+        omegaColor = 'rgba(40,20,20,0.7)';  // Blocked = dark red
+      } else if (visited === 0) {
+        // Unexplored: strong blue glow, intensity fades with distance
+        const intensity = Math.max(0.2, Math.min(1.0, 1.0 - dist / maxDist));
+        const alpha = 0.3 + intensity * 0.5;
+        omegaColor = `rgba(40, 100, 255, ${alpha})`;
+      } else if (dist < 1.5) {
+        // Near TELOS: green glow (low uncertainty)
+        const intensity = Math.max(0.1, 1.0 - dist * 0.5);
+        omegaColor = `rgba(74, 222, 128, ${intensity * 0.4})`;
+      } else {
+        // Visited but not near: low transparency
+        omegaColor = 'rgba(100, 100, 120, 0.15)';
+      }
+      
+      // Draw overlay on top face
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(sx - tw/2, topY);
+      ctx.lineTo(sx, topY - th/2);
+      ctx.lineTo(sx + tw/2, topY);
+      ctx.lineTo(sx, topY + th/2);
+      ctx.closePath();
+      ctx.fillStyle = omegaColor;
+      ctx.fill();
+      
+      // Draw omega value indicator
+      const omegaVal = isBlocked ? 0.9 : visited === 0 ? Math.max(0.3, 1.0 - dist / maxDist) : 0.1;
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = `bold ${ISO.th * 0.22}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Ω:' + omegaVal.toFixed(1), sx, topY + 1);
+      ctx.restore();
+      
+    // ── Feature 5: Heat Map Mode ──
+    } else if (state.heatMode) {
+      const vk = `${x},${y}`;
+      const count = state.visitCounts[vk] || 0;
+      let heatColor;
+      if (count === 0) heatColor = 'rgba(10,10,15,0.88)';
+      else if (count === 1) heatColor = 'rgba(10,26,58,0.88)';
+      else if (count <= 3) heatColor = 'rgba(10,42,90,0.88)';
+      else if (count <= 7) heatColor = 'rgba(58,42,26,0.88)';
+      else heatColor = 'rgba(90,26,26,0.88)';
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(sx - tw/2, topY);
+      ctx.lineTo(sx, topY - th/2);
+      ctx.lineTo(sx + tw/2, topY);
+      ctx.lineTo(sx, topY + th/2);
+      ctx.closePath();
+      ctx.fillStyle = heatColor;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      ctx.fillStyle = count > 0 ? '#fff' : 'rgba(255,255,255,0.35)';
+      ctx.font = `bold ${ISO.th * 0.26}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(count, sx, topY + 1);
+      ctx.restore();
+    // ── Feature 3: Cost View ──
+    } else if (state.showCosts) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(sx - tw/2, topY);
+      ctx.lineTo(sx, topY - th/2);
+      ctx.lineTo(sx + tw/2, topY);
+      ctx.lineTo(sx, topY + th/2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(sx - tw/2, topY - th/2, tw, th);
+      const cost = getTerrainCost(tt);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${ISO.th * 0.4}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('×' + cost, sx, topY + 1);
+      ctx.restore();
+    } else {
+      // Draw terrain feature on top
+      drawTerrainFeature(ctx, sx, sy, hPx, tt, breath);
+    }
+    
+    // Breadcrumb trail
+    if (visIdx >= 0 && !isT) {
+      ctx.beginPath();
+      ctx.arc(sx, topY + 2, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,107,107,0.4)';
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.font = '7px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(visIdx + 1, sx, topY + 6);
+    }
+    
+    // Reward star
+    if (isR && !isT) {
+      const pulse = Math.sin(state.time * 3 + x + y) * 0.15 + 0.85;
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = `${ISO.th * 0.32}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⭐', sx, topY + 1);
+      ctx.globalAlpha = 1;
+    }
+  }
+  
+  // ── Feature 4: Alternative Path Ghosts ──
+  if (state.altPaths.length > 0) {
+    const altColors = [
+      { stroke: 'rgba(100,180,255,0.25)', fill: 'rgba(100,180,255,0.08)' },
+      { stroke: 'rgba(180,100,255,0.25)', fill: 'rgba(180,100,255,0.08)' },
+      { stroke: 'rgba(255,180,100,0.25)', fill: 'rgba(255,180,100,0.08)' },
+    ];
+    for (let ai = 0; ai < Math.min(state.altPaths.length, 3); ai++) {
+      const alt = state.altPaths[ai];
+      if (alt.length < 2) continue;
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.beginPath();
+      for (let pi = 0; pi < alt.length; pi++) {
+        const p = alt[pi];
+        const { sx, sy } = isoToScreen(p[0], p[1]);
+        const ttt = getTerrainAt(p[0], p[1]);
+        const hpx = (TH[ttt] || 0) * hs;
+        const topY = hpx >= 0 ? sy - hpx + breath : sy + breath;
+        if (pi === 0) ctx.moveTo(sx, topY);
+        else ctx.lineTo(sx, topY);
+      }
+      ctx.strokeStyle = altColors[ai].stroke;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Endpoint marker
+      const last = alt[alt.length - 1];
+      const { sx: lsx, sy: lsy } = isoToScreen(last[0], last[1]);
+      const ltt = getTerrainAt(last[0], last[1]);
+      const lhp = (TH[ltt] || 0) * hs;
+      const lty = lhp >= 0 ? lsy - lhp + breath : lsy + breath;
+      ctx.beginPath();
+      ctx.arc(lsx, lty, 4, 0, Math.PI * 2);
+      ctx.fillStyle = altColors[ai].fill;
+      ctx.fill();
+      ctx.strokeStyle = altColors[ai].stroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  
+  // === Counterfactual ghosts (drawn between cells and TELOS) ===
+  if (state.visited.length > 0) {
+    const last = state.visited[state.visited.length - 1];
+    for (let dx = -1; dx <= 1; dx += 2) {
+      for (let dy = -1; dy <= 1; dy += 2) {
+        const gx = Math.round(last[0]) + dx, gy = Math.round(last[1]) + dy;
+        if (gx < 0 || gx >= state.gridSize || gy < 0 || gy >= state.gridSize) continue;
+        if (getTerrainAt(gx, gy) === 'blocked') continue;
+        if (state.visited.some(p => Math.round(p[0]) === gx && Math.round(p[1]) === gy)) continue;
+        
+        const { sx, sy } = isoToScreen(gx, gy);
+        const ttt = getTerrainAt(gx, gy);
+        const hpx = (TH[ttt] || 0) * hs;
+        const topY = hpx >= 0 ? sy - hpx + breath : sy + breath;
+        
+        ctx.save();
+        ctx.globalAlpha = 0.2 + Math.sin(state.time * 2 + gx + gy) * 0.05;
+        ctx.beginPath();
+        ctx.moveTo(sx, topY - ISO.th / 3);
+        ctx.lineTo(sx + ISO.tw / 3, topY);
+        ctx.lineTo(sx, topY + ISO.th / 3);
+        ctx.lineTo(sx - ISO.tw / 3, topY);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255,107,107,0.08)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,107,107,0.25)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,200,200,0.12)';
+        ctx.font = `${ISO.th * 0.18}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('?', sx, topY + 1);
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+    }
+  }
+  
+  // === Trajectory line ===
+  if (state.visited.length > 1) {
+    ctx.beginPath();
+    for (let i = 0; i < state.visited.length; i++) {
+      const p = state.visited[i];
+      const { sx, sy } = isoToScreen(p[0], p[1]);
+      const ttt = getTerrainAt(p[0], p[1]);
+      const hpx = (TH[ttt] || 0) * hs;
+      const topY = hpx >= 0 ? sy - hpx + breath : sy + breath;
+      if (i === 0) ctx.moveTo(sx, topY);
+      else {
+        const prev = state.visited[i - 1];
+        const { sx: psx, sy: psy } = isoToScreen(prev[0], prev[1]);
+        const ptt = getTerrainAt(prev[0], prev[1]);
+        const php = (TH[ptt] || 0) * hs;
+        const pty = php >= 0 ? psy - php + breath : psy + breath;
+        const midX = (psx + sx) / 2;
+        const midY = (pty + topY) / 2 - 2;
+        ctx.quadraticCurveTo(midX, midY, sx, topY);
+      }
+    }
+    ctx.strokeStyle = 'rgba(255,107,107,0.35)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    ctx.beginPath();
+    for (let i = 0; i < state.visited.length; i++) {
+      const p = state.visited[i];
+      const { sx, sy } = isoToScreen(p[0], p[1]);
+      const ttt = getTerrainAt(p[0], p[1]);
+      const hpx = (TH[ttt] || 0) * hs;
+      const topY = hpx >= 0 ? sy - hpx + breath : sy + breath;
+      if (i === 0) ctx.moveTo(sx, topY);
+      else ctx.lineTo(sx, topY);
+    }
+    ctx.strokeStyle = 'rgba(255,107,107,0.12)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 6]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  
+  // ── Feature 1: Shortest-Path Overlay (green dotted line with glow) ──
+  if (state.shortestPath && state.shortestPath.length > 1) {
+    ctx.save();
+    ctx.shadowColor = '#4ade80';
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    for (let i = 0; i < state.shortestPath.length; i++) {
+      const p = state.shortestPath[i];
+      const { sx, sy } = isoToScreen(p[0], p[1]);
+      const ttt = getTerrainAt(p[0], p[1]);
+      const hpx = (TH[ttt] || 0) * hs;
+      const topY = hpx >= 0 ? sy - hpx + breath : sy + breath;
+      if (i === 0) ctx.moveTo(sx, topY);
+      else ctx.lineTo(sx, topY);
+    }
+    ctx.strokeStyle = 'rgba(74,222,128,0.6)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    for (let i = 0; i < state.shortestPath.length; i++) {
+      const p = state.shortestPath[i];
+      const { sx, sy } = isoToScreen(p[0], p[1]);
+      const ttt = getTerrainAt(p[0], p[1]);
+      const hpx = (TH[ttt] || 0) * hs;
+      const topY = hpx >= 0 ? sy - hpx + breath : sy + breath;
+      const pulse = Math.sin(state.time * 3 + i * 0.5) * 0.2 + 0.8;
+      ctx.beginPath();
+      ctx.arc(sx, topY, 3 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(74,222,128,${0.4 * pulse})`;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  
+  // ── Feature 2: Hover Tooltip Info Panel ──
+  if (state.hoveredCell && state.hoverPos) {
+    const [hx, hy] = state.hoveredCell;
+    const ttt = getTerrainAt(hx, hy);
+    const cost = getTerrainCost(ttt);
+    const onPath = state.shortestPath && state.shortestPath.some(p => p[0] === hx && p[1] === hy);
+    let distToGoal = '\u2014';
+    if (state.shortestPath && state.shortestPath.length > 0) {
+      const idx = state.shortestPath.findIndex(p => p[0] === hx && p[1] === hy);
+      if (idx >= 0) distToGoal = (state.shortestPath.length - 1 - idx) + ' cells';
+    }
+    const emojis = {plains:'🌿', forest:'🌲', water:'🌊', desert:'🏜️', mountain:'⛰️', blocked:'🧱'};
+    const label = ttt.charAt(0).toUpperCase() + ttt.slice(1);
+    const lines = [
+      `${emojis[ttt] || '❓'} ${label} \u00b7 \u00d7${cost}`,
+      `Distance to goal: ${distToGoal}`,
+      onPath ? '✅ On optimal path' : '❌ Not optimal path',
+    ];
+    
+    const { sx, sy } = state.hoverPos;
+    const panelW = 188, lineH = 20, titleH = 22;
+    const panelH = titleH + lines.length * lineH + 12;
+    
+    let px = sx + 24, py = sy - panelH / 2;
+    if (px + panelW > w) px = sx - panelW - 24;
+    if (py < 6) py = 6;
+    if (py + panelH > h - 6) py = h - panelH - 6;
+    
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = 'rgba(10,10,22,0.94)';
+    ctx.strokeStyle = 'rgba(74,222,128,0.25)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, px, py, panelW, panelH, 10);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    ctx.fillStyle = '#e0e0e0';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`📍 Cell (${hx},${hy})`, px + 12, py + 8);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(px + 12, py + titleH + 2, panelW - 24, 1);
+    
+    for (let i = 0; i < lines.length; i++) {
+      const color = i === 2 ? (onPath ? '#4ade80' : '#ff6b6b') : '#b0b0b0';
+      ctx.fillStyle = color;
+      ctx.font = i === 0 ? 'bold 12px sans-serif' : '12px sans-serif';
+      ctx.fillText(lines[i], px + 12, py + titleH + 10 + i * lineH);
+    }
+    ctx.restore();
+  }
+  
+  // === Goal marker ===
+  const gs = isoToScreen(state.goal[0], state.goal[1]);
+  const gTT = getTerrainAt(state.goal[0], state.goal[1]);
+  const gHPx = (TH[gTT] || 0) * hs;
+  const gTopY = gHPx >= 0 ? gs.sy - gHPx + breath : gs.sy + breath;
+  drawGoalMarker(ctx, gs.sx, gTopY);
+  
+  // === TELOS orb ===
+  drawTELOS(ctx);
+  
+  // === Particles ===
+  drawParticles(ctx);
+}
+
+
+// ─── Goal Marker ───
+function drawGoalMarker(ctx, cx, cy) {
+  const pulse = Math.sin(state.time * 2.5) * 0.2 + 0.8;
+  const radius = 8 + Math.sin(state.time * 3) * 2;
+  
+  // Outer glow
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 3);
+  grad.addColorStop(0, `rgba(250,204,21,${pulse * 0.5})`);
+  grad.addColorStop(0.3, `rgba(250,204,21,${pulse * 0.15})`);
+  grad.addColorStop(1, 'rgba(250,204,21,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius * 3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Inner glow
+  const innerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  innerGrad.addColorStop(0, `rgba(255,240,150,${pulse})`);
+  innerGrad.addColorStop(0.6, `rgba(250,204,21,${pulse * 0.8})`);
+  innerGrad.addColorStop(1, `rgba(200,150,10,0)`);
+  ctx.fillStyle = innerGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Center
+  ctx.fillStyle = `rgba(255,255,220,${pulse})`;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Light rays
+  ctx.strokeStyle = `rgba(250,204,21,${pulse * 0.08})`;
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 8; i++) {
+    const angle = i * Math.PI / 4 + state.time * 0.5;
+    const len = radius * (1.5 + Math.sin(state.time * 2 + i) * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * len, cy + Math.sin(angle) * len);
+    ctx.stroke();
+  }
+  
+  // Label
+  ctx.fillStyle = `rgba(255,255,200,${0.4 + pulse * 0.3})`;
+  ctx.font = 'bold 9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('GOAL', cx, cy - radius - 4);
+}
+
+// ─── TELOS Character ───
+function drawTELOS(ctx) {
+  const { hs } = ISO;
+  const { sx, sy } = isoToScreen(state.animPos[0], state.animPos[1]);
+  const tt = getTerrainAt(state.animPos[0], state.animPos[1]);
+  const hPx = (TH[tt] || 0) * hs;
+  const breath = Math.sin(state.time * 1.5) * 1.5;
+  const topY = hPx >= 0 ? sy - hPx + breath : sy + breath;
+  
+  // Orb floats above terrain
+  const floatY = topY - 28 + Math.sin(state.time * 2) * 3;
+  const orbPulse = Math.sin(state.time * 3) * 0.15 + 0.85;
+  const orbRadius = 9 + Math.sin(state.time * 2.5) * 1.5;
+  
+  // Glow trail (trailing ghosts)
+  const trailLen = 3;
+  for (let i = 1; i <= trailLen; i++) {
+    const t = state.time - i * 0.08;
+    const trailPos = [
+      state.prevPos[0] + (state.position[0] - state.prevPos[0]) * Math.max(0, 1 - i * 0.25),
+      state.prevPos[1] + (state.position[1] - state.prevPos[1]) * Math.max(0, 1 - i * 0.25),
+    ];
+    const { sx: tsx, sy: tsy } = isoToScreen(trailPos[0], trailPos[1]);
+    const ttt = getTerrainAt(trailPos[0], trailPos[1]);
+    const thp = (TH[ttt] || 0) * hs;
+    const tty = thp >= 0 ? tsy - thp + breath : tsy + breath;
+    const tAlpha = 0.15 / i;
+    const tRad = orbRadius * (0.7 - i * 0.15);
+    
+    const tg = ctx.createRadialGradient(tsx, tty - 28, 0, tsx, tty - 28, tRad * 2);
+    tg.addColorStop(0, `rgba(255,107,107,${tAlpha})`);
+    tg.addColorStop(1, 'rgba(255,107,107,0)');
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.arc(tsx, tty - 28, tRad * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Orb outer glow
+  const outerGrad = ctx.createRadialGradient(sx, floatY, 0, sx, floatY, orbRadius * 4);
+  outerGrad.addColorStop(0, `rgba(255,107,107,${orbPulse * 0.35})`);
+  outerGrad.addColorStop(0.4, `rgba(255,107,107,${orbPulse * 0.1})`);
+  outerGrad.addColorStop(1, 'rgba(255,107,107,0)');
+  ctx.fillStyle = outerGrad;
+  ctx.beginPath();
+  ctx.arc(sx, floatY, orbRadius * 4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Orb body
+  const orbGrad = ctx.createRadialGradient(
+    sx - orbRadius * 0.3, floatY - orbRadius * 0.3, 0,
+    sx, floatY, orbRadius
+  );
+  orbGrad.addColorStop(0, `rgba(255,200,200,${orbPulse})`);
+  orbGrad.addColorStop(0.3, `rgba(255,120,120,${orbPulse * 0.9})`);
+  orbGrad.addColorStop(0.7, `rgba(255,60,60,${orbPulse * 0.7})`);
+  orbGrad.addColorStop(1, `rgba(200,20,20,${orbPulse * 0.3})`);
+  ctx.fillStyle = orbGrad;
+  ctx.beginPath();
+  ctx.arc(sx, floatY, orbRadius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Inner core glow
+  ctx.fillStyle = `rgba(255,255,255,${orbPulse * 0.5})`;
+  ctx.beginPath();
+  ctx.arc(sx - orbRadius * 0.2, floatY - orbRadius * 0.2, orbRadius * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Lightning bolts around orb
+  ctx.strokeStyle = `rgba(255,200,200,${Math.sin(state.time * 4) * 0.08 + 0.1})`;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const angle = i * Math.PI * 2 / 3 + state.time * 1.5;
+    const r1 = orbRadius * 1.2;
+    const r2 = orbRadius * 1.8 + Math.sin(state.time * 5 + i) * 3;
+    const r3 = orbRadius * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(sx + Math.cos(angle) * r1, floatY + Math.sin(angle) * r1);
+    ctx.lineTo(sx + Math.cos(angle + 0.3) * r2, floatY + Math.sin(angle + 0.3) * r2);
+    ctx.lineTo(sx + Math.cos(angle + 0.6) * r3, floatY + Math.sin(angle + 0.6) * r3);
+    ctx.stroke();
+  }
+  
+  // Label
+  ctx.fillStyle = `rgba(255,200,200,${0.3 + Math.sin(state.time * 2) * 0.1})`;
+  ctx.font = 'bold 8px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('TELOS', sx, floatY - orbRadius - 3);
+}
+
+// ─── Particle System ───
+function spawnParticles() {
+  if (state.particles.length < 25 && state.time % 0.3 < 0.02) {
+    const x = Math.random() * state.gridSize;
+    const y = Math.random() * state.gridSize;
+    const tt = getTerrainAt(Math.floor(x), Math.floor(y));
+    if (tt !== 'blocked' && tt !== 'water') {
+      state.particles.push({
+        x, y,
+        life: 0.8 + Math.random() * 0.4,
+        speed: 0.2 + Math.random() * 0.4,
+        drift: (Math.random() - 0.5) * 0.3,
+        size: 1 + Math.random() * 2,
+        hue: tt === 'forest' ? 120 : tt === 'desert' ? 40 : 80,
+      });
+    }
+  }
+}
+
+function drawParticles(ctx) {
+  const { hs } = ISO;
+  
+  for (let i = state.particles.length - 1; i >= 0; i--) {
+    const p = state.particles[i];
+    p.life -= 0.005 * p.speed;
+    if (p.life <= 0) { state.particles.splice(i, 1); continue; }
+    
+    // Update position (float upward and drift)
+    p.x += p.drift * 0.01;
+    p.y += p.drift * 0.01;
+    
+    const { sx, sy } = isoToScreen(p.x % state.gridSize, p.y % state.gridSize);
+    const tt = getTerrainAt(Math.floor(p.x) % state.gridSize, Math.floor(p.y) % state.gridSize);
+    const hPx = (TH[tt] || 0) * hs;
+    const breath = Math.sin(state.time * 1.5) * 1.5;
+    const topY = hPx >= 0 ? sy - hPx + breath : sy + breath;
+    
+    // Float upward from terrain
+    const floatUp = (1 - p.life) * 30;
+    const px = sx + Math.sin(state.time * 0.5 + p.x * 3) * 3;
+    const py = topY - 5 - floatUp;
+    
+    // Glow
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, p.size * 2);
+    grad.addColorStop(0, `hsla(${p.hue},80%,70%,${p.life * 0.5})`);
+    grad.addColorStop(1, `hsla(${p.hue},80%,70%,0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(px, py, p.size * 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Core
+    ctx.fillStyle = `hsla(${p.hue},60%,80%,${p.life * 0.6})`;
+    ctx.beginPath();
+    ctx.arc(px, py, p.size * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ─── Chart (3D terrain: DI ridge / MD valley with depth pillars, pulsing glow, corona) ───
+function drawChart(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = 520, h = 200;
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, w, h);
+
+  const len = state.diHistory.length;
+  if (len < 2) {
+    ctx.fillStyle = '#2a2a3a';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Waiting for data...', w / 2, h / 2);
+    return;
+  }
+
+  const time = state.time || 0;
+  const pad = { top: 6, bottom: 22, left: 10, right: 10 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+  const step = chartW / (len - 1);
+
+  // Pulsing glow: brightness oscillates ±10%
+  const diPulse = 0.9 + Math.sin(time * 1.5) * 0.1;
+
+  // ── Build column data with perspective ──
+  // Left (past) = far (compressed vertically), Right (present) = near (full height)
+  const cols = [];
+  for (let i = 0; i < len; i++) {
+    const t = i / (len - 1);
+    const persp = 0.35 + t * 0.65;           // 0.35 at far left, 1.0 at near right
+    const diVal = Math.max(0.05, state.diHistory[i] || 0.5);
+    const mdVal = state.mdHistory[i] || 0;
+    const x = pad.left + i * step;
+    const diY = pad.top + chartH - diVal * chartH * persp;
+    const mdY = pad.top + chartH - mdVal * chartH * 0.05 * persp;
+    const baseY = pad.top + chartH;
+    const colW = Math.max(1, step * (0.25 + t * 0.45));
+    cols.push({ x, diY, mdY, baseY, colW, diVal, mdVal, t, persp });
+  }
+
+  // ── 1. Vertical depth pillars (DI ridge → baseline) ──
+  ctx.shadowBlur = 0;
+  for (const c of cols) {
+    if (c.colW < 0.5) continue;
+    const pillarA = (0.05 + c.diVal * 0.09) * diPulse;
+    // Main pillar fill
+    ctx.fillStyle = `rgba(74,222,128,${pillarA})`;
+    ctx.fillRect(c.x - c.colW / 2, c.diY, c.colW, c.baseY - c.diY);
+    // Left edge (darker for 3D depth)
+    ctx.fillStyle = `rgba(40,180,80,${pillarA * 0.5})`;
+    ctx.fillRect(c.x - c.colW / 2, c.diY, 1, c.baseY - c.diY);
+    // Right edge (lighter highlight)
+    ctx.fillStyle = `rgba(100,255,160,${pillarA * 0.3})`;
+    ctx.fillRect(c.x + c.colW / 2 - 1, c.diY, 1, c.baseY - c.diY);
+  }
+
+  // ── 2. MD valley area with heat shimmer at peaks ──
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top + chartH);
+  for (const c of cols) {
+    const shimmer = Math.sin(time * 3 + c.t * 10) * 1.8 * c.persp;
+    ctx.lineTo(c.x, c.mdY + shimmer);
+  }
+  ctx.lineTo(pad.left + (len - 1) * step, pad.top + chartH);
+  ctx.closePath();
+  const mg = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+  mg.addColorStop(0, `rgba(255,107,107,${0.14 * diPulse})`);
+  mg.addColorStop(0.5, `rgba(255,80,60,${0.06 * diPulse})`);
+  mg.addColorStop(1, 'rgba(255,107,107,0.01)');
+  ctx.fillStyle = mg;
+  ctx.fill();
+
+  // MD line with shimmer vertices
+  ctx.beginPath();
+  for (let i = 0; i < len; i++) {
+    const c = cols[i];
+    const shimmer = Math.sin(time * 3 + i * 2) * 1.8 * c.persp;
+    if (i === 0) ctx.moveTo(c.x, c.mdY + shimmer);
+    else ctx.lineTo(c.x, c.mdY + shimmer);
+  }
+  ctx.strokeStyle = `rgba(255,107,107,${0.45 + Math.sin(time * 2) * 0.1})`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Flame lick particles at MD peaks
+  for (let i = 1; i < len - 1; i++) {
+    const c = cols[i];
+    if (c.mdVal > 3.5 && Math.random() < 0.008) {
+      const lx = c.x + (Math.random() - 0.5) * 4;
+      const ly = c.mdY - 2 + Math.sin(time * 5 + i) * 2;
+      ctx.beginPath();
+      ctx.arc(lx, ly, 1 + Math.random() * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,150,80,${0.2 + Math.random() * 0.2})`;
+      ctx.fill();
+    }
+  }
+
+  // ── 3. DI ridge area with pulsing glow ──
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top + chartH);
+  for (const c of cols) {
+    ctx.lineTo(c.x, c.diY);
+  }
+  ctx.lineTo(pad.left + (len - 1) * step, pad.top + chartH);
+  ctx.closePath();
+  const dg = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+  const glowInt = 0.3 * diPulse;
+  dg.addColorStop(0, `rgba(74,222,128,${glowInt})`);
+  dg.addColorStop(0.4, `rgba(74,222,128,${glowInt * 0.5})`);
+  dg.addColorStop(1, 'rgba(74,222,128,0.02)');
+  ctx.fillStyle = dg;
+  ctx.fill();
+
+  // DI ridge line with glow
+  ctx.beginPath();
+  for (let i = 0; i < len; i++) {
+    const c = cols[i];
+    if (i === 0) ctx.moveTo(c.x, c.diY);
+    else ctx.lineTo(c.x, c.diY);
+  }
+  ctx.strokeStyle = `rgba(74,222,128,${0.7 * diPulse})`;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#4ade80';
+  ctx.shadowBlur = 8 * diPulse;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── 4. Breathing endpoint dot with corona/aura ──
+  const last = cols[len - 1];
+  const endPulse = Math.sin(time * 2.2) * 0.2 + 0.8;
+
+  // Corona rings
+  for (let r = 1; r <= 3; r++) {
+    const rad = 5 + r * 5 + Math.sin(time * 1.5 + r) * 2;
+    const ringA = (0.15 / r) * endPulse;
+    ctx.beginPath();
+    ctx.arc(last.x, last.diY, rad, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(74,222,128,${ringA})`;
+    ctx.lineWidth = 1.5 - r * 0.3;
+    ctx.stroke();
+  }
+
+  // Outer glow
+  const coronaGrad = ctx.createRadialGradient(last.x, last.diY, 0, last.x, last.diY, 22 * endPulse);
+  coronaGrad.addColorStop(0, `rgba(74,222,128,${0.35 * endPulse})`);
+  coronaGrad.addColorStop(0.4, `rgba(74,222,128,${0.12 * endPulse})`);
+  coronaGrad.addColorStop(1, 'rgba(74,222,128,0)');
+  ctx.fillStyle = coronaGrad;
+  ctx.beginPath();
+  ctx.arc(last.x, last.diY, 22 * endPulse, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Dot body
+  ctx.beginPath();
+  ctx.arc(last.x, last.diY, 3.5 + Math.sin(time * 3) * 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(74,222,128,${endPulse})`;
+  ctx.shadowColor = '#4ade80';
+  ctx.shadowBlur = 16 * endPulse;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Inner bright core
+  ctx.beginPath();
+  ctx.arc(last.x, last.diY, 1.8, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(200,255,200,${0.85 * endPulse})`;
+  ctx.fill();
+
+  // ── 5. Labels ──
+  ctx.fillStyle = '#4ade80';
+  ctx.font = '7px sans-serif';
+  ctx.textAlign = 'start';
+  ctx.fillText('DI', pad.left, pad.top - 2);
+  ctx.fillStyle = '#ff6b6b';
+  ctx.fillText('MD', pad.left + 14, pad.top - 2);
+}
+
+// ─── Checkpoint loading & trace application (unchanged) ───
+async function loadCheckpoints() {
+  try {
+    const resp = await fetch('/api/checkpoints');
+    const traces = await resp.json();
+    for (const t of traces) {
+      if (!state.traces.some(x => x.cycle_id === t.cycle_id)) applyTrace(t);
+    }
+  } catch {}
+}
+
+function applyTrace(trace) {
+  state.traces.push(trace);
+  state.diHistory.push(trace.decision_integrity || 1.0);
+  state.mdHistory.push(trace.mission_drift || 0);
+  state.cycleLabels.push(`C${trace.cycle_id || state.cycleLabels.length}`);
+
+  document.getElementById('di-value').textContent = (trace.decision_integrity || 1.0).toFixed(3);
+  document.getElementById('md-value').textContent = (trace.mission_drift || 0).toFixed(3);
+  document.getElementById('cycles-value').textContent = state.traces.length;
+  document.getElementById('worlds-value').textContent = trace.worlds_simulated || 0;
+  // Omega Vector display (Inquiry Stream)
+  var _ov = trace.inquiry_omega_vector;
+  var _omegaCard = document.getElementById('omega-card');
+  if (_ov && (_ov.world || _ov.identity || _ov.other)) {
+    _omegaCard.style.display = '';
+    document.getElementById('omega-value').textContent = 
+      '\u03a9_W: ' + (_ov.world || 0).toFixed(2) + ' | \u03a9_I: ' + (_ov.identity || 0).toFixed(2) + ' | \u03a9_O: ' + (_ov.other || 0).toFixed(2);
+    // ── Gap 5: Omega narrative ──
+    const omega = trace.inquiry_omega_vector || {};
+    const ow = omega.world || 0, oi = omega.identity || 0, oo = omega.other || 0;
+    if (ow > 0 || oi > 0 || oo > 0) {
+      let narrative = '';
+      if (ow > 0.4) narrative += '\uD83C\uDF0D Exploring unknown terrain. ';
+      if (oi > 0.4) narrative += '\uD83D\uDD04 Recalibrating identity. ';
+      if (oo > 0.4) narrative += '\uD83E\uDD1D Resolving council disagreement. ';
+      if (!narrative) narrative = '\uD83D\uDCA1 Mild uncertainty, proceeding normally.';
+      document.getElementById('omega-sub').textContent = narrative;
+    } else {
+      // ── Change 4: inquiry_blend display ──
+      const blend = trace.inquiry_blend || 0;
+      if (blend > 0) {
+        document.getElementById('omega-sub').textContent = 
+          `Blend: ${(blend * 100).toFixed(0)}% inquiry | ${((1-blend) * 100).toFixed(0)}% action`;
+      } else {
+        document.getElementById('omega-sub').textContent = '\u03a9 > 0.5 = inquiry active';
+      }
+    }
+  } else {
+    _omegaCard.style.display = 'none';
+  }
+  document.getElementById('status-text').textContent = trace.firewall_blocked ? 'BLOCKED' : trace.council_validated ? 'Approved' : 'Pending';
+
+  if (trace.world_state) {
+    state.prevPos = [...state.position];
+    state.animT = 0;
+    state.position = trace.world_state;
+    if (!state.visited.some(p => p[0] === state.position[0] && p[1] === state.position[1])) {
+      state.visited.push([...state.position]);
+    }
+    // Feature 5: Increment visit count for heat map
+    const vk = `${Math.round(state.position[0])},${Math.round(state.position[1])}`;
+    state.visitCounts[vk] = (state.visitCounts[vk] || 0) + 1;
+    document.getElementById('step-counter').textContent = `Step ${state.visited.length}`;
+  }
+  // Feature 4: Extract alternative paths from strategic_options
+  if (trace.world_state && trace.strategic_options && trace.strategic_options.length > 0) {
+    const cx = Math.round(trace.world_state[0]), cy = Math.round(trace.world_state[1]);
+    const dirMap = {
+      'move right': [1, 0], 'move left': [-1, 0],
+      'move up': [0, -1], 'move down': [0, 1],
+      'right': [1, 0], 'left': [-1, 0],
+      'up': [0, -1], 'down': [0, 1],
+    };
+    const altMoves = [];
+    const sorted = [...trace.strategic_options].sort((a, b) => (b.score || 0) - (a.score || 0));
+    for (const opt of sorted) {
+      const moved = dirMap[opt.intent_type || opt.type || ''];
+      if (!moved) continue;
+      const nx = cx + moved[0], ny = cy + moved[1];
+      if (nx < 0 || nx >= state.gridSize || ny < 0 || ny >= state.gridSize) continue;
+      if (getTerrainAt(nx, ny) === 'blocked') continue;
+      altMoves.push([[cx, cy], [nx, ny]]);
+      if (altMoves.length >= 3) break;
+    }
+    state.altPaths = altMoves;
+  }
+
+  if (trace.domain_facts && trace.domain_facts.metadata) {
+    if (trace.domain_facts.metadata.terrain) state.terrain = trace.domain_facts.metadata.terrain;
+    if (trace.domain_facts.metadata.current_terrain) {
+      const emojis = {plains:'🌿', forest:'🌲', water:'🌊', desert:'🏜️', mountain:'⛰️'};
+      document.getElementById('terrain-value').textContent = (emojis[trace.domain_facts.metadata.current_terrain] || '') + ' ' + trace.domain_facts.metadata.current_terrain;
+    }
+  }
+
+  renderAll();
+}
+
+function renderAll() {
+  state.shortestPath = computeShortestPath();
+  renderGrid();
+  renderChart();
+  renderTimeline();
+  const t = state.traces[state.traces.length - 1];
+  if (t) { renderStreams(t); renderCouncil(t); renderPipeline(t); addLog(t); }
+  renderMemoryTimeline();
+}
+
+function renderGrid() { const c = document.getElementById('grid-canvas'); if (c) drawGrid3D(c); }
+function renderChart() { const c = document.getElementById('chart-canvas'); if (c) drawChart(c); }
+
+function renderTimeline() {
+  const c = document.getElementById('timeline-container');
+  if (state.traces.length === 0) { c.innerHTML = '<span style="font-size:11px;color:#444;">No cycles</span>'; return; }
+  c.innerHTML = state.traces.map((t, i) => {
+    const di = t.decision_integrity || 1;
+    const color = di > 0.8 ? '#4ade80' : di > 0.5 ? '#fbbf24' : '#ff6b6b';
+    return `<div class="t-dot ${i === state.selectedCycle ? 'active' : ''}" style="background:${color}" onclick="selectCycle(${i})" title="C${i}: DI=${di.toFixed(2)}">${i}</div>`;
+  }).join('');
+}
+
+function selectCycle(i) { state.selectedCycle = state.selectedCycle === i ? -1 : i; renderTimeline(); renderGrid(); }
+
+function renderStreams(trace) {
+  const a = (trace.stream_activations || []).slice().sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  document.getElementById('streams-container').innerHTML = a.map(s =>
+    `<div class="stream-bar"><span style="color:${SC[s.name] || '#888'};font-weight:700;">${s.name}</span><div class="bar"><div class="fill" style="width:${(s.priority || 0.5) * 100}%;background:${SC[s.name] || '#888'}"></div></div><span style="color:#666;font-size:8px;">${(s.priority || 0).toFixed(2)}</span></div>`
+  ).join('');
+}
+
+function renderCouncil(trace) {
+  const s = trace.council_signals || [];
+  const v = [
+    { n: 'Reality', p: !trace.blocking_validator || trace.blocking_validator !== 'reality' },
+    { n: 'Constraint', p: !trace.blocking_validator || trace.blocking_validator !== 'constraint' },
+    { n: 'Memory Advisor', p: !trace.blocking_validator || trace.blocking_validator !== 'memory' },
+    { n: 'Mission Drift', p: (trace.mission_drift || 0) < 5.0 },
+  ];
+  const list = s.length > 0 ? s : v;
+  document.getElementById('council-container').innerHTML = list.map(x =>
+    `<div class="council-item"><span class="dot ${x.passed || x.p ? 'pass' : 'block'}"></span>${x.validator_name || x.name || x.n || ''}</div>`
+  ).join('');
+}
+
+function renderPipeline(trace) {
+  const blocked = trace.firewall_blocked || !trace.council_validated;
+  const pt = trace.phase_durations_ms || {};
+  document.getElementById('pipeline-container').innerHTML = PN.map((n, i) => {
+    const s = blocked && i >= 5 ? 'blocked' : 'done';
+    const ms = pt[n.toLowerCase()];
+    return `<div class="phase-row"><span class="phase-dot ${s}"></span><span class="phase-name">${n}</span><span class="phase-timer">${ms != null ? ms + 'ms' : '—'}</span></div>`;
+  }).join('');
+}
+
+function renderOptions(trace) {
+  const o = trace.strategic_options || [];
+  document.getElementById('options-container').innerHTML = o.length === 0
+    ? '<div style="font-size:9px;color:#555;">No options</div>'
+    : o.slice(0, 5).map((opt, i) =>
+        `<div class="option-row"><span style="color:#888;width:14px;">#${i+1}</span><span style="flex:1;">${opt.intent_type || opt.type || ''}</span><div class="score-bar"><div class="fill" style="width:${(opt.score || 0.5) * 100}%;background:${opt.score > 0.7 ? '#4ade80' : opt.score > 0.4 ? '#fbbf24' : '#ff6b6b'}"></div></div><span style="font-size:8px;color:#666;width:26px;text-align:right;">${(opt.score || 0).toFixed(2)}</span></div>`
+      ).join('');
+}
+
+function addLog(trace) {
+  const c = document.getElementById('log-container');
+  const b = trace.firewall_blocked || !trace.council_validated;
+  const e = document.createElement('div');
+  e.className = 'log-entry';
+  e.innerHTML = `<span class="${b ? 'warn' : 'success'}">${b ? 'BLOCKED' : 'APPROVED'}</span> DI=${(trace.decision_integrity || 1).toFixed(2)} worlds=${trace.worlds_simulated || 0}`;
+  c.prepend(e);
+  while (c.children.length > 50) c.removeChild(c.lastChild);
+}
+
+
+// ─── Knowledge Graph: Force-Directed 3D ───
+let kgNodes = [];
+let kgEdges = [];
+let kgRotation = 0;
+let kgLoaded = false;
+let kgNoData = false;
+
+async function fetchKnowledge() {
+  try {
+    const resp = await fetch('/api/knowledge');
+    const data = await resp.json();
+    if (data && data.nodes && data.nodes.length > 0) {
+      initKnowledgeGraph(data);
+    } else {
+      initKnowledgeGraph(generateDemoKnowledge());
+    }
+    kgLoaded = true;
+    kgNoData = false;
+  } catch {
+    initKnowledgeGraph(generateDemoKnowledge());
+    kgLoaded = true;
+    kgNoData = false;
+  }
+}
+
+function generateDemoKnowledge() {
+  const terrains = ['Plains', 'Forest', 'Water', 'Desert', 'Mountain', 'Blocked'];
+  const intents = ['Navigate', 'Collect Reward', 'Avoid Obstacle', 'Reach Goal'];
+  const outcomes = ['High DI', 'Low DI', 'Approved', 'Blocked'];
+  const domainMap = { 'Plains':'terrain', 'Forest':'terrain', 'Water':'terrain', 'Desert':'terrain', 'Mountain':'terrain', 'Blocked':'terrain', 'Navigate':'intent', 'Collect Reward':'intent', 'Avoid Obstacle':'intent', 'Reach Goal':'intent', 'High DI':'outcome', 'Low DI':'outcome', 'Approved':'outcome', 'Blocked':'outcome' };
+  const allLabels = [...terrains, ...intents, ...outcomes];
+  const nodes = allLabels.map((label, i) => ({
+    id: label.toLowerCase().replace(/\s+/g, '_'),
+    label,
+    domain: domainMap[label] || 'general',
+    importance: 0.3 + Math.random() * 0.7,
+  }));
+  const edges = [];
+  const pairs = [
+    ['Forest', 'Navigate'], ['Water', 'Navigate'], ['Mountain', 'Avoid Obstacle'],
+    ['Plains', 'Navigate'], ['Desert', 'Navigate'], ['Blocked', 'Avoid Obstacle'],
+    ['Navigate', 'Reach Goal'], ['Collect Reward', 'Reach Goal'],
+    ['Navigate', 'High DI'], ['Avoid Obstacle', 'Approved'],
+    ['Blocked', 'Blocked'], ['Reach Goal', 'High DI'],
+    ['Forest', 'Low DI'], ['Water', 'Low DI'], ['Mountain', 'High DI'],
+  ];
+  for (const [a, b] of pairs) {
+    edges.push({ source: a.toLowerCase().replace(/\s+/g, '_'), target: b.toLowerCase().replace(/\s+/g, '_'), weight: 0.3 + Math.random() * 0.7 });
+  }
+  return { nodes, edges };
+}
+
+function initKnowledgeGraph(data) {
+  const count = data.nodes.length;
+  kgEdges = (data.edges || []).map(e => ({
+    source: e.source || e.from,
+    target: e.target || e.to,
+    weight: e.weight || e.strength || 0.5,
+  }));
+  kgNodes = data.nodes.map((n, i) => {
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.2;
+    const radius = 1.5 + Math.random() * 0.8;
+    return {
+      id: n.id || n.name || n.label || `n${i}`,
+      label: n.label || n.name || n.id || '',
+      domain: n.domain || n.category || 'general',
+      importance: n.importance || n.relevance || n.weight || 0.5,
+      x: Math.cos(angle) * radius * 0.5 + (Math.random() - 0.5) * 0.3,
+      y: (Math.random() - 0.5) * 0.8,
+      z: Math.sin(angle) * radius * 0.5 + (Math.random() - 0.5) * 0.3,
+      vx: 0, vy: 0, vz: 0,
+    };
+  });
+  document.getElementById('node-count').textContent = `${count} nodes`;
+  // Run initial force simulation iterations
+  for (let iter = 0; iter < 60; iter++) simulateKnowledgeForces(true);
+}
+
+function simulateKnowledgeForces(initial) {
+  const nodes = kgNodes;
+  if (nodes.length < 2) return;
+  const rep = initial ? 0.015 : 0.008;
+  const att = initial ? 0.008 : 0.004;
+  const grav = initial ? 0.003 : 0.001;
+  const damp = initial ? 0.8 : 0.92;
+
+  for (const n of nodes) n.fx = 0, n.fy = 0, n.fz = 0;
+
+  // Repulsion between all pairs
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      let dx = nodes[j].x - nodes[i].x;
+      let dy = nodes[j].y - nodes[i].y;
+      let dz = nodes[j].z - nodes[i].z;
+      const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) || 0.01;
+      const force = rep / (dist * dist + 0.01);
+      dx = dx / dist * force;
+      dy = dy / dist * force;
+      dz = dz / dist * force;
+      nodes[i].fx -= dx; nodes[i].fy -= dy; nodes[i].fz -= dz;
+      nodes[j].fx += dx; nodes[j].fy += dy; nodes[j].fz += dz;
+    }
+  }
+
+  // Attraction along edges
+  for (const e of kgEdges) {
+    const s = nodes.find(n => n.id === e.source);
+    const t = nodes.find(n => n.id === e.target);
+    if (!s || !t) continue;
+    let dx = t.x - s.x, dy = t.y - s.y, dz = t.z - s.z;
+    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) || 0.01;
+    const ideal = 0.8;
+    const force = (dist - ideal) * att * (e.weight || 0.5) * 2;
+    dx = dx / dist * force;
+    dy = dy / dist * force;
+    dz = dz / dist * force;
+    s.fx += dx; s.fy += dy; s.fz += dz;
+    t.fx -= dx; t.fy -= dy; t.fz -= dz;
+  }
+
+  // Center gravity
+  for (const n of nodes) {
+    n.fx -= n.x * grav;
+    n.fy -= n.y * grav;
+    n.fz -= n.z * grav;
+  }
+
+  // Apply
+  for (const n of nodes) {
+    n.vx = (n.vx + n.fx) * damp;
+    n.vy = (n.vy + n.fy) * damp;
+    n.vz = (n.vz + n.fz) * damp;
+    n.x += n.vx;
+    n.y += n.vy;
+    n.z += n.vz;
+  }
+}
+
+const DOMAIN_COLORS = {
+  'user_preferences': '#60a5fa',
+  'preferences': '#60a5fa',
+  'user': '#60a5fa',
+  'navigation': '#4ade80',
+  'nav': '#4ade80',
+  'intent': '#4ade80',
+  'failures': '#c084fc',
+  'failure': '#c084fc',
+  'error': '#c084fc',
+  'outcome': '#c084fc',
+  'terrain': '#fbbf24',
+  'memory': '#fbbf24',
+  'general': '#888',
+  'context': '#f472b6',
+  'system': '#94a3b8',
+};
+
+function drawKnowledgeGraph(canvas) {
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  // Reset canvas buffer to match actual displayed size (handles resize between frames)
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  if (w === 0 || h === 0) return;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  // Apply high-DPI scaling so we draw in CSS logical coordinates (w × h)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  ctx.fillStyle = '#0f0f18';
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle radial glow behind graph
+  const bgGrad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w * 0.45);
+  bgGrad.addColorStop(0, 'rgba(30,30,70,0.15)');
+  bgGrad.addColorStop(0.5, 'rgba(20,20,50,0.06)');
+  bgGrad.addColorStop(1, 'rgba(10,10,15,0)');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  if (kgNodes.length === 0) {
+    ctx.fillStyle = '#888';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (kgNoData) {
+      ctx.fillText('📭 No knowledge data available', w/2, h/2 - 12);
+      ctx.fillStyle = '#555';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('API returned no nodes', w/2, h/2 + 10);
+    } else {
+      ctx.fillText('🌀 Waiting for knowledge data...', w/2, h/2 - 12);
+      ctx.fillStyle = '#555';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('fetch /api/knowledge', w/2, h/2 + 10);
+    }
+    return;
+  }
+
+  // Run gentle continuous forces
+  simulateKnowledgeForces(false);
+
+  // Auto-rotation
+  kgRotation += 0.004;
+
+  const focal = 4;
+  const scale = Math.min(w, h) * 0.28;
+
+  // Project nodes to 2D with perspective
+  const projected = kgNodes.map(n => {
+    const cosR = Math.cos(kgRotation), sinR = Math.sin(kgRotation);
+    const rx = n.x * cosR - n.z * sinR;
+    const rz = n.x * sinR + n.z * cosR + focal;
+    const persp = focal / rz;
+    const px = w/2 + rx * scale * persp;
+    const py = h/2 - n.y * scale * persp;
+    const size = (3.5 + n.importance * 6) * persp;
+    return { ...n, px, py, size, persp, depth: rz };
+  });
+
+  // Draw edges (sorted by avg depth)
+  const edgeDraws = [];
+  for (const e of kgEdges) {
+    const s = projected.find(n => n.id === e.source);
+    const t = projected.find(n => n.id === e.target);
+    if (!s || !t) continue;
+    edgeDraws.push({ s, t, w: e.weight || 0.5, depth: (s.depth + t.depth) / 2 });
+  }
+  edgeDraws.sort((a, b) => a.depth - b.depth);
+
+  for (const edge of edgeDraws) {
+    const alpha = 0.2 + edge.w * 0.5;
+    const glow = edge.w * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(edge.s.px, edge.s.py);
+    ctx.lineTo(edge.t.px, edge.t.py);
+    ctx.strokeStyle = `rgba(100,180,255,${alpha})`;
+    ctx.lineWidth = Math.max(0.8, edge.w * 2.5);
+    if (glow > 0.05) {
+      ctx.shadowColor = `rgba(100,180,255,${glow})`;
+      ctx.shadowBlur = 8 + edge.w * 4;
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Draw nodes (far to near)
+  const sorted = [...projected].sort((a, b) => a.depth - b.depth);
+  const time = state.time || 0;
+
+  for (const node of sorted) {
+    const color = DOMAIN_COLORS[node.domain] || DOMAIN_COLORS['general'];
+    const pulse = 0.75 + Math.sin(time * 2.5 + (node.x || 0) * 4 + (node.y || 0) * 3) * 0.25;
+    const r = Math.max(2, node.size * pulse);
+
+    // Outer glow
+    const grad = ctx.createRadialGradient(node.px, node.py, 0, node.px, node.py, r * 5);
+    grad.addColorStop(0, color + '55');
+    grad.addColorStop(0.4, color + '22');
+    grad.addColorStop(1, color + '00');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(node.px, node.py, r * 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body (sphere)
+    const bodyGrad = ctx.createRadialGradient(
+      node.px - r * 0.25, node.py - r * 0.25, 0,
+      node.px, node.py, r
+    );
+    bodyGrad.addColorStop(0, `rgba(255,255,255,${0.7 * pulse})`);
+    bodyGrad.addColorStop(0.25, color);
+    bodyGrad.addColorStop(0.7, color + 'aa');
+    bodyGrad.addColorStop(1, color + '66');
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.arc(node.px, node.py, r, 0, Math.PI * 2);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18 * pulse;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Label
+    if (node.label && node.persp > 0.15) {
+      ctx.fillStyle = `rgba(255,255,255,${Math.min(0.6, 0.3 * node.persp + 0.1)})`;
+      ctx.font = `${Math.max(5, 7 * Math.min(1, node.persp * 1.2))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(node.label, node.px, node.py + r + 2);
+    }
+  }
+}
+
+// ─── Memory Timeline ───
+const TERRAIN_EMOJI = { 'plains':'🌿', 'forest':'🌲', 'water':'🌊', 'desert':'🏜️', 'mountain':'⛰️' };
+
+function renderMemoryTimeline() {
+  const c = document.getElementById('memory-timeline');
+  if (!c) return;
+  const traces = state.traces;
+  const recent = traces.slice(-20).reverse(); // newest first
+
+  if (recent.length === 0) {
+    c.innerHTML = '<div class="empty-state">No decision traces yet</div>';
+    return;
+  }
+
+  c.innerHTML = recent.map((t) => {
+    const approved = t.council_validated && !t.firewall_blocked;
+    const di = t.decision_integrity || 1;
+    const terrain = (t.domain_facts && t.domain_facts.metadata && t.domain_facts.metadata.current_terrain) || '';
+    const terrainEmoji = TERRAIN_EMOJI[terrain] || '';
+    const intent = t.selected_intent || t.intent_type || (t.strategic_options && t.strategic_options[0] && t.strategic_options[0].intent_type) || '—';
+    const cycleId = t.cycle_id != null ? t.cycle_id : '?';
+    const diColor = di > 0.8 ? '#4ade80' : di > 0.5 ? '#fbbf24' : '#ff6b6b';
+    const statusIcon = approved ? '✅' : '🚫';
+
+    return `<div class="mem-node">
+      <div class="mem-dot ${approved ? 'green' : 'red'}"></div>
+      <div class="mem-content">
+        <div class="mem-header">
+          <span class="mem-cycle">C${cycleId}</span>
+          <span class="mem-di" style="color:${diColor}">DI ${di.toFixed(3)}</span>
+          <span class="mem-status">${statusIcon}</span>
+        </div>
+        <div class="mem-detail">
+          <span class="mem-terrain">${terrainEmoji} ${terrain || '—'}</span>
+          <span class="mem-intent" title="${intent}">${intent}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Scroll to top (newest)
+  c.scrollTop = 0;
+}
+
+function resizeKgCanvas() {
+  const canvas = document.getElementById('kg-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  // Use the CSS-computed display dimensions (width:100% + height:820px)
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  if (w === 0 || h === 0) return;
+  // Set drawing buffer to match display size at full device-pixel resolution
+  // Do NOT override canvas.style.width/height — CSS controls display size
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  // Note: ctx scaling is handled in drawKnowledgeGraph() via setTransform
+}
+
+function toggleCostView() {
+  state.showCosts = !state.showCosts;
+  state.heatMode = false;
+  document.getElementById('btn-cost-view').className = state.showCosts ? 'active' : '';
+  document.getElementById('btn-heat-mode').className = '';
+  state.shortestPath = computeShortestPath();
+}
+
+function toggleHeatMode() {
+  state.heatMode = !state.heatMode;
+  state.showCosts = false;
+  state.omegaHeatmap = false;
+  document.getElementById('btn-heat-mode').className = state.heatMode ? 'active' : '';
+  document.getElementById('btn-cost-view').className = '';
+  document.getElementById('btn-omega-heat').className = '';
+}
+
+function toggleOmegaHeatmap() {
+  state.omegaHeatmap = !state.omegaHeatmap;
+  state.showCosts = false;
+  state.heatMode = false;
+  document.getElementById('btn-omega-heat').className = state.omegaHeatmap ? 'active' : '';
+  document.getElementById('btn-cost-view').className = '';
+  document.getElementById('btn-heat-mode').className = '';
+}
+
+function toggleAutoRefresh() {
+  state.autoRefresh = !state.autoRefresh;
+  const btn = document.getElementById('btn-auto-refresh');
+  btn.textContent = state.autoRefresh ? '⏹ Stop' : '▶ Auto';
+  btn.className = state.autoRefresh ? 'active' : '';
+  if (state.autoRefresh) scheduleAuto();
+}
+
+let _autoT;
+function scheduleAuto() {
+  if (!state.autoRefresh) return;
+  _autoT = setTimeout(async () => { await sendCmd('navigate'); scheduleAuto(); }, 3000);
+}
+
+async function exportTraces() {
+  const blob = new Blob([JSON.stringify(state.traces, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `telos_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+async function pollCheckpoints() {
+  try {
+    const resp = await fetch('/api/checkpoints');
+    const traces = await resp.json();
+    for (const t of traces) {
+      if (!state.traces.some(x => x.cycle_id === t.cycle_id)) applyTrace(t);
+    }
+  } catch {}
+}
+
+function connectWebSocket() {
+  try {
+    const ws = new WebSocket('ws://localhost:8766');
+    ws.onmessage = (e) => {
+      try { const d = JSON.parse(e.data); if (d.decision_trace) applyTrace(d.decision_trace); else if (d.type === 'trace') applyTrace(d); } catch {}
+    };
+    ws.onclose = () => setTimeout(connectWebSocket, 3000);
+    ws.onerror = () => setTimeout(connectWebSocket, 3000);
+  } catch {}
+}
+
+async function sendCmd(cmd) {
+  const msgDiv = document.getElementById('chat-messages');
+  const input = document.getElementById('chat-input');
+  const u = document.createElement('div');
+  u.className = 'chat-msg user'; u.textContent = cmd;
+  msgDiv.appendChild(u);
+  input.disabled = true;
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message: cmd, cycle: state.traces.length})
+    });
+    const data = await resp.json();
+    const m = document.createElement('div');
+    m.className = 'chat-msg telos';
+    m.textContent = data.response || '(no response)';
+    const ts = document.createElement('span');
+    ts.className = 'time';
+    ts.textContent = `DI=${data.di?.toFixed(3) || '—'} · ${data.status || ''} · ${new Date().toLocaleTimeString()}`;
+    m.appendChild(ts);
+    msgDiv.appendChild(m);
+    msgDiv.scrollTop = msgDiv.scrollHeight;
+    if (data.trace) applyTrace(data.trace);
+  } catch (e) {
+    const m = document.createElement('div');
+    m.className = 'chat-msg telos'; m.textContent = `Error: ${e.message}`;
+    msgDiv.appendChild(m);
+  }
+  input.disabled = false; input.focus();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('chat-input');
+  const send = document.getElementById('chat-send');
+  send.onclick = () => { const v = input.value.trim(); if (v) { input.value = ''; sendCmd(v); } };
+  input.onkeydown = (e) => { if (e.key === 'Enter') { const v = input.value.trim(); if (v) { input.value = ''; sendCmd(v); } } };
+
+  // Drag/orbit + click-to-set-goal
+  const gc = document.getElementById('grid-canvas');
+  if (gc) {
+    let dragging = false, startX, startY, moved = false;
+    let initialX = 0, initialY = 0;  // frozen at mousedown for cumulative drag detection
+    gc.onmousedown = (e) => {
+      e.preventDefault();
+      if (e.button === 1) {
+        ISO.rotY = -0.6; ISO.rotX = -0.4; ISO.zoom = 1; ISO.camX = 0; ISO.camY = 0;
+        return;
+      }
+      dragging = true;
+      moved = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      initialX = e.clientX;
+      initialY = e.clientY;
+      gc.style.cursor = 'grabbing';
+    };
+    gc.onmousemove = (e) => {
+      // Hover tracking for tooltip (Feature 2)
+      if (!dragging) {
+        const rect = gc.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (gc.width / rect.width);
+        const my = (e.clientY - rect.top) * (gc.height / rect.height);
+        let bestDist = Infinity, bestCell = null;
+        for (let y = 0; y < state.gridSize; y++) {
+          for (let x = 0; x < state.gridSize; x++) {
+            const p = isoToScreen(x, y);
+            const d = Math.hypot(mx - p.sx, my - p.sy);
+            if (d < bestDist && d < ISO.tw * ISO.zoom * 0.5) { bestDist = d; bestCell = [x, y]; }
+          }
+        }
+        state.hoveredCell = bestCell;
+        if (bestCell) {
+          const p = isoToScreen(bestCell[0], bestCell[1]);
+          const ttt = getTerrainAt(bestCell[0], bestCell[1]);
+          const hp = (TH[ttt] || 0) * ISO.hs;
+          const br = Math.sin((state.time || 0) * 1.5) * 1.5;
+          const ty = hp >= 0 ? p.sy - hp * ISO.zoom + br : p.sy + br;
+          state.hoverPos = { sx: p.sx, sy: ty };
+        } else {
+          state.hoverPos = null;
+        }
+        return;
+      }
+      if (Math.abs(e.clientX - initialX) > 3 || Math.abs(e.clientY - initialY) > 3) moved = true;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      ISO.rotY += dx * 0.01;
+      ISO.rotX = Math.max(-1.5, Math.min(0, ISO.rotX - dy * 0.008));
+      startX = e.clientX;
+      startY = e.clientY;
+    };
+    gc.onmouseup = (e) => {
+      dragging = false;
+      gc.style.cursor = 'grab';
+      if (moved) return;
+      const rect = gc.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) * (gc.width / rect.width);
+      const my = (e.clientY - rect.top) * (gc.height / rect.height);
+      let bestDist = Infinity, bestCell = null;
+      for (let y = 0; y < state.gridSize; y++) {
+        for (let x = 0; x < state.gridSize; x++) {
+          const p = isoToScreen(x, y);
+          const d = Math.hypot(mx - p.sx, my - p.sy);
+          if (d < bestDist && d < ISO.tw * ISO.zoom * 0.5) { bestDist = d; bestCell = [x, y]; }
+        }
+      }
+      if (bestCell) { state.goal = bestCell; document.getElementById('step-counter').textContent = `Goal → (${bestCell[0]},${bestCell[1]})`; }
+    };
+    gc.onmouseleave = () => { dragging = false; gc.style.cursor = 'grab'; state.hoveredCell = null; state.hoverPos = null; };
+    // Touch support for mobile orbit
+    gc.ontouchstart = (e) => { const t = e.touches[0]; dragging = true; moved = false; startX = t.clientX; startY = t.clientY; initialX = t.clientX; initialY = t.clientY; };
+    gc.ontouchmove = (e) => { if (!dragging) return; if (Math.abs(e.touches[0].clientX - initialX) > 3 || Math.abs(e.touches[0].clientY - initialY) > 3) moved = true; const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY; ISO.rotY += dx * 0.01; ISO.rotX = Math.max(-1.5, Math.min(0, ISO.rotX - dy * 0.008)); startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
+    gc.ontouchend = () => { dragging = false; };
+    // Use addEventListener with {passive: false} so preventDefault() is honoured (critical on macOS)
+    gc.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      ISO.zoom = Math.max(0.3, Math.min(3, ISO.zoom - e.deltaY * 0.001));
+    }, { passive: false });
+  }
+
+  state.shortestPath = computeShortestPath();
+  renderGrid();
+  renderChart();
+  resizeKgCanvas();
+  window.addEventListener('resize', resizeKgCanvas);
+  animate();
+});
+
+// ─── Animation Loop ───
+function animate() {
+  state.time += 0.016;
+  state.animT = Math.min(1, state.animT + 0.025);
+  const e = 1 - Math.pow(1 - state.animT, 3);
+  state.animPos[0] = state.prevPos[0] + (state.position[0] - state.prevPos[0]) * e;
+  state.animPos[1] = state.prevPos[1] + (state.position[1] - state.prevPos[1]) * e;
+  try { renderGrid(); } catch (er) { console.warn('Grid render error:', er); }
+  try { renderChart(); } catch (er) { console.warn('Chart render error:', er); }
+  try { drawKnowledgeGraph(document.getElementById('kg-canvas')); } catch (er) {}
+  try { spawnParticles(); } catch (er) {}
+  requestAnimationFrame(animate);
+}
+
+// ─── Demo Data Generator (standalone mode when no server) ───
+function generateDemoTraces() {
+  const path = [
+    { pos: [1, 0], di: 0.95, md: 0.5, terrain: 'plains' },
+    { pos: [2, 0], di: 0.88, md: 1.2, terrain: 'forest' },
+    { pos: [3, 0], di: 0.92, md: 0.8, terrain: 'plains' },
+    { pos: [4, 0], di: 0.97, md: 1.5, terrain: 'desert' },
+    { pos: [4, 1], di: 0.85, md: 2.1, terrain: 'forest' },
+    { pos: [4, 2], di: 0.90, md: 1.8, terrain: 'plains' },
+    { pos: [4, 3], di: 0.78, md: 3.2, terrain: 'mountain' },
+    { pos: [4, 4], di: 0.95, md: 0.3, terrain: 'plains' },
+  ];
+
+  for (let i = 0; i < path.length; i++) {
+    const p = path[i];
+    const di = p.di || 0.9;
+    const md = p.md || 1.0;
+    const tt = p.terrain || 'plains';
+
+    const trace = {
+      cycle_id: i + 1,
+      decision_integrity: di,
+      mission_drift: md,
+      world_state: [p.pos[0], p.pos[1]],
+      council_validated: true,
+      firewall_blocked: false,
+      council_signals: [
+        { validator_name: 'Reality', passed: true },
+        { validator_name: 'Constraint', passed: true },
+        { validator_name: 'Memory Advisor', passed: true },
+        { validator_name: 'Mission Drift', passed: md < 5.0 },
+      ],
+      stream_activations: [
+        { name: 'Reflex', priority: +(0.3 + Math.random() * 0.3).toFixed(3) },
+        { name: 'Perception', priority: +(0.5 + Math.random() * 0.3).toFixed(3) },
+        { name: 'Memory', priority: +(0.4 + Math.random() * 0.3).toFixed(3) },
+        { name: 'Planning', priority: +(0.6 + Math.random() * 0.3).toFixed(3) },
+      ],
+      phase_durations_ms: {
+        perceive: 12 + Math.floor(Math.random() * 20),
+        streams: 8 + Math.floor(Math.random() * 15),
+        simulate: 45 + Math.floor(Math.random() * 60),
+        evaluate: 15 + Math.floor(Math.random() * 25),
+        synthesis: 10 + Math.floor(Math.random() * 20),
+        select: 5 + Math.floor(Math.random() * 10),
+        council: 20 + Math.floor(Math.random() * 30),
+      },
+      selected_intent: `Navigate to (${p.pos[0]},${p.pos[1]})`,
+      strategic_options: [
+        { intent_type: 'move right', score: 0.85 },
+        { intent_type: 'move up', score: 0.72 },
+        { intent_type: 'wait', score: 0.35 },
+      ],
+      worlds_simulated: 3 + Math.floor(Math.random() * 5),
+      domain_facts: {
+        metadata: {
+          position: [p.pos[0], p.pos[1]],
+          current_terrain: tt,
+        }
+      },
+      blocking_validator: null,
+    };
+    applyTrace(trace);
+  }
+}
+
+
+// ─── Boot ───
+loadCheckpoints();
+pollCheckpoints();
+connectWebSocket();
+setInterval(pollCheckpoints, 5000);
+fetchKnowledge();
+setInterval(fetchKnowledge, 30000);
+
+// Fallback: if no server data arrives within 3s, load demo traces
+let _demoTimer = setTimeout(() => {
+  if (state.traces.length === 0) {
+    console.log('[TELOS] No server data — loading demo traces');
+    document.getElementById('status-text').textContent = 'Demo Mode';
+    generateDemoTraces();
+  }
+}, 3000);
+
+// Also show demo KG if real KG never arrives
+let _kgDemoTimer = setTimeout(() => {
+  if (!kgLoaded) {
+    console.log('[TELOS] No KG data — loading demo KG');
+    fetchKnowledge();
+  }
+}, 5000);
+// Brain viz
+const bs = document.createElement('script');
+bs.src = '/REDACTED-brain.js?v=' + Date.now();
+bs.onload = () => {
+  const orig = applyTrace;
+  applyTrace = function(t) { orig(t); if (window.visualizeTrace) setTimeout(() => window.visualizeTrace(t), 50); };
+};
+document.head.appendChild(bs);
+</script>
+</body>
+</html>

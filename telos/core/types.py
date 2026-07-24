@@ -1,0 +1,214 @@
+"""
+Core data types for the TELOS pipeline — extracted from runtime.py
+to reduce god-object complexity.
+
+Contains: PipelinePhase, DecisionTrace, PipelineConfig, PipelineResult.
+"""
+
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, List, Any, Optional
+import numpy as np
+
+from telos.world.facts import DomainFacts
+from telos.intent_ir import IntentIR
+from telos.core.phases.base import StreamActivation
+from telos.core.contracts.domain_model import DomainSimulator, DomainAdapter
+
+
+class PipelinePhase(Enum):
+    INITIALIZE = "initialize"
+    PERCEIVE = "perceive"
+    STREAMS = "streams"
+    SIMULATE = "simulate"
+    EVALUATE = "evaluate"
+    SYNTHESIZE = "synthesize"
+    SELECT = "select"
+    COUNCIL = "council"
+    ACT = "act"
+    REFLECT = "reflect"
+    COMPLETE = "complete"
+
+
+@dataclass
+class DecisionTrace:
+    """Complete audit trail for a single decision cycle."""
+    cycle_id: int
+    timestamp: float
+    world_state_snapshot: np.ndarray
+    domain_facts: Optional[DomainFacts]
+    stream_activations: List[StreamActivation]
+    selected_intent: Optional[IntentIR]
+    selected_action: Optional[np.ndarray]
+    representation: str
+    budget_consumed_ms: float
+    budget_total_ms: float
+    worlds_simulated: int
+    cycle_duration_ms: float
+    health_score: float = 1.0
+    council_validated: bool = True
+    decision_integrity: float = 1.0
+    mission_drift: float = 0.0
+    blocking_validator: Optional[str] = None
+    council_signals: List[Dict] = field(default_factory=list)
+    escalation_requested: bool = False
+    escalation_reason: Optional[str] = None
+    semantic_depths: List[Dict] = field(default_factory=list)
+    governance_signals: List[Dict] = field(default_factory=list)
+    firewall_blocked: bool = False
+    firewall_blocked_by: Optional[str] = None
+    strategic_options: List[Dict] = field(default_factory=list)
+    perception_quality: Optional[Dict] = None
+    gate_verdict: Optional[Dict] = None
+    reflection: Optional[Dict] = None
+    knowledge_report: Optional[Dict] = None
+    perception_explanation: Optional[Dict] = None
+    system_mood: Optional[str] = None
+    local_optima_escape: Optional[Dict] = None
+    attention_metrics: Optional[Dict] = None
+    # P0 D9: Representation confidence from RepresentationSelector
+    representation_confidence: float = 0.0
+    # P1 D1: Causal annotations for the selected action
+    causal_annotations: Optional[Dict] = None
+    # P1 D4: Identity tuple (G_t, M_t, C_t, V_t)
+    identity_state: Optional[Dict] = None
+    # P1 D3: Multi-resource budget tracking
+    resource_budgets: Optional[Dict] = None
+    # P0 D8: Meta-cognition state
+    meta_cognition: Optional[Dict] = None
+    # Fix 1: Causal graph from SCM
+    causal_graph: Optional[Dict] = None
+    # Fix 2: Gamma discount used in commitment
+    gamma_discount: float = 0.95
+    # Fix 3: Terminal reward F(s_T)
+    terminal_value: float = 0.0
+    # Fix 4: Belief state B_t
+    belief_state: Optional[Dict] = None
+    # Fix 5: Capabilities K_t
+    capabilities_k: Optional[Dict] = None
+    # P1: Per-term breakdown of J(τ) commitment score
+    j_term_breakdown: Optional[Dict[str, float]] = None
+
+    # ── Inquiry Stream / Ω Operator trace fields ────────────────────────────
+    inquiry_skipped: bool = False
+    selected_question: Optional[Dict] = None
+    inquiry_omega_value: float = 0.0
+    # Fix 4: Multi-axis omega vector (world, identity, other)
+    inquiry_omega_vector: Optional[Dict[str, float]] = None
+    # Change 4: Continuous omega blend factor
+    inquiry_blend: float = 0.0
+
+    # Relational Reasoning scaffolding
+    relational_coherence: float = 1.0
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "cycle_id": self.cycle_id,
+            "timestamp": self.timestamp,
+            "world_state": self.world_state_snapshot.tolist(),
+            "domain_facts": {
+                "resources": self.domain_facts.resources if self.domain_facts else {},
+                "constraints": self.domain_facts.constraints if self.domain_facts else [],
+                "events": self.domain_facts.events if self.domain_facts else [],
+                "metrics": self.domain_facts.metrics if self.domain_facts else {},
+            } if self.domain_facts else None,
+            "stream_activations": [
+                {
+                    "name": sa.stream_name,
+                    "priority": sa.priority,
+                    "activated": sa.activated,
+                    "intent_type": sa.intent.intent_type if sa.intent else None,
+                    "cost_ms": sa.cost_ms,
+                    "budget_remaining_ms": sa.budget_remaining_ms,
+                }
+                for sa in self.stream_activations
+            ],
+            "selected_intent": {
+                "type": self.selected_intent.intent_type,
+                "confidence": self.selected_intent.confidence,
+            } if self.selected_intent else None,
+            "selected_action": self.selected_action.tolist() if self.selected_action is not None else None,
+            "representation": self.representation,
+            "budget_consumed_ms": self.budget_consumed_ms,
+            "budget_total_ms": self.budget_total_ms,
+            "worlds_simulated": self.worlds_simulated,
+            "cycle_duration_ms": self.cycle_duration_ms,
+            "council_validated": self.council_validated,
+            "decision_integrity": self.decision_integrity,
+            "mission_drift": self.mission_drift,
+            "blocking_validator": self.blocking_validator,
+            "council_signals": self.council_signals,
+            "escalation_requested": self.escalation_requested,
+            "escalation_reason": self.escalation_reason,
+            "semantic_depths": self.semantic_depths,
+            "governance_signals": self.governance_signals,
+            "firewall_blocked": self.firewall_blocked,
+            "firewall_blocked_by": self.firewall_blocked_by,
+            "strategic_options": self.strategic_options,
+            "perception_quality": self.perception_quality,
+            "gate_verdict": self.gate_verdict,
+            "reflection": self.reflection,
+            "knowledge_report": self.knowledge_report,
+            "perception_explanation": self.perception_explanation,
+            "system_mood": self.system_mood,
+            "local_optima_escape": self.local_optima_escape,
+            "attention_metrics": self.attention_metrics,
+            "representation_confidence": self.representation_confidence,
+            "causal_annotations": self.causal_annotations,
+            "identity_state": self.identity_state,
+            "resource_budgets": self.resource_budgets,
+            "meta_cognition": self.meta_cognition,
+            "causal_graph": self.causal_graph,
+            "gamma_discount": self.gamma_discount,
+            "terminal_value": self.terminal_value,
+            "belief_state": self.belief_state,
+            "capabilities_k": self.capabilities_k,
+            "j_term_breakdown": self.j_term_breakdown,
+            # Inquiry fields
+            "inquiry_skipped": self.inquiry_skipped,
+            "selected_question": self.selected_question,
+            "inquiry_omega_value": self.inquiry_omega_value,
+            "inquiry_omega_vector": self.inquiry_omega_vector,
+            "inquiry_blend": self.inquiry_blend,
+            "relational_coherence": self.relational_coherence,
+        }
+
+
+@dataclass
+class PipelineConfig:
+    simulator: Optional[DomainSimulator] = None
+    adapter: Optional[DomainAdapter] = None
+    compute_budget_ms: float = 50.0
+    state_dim: int = 6
+    n_worlds: int = 30
+    horizon: int = 8
+    feedback_lag: int = 0
+    stream_skip_threshold: float = 0.2
+    adaptive_worlds_enabled: bool = True
+    memory_fast_path_enabled: bool = True
+    budget_carryover_max_ratio: float = 0.5
+    debug: bool = False
+    checkpoint_path: Optional[str] = None
+    checkpoint_max: int = 10
+    knowledge_path: Optional[str] = None
+    quality_threshold: float = 0.35
+    pattern_path: Optional[str] = None
+    identity_path: Optional[str] = None
+    ledger_path: Optional[str] = None
+    experience_max_skills: int = 100
+    experience_utility_threshold: float = 0.5
+    experience_index_interval: int = 1
+
+
+@dataclass
+class PipelineResult:
+    selected_trajectory: Optional[Any]
+    health_score: float
+    pipeline_phase: PipelinePhase
+    worlds_generated: int = 0
+    council_blocked: bool = False
+    decision_integrity: float = 1.0
+    mission_drift: float = 0.0
+    decision_trace: Optional[DecisionTrace] = None
+    firewall_blocked: bool = False
+    governance_blocked_by: Optional[str] = None
+    alternatives_available: int = 0

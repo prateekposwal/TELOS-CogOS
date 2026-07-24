@@ -1,0 +1,290 @@
+{
+  "video": {
+    "path": "/Users/prateekposwal/Desktop/Shalu-School/Video/1722590887357.mp4",
+    "duration": 70.43333333333334,
+    "fps": 30.0,
+    "resolution": "480x852"
+  },
+  "summary": {
+    "segments": 4,
+    "avg_di": 1.0,
+    "avg_md": 0.811,
+    "events": 4,
+    "highlights": 0,
+    "anomalies": 0
+  },
+  "pipeline_results": [
+    {
+      "segment": {
+        "start_frame": 0,
+        "end_frame": 630,
+        "start_time": 0.0,
+        "end_time": 21.0,
+        "avg_brightness": 0.315,
+        "avg_motion": 6.888,
+        "avg_edge_density": 0.021,
+        "face_count": 0,
+        "has_significant_motion": "True",
+        "is_dark": "False",
+        "tags": [
+          "high_intensity"
+        ],
+        "telos_action": "tag_event",
+        "telos_di": 1.0,
+        "telos_md": 0.0,
+        "council_validated": true
+      },
+      "pipeline": {
+        "cycle": 1,
+        "intent": "perceive",
+        "action": "tag_event",
+        "di": 1.0,
+        "md": 0.0,
+        "council_validated": true,
+        "streams": [
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent": "reflex"
+          },
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": true,
+            "intent": "perceive"
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent": "memory_miss"
+          },
+          {
+            "name": "PlanningStream",
+            "priority": 0.5,
+            "activated": true,
+            "intent": "plan_trajectory"
+          }
+        ],
+        "futures": []
+      }
+    },
+    {
+      "segment": {
+        "start_frame": 700,
+        "end_frame": 1330,
+        "start_time": 23.33,
+        "end_time": 44.33,
+        "avg_brightness": 0.326,
+        "avg_motion": 9.006,
+        "avg_edge_density": 0.035,
+        "face_count": 0,
+        "has_significant_motion": "True",
+        "is_dark": "False",
+        "tags": [
+          "high_intensity"
+        ],
+        "telos_action": "tag_event",
+        "telos_di": 1.0,
+        "telos_md": 1.152,
+        "council_validated": true
+      },
+      "pipeline": {
+        "cycle": 2,
+        "intent": "perceive",
+        "action": "tag_event",
+        "di": 1.0,
+        "md": 1.152,
+        "council_validated": true,
+        "streams": [
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent": "reflex"
+          },
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": true,
+            "intent": "perceive"
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent": "memory_miss"
+          },
+          {
+            "name": "PlanningStream",
+            "priority": 0.5,
+            "activated": true,
+            "intent": "plan_trajectory"
+          }
+        ],
+        "futures": [
+          {
+            "score": 3.853549818457642
+          },
+          {
+            "score": 3.6721024985852404
+          },
+          {
+            "score": 3.0093076021238185
+          },
+          {
+            "score": 2.739792929835083
+          },
+          {
+            "score": 2.6539277513707025
+          }
+        ]
+      }
+    },
+    {
+      "segment": {
+        "start_frame": 1400,
+        "end_frame": 2030,
+        "start_time": 46.67,
+        "end_time": 67.67,
+        "avg_brightness": 0.321,
+        "avg_motion": 5.969,
+        "avg_edge_density": 0.044,
+        "face_count": 0,
+        "has_significant_motion": "True",
+        "is_dark": "False",
+        "tags": [
+          "high_intensity"
+        ],
+        "telos_action": "tag_event",
+        "telos_di": 1.0,
+        "telos_md": 1.093,
+        "council_validated": true
+      },
+      "pipeline": {
+        "cycle": 3,
+        "intent": "plan_trajectory",
+        "action": "tag_event",
+        "di": 1.0,
+        "md": 1.093,
+        "council_validated": true,
+        "streams": [
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent": "reflex"
+          },
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": true,
+            "intent": "perceive"
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent": "memory_miss"
+          },
+          {
+            "name": "PlanningStream",
+            "priority": 0.5,
+            "activated": true,
+            "intent": "plan_trajectory"
+          }
+        ],
+        "futures": [
+          {
+            "score": 1.9801971316908686
+          },
+          {
+            "score": 1.800329062211455
+          },
+          {
+            "score": 1.7118426641386737
+          },
+          {
+            "score": 1.6861867536649127
+          },
+          {
+            "score": 1.608372974212691
+          }
+        ]
+      }
+    },
+    {
+      "segment": {
+        "start_frame": 2100,
+        "end_frame": 2100,
+        "start_time": 70.0,
+        "end_time": 70.0,
+        "avg_brightness": 0.182,
+        "avg_motion": 2.66,
+        "avg_edge_density": 0.028,
+        "face_count": 0,
+        "has_significant_motion": "True",
+        "is_dark": "True",
+        "tags": [
+          "high_intensity"
+        ],
+        "telos_action": "tag_event",
+        "telos_di": 1.0,
+        "telos_md": 1.001,
+        "council_validated": true
+      },
+      "pipeline": {
+        "cycle": 4,
+        "intent": "memory_miss",
+        "action": "tag_event",
+        "di": 1.0,
+        "md": 1.001,
+        "council_validated": true,
+        "streams": [
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent": "reflex"
+          },
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": true,
+            "intent": "perceive"
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent": "memory_miss"
+          },
+          {
+            "name": "PlanningStream",
+            "priority": 0.5,
+            "activated": true,
+            "intent": "plan_trajectory"
+          }
+        ],
+        "futures": [
+          {
+            "score": 0.45463334352509643
+          },
+          {
+            "score": 0.42167614595421987
+          },
+          {
+            "score": 0.4122824613690665
+          },
+          {
+            "score": 0.3780317492275037
+          },
+          {
+            "score": 0.3543447916255066
+          }
+        ]
+      }
+    }
+  ]
+}
