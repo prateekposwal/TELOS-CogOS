@@ -81,8 +81,10 @@ class CounterfactualEngine:
         focus simulation resources on relevant trajectories.
     """
 
-    def __init__(self, simulator: DomainSimulator, n_repetitions: int = 3):
+    def __init__(self, simulator: DomainSimulator, n_repetitions: int = 3, seed: Optional[int] = None):
         self.simulator = simulator
+        self._rng = np.random.RandomState(seed) if seed is not None else None
+        self._seed = seed
         self._last_options: List[StrategicOption] = []
         self._last_state: Optional[np.ndarray] = None
         self._last_horizon: int = 0
@@ -147,7 +149,8 @@ class CounterfactualEngine:
 
             # Generate opportunity-focused worlds (diverse, exploratory)
             for _ in range(opp_worlds):
-                noise = np.random.randn(*state.shape) * 0.2 * opp_r
+                rng = self._rng if self._rng is not None else np.random
+                noise = rng.randn(*state.shape) * 0.2 * opp_r
                 perturbed_state = state + noise
                 simulated = self.simulator.simulate(perturbed_state, horizon)
                 if simulated:
