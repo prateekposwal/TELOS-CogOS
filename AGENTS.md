@@ -1,33 +1,3 @@
-# MealDrama — APK Build Workflow
-
-## Build Pipeline
-```
-npm run build           → Vite bundles React/TS → static HTML+JS+CSS in dist/
-rsync -a dist/ → android/app/src/main/assets/public/   → Copy to Android
-./gradlew assembleDebug → Build APK with bundled assets
-```
-
-## Quick APK rebuild (after code changes)
-```bash
-npm run build
-export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
-rsync -a /Users/prateekposwal/MD-App/dist/ /Users/prateekposwal/MD-App/android/app/src/main/assets/public/
-cd /Users/prateekposwal/MD-App/android && ./gradlew assembleDebug
-```
-
-## Where the APK lands
-```
-/Users/prateekposwal/MD-App/android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-## Architecture
-- **Frontend:** Vite + React 19 + Tailwind 4 (web app)
-- **Mobile wrapper:** Capacitor 8 (fullscreen WebView, wraps the web app as native APK)
-- **Not React Native** — RN migration is Sprint D (future work)
-- **State:** Zustand with localStorage persistence + PostgreSQL via Prisma
-
----
-
 # TELOS — Cognitive Operating System
 
 ## Quick Links
@@ -36,14 +6,17 @@ cd /Users/prateekposwal/MD-App/android && ./gradlew assembleDebug
 - **Tests:** `PYTHONPATH=. python3 -m pytest tests/ --ignore=tests/test_knowledge.py -q`
 
 ## Status (Session Handoff — 2026-07-25)
-- **397/397 tests passing**
+- **360/360 tests passing**
+- **24/24 self-audit checks passing**
 - **20/20 axioms satisfied**
 - **9-phase pipeline** operational (Perceive, Streams, Simulate, Evaluate, Synthesis, Select, Council, Act, Reflect)
 - **5 cognitive streams** (Reflex 1.0, Perception 0.9, Inquiry 0.8, Memory 0.7, Planning 0.5)
 - **Ω operator** with adaptive threshold + continuous sigmoid blend
-- **Relational Reasoning scaffold** (R_t slot reserved, interface defined)
 - **Tripartite uncertainty** U = (U_W, U_I, U_O)
+- **Relational Reasoning scaffold** (R_t slot reserved, interface defined)
 - **3D isometric GridWorld** dashboard with orbit/zoom/click controls
+- **12 Bitcoin-inspired upgrades** — UTXO traces, Merkle proofs, PSDT, timelocks, SegWit split, checkpoint chain, difficulty adjustment, voting thresholds, mempool, attention auction, halving, constraint opcodes
+- **Deterministic execution** — cycle-aware seeding for reproducible runs
 
 ## All shipping blockers fixed
 - ✅ Firewall loop detection tuned (3→4 threshold, available_moves check)
@@ -94,6 +67,7 @@ We discussed creating a **Bitcoin Block Priority Oracle** — a sidecar protocol
 - Activate ResourceGradientTracker reallocation loop
 - Cross-session identity persistence via SystemSelf
 - Council human-in-the-loop escalation
+- **Wire MealDrama adapter** — 199 lines waiting in `telos/adapters/mealdrama_adapter.py`
 
 ### Phase 3: Long-term Vision
 - Curiosity Drive (autonomous exploration)
