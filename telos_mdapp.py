@@ -24,6 +24,7 @@ from telos.core.runtime import PipelineConfig, TelosV14Pipeline
 from telos.core.streams.implementations import (
     ReflexStream, PerceptionStream, MemoryStream, PlanningStream,
 )
+from telos.core.streams.inquiry_stream import InquiryStream
 from telos.core.council.validators import (
     RealityValidator, ConstraintValidator, MemoryAdvisor, MissionDriftDetector,
 )
@@ -146,6 +147,7 @@ def main():
     pipeline.register_stream(PerceptionStream(skill_lib))
     pipeline.register_stream(MemoryStream(skill_lib))
     pipeline.register_stream(PlanningStream(skill_lib, sim_engine=sim_engine))
+    pipeline.register_stream(InquiryStream(skill_lib))
     pipeline.register_validator(RealityValidator())
     pipeline.register_validator(ConstraintValidator())
     pipeline.register_validator(MemoryAdvisor(skill_lib))
