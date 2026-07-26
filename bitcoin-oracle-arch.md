@@ -1,180 +1,217 @@
-# Bitcoin Block Priority Oracle
+# Bitcoin State Pricing Oracle — Research Direction (v3)
 
-## Problem
+## Status: Honest Assessment
 
-Bitcoin blocks have ~4 MWU (million weight units). Inscriptions (Ordinals, BRC-20, Runes) compete with financial transactions (payments, settlements, Lightning channel opens) for the same space. Miners optimize for fee revenue — if data inscriptions pay higher fees, financial transactions get priced out or delayed.
+This document supersedes the v1 (priority classification) and v2 (externality fee) proposals. Both were refuted on Reddit for fundamental economic reasons:
 
-No consensus change required. No soft fork. No hard fork.
+- **v1 died** because miners won't leave fees on the table. A voluntary classification system with no economic penalty for lying collapses to zero signal.
+- **v2 died** because any formula-based "externality fee" is an arbitrary tax, not a market price. Without a mechanism that produces a price (supply + demand for a specific good), you cannot price the cost of a transaction.
 
-## Solution
+Both failures share a root cause: **Bitcoin has no mechanism to price the permanent storage cost of data in its UTXO set.** This document surveys what actually exists, what people are working on, and where the real open problems are.
 
-A **sidecar oracle + Stratum v2 plugin** that classifies transactions as **financial** or **data** before block template assembly, enabling a two-tier priority fee market within the existing block size limit.
+---
 
-## Architecture
+## The Real Problem: Unpriced State Growth
 
-```
-Mempool ──> Oracle ──> Classified Pool ──> Template Builder ──> Stratum v2 ──> Miner
-                │
-                └──> Fee Advisor ──> Fee Estimator API
-```
+Bitcoin's UTXO set has grown from approximately 40 million entries in 2017 to over 150 million in 2026. Every unspent transaction output must be kept in RAM by every full node, forever. The cost of this storage is:
 
-### 1. Transaction Classifier (Oracle)
+- **Distributed across all node operators** — not paid by the transaction creator
+- **Non-degradable** — a UTXO created in 2012 costs the same to store today as one created last week
+- **Non-excludable** — you cannot refuse to validate a block because it uses too many UTXOs
 
-**Input:** Raw transaction from mempool (via `getrawmempool` or `testmempoolaccept`).
+The SegWit discount (BIP-141) made this worse by effectively pricing witness data at 25% of base data. Since inscriptions store their content in the witness, they get a 4× discount versus on-chain data while imposing the same UTXO set burden.
 
-**Classification logic (in order):**
+---
 
-| Rule | Classification | Rationale |
-|------|---------------|-----------|
-| OP_RETURN data > 80B | DATA | Non-standard data carrier |
-| Witness data > (input count × 400B) | DATA | High witness ratio = inscription |
-| Contains Taproot script path spend with large witness (> 500 vB) | DATA | Typical Ordinal inscription |
-| Standard P2PKH / P2WPKH / P2TR keypath | FINANCIAL | Normal payment |
-| Multisig, time-locks, HTLCs | FINANCIAL | Lightning / DeFi |
-| BIP-125 (CPFP/RBF) flagged | FINANCIAL | Fee-bumping for time-sensitive tx |
-| Fallback | FINANCIAL | Default safe classification |
+## What Already Exists
 
-**False positive mitigation:** DATA classification requires confidence ≥ 0.7. Borderline cases tagged `UNCERTAIN` and fall through to FINANCIAL.
+### 1. BIP-141: Segregated Witness (SegWit) — The Only Existing Pricing Mechanism
 
-### 2. Priority Fee Market
+- **Status:** Deployed (2017)
+- **What it did:** Created the weight unit system: `block_weight = base_size × 3 + total_size × 1`
+- **Effect:** Witness data costs 1/4 of base data per byte
+- **Relevance:** This is the *only* mechanism Bitcoin has for differential data pricing. It was designed to fix transaction malleability, not to price state storage. The 4× discount was arbitrary.
+- **Link:** [BIP-141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki)
 
-Two virtual pools:
+### 2. UTXO Growth — Known But Unaddressed
 
-```
-Financial Pool:     tx with FINANCIAL tag, sorted by fee-rate
-Data Pool:          tx with DATA tag, sorted by fee-rate
-```
+The UTXO set growth problem has been discussed extensively but no consensus change has been deployed to address it.
 
-**Allocation algorithm (per block template):**
+**Key data points:**
+- UTXO set size: ~40M (2017) → ~80M (2021) → ~150M+ (2026)
+- Inscriptions (Ordinals, BRC-20) have accelerated growth since 2023
+- Each new UTXO costs ~50 bytes minimum + node RAM cost + index overhead
+- Full node RAM requirement for UTXO cache: ~5-10 GB and growing
 
-```
-Given block capacity C (4 MWU):
-  financial_fee_floor = max(0, P50 financial fee-rate)
-  data_fee_floor = max(0, P50 data fee-rate)
+### 3. State Expiry Discussions (No BIP, No Consensus)
 
-  # Financial transactions are never fully crowded out
-  min_financial_allocation = min(C × 0.3, total_financial_weight)
-  # Remainder split by fee-ratio
-  remaining = C - min_financial_allocation
-  fee_ratio = clamp(0.1, data_fee_floor / financial_fee_floor, 10.0)
-  data_allocation = remaining × (fee_ratio / (1 + fee_ratio))
-  financial_allocation = min_financial_allocation + remaining - data_allocation
-```
+Several proposals have been discussed but none have reached BIP status:
 
-**Result:** If data fees dominate → data gets more space, but financial always gets minimum 30% reservation. If fees are equal → 50/50 split. If financial fees dominate → financial gets priority.
+- **UTXO expiry with renewal fees** — UTXOs expire after N blocks unless renewed with a fee
+- **Rent on UTXOs** — Periodic fee for UTXO set inclusion
+- **Inactivity pruning** — UTXOs unspent for N years become spendable by miners
+- **State commitment batching** — Merkle-commit to UTXO set rather than storing individually
 
-### 3. Stratum v2 Plugin
+**Who's discussed it:**
+- Rusty Russell (Bitcoin Core contributor) — proposed state expiry concepts on bitcoin-dev
+- Gregory Maxwell — discussed UTXO growth costs and potential solutions
+- Anthony Towns — explored covenant-based approaches to state management
 
-Extends the Template Distribution Protocol (channel `0x74`):
+### 4. Covenant Proposals (Indirectly Relevant)
 
-**New message types:**
+Covenants allow a script to constrain future spending. Relevant covenant proposals:
 
-| Message | Direction | Payload |
-|---------|-----------|---------|
-| `SetClassificationRules` | Mining Service → Miner | Array of regex/opcode patterns |
-| `ClassifiedTemplate` | Mining Service → Miner | Block template + per-tx tag (0=financial, 1=data, 2=uncertain) |
-| `PriorityPreference` | Miner → Mining Service | `{financial_weight_ratio: 0.3..0.7, max_data_weight: 2 MWU}` |
+| Proposal | Status | Relevance |
+|----------|--------|-----------|
+| **BIP-119: OP_CHECKTEMPLATEVERIFY** | Draft | Enables output-constrained spending |
+| **OP_VAULT** | Draft | Enables vault constructions with recovery |
+| **OP_TX / OP_TXHASH** | Draft | Generic transaction introspection |
+| **OP_CAT (BIP-347)** | Draft | Concatenation enabling covenant construction |
+| **OP_CHECKSIGFROMSTACK** | Discussion | Signature verification from stack |
 
-**Flow:**
+**Why covenants matter for state pricing:** A covenant can enforce that a UTXO must be spent in a particular way. This enables constructions like "stateful channels" where UTXOs are reused rather than created and destroyed, reducing UTXO set churn. They are a tool, not a solution.
 
-1. Mining Service publishes `ClassifiedTemplate` instead of `NewTemplate`.
-2. Miner receives per-tx classification alongside standard template data.
-3. Miner can optionally signal `PriorityPreference` to adjust the allocation.
-4. If no `PriorityPreference` received, default 30% financial floor applies.
+**Links:**
+- [BIP-119 (OP_CTV)](https://github.com/bitcoin/bips/blob/master/bip-0119.mediawiki)
+- [Covenants topic on Bitcoin Optech](https://bitcoinops.org/en/topics/covenants/)
+- [Covenants research paper (FC'17)](https://fc17.ifca.ai/bitcoin/papers/bitcoin17-final28.pdf)
 
-No changes to the mining hardware interface — only the template assembly layer.
+### 5. SegWit Discount — Unintended Consequences
 
-### 4. Fee Estimator API
+The SegWit 4× witness discount was designed to:
+- Fix transaction malleability
+- Increase block capacity
+- Enable second-layer protocols (Lightning)
 
-REST endpoint returning:
+It was not designed to price witness data for storage cost. The result is that data-heavy transactions (inscriptions) get a 4× discount on block space while imposing the same UTXO set burden. This is a known issue but fixing it would require a hard fork.
 
-```json
-{
-  "financial": {
-    "fastest": 120,  // sat/vB
-    "hour": 45
-  },
-  "data": {
-    "fastest": 200,
-    "hour": 80
-  },
-  "allocation": {
-    "financial_pct": 62,
-    "data_pct": 38,
-    "blocks_until_financial_congestion": 3
-  }
-}
-```
+---
 
-Users see separate fee suggestions for financial vs data transactions. Wallets integrate the financial endpoint for optimal confirmation times.
+## The Open Research Questions
 
-### 5. Trust Model
+There is no working solution to pricing state growth in Bitcoin. These are the actual open problems:
 
-The oracle does NOT need to be trustless for MVP:
+### Q1: How do you price permanent state addition without a market?
 
-| Component | Trust Model | Upgrade Path |
-|-----------|-------------|-------------|
-| Classifier | Centralized (pool-operated) | Open-source + verifiable classification proofs |
-| Allocation | Deterministic from classification | On-chain commitment to allocation |
-| Stratum messages | Signed by pool key | Future: aggregated attestation from multiple oracles |
+In a permissionless system, you cannot charge "rent" — there's no entity to collect it and no way to enforce payment. UTXO expiry has been discussed but raises hard questions:
+- Who reclaims expired UTXOs?
+- What happens to time-locked contracts?
+- How do hardware wallets verify expiry?
 
-**Phased decentralization:**
+### Q2: Can block weight be refactored to account for UTXO cost?
 
-1. **Phase 1 (MVP):** Single pool runs the oracle, publishes classification rules open-source.
-2. **Phase 2:** Multiple oracles, miner selects median classification via `PriorityPreference`.
-3. **Phase 3:** Succinct classification proofs (see future work).
+The SegWit weight formula (base×3 + witness×1) was a first attempt at differential pricing. Could we design a weight formula that accounts for UTXO set impact?
+- `new_weight = base_bytes × w_base + witness_bytes × w_witness + new_utxos × w_utxo_count + data_bytes × w_data`
 
-## Implementation Plan
+This is an arbitrary formula (as the Reddit thread correctly identified). What economic mechanism produces the weights?
 
-### Phase 1 — Oracle Core (Weeks 1-4)
+### Q3: What is the "true cost" of a UTXO entry?
 
-- Transaction classifier in Rust (using `rust-bitcoin`)
-- Bitcoin Core RPC integration (`getrawmempool`, `decoderawtransaction`)
-- Classification confidence scoring
-- Test against mainnet mempool snapshot (100K transactions)
+A UTXO costs:
+- ~50-100 bytes in the UTXO set
+- ~32 bytes in the hash set
+- ~5-10 GB RAM for the whole set
+- Validation time per block
+- Disk I/O for node catch-up
 
-### Phase 2 — Fee Market + Template Builder (Weeks 5-7)
+None of these costs are priced in the fee market. The fee market only prices block space (supply ≈ 4 MWU per block, demand = competing fees). UTXO set storage is a commons.
 
-- Allocation algorithm
-- Template assembly with classified transactions
-- Performance benchmark (template generation time < 100ms)
+### Q4: Can layer-2 absorb the state growth?
 
-### Phase 3 — Stratum v2 Plugin (Weeks 8-10)
+Lightning Network and other L2 protocols reduce on-chain state by keeping transactions off-chain. But:
+- L2 requires channel factories (more UTXOs)
+- Inscriptions bypass L2 entirely
+- L2 adoption is insufficient to offset inscription growth
 
-- Stratum v2 protocol extension (rust-stratum)
-- `ClassifiedTemplate` message
-- `PriorityPreference` handling
-- Integration test with mining simulator
+### Q5: Do we need a UTXO fee market?
 
-### Phase 4 — Fee Estimator + Polish (Weeks 10-12)
+Proposed direction: a second fee market for UTXO creation.
+- Transactions pay a fee proportional to the number of new UTXOs they create
+- The fee is burned (like existing fees) — no entity collects it
+- The fee rate adjusts based on UTXO set growth rate
+- This is NOT a price — it's a congestion signal
 
-- REST API for fee estimation
-- Prometheus metrics
-- Grafana dashboard
-- Documentation + deployment guide
+**Problem:** This is still an arbitrary formula. Who sets the rate? How does it adapt?
 
-## Future Work
+---
 
-- **Classification proofs:** Merkle inclusion + opcode commitment so miners can independently verify classification.
-- **MEV resistance:** Commit-reveal scheme for classification to prevent front-running.
-- **Cross-pool coordination:** Federation of oracles with BFT consensus on classification.
-- **Client-side validation:** Wallet-side classification to pre-negotiate with pool.
+## Research Direction (Not a Solution)
 
-## Why This Works
+This project pivots from "building an oracle" to **researching the open problem of state cost pricing in Bitcoin.** The deliverables change accordingly:
 
-1. **No consensus change:** Everything happens at the template assembly layer.
-2. **Miners opt in voluntarily:** They keep full discretion via `PriorityPreference`.
-3. **Market-driven:** Classification is a suggestion, not a rule. Miners who ignore it lose nothing; miners who use it attract financial tx fee flow.
-4. **Backward compatible:** Unmodified miners see standard templates. Stratum v2 is already rolling out.
+### Phase R1: Survey Existing Work (Complete)
+- [x] Document SegWit discount and its unintended consequences
+- [x] Survey state expiry discussions on bitcoin-dev
+- [x] Catalog covenant proposals relevant to state management
+- [x] Map UTXO growth data and trends
+- [ ] Publish survey as a public resource
 
-## Team
+### Phase R2: Formalize the Problem
+- [ ] Define the UTXO cost function (what are the real costs?)
+- [ ] Analyze the SegWit discount as a pricing mechanism (what was its actual effect?)
+- [ ] Model the externality of data inscriptions on node operators
+- [ ] Compare with other UTXO-based chains (Ethereon, Cardano, Litecoin)
 
-- **2 engineers** (Rust + Bitcoin protocol)
-- **1 part-time** (mining ops / Stratum v2 integration)
-- **Timeline:** 10-12 weeks to production
+### Phase R3: Propose Research Directions
+- [ ] Draft a UTXO fee market proposal (not a solution — a framing)
+- [ ] Evaluate state expiry tradeoffs in a formal analysis
+- [ ] Design a block weight refactoring that accounts for UTXO cost
+- [ ] Submit to bitcoin-dev mailing list for discussion
 
-## Resources Needed
+### Phase R4: Build Simulation (If Useful)
+- [ ] Simulate UTXO set growth under different fee models
+- [ ] Model node operator costs under different scenarios
+- [ ] Publish reproducible results
 
-- Bitcoin Core node (archive, mainnet)
-- Mining simulator (regtest + Stratum v2)
-- Mainnet mempool data for test vectors
+---
+
+## Literature & References
+
+### BIPs
+| BIP | Title | Relevance |
+|-----|-------|-----------|
+| [BIP-141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki) | Segregated Witness | Current pricing mechanism; 4× witness discount |
+| [BIP-119](https://github.com/bitcoin/bips/blob/master/bip-0119.mediawiki) | OP_CHECKTEMPLATEVERIFY | Covenant for output-constrained spending |
+| [BIP-347](https://github.com/bitcoin/bips/pull/1525) | OP_CAT | Enables covenant construction |
+
+### Research Papers
+- **"Enhancing Bitcoin Transactions with Covenants"** (FC'17) — [PDF](https://fc17.ifca.ai/bitcoin/papers/bitcoin17-final28.pdf)
+  - Formalizes covenant constructions in Bitcoin
+  - Relevant to state management through output constraints
+- **"SoK: Bitcoin Layer Two"** — Survey of L2 protocols and their state implications
+- **"The Bitcoin UTXO Set: A Statistical Analysis"** — Data on UTXO growth patterns
+
+### Mailing List Discussions
+- **bitcoin-dev: "State expiry"** — Rusty Russell, Gregory Maxwell, et al.
+  - [Thread archive search](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/) (search "state expiry")
+- **bitcoin-dev: "UTXO growth"** — Multiple threads on UTXO set scaling
+- **bitcoin-dev: "Block weight reform"** — Proposals to adjust SegWit discount
+
+### People to Follow
+- **Rusty Russell** — Bitcoin Core contributor; state expiry discussions
+- **Gregory Maxwell** — Original SegWit design; UTXO growth analysis
+- **Anthony Towns** — Covenant design and analysis
+- **Pieter Wuille** — SegWit, Taproot, signature aggregation
+- **Andrew Poelstra** — Covenant research (CAT + Schnorr tricks)
+- **Eric Lombrozo** — Original SegWit BIP author
+
+### Community Resources
+- [Bitcoin Optech](https://bitcoinops.org/) — Weekly newsletter; topics on covenants, SegWit, state management
+- [Delving Bitcoin](https://delvingbitcoin.org/) — Technical discussion forum (successor to bitcoin-dev mailing list)
+- [Bitcoin Stack Exchange](https://bitcoin.stackexchange.com/) — Tag: utxo, segwit, state
+
+---
+
+## What We Learned
+
+1. **The problem is real but the solutions we proposed were not.** The Reddit thread was correct — without a market mechanism, any pricing is arbitrary.
+
+2. **Bitcoin has no mechanism for pricing state storage.** The SegWit discount was not designed for this and fixing it is an open research problem.
+
+3. **No one has solved this.** State expiry has been discussed for years with no consensus. UTXO fee markets are theoretical. This is a genuine open problem.
+
+4. **The honest contribution is to reframe the question, not to pretend we have answers.** This document is that reframing.
+
+---
+
+*This is a research document, not a proposal. It exists to frame an open problem, not to claim a solution. No contact information is included because the ideas should stand on their own merit, not on who wrote them.*

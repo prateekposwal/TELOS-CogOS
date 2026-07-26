@@ -74,6 +74,17 @@ from telos.core.curiosity.drive import CuriosityDrive
 from telos.intent_ir import IntentIR
 
 
+# ── Telos v2: New architectural components (July 2026) ──
+from telos.core.council.reflector import CouncilReflector
+from telos.core.meta.error_attribution import ErrorAttributionEngine
+from telos.core.curiosity.assumption_auditor import AssumptionAuditor
+from telos.core.identity.utility_profiles import IdentityUtilityEngine
+from telos.core.introspection.scheduler import IntrospectionScheduler, IntrospectionTier
+from telos.core.memory.regret_memory import RegretMemory
+from telos.core.reasoning.theory_builder import TheoryBuilder
+from telos.core.axioms.evolution import AxiomEvolutionEngine
+from telos.core.reasoning.interpretation_engine import InterpretationEngine
+
 
 class TelosV14Pipeline:
     """The TELOS Pure Reasoning Pipeline with Epistemic Integrity.
@@ -214,6 +225,26 @@ class TelosV14Pipeline:
                     except Exception as e:
                         logger.warning(f"PatternLibrary load failed: {e}")
 
+        self._interpretation_engine = InterpretationEngine()
+        # P2.9: Interpretation engine — principle conflict resolution (proposal)
+        self._axiom_evolution = AxiomEvolutionEngine()
+        # P2.8: Axiom evolution — system proposes, human approves (proposal)
+        self._theory_builder = TheoryBuilder()
+        # P2.7: Theory builder — experience → cluster → hypothesis → test → theory
+        self._regret_memory = RegretMemory()
+        # P2.6: Regret memory — counterfactual what-if archival
+        self._introspection_scheduler = IntrospectionScheduler()
+        # P2.5: Multi-timescale introspection — every cycle, 100, 1000
+        self._identity_utility = IdentityUtilityEngine()
+        # P2.4: Identity changes utility functions — not thresholds
+        self._assumption_auditor = AssumptionAuditor()
+        # P2.3: Curiosity questions assumptions — not just 'what's out there?'
+        self._error_attribution = ErrorAttributionEngine()
+        # P2.2: Meta-error attribution — 'which subsystem caused it?'
+        self._council_reflector = CouncilReflector()
+        # P2.1: Council meta-learning — 'was that right?' hindsight evaluation
+
+        # ── Telos v2: Architectural upgrades (Prateek feedback — July 2026) ──
         if self.config.adapter and hasattr(self.config.adapter, 'initialize'):
             self.config.adapter.initialize()
 

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitcoin State Pricing Oracle — Open Research</title>
+<style>
+:root{--bg:#0d0d0d;--surface:#1a1a1a;--border:#2a2a2a;--orange:#f7931a;--orange-dim:#f7931a44;--green:#0f0;--red:#f44;--text:#ccc;--text-dim:#666;--text-bright:#fff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'SF Mono','Fira Code','Cascadia Code',monospace;line-height:1.6;padding:20px}
+.container{max-width:960px;margin:0 auto}
+.header{border:1px solid var(--orange);border-radius:8px;padding:24px;margin-bottom:20px;background:linear-gradient(135deg,var(--surface)0%,var(--bg)100%)}
+.header h1{color:var(--orange);font-size:1.4em;margin-bottom:8px}
+.header .subtitle{color:var(--text-dim);font-size:0.9em}
+.header .status-badge{display:inline-block;background:var(--orange-dim);color:var(--orange);border:1px solid var(--orange);border-radius:4px;padding:2px 8px;font-size:.75em;margin-top:8px}
+.block-viz{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px}
+.block-viz h2{color:var(--text-bright);font-size:1em;margin-bottom:12px}
+.block-grid{display:flex;flex-direction:column;gap:2px;border:1px solid var(--border);border-radius:4px;padding:4px;min-height:200px;background:#111}
+.tx-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:3px;font-size:.75em;transition:all .3s;cursor:default}
+.tx-row:hover{filter:brightness(1.3);transform:translateX(4px)}
+.tx-row.financial{background:#0f03;border-left:3px solid var(--green)}
+.tx-row.data{background:#f443;border-left:3px solid var(--red)}
+.tx-row.unknown{background:#6663;border-left:3px solid var(--text-dim)}
+.tx-label{flex:1;color:var(--text)}
+.tx-fee{color:var(--text-dim);min-width:60px;text-align:right}
+.tx-class{min-width:30px;text-align:center;font-size:.8em}
+.block-info{display:flex;justify-content:space-between;margin-top:12px;font-size:.8em;color:var(--text-dim)}
+.block-info span{color:var(--text-bright)}
+.state-panel{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.state-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+.state-card h3{color:var(--text-bright);font-size:.85em;margin-bottom:8px}
+.state-card .value{font-size:1.8em;color:var(--orange);font-weight:bold}
+.state-card .unit{color:var(--text-dim);font-size:.7em}
+.state-card .note{color:var(--text-dim);font-size:.75em;margin-top:4px}
+.research-section{margin-bottom:20px}
+.research-section h2{color:var(--orange);font-size:1.1em;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.research-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin-bottom:8px}
+.research-item .title{color:var(--text-bright);font-weight:bold;font-size:.9em}
+.research-item .desc{color:var(--text-dim);font-size:.8em;margin-top:4px}
+.research-item .status-tag{display:inline-block;font-size:.7em;padding:1px 6px;border-radius:3px;margin-top:4px}
+.status-tag.deployed{background:#0f03;color:var(--green)}
+.status-tag.draft{background:#ffa50033;color:orange}
+.status-tag.discussion{background:#4488ff33;color:#48f}
+.question{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:16px;margin-bottom:12px}
+.question .q{color:var(--text-bright);font-weight:bold;font-size:.9em}
+.question .a{color:var(--text-dim);font-size:.8em;margin-top:6px}
+.footer{text-align:center;color:var(--text-dim);font-size:.75em;padding:20px;border-top:1px solid var(--border);margin-top:20px}
+.controls{display:flex;gap:8px;margin-bottom:12px}
+.controls button{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px 12px;font-family:inherit;font-size:.75em;cursor:pointer;transition:all .2s}
+.controls button:hover{border-color:var(--orange);color:var(--orange)}
+.controls button.active{background:var(--orange-dim);border-color:var(--orange);color:var(--orange)}
+@media(max-width:640px){.state-panel{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+<h1>⧫ Bitcoin State Pricing Oracle — Open Research</h1>
+<div class="subtitle">We identified a real problem. We don't have a solution yet. Here's what exists, what we learned, and where the research needs to go.</div>
+<div class="status-badge">Status: Open Research — Not a Proposal</div>
+</div>
+
+<div class="state-panel">
+<div class="state-card">
+<h3>UTXO Set</h3>
+<div class="value" id="utxoCount">155,234,891</div>
+<div class="unit">entries (and growing)</div>
+<div class="note">~7 GB RAM for full node UTXO cache</div>
+</div>
+<div class="state-card">
+<h3>Inscription Data</h3>
+<div class="value" id="inscriptionSize">&gt;6 GB</div>
+<div class="unit">witness data with 4x SegWit discount</div>
+<div class="note">Priced at 25% of base data despite same UTXO burden</div>
+</div>
+</div>
+
+<div class="block-viz">
+<h2>Latest Block at Height 860,412 — Simulated View</h2>
+<div class="controls">
+<button id="btnFinancial" class="active" onclick="filterBlock('all')">All Transactions</button>
+<button onclick="filterBlock('financial')">Financial Only</button>
+<button onclick="filterBlock('data')">Data Only</button>
+<button onclick="randomizeBlock()">New Block</button>
+</div>
+<div class="block-grid" id="blockGrid"></div>
+<div class="block-info">
+<div>Block Weight: <span id="blockWeight">3,982,401</span> / 4,000,000 WU</div>
+<div>Financial: <span id="finPct" style="color:var(--green)">47</span>% | Data: <span id="dataPct" style="color:var(--red)">53</span>%</div>
+<div>Fee Revenue: <span id="feeRevenue">0.847</span> BTC</div>
+</div>
+</div>
+
+<div class="research-section">
+<h2>⛓ The Real Problem: Unpriced State Growth</h2>
+<div class="question">
+<div class="q">Bitcoin has no mechanism to price the permanent storage cost of data in its UTXO set.</div>
+<div class="a">Every unspent output must be kept in RAM by every full node, forever. The cost is distributed across all node operators — not paid by the transaction creator. The fee market only prices <em>block space</em> (supply ~4 MWU per block), not <em>state storage</em>. This is a market failure, and no one has solved it.</div>
+</div>
+</div>
+
+<div class="research-section">
+<h2>✕ What We Tried (And Why It Failed)</h2>
+<div class="research-item">
+<div class="title">v1: Priority Classification Oracle → Dead</div>
+<div class="desc">Incentive misalignment. Miners won't leave fees on the table. Voluntary classification with no economic penalty collapses to zero signal. The Reddit thread was right: any lying wallet costs nothing.</div>
+</div>
+<div class="research-item">
+<div class="title">v2: Externality Fee → Dead</div>
+<div class="desc">No way to price the "true cost" of a transaction without a market mechanism. Any formula is an arbitrary tax, not a price. The Reddit thread destroyed this pivot too — and they were correct.</div>
+</div>
+</div>
+
+<div class="research-section">
+<h2>📚 What Actually Exists (Surveyed Research)</h2>
+<div class="research-item">
+<div class="title">BIP-141: Segregated Witness (SegWit)</div>
+<div class="desc">Deployed 2017. Created the weight unit system: block_weight = base_size x 3 + total_size. Witness data costs 1/4 of base data. This is the <em>only</em> differential pricing mechanism Bitcoin has. It was designed to fix malleability, not price state growth. The 4x discount was arbitrary.</div>
+<span class="status-tag deployed">Deployed</span>
+</div>
+<div class="research-item">
+<div class="title">State Expiry Discussions (No BIP, No Consensus)</div>
+<div class="desc">UTXO expiry with renewal fees, rent on UTXOs, inactivity pruning — all discussed on bitcoin-dev since ~2020. No proposal has reached BIP status. Contributors: Rusty Russell, Gregory Maxwell, Anthony Towns. Hard questions remain: who reclaims expired UTXOs? What happens to time-locked contracts? How do hardware wallets verify expiry?</div>
+<span class="status-tag discussion">Open Research</span>
+</div>
+<div class="research-item">
+<div class="title">Covenant Proposals (BIP-119, OP_VAULT, OP_TX, OP_CAT)</div>
+<div class="desc">Covenants constrain how UTXOs can be spent. BIP-119 (OP_CHECKTEMPLATEVERIFY) enables output-constrained spending. OP_VAULT enables vaults. OP_CAT enables covenant composition. Relevant because covenants can reduce UTXO churn. Key research: "Enhancing Bitcoin Transactions with Covenants" (FC'17).</div>
+<span class="status-tag draft">Draft / Discussion</span>
+</div>
+<div class="research-item">
+<div class="title">Layer-2 Absorption (Lightning, etc.)</div>
+<div class="desc">L2 reduces on-chain state by keeping transactions off-chain. But L2 requires channel factories (more UTXOs), inscriptions bypass L2 entirely, and adoption is insufficient to offset inscription-driven growth. L2 is a mitigation, not a solution.</div>
+<span class="status-tag deployed">Active</span>
+</div>
+</div>
+
+<div class="research-section">
+<h2>❓ The Open Research Questions</h2>
+<div class="question">
+<div class="q">Q1: How do you price permanent state addition without a market?</div>
+<div class="a">In a permissionless system, you cannot charge "rent" — no entity collects it, no way to enforce payment. UTXO expiry has been discussed but raises hard questions about reclaiming, time-locked contracts, and hardware wallet verification.</div>
+</div>
+<div class="question">
+<div class="q">Q2: Can block weight be refactored to account for UTXO cost?</div>
+<div class="a">The SegWit weight formula (base x 3 + witness x 1) was a first attempt at differential pricing. Could we design new_weight = base x w_base + witness x w_witness + new_utxos x w_utxo? But this is still an arbitrary formula — what economic mechanism produces the weights?</div>
+</div>
+<div class="question">
+<div class="q">Q3: Do we need a second fee market for UTXO creation?</div>
+<div class="a">Transactions could pay a fee proportional to new UTXOs created. The fee is burned. The rate adjusts based on UTXO set growth. But this is NOT a price — it's a congestion signal. Who sets the rate? How does it adapt?</div>
+</div>
+</div>
+
+<div class="research-section">
+<h2>🔬 Research Direction (Not a Solution)</h2>
+<div class="research-item"><div class="title">Phase R1: Survey Existing Work</div><div class="desc">Document SegWit discount effects — Survey state expiry discussions — Catalog covenant proposals — Map UTXO growth data</div></div>
+<div class="research-item"><div class="title">Phase R2: Formalize the Problem</div><div class="desc">Define the UTXO cost function — Analyze SegWit discount as pricing mechanism — Model inscription externality on node operators</div></div>
+<div class="research-item"><div class="title">Phase R3: Propose Research Directions</div><div class="desc">Draft UTXO fee market framing — Evaluate state expiry tradeoffs — Design block weight refactoring — Submit to bitcoin-dev for discussion</div></div>
+<div class="research-item"><div class="title">Phase R4: Simulation (If Useful)</div><div class="desc">Simulate UTXO growth under different fee models — Model node operator costs — Publish reproducible results</div></div>
+</div>
+
+<div class="research-section">
+<h2>👤 People Working on This</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.8em">
+<div class="research-item"><div class="title">Rusty Russell</div><div class="desc">Bitcoin Core contributor; state expiry discussions</div></div>
+<div class="research-item"><div class="title">Gregory Maxwell</div><div class="desc">Original SegWit design; UTXO growth analysis</div></div>
+<div class="research-item"><div class="title">Anthony Towns</div><div class="desc">Covenant design; Delving Bitcoin moderator</div></div>
+<div class="research-item"><div class="title">Pieter Wuille</div><div class="desc">SegWit, Taproot, signature aggregation</div></div>
+<div class="research-item"><div class="title">Andrew Poelstra</div><div class="desc">Covenant research (CAT + Schnorr tricks)</div></div>
+<div class="research-item"><div class="title">Eric Lombrozo</div><div class="desc">Original SegWit BIP author</div></div>
+</div>
+</div>
+
+<div class="research-section">
+<h2>🔗 Key Resources</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.8em">
+<div class="research-item"><div class="title">Bitcoin Optech</div><div class="desc">Weekly newsletter on state, covenants, UTXO growth</div><div style="color:var(--orange);margin-top:4px">bitcoinops.org</div></div>
+<div class="research-item"><div class="title">Delving Bitcoin</div><div class="desc">Technical discussion forum</div><div style="color:var(--orange);margin-top:4px">delvingbitcoin.org</div></div>
+<div class="research-item"><div class="title">BIP-141 (SegWit)</div><div class="desc">Only existing differential data pricing mechanism</div></div>
+<div class="research-item"><div class="title">Covenants Paper (FC'17)</div><div class="desc">Formalizes covenant constructions for state management</div></div>
+</div>
+</div>
+
+<div class="footer">
+<p>⧫ Bitcoin State Pricing Research — No contact information included. Ideas stand on their own merit, not on who wrote them.</p>
+<p style="margin-top:8px">This is a research document, not a proposal. It frames an open problem, it does not claim a solution.</p>
+</div>
+
+</div>
+
+<script>
+const txTypes = ['financial','financial','financial','data','data','unknown'];
+const txLabels = {
+financial:['Lightning Channel Close','DEX Settlement','Payment','Exchange Hot->Cold','LN Channel Open','UTXO Consolidation','Payjoin','CoinJoin'],
+data:['Ordinal Inscription','BRC-20 Mint','BRC-20 Transfer','Ordinal Transfer','Runestone Etch','Text Inscription','Image Inscription','Collection Mint'],
+unknown:['Multi-sig Spend','Timelock Release','OP_RETURN','Unknown']};
+
+function randomTx(){const t=txTypes[Math.floor(Math.random()*txTypes.length)];return{type:t,label:txLabels[t][Math.floor(Math.random()*txLabels[t].length)],feeRate:Math.round(t==='financial'?20+Math.random()*180:t==='data'?15+Math.random()*200:10+Math.random()*100),weight:Math.round(200+Math.random()*800)}}
+
+function renderBlock(f){const g=document.getElementById('blockGrid');const txs=window._txs||Array.from({length:12},()=>randomTx());window._txs=txs;const tw=txs.reduce((s,t)=>s+t.weight,0);
+document.getElementById('blockWeight').textContent=Math.min(4000000,tw*1.2).toLocaleString();
+document.getElementById('finPct').textContent=Math.round(txs.filter(t=>t.type==='financial').reduce((s,t)=>s+t.weight,0)/tw*100);
+document.getElementById('dataPct').textContent=Math.round(txs.filter(t=>t.type==='data').reduce((s,t)=>s+t.weight,0)/tw*100);
+document.getElementById('feeRevenue').textContent=(txs.reduce((s,t)=>s+t.feeRate*t.weight/1000000,0)).toFixed(3);
+const fl=f==='all'?txs:txs.filter(t=>t.type===f);
+g.innerHTML=fl.map(t=>'<div class="tx-row '+t.type+'"><span class="tx-class">'+(t.type==='financial'?'&#x0243F;':t.type==='data'?'&#x25C8;':'?')+'</span><span class="tx-label">'+t.label+'</span><span class="tx-fee">'+t.feeRate+' sat/vB</span><span style="color:var(--text-dim);font-size:.8em">'+t.weight+' WU</span></div>').join('');
+if(fl.length===0)g.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-dim)">No transactions match this filter</div>';}
+
+function filterBlock(t){document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');renderBlock(t);}
+function randomizeBlock(){window._txs=Array.from({length:8+Math.floor(Math.random()*10)},()=>randomTx());document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));document.querySelector('.controls button:first-child').classList.add('active');renderBlock('all');}
+renderBlock('all');
+</script>
+</body>
+</html>
