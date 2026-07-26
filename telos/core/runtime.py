@@ -1421,8 +1421,20 @@ class TelosV14Pipeline:
                         compute_ms=getattr(sa, 'cost_ms', 2.0),
                     )
             ctx.resource_accounting_summary = ra.cycle_summary()
-        except Exception:
-            pass
+            # Enforce ΣR_i ≤ R_max: flag over-budget for Council
+            budget_ok = ra.check_budget(
+                max_compute_ms=self.budget_manager.total_budget_ms,
+                max_memory_traces=50,
+                max_bandwidth_bytes=10000,
+                max_storage_entries=20,
+            )
+            ctx.resource_accounting_budget_ok = budget_ok["within_budget"]
+            if not budget_ok["within_budget"]:
+                logger.warning(
+                    f"Resource budget exceeded: {budget_ok['exceeded_dimensions']}"
+                )
+        except Exception as e:
+            logger.warning(f"Resource Accounting failed: {e}")
 
         self._experience_manager.observe(result)
 

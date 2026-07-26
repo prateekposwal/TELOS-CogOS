@@ -1,44 +1,70 @@
-# Bitcoin State Pricing Research
+# TELOS — A Cognitive Operating System
 
-**Status: Open Research — Not a Solution**
+> *"An intelligent system is defined not by the number of visible capabilities it possesses, but by the invisible coordination of latent cognitive processes working toward a unified mission."*
+>
+> — The Principle of Latent Cognition (Axiom 4.6)
 
-We thought we had a solution to Bitcoin's data inscription problem. We were wrong. Twice.
+**TELOS is a formally axiomatized Cognitive Operating System (CogOS).** It is not a model, an agent, or a framework. It is a reasoning engine governed by 42 axioms across 6 architectural layers — designed to construct intelligent behavior from first principles.
 
-This repo documents our journey from attempted solution → failed idea → honest research.
+## Quick Facts
 
-## What Happened
+| Metric | Value |
+|--------|-------|
+| **Axioms** | 42 across 6 layers (Architectural, Feedback, Adaptive, Emergent, Commitment, Cognitive Dynamics) |
+| **Pipeline** | 9-phase: Perceive → Streams → Simulate → Evaluate → Synthesis → Select → Council → Act → Reflect |
+| **Cognitive Streams** | 6 (Reflex, Perception, Memory, Planning, Theory, Inquiry) |
+| **v2/v2.5 Modules** | 19 (CouncilReflector, TheoryBuilder, UnknownUnknownDetector, InternalDebate, etc.) |
+| **Tests** | 428 passing across 46 files |
+| **Self-audit** | 24/24 structural checks passing |
+| **Resource Accounting** | R(a,s) = (C_compute, C_memory, C_bandwidth, C_storage) |
+| **Unified Objective** | J(τ) = αU − βC_m − γC_r − δC_i − εC_align + ζG_theory + ηI_gain − θE_interpret + OP + CF − PE − C_o |
 
-1. **v1: Priority Classification Oracle** — 4-byte OP_RETURN flag to classify transactions as financial/data. Miners allocate block space with a floor for financial transactions. Dead. Incentive misalignment: miners won't leave fees on the table.
+## Architecture
 
-2. **v2: Externality Fee** — Structural backcheck + formula-based fee to price the "true cost" of data transactions. Dead. Any formula is an arbitrary tax, not a market price.
+```text
+PERCEIVE → STREAMS → SIMULATE → EVALUATE → SYNTHESIS → SELECT → COUNCIL → ACT → REFLECT
+```
 
-3. **v3: Open Research** — We identified the real problem: Bitcoin has no mechanism to price permanent storage cost in its UTXO set. Nobody has solved this. We're researching what exists and framing the open questions.
+Each phase satisfies specific axioms:
 
-## What's Here
+| Phase | Axioms | Purpose |
+|-------|--------|---------|
+| PERCEIVE | 2.4, 4.1, 4.7 | Ingest state → build World → enrich with ledger history |
+| STREAMS | 3.2, 4.2, 4.6 | Cognitive streams process World within budget |
+| SIMULATE | 2.5, 4.3 | CounterfactualEngine generates alternative futures |
+| EVALUATE | 1.2, 4.5 | Intents ranked by utility; local vs global optima |
+| SYNTHESIS | 4.6 | Stream conflict resolution; intent merging |
+| SELECT | 5.1 | Unified Cognitive Functional J(τ); Ω operator for inquiry |
+| COUNCIL | 2.1, 4.4 | Validators check reality, constraints, history, drift |
+| ACT | 1.1, 1.3 | Intent → action via domain adapter |
+| REFLECT | 2.6, 6.5 | Meta-insight, pattern discovery, theory formation |
 
-| File | Description |
-|------|-------------|
-| `bitcoin-oracle-arch.md` | v3 architecture document — surveys existing research, references BIPs and papers, frames open problems |
-| `bitcoin-oracle-explained.md` | Original v1/v2 proposal (kept for reference) |
-| `interactive-block.html` | Interactive block visualization with v3 research framing |
+## Getting Started
 
-## The Real Problem
+```bash
+# Run the pipeline
+cd telos && PYTHONPATH=. python3 telos_task.py
 
-Bitcoin's UTXO set has grown from ~40M entries (2017) to ~150M+ (2026). Every unspent output must be kept in RAM by every full node, forever. The cost is distributed across all node operators — not paid by the transaction creator. The fee market only prices block space (supply ≈ 4 MWU per block), not state storage.
+# Run tests
+PYTHONPATH=. python3 -m pytest tests/ -v
 
-**This is a market failure, and no one has solved it.**
+# Dashboard
+python3 telos/serve_dashboard.py
+```
 
-## Key References
+## Repository Structure
 
-- **BIP-141 (SegWit):** The only existing differential pricing mechanism. Witness data costs 1/4 of base data. Arbitrary 4× discount was designed for malleability fix, not state pricing.
-- **State expiry:** Discussed on bitcoin-dev since ~2020 by Rusty Russell, Gregory Maxwell, et al. No BIP. No consensus.
-- **Covenants (BIP-119, OP_VAULT, OP_TX, OP_CAT):** Could reduce UTXO churn through stateful constructions. Active research.
-- **Paper: "Enhancing Bitcoin Transactions with Covenants" (FC'17)** — Formalizes covenant constructions.
+| Directory | Contents |
+|-----------|----------|
+| `telos/` | TELOS CogOS — core architecture, axioms, pipeline, modules |
+| `archive/` | Archived code (MealDrama adapter, old experiments) |
+| `contracts/` | Domain model interfaces |
+| *(root)* | Bitcoin State Pricing research *(sub-project)* |
 
-## How This Repo Is Organized
+## Bitcoin Research
 
-This is a sub-project within the [TELOS Cognitive Operating System](telos/README.md) monorepo. TELOS is a 20-axiom CogOS at `/telos/`. The Bitcoin research lives at the root level.
+This repo also contains [Bitcoin State Pricing research](bitcoin-oracle-arch.md) — a sub-project exploring the problem of UTXO set storage cost in Bitcoin. See `bitcoin-oracle-arch.md` and `interactive-block.html` for details.
 
 ## License
 
-Research use. See CONTRIBUTING.md for details.
+Research use. See [CONTRIBUTING.md](telos/CONTRIBUTING.md) for details.

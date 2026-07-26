@@ -49,6 +49,24 @@ class CouncilPhase(Phase):
         for sig in ctx.verdict.signals:
             logger.debug(f"Cycle {ctx.cycle_count}: Council {sig.validator_name} verdict={sig.verdict} (conf={sig.confidence:+.2f}, weight={sig.evidence_weight:.2f})")
 
+        # ── Resource Accounting: feed cost data into Council deliberation ──
+        ra_summary = getattr(ctx, 'resource_accounting_summary', None)
+        budget_ok = getattr(ctx, 'resource_accounting_budget_ok', True)
+        if ra_summary and not budget_ok:
+            logger.warning(
+                f"Council: budget exceeded at cycle {ctx.cycle_count} — "
+                f"compute={ra_summary['total_compute_ms']:.1f}ms"
+            )
+            # Flag over-budget as a signal for the verdict
+            ctx.verdict.signals.append(ValidationSignal(
+                validator_name="ResourceAccounting",
+                passed=budget_ok,
+                confidence=0.9,
+                reason=f"resource_budget_exceeded: compute={ra_summary['total_compute_ms']:.1f}ms",
+                evidence_weight=0.3,
+                verdict="BLOCK" if not budget_ok else "PASS",
+            ))
+
         # ── PSDT: Finalize with council verdict ──
         psdt = getattr(ctx, 'psdt', None)
         if psdt is None:
