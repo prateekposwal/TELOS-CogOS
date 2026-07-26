@@ -29,6 +29,7 @@ from telos.core.attention.identity_entropy import IdentityEntropyTracker
 from telos.core.decision.commitment_optimizer import CommitmentOptimizer
 from telos.core.decision.omega_threshold import OmegaThresholdLearner
 from telos.core.decision.cognitive_momentum import CognitiveMomentum
+from telos.core.accounting.resource_accounting import ResourceAccountingLayer, ResourceCost
 from telos.core.streams.implementations import TheoryStream
 from telos.core.resource.gradient import ResourceGradientTracker
 from telos.core.streams.base import CognitiveStream
@@ -282,6 +283,8 @@ class TelosV14Pipeline:
         # U9: Identity compression — compress 100 conversations into one principle
         self._explanation_compression = ExplanationCompression()
         # U10: Explanation compression — one rule that covers 9,200/10,000 problems
+        self._resource_accounting = ResourceAccountingLayer()
+        # R(a,s): Resource accounting — per-action compute/memory/bandwidth/storage costing
 
         # ── Axiom Compliance Prover: verifies 20 axioms post-cycle ─────────
         self._axiom_prover = AxiomProver(
@@ -1394,6 +1397,32 @@ class TelosV14Pipeline:
         )
 
         self._telemetry.record_cycle(self._cycle_count, trace)
+
+        # Resource Accounting Layer: record action costs + set cycle boundary
+        try:
+            ra = self._resource_accounting
+            ra.set_cycle(self._cycle_count)
+            if ctx.selected_intent:
+                ra.record_action(
+                    f"intent:{ctx.selected_intent.intent_type}",
+                    ResourceCost(
+                        compute_ms=self.budget_manager.consumed_ms,
+                        memory_traces=len(getattr(ctx, 'stream_activations', []) or []),
+                        bandwidth_bytes=float(len(str(ctx.state))) if hasattr(ctx, 'state') else 0.0,
+                        storage_entries=1,
+                    ),
+                    metadata={"governance": status},
+                )
+            # Record each stream's activation cost
+            for sa in getattr(ctx, 'stream_activations', []) or []:
+                if getattr(sa, 'activated', False):
+                    ra.record_stream_activation(
+                        stream_name=getattr(sa, 'stream_name', 'unknown'),
+                        compute_ms=getattr(sa, 'cost_ms', 2.0),
+                    )
+            ctx.resource_accounting_summary = ra.cycle_summary()
+        except Exception:
+            pass
 
         self._experience_manager.observe(result)
 
