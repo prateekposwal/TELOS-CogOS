@@ -462,6 +462,13 @@ class SelectPhase(Phase):
                     ie_mod = getattr(pipeline, '_interpretation_engine', None)
                     ie_val = min(0.3, ie_mod.total_conflicts * 0.05) if ie_mod else 0.0
 
+                    # C_o: opportunity cost = max(alternative_utility) - chosen_utility
+                    co = 0.0
+                    if ctx.intents and len(ctx.intents) > 1:
+                        best_score = ctx.intents[0][1] if ctx.intents else 0.0
+                        second_score = ctx.intents[1][1] if len(ctx.intents) > 1 else best_score
+                        co = max(0.0, best_score - second_score)
+
                     score = commitment_opt.evaluate(
                         expected_reward=ctx.simulation_confidence or 1.0,
                         maintenance_cost=maint_r,
@@ -478,6 +485,7 @@ class SelectPhase(Phase):
                         alignment_cost=ac,
                         interpretation_energy=ie_val,
                         identity_violation=iv,
+                        opportunity_cost=co,
                     )
                     commitment_mod = score.commitment
 
@@ -498,6 +506,7 @@ class SelectPhase(Phase):
                         "theory_gain": score.theory_gain,
                         "uncertainty_bonus": score.uncertainty_bonus,
                         "interpretation_energy": score.interpretation_energy,
+                        "opportunity_cost": score.opportunity_cost,
                         "commitment": score.commitment,
                     }
                 else:
