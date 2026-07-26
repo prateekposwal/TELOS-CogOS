@@ -1229,8 +1229,8 @@ class TelosV14Pipeline:
             except Exception as e:
                 logger.warning(f"Context summarization failed: {e}")
 
-        health = 1.0 - (self.budget_manager.consumed_ms / self.budget_manager.total_budget_ms
-                         if self.budget_manager.total_budget_ms > 0 else 0.0)
+        health = max(0.0, min(1.0, 1.0 - (self.budget_manager.consumed_ms / self.budget_manager.total_budget_ms
+                         if self.budget_manager.total_budget_ms > 0 else 0.0)))
 
         trace = build_trace(
             ctx=ctx, state=state,
@@ -1270,7 +1270,7 @@ class TelosV14Pipeline:
         try:
             was_blocked = ctx.council_blocked or ctx.firewall_blocked
             # CouncilReflector: meta-learn from block/pass outcomes
-            self._council_reflector.record_outcome(
+            self._council_reflector.record_decision(
                 council_blocked=was_blocked,
                 di=trace.decision_integrity if trace else 0.0,
                 md=trace.mission_drift if trace else 0.0,
