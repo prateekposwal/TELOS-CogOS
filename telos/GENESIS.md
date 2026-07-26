@@ -19,9 +19,6 @@ Initialized and hardened through iterative cycles of formal axiomatization, pipe
 
 ## Infrastructure Components
 | Component | Path | Purpose |
-|
-## Telos v2 Infrastructure (July 26, 2026)
-| Component | Path | Purpose |
 |-----------|------|---------|
 | **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
 | **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
@@ -54,16 +51,5 @@ Initialized and hardened through iterative cycles of formal axiomatization, pipe
 | **AxiomProver** | `core/verifier/axiom_prover.py` | Formal axiom compliance verification post-cycle |
 
 ---
-## Telos v2 Infrastructure (July 26, 2026)
-| Component | Path | Purpose |
-|-----------|------|---------|
-| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
-| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
-| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
-| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
-| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
-| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
-| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
-| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
-| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
 
