@@ -10,15 +10,168 @@ This system is anchored in the **20 Laws of Systemic Intelligence** (see [AXIOMS
 Initialized and hardened through iterative cycles of formal axiomatization, pipeline orchestration, and empirical validation within the `/Users/prateekposwal/Desktop/Vrooom-computation` environment.
 
 ## Current State (July 2026)
-- **Tests**: 345+ passing across 39+ test files
+- **Tests**: 360 passing across 37 test files
 - **Pipeline**: 7-phase reasoning engine (PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT → COUNCIL → ACT) + REFLECT (meta-cognitive post-action reflection)
 - **Phases**: 9 total — Perceive, Streams, Simulate, Evaluate, Synthesis, Select, Council, Act, Reflect
 - **Self-audits completed**: 6 (47+ total gaps closed across all audit cycles)
 - **Security defenses**: 10 total — MutationGuard, ParameterBudget, DissentFloor, MaxCap, LRU+Hashing, MoodCooldown, HMAC, Provenance, PolicyChangeLog, Constitutional Firewall
+- **Telos v2 Upgrades**: 9 new architectural components wired into pipeline (see AXIOMS.md)
 
 ## Infrastructure Components
 | Component | Path | Purpose |
+|
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
 |-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
+
+---
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
+
+---
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
+
+-----|
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
+
+---
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
+
+---|
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
+
+---
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
+
+---
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
+
+---|
 | **AttentionProjectionEngine** | `core/attention/projection.py` | Law of Attention — tracks allocation, trajectory divergence, counterfactual diversity |
 | **IdentityEntropyTracker** | `core/attention/identity_entropy.py` | Perceived action-space |A_t| under threat vs opportunity (Axiom 4.1) |
 | **MaintenanceCostTracker** | `core/infra_manager/infrastructure_manager.py` | Ratio of maintenance vs recovery costs (Axiom 3.1) |
@@ -47,6 +200,25 @@ Fully implemented in `core/attention/projection.py`:
 
 ## 20 Axioms
 All documented in [AXIOMS.md](./AXIOMS.md) with implementation pointers and number index. Axiom 4.7 now reads "**Law of Attention and Trajectory**" (revised from "System Memory").
+
+
+## Telos v2 Infrastructure (July 26, 2026)
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **CouncilReflector** | `core/council/reflector.py` | Post-hoc meta-learning for council decisions |
+| **ErrorAttributionEngine** | `core/meta/error_attribution.py` | Subsystem-level error attribution |
+| **AssumptionAuditor** | `core/curiosity/assumption_auditor.py` | Curiosity that questions assumptions |
+| **IdentityUtilityEngine** | `core/identity/utility_profiles.py` | Identity-driven utility functions |
+| **IntrospectionScheduler** | `core/introspection/scheduler.py` | Multi-timescale introspection (1/100/1000) |
+| **RegretMemory** | `core/memory/regret_memory.py` | Counterfactual what-if archival |
+| **TheoryBuilder** | `core/reasoning/theory_builder.py` | Experience → cluster → hypothesis → theory |
+| **AxiomEvolutionEngine** | `core/axioms/evolution.py` | System proposes axioms, human approves |
+| **InterpretationEngine** | `core/reasoning/interpretation_engine.py` | Principle conflict explanation + trade-off estimation |
+
+### Pruned
+| Component | Reason |
+|-----------|--------|
+| **MealDramaAdapter** | Archived per Prateek's explicit instruction — adapter only; library/messaging files retained for reference |
 
 ---
 

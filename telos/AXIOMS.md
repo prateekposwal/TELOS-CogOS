@@ -68,3 +68,31 @@
 | 4.6 | Emergent Intelligence | 4 — Emergent Intelligence |
 | 4.7 | Law of Attention and Trajectory | 4 — Emergent Intelligence |
 | 5.1 | TELOS Commitment | 5 — Commitment Theory |
+
+
+---
+
+## Telos v2 — Architectural Extensions (July 2026)
+
+*Based on Prateek's architectural feedback — 9 new subsystems that extend the 20 axioms.*
+
+| # | Component | Insight | Status | File |
+|---|-----------|---------|--------|------|
+| 2.6 | **CouncilReflector** | Council must learn — "was that right?" meta-learning | ✅ Implemented | `core/council/reflector.py` |
+| 2.7 | **ErrorAttributionEngine** | Not "I failed" but "which subsystem caused it?" | ✅ Implemented | `core/meta/error_attribution.py` |
+| 3.6 | **AssumptionAuditor** | Curiosity questions assumptions, not just unknowns | ✅ Implemented | `core/curiosity/assumption_auditor.py` |
+| 4.8 | **IdentityUtilityEngine** | Identity changes utility functions, not thresholds | ✅ Implemented | `core/identity/utility_profiles.py` |
+| 1.4 | **IntrospectionScheduler** | Multi-timescale: act/100/1000 introspection | ✅ Implemented | `core/introspection/scheduler.py` |
+| 2.8 | **RegretMemory** | Counterfactual what-if archival with retroactive evaluation | ✅ Implemented | `core/memory/regret_memory.py` |
+| 2.9 | **TheoryBuilder** | Experience → cluster → hypothesis → test → theory | ✅ Implemented | `core/reasoning/theory_builder.py` |
+| 5.2 | **AxiomEvolutionEngine** | System proposes axioms, human approves (proposal module) | 📄 Proposal | `core/axioms/evolution.py` |
+| 4.9 | **InterpretationEngine** | Principle conflict → explanation → trade-off → archive | 📄 Proposal | `core/reasoning/interpretation_engine.py` |
+
+**Legend**: ✅ Implemented and wired into pipeline | 📄 Proposal module (interface ready, integration pending)
+
+### Layer Mapping
+- **Layer 1** (Architectural): IntrospectionScheduler extends architectural awareness with multi-timescale reflection
+- **Layer 2** (Feedback & Memory): CouncilReflector, ErrorAttributionEngine, RegretMemory, TheoryBuilder add feedback, attribution, memory, and abstraction
+- **Layer 3** (Adaptive): AssumptionAuditor extends curiosity from exploration to assumption-challenging
+- **Layer 4** (Emergent): IdentityUtilityEngine, InterpretationEngine add identity-driven utility and conflict resolution
+- **Layer 5** (Commitment): AxiomEvolutionEngine enables meta-axiomatic growth
