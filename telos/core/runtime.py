@@ -84,6 +84,18 @@ from telos.core.memory.regret_memory import RegretMemory
 from telos.core.reasoning.theory_builder import TheoryBuilder
 from telos.core.axioms.evolution import AxiomEvolutionEngine
 from telos.core.reasoning.interpretation_engine import InterpretationEngine
+# ── Telos v2.5: New architectural components (Prateek feedback — July 2026) ──
+from telos.core.curiosity.unknown_unknown_detector import UnknownUnknownDetector
+from telos.core.reasoning.model_competition import ModelCompetition
+from telos.core.decision.time_horizon import TimeHorizonSeparator
+from telos.core.attention.surprise_budget import SurpriseBudget
+from telos.core.memory.active_forgetting import ActiveForgetting
+from telos.core.council.internal_debate import InternalDebate
+from telos.core.energy.cognitive_energy import CognitiveEnergy
+from telos.core.confidence.dual_confidence import DualConfidence
+from telos.core.identity.identity_compression import IdentityCompression
+from telos.core.knowledge.explanation_compression import ExplanationCompression
+
 
 
 class TelosV14Pipeline:
@@ -243,6 +255,28 @@ class TelosV14Pipeline:
         # P2.2: Meta-error attribution — 'which subsystem caused it?'
         self._council_reflector = CouncilReflector()
         # P2.1: Council meta-learning — 'was that right?' hindsight evaluation
+        # ── Telos v2.5: Architectural upgrades (Prateek feedback — July 2026) ──
+        self._unknown_unknown_detector = UnknownUnknownDetector()
+        # U1: Unknown unknown detector — finds what the system should know but hasn't considered
+        self._model_competition = ModelCompetition()
+        # U2: Model competition — multiple competing hypotheses with probability weights
+        self._time_horizon = TimeHorizonSeparator()
+        # U3: Time horizon separation — immediate/short/long/irreversible utility
+        self._surprise_budget = SurpriseBudget(base_budget_ms=self.config.compute_budget_ms)
+        # U4: Surprise budget — prediction error drives computational budget
+        self._active_forgetting = ActiveForgetting()
+        # U5: Active forgetting — deliberately forget obsolete beliefs
+        self._internal_debate = InternalDebate()
+        # U6: Multi-agent internal debate — optimist/skeptic/economist/engineer perspectives
+        self._cognitive_energy = CognitiveEnergy()
+        # U7: Cognitive energy — mental fatigue, exploration decreases after hard decisions
+        self._dual_confidence = DualConfidence()
+        # U8: Dual confidence — separate 'what to do' from 'understand why'
+        self._identity_compression = IdentityCompression()
+        # U9: Identity compression — compress 100 conversations into one principle
+        self._explanation_compression = ExplanationCompression()
+        # U10: Explanation compression — one rule that covers 9,200/10,000 problems
+
 
         # ── Telos v2: Architectural upgrades (Prateek feedback — July 2026) ──
         if self.config.adapter and hasattr(self.config.adapter, 'initialize'):
