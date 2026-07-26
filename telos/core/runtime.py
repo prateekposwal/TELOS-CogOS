@@ -489,7 +489,7 @@ class TelosV14Pipeline:
         ctx = PhaseContext(
             cycle_count=self._cycle_count,
             state=state,
-            user_name=ANCHOR.creator_name if self._creator_present else (user_name or "unknown"),
+            user_name=ANCHOR.creator if self._creator_present else (user_name or "unknown"),
             world=World(state=state.copy(), metadata={"cycle": self._cycle_count, "creator_present": self._creator_present}),
             domain_facts=self.config.simulator.get_facts(state) if self.config.simulator else None,
             chat_history=tiered_view,

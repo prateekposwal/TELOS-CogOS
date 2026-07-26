@@ -11,9 +11,9 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class GenesisAnchor:
-    creator_name: str = "Prateek"
+    creator: str = "Prateek"
     creator_did: str = "did:telos:genesis:prateek"
-    recognition_phrase: str = "Aviku"
+    system_name: str = "Aviku"
     bound: bool = True
     axioms_count: int = 20
 
