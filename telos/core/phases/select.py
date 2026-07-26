@@ -386,6 +386,52 @@ class SelectPhase(Phase):
             return
 
         if ctx.intents:
+            # ── Interpretation Phase: choose between competing perspectives ──
+            # Uses InternalDebate + InterpretationEngine as the core choice mechanism.
+            # The winning perspective's confidence modulates J(τ).
+            try:
+                debate = getattr(pipeline, '_internal_debate', None)
+                ie = getattr(pipeline, '_interpretation_engine', None)
+                debate_winner_weight = 1.0
+                if debate is not None and ctx.selected_intent is not None:
+                    debate_ctx = {
+                        "uncertainty": getattr(ctx, 'inquiry_omega_value', 0.5),
+                        "options": [i.intent_type for i, _ in ctx.intents[:3]],
+                        "goals": {"survival": 1.0},
+                        "resources": {"budget": getattr(pipeline.budget_manager, 'total_budget_ms', 100)},
+                    }
+                    result = debate.debate(
+                        context=debate_ctx,
+                        context_description=f"Select best action from {len(ctx.intents)} options",
+                    )
+                    if hasattr(result, 'consensus_level'):
+                        debate_winner_weight = 0.5 + 0.5 * result.consensus_level
+                # Detect principle conflicts among intents via InterpretationEngine
+                if ie is not None and hasattr(ie, 'detect_conflict'):
+                    from telos.core.reasoning.interpretation_engine import Principle
+                    principles = []
+                    for intent, _ in ctx.intents[:5]:
+                        stream = intent.metadata.get('stream', 'unknown') if intent.metadata else 'unknown'
+                        principles.append(Principle(
+                            name=intent.intent_type, description=f"from {stream}",
+                            axiom_ref="4.6", current_priority=float(intent.confidence),
+                        ))
+                    if principles:
+                        conflict = ie.detect_conflict(principles=principles, context={
+                            "cycle": ctx.cycle_count, "n_intents": len(ctx.intents),
+                        })
+                        if conflict is not None:
+                            record = ie.interpret(
+                                conflict_type=conflict, principles=principles,
+                                context={"n_intents": len(ctx.intents)},
+                            )
+                            ctx.interpretation_conflict = {
+                                "type": conflict.value if hasattr(conflict, 'value') else str(conflict),
+                                "resolution": getattr(record, 'resolution', ''),
+                            }
+            except Exception:
+                debate_winner_weight = 1.0
+
             # ── TELOS Commitment Theory (Axiom 5.1): compute C* from all signals ──
             try:
                 commitment_opt = getattr(pipeline, '_commitment_optimizer', None)
@@ -469,8 +515,15 @@ class SelectPhase(Phase):
                         second_score = ctx.intents[1][1] if len(ctx.intents) > 1 else best_score
                         co = max(0.0, best_score - second_score)
 
+                    # Modulate expected reward by debate consensus (interpretation as choice)
+                    modulated_reward = (ctx.simulation_confidence or 1.0) * debate_winner_weight
+
+                    # θE_interpret: now computed from debate disagreement + conflicts
+                    debate_disagreement = 1.0 - (debate_winner_weight - 0.5) * 2.0 if debate_winner_weight > 0.5 else 0.5
+                    ie_val = min(0.3, ie_val + debate_disagreement * 0.1)
+
                     score = commitment_opt.evaluate(
-                        expected_reward=ctx.simulation_confidence or 1.0,
+                        expected_reward=modulated_reward,
                         maintenance_cost=maint_r,
                         recovery_cost=recovery_r,
                         identity_cost=abs(collapse_rate) * 0.5 * identity_cost_weight,
