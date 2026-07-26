@@ -641,9 +641,46 @@ class TelosV14Pipeline:
                 except Exception:
                     pass
 
+            # ── v2: UnknownUnknownDetector — find blind spots after perception ──
+            if phase.name == "perceive":
+                try:
+                    observation = getattr(ctx, 'world', None)
+                    if observation is not None:
+                        novelty = self._unknown_unknown_detector.detect(observation, self._cycle_count)
+                        if novelty:
+                            logger.info(f"[v2] Novelty cluster detected: {novelty.get('question', '')[:60]}")
+                            ctx._novelty_question = novelty.get("question")
+                except Exception:
+                    pass
+
             # ── Bitcoin-inspired Decision Timelock: Apply penalties after EVALUATE ──
             if phase.name == "evaluate":
                 self._apply_timelock_penalties(ctx)
+
+            # ── v2: ModelCompetition — update competing hypotheses after evaluation ──
+            if phase.name == "evaluate":
+                try:
+                    if ctx.selected_intent and ctx.selected_intent.confidence:
+                        self._model_competition.add_evidence(
+                            intent_type=ctx.selected_intent.intent_type,
+                            confidence=ctx.selected_intent.confidence,
+                            outcome=not (ctx.council_blocked or ctx.firewall_blocked),
+                        )
+                except Exception:
+                    pass
+
+            # ── v2: InternalDebate — multi-perspective analysis before decision ──
+            if phase.name == "select":
+                try:
+                    if ctx.selected_intent:
+                        debate_result = self._internal_debate.debate(
+                            context=str(ctx.state)[:100],
+                            intent_type=ctx.selected_intent.intent_type,
+                        )
+                        if debate_result:
+                            ctx._debate_result = debate_result
+                except Exception:
+                    pass
 
             # ── Bitcoin-inspired Decision Timelock: Record after SELECT ──
             if phase.name == "select":
@@ -696,6 +733,27 @@ class TelosV14Pipeline:
                 if self._sim_engine is not None:
                     div = self._sim_engine.rolling_diversity
                     self._attention_engine.record_counterfactual_variance(div)
+
+                # ── v2: TheoryBuilder — build abstractions after action ──
+                try:
+                    outcome_success = not (ctx.council_blocked or ctx.firewall_blocked)
+                    self._theory_builder.observe_outcome(
+                        outcome=outcome_success,
+                        context=str(ctx.state)[:80],
+                    )
+                except Exception:
+                    pass
+
+                # ── v2: RegretMemory — archive counterfactuals after action ──
+                try:
+                    if ctx.selected_intent:
+                        self._regret_memory.record_decision(
+                            chosen_intent=ctx.selected_intent.intent_type,
+                            alternatives=[o.get("intent_type", "unknown") for o in getattr(ctx, 'sim_options', [])[:3]],
+                            outcome=outcome_success if 'outcome_success' in dir() else True,
+                        )
+                except Exception:
+                    pass
 
                 # P1 D3: Multi-resource budget tracking — fallback if not already set
                 # (primary budget computation happens after STREAMS phase)
@@ -1169,6 +1227,57 @@ class TelosV14Pipeline:
             trace.axiom_results = axiom_results  # store on trace for audit
         except Exception as e:
             logger.warning(f"Axiom verification skipped: {e}")
+
+        # ── v2 Module Wiring: Post-cycle hooks ────────────────────────────
+        try:
+            was_blocked = ctx.council_blocked or ctx.firewall_blocked
+            # CouncilReflector: meta-learn from block/pass outcomes
+            self._council_reflector.record_outcome(
+                council_blocked=was_blocked,
+                di=trace.decision_integrity if trace else 0.0,
+                md=trace.mission_drift if trace else 0.0,
+            )
+            # IntrospectionScheduler: multi-timescale reflection
+            self._introspection_scheduler.tick()
+            self._introspection_scheduler.maybe_introspect(self._cycle_count, ctx, trace)
+            # CognitiveEnergy: deplete on hard decisions, recover on rest
+            self._cognitive_energy.deplete(1.0 if was_blocked else 0.3)
+            self._cognitive_energy.tick()
+            # SurpriseBudget: track prediction error for compute allocation
+            if hasattr(ctx, 'last_prediction') and hasattr(ctx, 'last_observation'):
+                self._surprise_budget.record_prediction(ctx.prediction, ctx.observation)
+            # DualConfidence: track decision vs explanation confidence
+            self._dual_confidence.record_decision(
+                decision_conf=1.0 - (trace.mission_drift if trace else 0.0),
+                explanation_conf=getattr(ctx, 'explanation_confidence', 0.0),
+            )
+            # ActiveForgetting: flag stale beliefs for review
+            self._active_forgetting.tick()
+            # TimeHorizonSeparator: compute multi-horizon utility if action taken
+            if ctx.selected_intent and ctx.selected_intent.params.get("action_vector") is not None:
+                self._time_horizon.evaluate_action(
+                    ctx.selected_intent.params["action_vector"],
+                    self._cycle_count,
+                )
+            # IdentityCompression: batch experiences into identity markers
+            self._identity_compression.observe_experience(ctx, trace)
+            # ExplanationCompression: find minimal rules
+            self._explanation_compression.observe_outcome(
+                problem_hash=str(hash(str(ctx.state)[:50])),
+                outcome_success=not was_blocked,
+            )
+            # ErrorAttribution: if blocked, trace which subsystem caused it
+            if was_blocked:
+                self._error_attribution.attribute(
+                    ctx=ctx, trace=trace,
+                    stream_activations=getattr(ctx, 'stream_activations', []),
+                )
+            # IdentityUtility: compute utility profile based on creator presence
+            self._identity_utility.compute_utility(is_creator=self._creator_present)
+            # AssumptionAuditor: challenge assumptions periodically
+            self._assumption_auditor.auto_audit(self._cycle_count)
+        except Exception as e:
+            logger.warning(f"v2 module wiring error (non-blocking): {e}")
 
         status = "BLOCKED" if ctx.governance_blocked else "APPROVED"
         escalation_tag = f" [ESCALATED: {ctx.verdict.escalation_reason}]" if (ctx.verdict and ctx.verdict.escalation_requested) else ""

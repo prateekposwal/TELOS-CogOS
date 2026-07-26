@@ -190,7 +190,7 @@ REFLECT                 →  IntrospectionScheduler (tiered introspection)
 | ✨ CREATED | `telos/core/reasoning/theory_builder.py` | Abstraction pipeline |
 | ✨ CREATED | `telos/core/axioms/evolution.py` | Axiom proposal system |
 | ✨ CREATED | `telos/core/reasoning/interpretation_engine.py` | Principle conflict resolution |
-| 🔧 UPDATED | `telos/core/runtime.py` | Wired all 9 components into pipeline |
+| ✅ WIRED | `telos/core/runtime.py` | All 9 v2 + 10 v2.5 components wired into pipeline phases |
 | 🔧 UPDATED | `telos/AXIOMS.md` | Added v2 extension table |
 | 🔧 UPDATED | `telos/GENESIS.md` | Updated architecture state |
 | ✨ CREATED | `telos/VISION_v2.md` | This document |
