@@ -58,26 +58,27 @@ We discussed creating a **Bitcoin Block Priority Oracle** — a sidecar protocol
 
 # TELOS — Future Roadmap (Post-Ship)
 
-### Phase 1: Polish & Ship
-- Wire TelemetryCollector to actually record
-- Seed OmegaThresholdLearner with more buckets
-- Write production README and API docs
-- Add Dashboard WebSocket health check
+### ✅ Phase 1: Polish & Ship (Done)
+- ✅ Wire TelemetryCollector to actually record
+- ✅ Seed OmegaThresholdLearner with more buckets (11 buckets, weak synthetic priors)
+- ✅ Write production README and API docs (v2/v2.5 module table, 422 test count)
+- ✅ Add Dashboard WebSocket health check
+- ✅ Smoke tests for all 19 v2/v2.5 modules (62 tests, 422 total)
+- ✅ GENESIS.md deduplication + VISION_v2.md status update
 
 ### Phase 2: Core Architecture
 - Rust migration — core pipeline rewrite
 - macOS Voice Assistant ("Hey TELOS")
-- Activate ResourceGradientTracker reallocation loop
-- Cross-session identity persistence via SystemSelf
-- Council human-in-the-loop escalation
-- **Wire MealDrama adapter** — 199 lines waiting in `telos/adapters/mealdrama_adapter.py`
+- ✅ Activate ResourceGradientTracker reallocation loop
+- ✅ Cross-session identity persistence via SystemSelf
+- ✅ Council human-in-the-loop escalation (HumanGateway wired in act.py)
+- ~~MealDrama adapter~~ (archived per architect's instruction)
 
 ### Phase 3: Long-term Vision
-- Curiosity Drive (autonomous exploration)
-- Cross-session learning via ExperienceManager
+- Cross-session learning via ExperienceManager (longitudinal persistence)
 - Distributed Council (multi-agent validation)
-- Formal theorem prover for axiom compliance
 - Real-world tool integration (Calendar, Files, APIs)
+- Autonomous curiosity-driven exploration
 
 ## Session Handoff — 2026-07-25 03:26:27
 
