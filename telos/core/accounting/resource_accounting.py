@@ -160,6 +160,39 @@ class ResourceAccountingLayer:
             return ResourceCost()
         return self._cycle_totals
 
+    def check_budget(self, max_compute_ms: float = 1000.0,
+                     max_memory_traces: int = 100,
+                     max_bandwidth_bytes: float = 100000.0,
+                     max_storage_entries: int = 50) -> Dict:
+        """Check if current cycle costs exceed budget limits.
+
+        Implements Axiom 1.4 (Computational Conservation): ΣR_i ≤ R_max.
+        Returns dict with within_budget bool and exceeded_dimensions list.
+        """
+        tc = self.total_cost
+        exceeded = []
+        if tc.compute_ms > max_compute_ms:
+            exceeded.append(f"compute ({tc.compute_ms:.1f} > {max_compute_ms})")
+        if tc.memory_traces > max_memory_traces:
+            exceeded.append(f"memory ({tc.memory_traces} > {max_memory_traces})")
+        if tc.bandwidth_bytes > max_bandwidth_bytes:
+            exceeded.append(f"bandwidth ({tc.bandwidth_bytes:.0f} > {max_bandwidth_bytes})")
+        if tc.storage_entries > max_storage_entries:
+            exceeded.append(f"storage ({tc.storage_entries} > {max_storage_entries})")
+        if exceeded:
+            logger.warning(f"Resource budget exceeded: {'; '.join(exceeded)}")
+        return {
+            "within_budget": len(exceeded) == 0,
+            "exceeded_dimensions": exceeded,
+            "total": tc.to_dict(),
+            "limits": {
+                "max_compute_ms": max_compute_ms,
+                "max_memory_traces": max_memory_traces,
+                "max_bandwidth_bytes": max_bandwidth_bytes,
+                "max_storage_entries": max_storage_entries,
+            },
+        }
+
     def cycle_summary(self) -> Dict:
         """Summary of current cycle's resource consumption."""
         tc = self.total_cost
