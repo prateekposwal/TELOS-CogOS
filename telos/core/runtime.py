@@ -77,6 +77,7 @@ from telos.intent_ir import IntentIR
 # ── Telos v2: New architectural components (July 2026) ──
 from telos.core.council.reflector import CouncilReflector
 from telos.core.meta.error_attribution import ErrorAttributionEngine
+from telos.core.verifier.axiom_prover import AxiomProver
 from telos.core.curiosity.assumption_auditor import AssumptionAuditor
 from telos.core.identity.utility_profiles import IdentityUtilityEngine
 from telos.core.introspection.scheduler import IntrospectionScheduler, IntrospectionTier
@@ -277,7 +278,11 @@ class TelosV14Pipeline:
         self._explanation_compression = ExplanationCompression()
         # U10: Explanation compression — one rule that covers 9,200/10,000 problems
 
-
+        # ── Axiom Compliance Prover: verifies 20 axioms post-cycle ─────────
+        self._axiom_prover = AxiomProver(
+            infra_manager=self._infra_manager,
+            skill_library=self._skill_library,
+        )
         # ── Telos v2: Architectural upgrades (Prateek feedback — July 2026) ──
         if self.config.adapter and hasattr(self.config.adapter, 'initialize'):
             self.config.adapter.initialize()
@@ -1142,6 +1147,28 @@ class TelosV14Pipeline:
             prev_trace_id=self._prev_trace_id,
         )
         self._prev_trace_id = trace.produced_ctx_id
+
+        # ── Axiom Compliance Prover: verify all 20 axioms ─────────────────
+        try:
+            axiom_results = self._axiom_prover.verify(
+                trace, ctx, stream_results=ctx.stream_activations,
+            )
+            passed_count = sum(1 for r in axiom_results.values() if r["passed"])
+            failed_count = len(axiom_results) - passed_count
+            if failed_count > 0:
+                failed_axioms = [aid for aid, r in axiom_results.items() if not r["passed"]]
+                logger.warning(
+                    f"Axiom compliance: {passed_count}/{len(axiom_results)} passed, "
+                    f"{failed_count} failed: {', '.join(failed_axioms)}"
+                )
+            else:
+                logger.info(
+                    f"Axiom compliance: all {len(axiom_results)} axioms passed ✓"
+                )
+            ctx._axiom_results = axiom_results
+            trace.axiom_results = axiom_results  # store on trace for audit
+        except Exception as e:
+            logger.warning(f"Axiom verification skipped: {e}")
 
         status = "BLOCKED" if ctx.governance_blocked else "APPROVED"
         escalation_tag = f" [ESCALATED: {ctx.verdict.escalation_reason}]" if (ctx.verdict and ctx.verdict.escalation_requested) else ""

@@ -124,6 +124,9 @@ class DecisionTrace:
     curiosity_state: Optional[Dict] = None           # CuriosityDrive.get_report()
     curiosity_bonus: float = 1.0                     # CuriosityDrive.get_curiosity_bonus()
 
+    # ── Axiom Compliance Prover results ────────────────────────────────────
+    axiom_results: Optional[Dict[str, Dict]] = None          # AxiomProver.verify() output
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "cycle_id": self.cycle_id,
@@ -208,6 +211,7 @@ class DecisionTrace:
             "inquiry_summary": self.inquiry_summary,
             "curiosity_state": self.curiosity_state,
             "curiosity_bonus": self.curiosity_bonus,
+            "axiom_results": self.axiom_results,
         }
 
     def to_dict_core_only(self) -> Dict[str, Any]:
@@ -228,6 +232,8 @@ class DecisionTrace:
             "inquiry_summary": self.inquiry_summary,
             "curiosity_state": self.curiosity_state,
             "curiosity_bonus": self.curiosity_bonus,
+            "axiom_results": self.axiom_results,
+            "axiom_results": self.axiom_results,
         }
 
     def to_dict_with_witness(self) -> Dict[str, Any]:

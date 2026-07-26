@@ -16,6 +16,7 @@ from __future__ import annotations
 import numpy as np
 import logging
 from enum import Enum
+from collections import Counter
 from typing import Optional, Any, List, TYPE_CHECKING
 
 from telos.core.council.base import Validator, ValidationSignal
@@ -440,6 +441,13 @@ class MemoryAdvisor(Validator):
         action_str = None
         if intent is not None and intent.params:
             action_str = str(intent.params.get("action_vector", ""))
+        # Pre-compute entity ID set from world metadata semantic_depths (Kintsugi fix a)
+        semantic_entity_ids = set()
+        for depth in world.metadata.get("semantic_depths", []):
+            eid = getattr(depth, 'entity_id', None)
+            if eid:
+                semantic_entity_ids.add(str(eid))
+
         if self.failure_ledger is not None:
             recent = self.failure_ledger.get_recent_failures(n=20)
             for i, f in enumerate(recent):
@@ -452,13 +460,18 @@ class MemoryAdvisor(Validator):
                 if intent.intent_type in blocked_tokens:
                     recency = (i + 1) / max(len(recent), 1)
                     kintsugi_signals.append((f, recency))
-                if f.affected_entities:
-                    for depth in world.metadata.get("semantic_depths", []):
-                        eid = getattr(depth, 'entity_id', None)
-                        for ae in f.affected_entities:
-                            if isinstance(ae, dict) and ae.get("entity_id") == eid:
-                                recency = (i + 1) / max(len(recent), 1)
-                                kintsugi_signals.append((f, recency))
+                if f.affected_entities and semantic_entity_ids:
+                    ae_ids = set()
+                    for ae in f.affected_entities:
+                        if isinstance(ae, str):
+                            ae_ids.add(ae)
+                        elif isinstance(ae, dict):
+                            ae_id = ae.get("entity_id")
+                            if ae_id:
+                                ae_ids.add(str(ae_id))
+                    if ae_ids & semantic_entity_ids:
+                        recency = (i + 1) / max(len(recent), 1)
+                        kintsugi_signals.append((f, recency))
                 # Check pattern_exploit failures against current move
                 if f.failure_type == "pattern_exploit" and action_str is not None:
                     blocked_move = f.blocked_by or ""
@@ -467,6 +480,12 @@ class MemoryAdvisor(Validator):
                         kintsugi_signals.append((f, recency))
 
         if kintsugi_signals:
+            # ── Kintsugi fix b: Trend clustering ──
+            root_cause_counter = Counter(f.root_cause for f, _ in kintsugi_signals)
+            most_common_rc = root_cause_counter.most_common(1)
+            kintsugi_trend = most_common_rc[0][0] if most_common_rc else "none"
+            kintsugi_cluster_size = most_common_rc[0][1] if most_common_rc else 0
+
             worst_failure, recency = max(kintsugi_signals, key=lambda x: x[0].severity)
             confidence = -0.2 - 0.8 * recency
             return ValidationSignal(
@@ -479,10 +498,15 @@ class MemoryAdvisor(Validator):
                 evidence_weight=min(0.9, (worst_failure.severity + 0.2) * evidence_tolerance),
                 metadata={
                     "kintsugi_match_count": len(kintsugi_signals),
+                    "kintsugi_trend": kintsugi_trend,
+                    "kintsugi_cluster_size": kintsugi_cluster_size,
                     "worst_failure_id": worst_failure.failure_id,
                     "worst_failure_type": worst_failure.failure_type,
                     "recency": round(recency, 3),
                     "kintsugi_confidence": round(confidence, 3),
+                    # ── Kintsugi fix c: Repair history ──
+                    "worst_failure_repair": worst_failure.repair_outcome,
+                    "repair_was_effective": worst_failure.repair_effective,
                 },
             )
 
