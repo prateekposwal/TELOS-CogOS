@@ -180,3 +180,12 @@ class Phase(ABC):
     @abstractmethod
     def execute(self, pipeline, ctx: PhaseContext) -> None:
         ...
+
+    def post_execute(self, pipeline, ctx: PhaseContext) -> None:
+        """Post-execution hook for cross-cutting concerns.
+
+        Override in phase implementations to replace the
+        `if phase.name == "X"` pattern in runtime.py execute().
+        Default is no-op — phases without post-execute wiring
+        do not need to override.
+        """
