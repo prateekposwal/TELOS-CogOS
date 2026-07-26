@@ -45,6 +45,7 @@ from telos.core.governance.human_gateway import HumanGateway
 from telos.core.infra_manager.infrastructure_manager import InfrastructureManager
 from telos.core.context.summarizer import ContextSummarizer
 from telos.core.context.tiered import TieredContext
+from telos.core.genesis import ANCHOR
 from telos.core.attention.token_budget import TokenBudgetManager
 from telos.core.ui.status import ThinkingDisplay
 from telos.core.infra_manager.checkpoint_manager import CheckpointManager
@@ -111,6 +112,7 @@ class TelosV14Pipeline:
         self._infra_manager.on_council_block(self._on_council_block)
         self._infra_manager.on_recovery_event(self._on_recovery_event)
         self._cycle_count: int = 0
+        self._creator_present: bool = False
         self._perception_quality = PerceptionQuality()
         self._resolution_gate = ResolutionGate(threshold=self.config.quality_threshold)
         self._perception_explainer = PerceptionExplainer()
@@ -460,6 +462,11 @@ class TelosV14Pipeline:
                  user_name: Optional[str] = None,
                  chat_history: Optional[List[Dict]] = None,
                  tiered_context: Optional['TieredContext'] = None) -> PipelineResult:
+        # ── Genesis recognition — bind creator identity ──
+        if user_name and ANCHOR.recognize(user_name):
+            self._creator_present = True
+        else:
+            self._creator_present = False
         cycle_start = time.time()
         self._cycle_count += 1
         self._display.on_cycle_start(self._cycle_count)
@@ -482,8 +489,8 @@ class TelosV14Pipeline:
         ctx = PhaseContext(
             cycle_count=self._cycle_count,
             state=state,
-            user_name=user_name,
-            world=World(state=state.copy(), metadata={"cycle": self._cycle_count}),
+            user_name=ANCHOR.creator_name if self._creator_present else (user_name or "unknown"),
+            world=World(state=state.copy(), metadata={"cycle": self._cycle_count, "creator_present": self._creator_present}),
             domain_facts=self.config.simulator.get_facts(state) if self.config.simulator else None,
             chat_history=tiered_view,
         )
