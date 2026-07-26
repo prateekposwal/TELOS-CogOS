@@ -419,6 +419,49 @@ class SelectPhase(Phase):
                     if div < 0.3 and sim and sim.rolling_diversity < 0.3:
                         future_val = max(0.0, future_val - 0.3)
 
+                    # ── Unified Cognitive Functional: compute all J terms ──
+                    # ηI_gain: expected information gain from SurpriseBudget
+                    sb = getattr(pipeline, '_surprise_budget', None)
+                    ig = sb.compute_information_gain(error=pe, expected=0.1,
+                                                     novelty=div) if sb else 0.0
+
+                    # ζG_theory: theory gain from TheoryBuilder
+                    tb = getattr(pipeline, '_theory_builder', None)
+                    tg = tb.estimate_theory_gain(context={"state": str(ctx.state)[:50]},
+                                                  action=ctx.selected_intent.intent_type
+                                                  if ctx.selected_intent else "unknown") if tb else 0.0
+
+                    # αU: uncertainty bonus from tripartite U
+                    tu = getattr(pipeline, '_tripartite_u', None)
+                    u_val = tu.composite if tu else 0.0
+
+                    # δC_i: identity violation from utility profile mismatch
+                    iu = getattr(pipeline, '_identity_utility', None)
+                    if iu and iu.active_profile is not None:
+                        profile = iu.active_profile
+                        action_type = ctx.selected_intent.intent_type if ctx.selected_intent else "unknown"
+                        action_scores = {"exploration": 0.5 if "explore" in action_type or "inquiry" in action_type else 0.2,
+                                         "safety": 0.3 if "reflex" in action_type else 0.6}
+                        # Cosine-like similarity between action and profile weights
+                        dot = sum(action_scores.get(k, 0) * v for k, v in profile.weights.items())
+                        norm_a = max(1e-6, sum(v*v for v in action_scores.values())**0.5)
+                        norm_p = max(1e-6, sum(v*v for v in profile.weights.values())**0.5)
+                        similarity = dot / (norm_a * norm_p)
+                        iv = max(0.0, 1.0 - similarity)
+                    else:
+                        iv = 0.0
+
+                    # εC_align: alignment cost from trust manager
+                    trust = getattr(pipeline, '_trust_manager', None)
+                    ac = 0.0
+                    if trust is not None and hasattr(trust, 'get_trust_score'):
+                        trust_score = trust.get_trust_score("system")
+                        ac = max(0.0, 0.5 - trust_score) if trust_score is not None else 0.0
+
+                    # θE_interpret: interpretation energy from InterpretationEngine
+                    ie_mod = getattr(pipeline, '_interpretation_engine', None)
+                    ie_val = min(0.3, ie_mod.total_conflicts * 0.05) if ie_mod else 0.0
+
                     score = commitment_opt.evaluate(
                         expected_reward=ctx.simulation_confidence or 1.0,
                         maintenance_cost=maint_r,
@@ -429,6 +472,12 @@ class SelectPhase(Phase):
                         recovery_ratio=recovery_r,
                         counterfactual_diversity=div,
                         prediction_error=pe,
+                        information_gain=ig,
+                        theory_gain=tg,
+                        uncertainty_bonus=u_val * 0.3,
+                        alignment_cost=ac,
+                        interpretation_energy=ie_val,
+                        identity_violation=iv,
                     )
                     commitment_mod = score.commitment
 
@@ -440,9 +489,15 @@ class SelectPhase(Phase):
                         "maintenance_cost": score.maintenance_cost,
                         "recovery_cost": score.recovery_cost,
                         "identity_cost": score.identity_cost,
+                        "alignment_cost": score.alignment_cost,
+                        "identity_violation": score.identity_violation,
                         "future_option_value": score.future_option_value,
                         "counterfactual_diversity": score.counterfactual_diversity,
                         "prediction_error": score.prediction_error,
+                        "information_gain": score.information_gain,
+                        "theory_gain": score.theory_gain,
+                        "uncertainty_bonus": score.uncertainty_bonus,
+                        "interpretation_energy": score.interpretation_energy,
                         "commitment": score.commitment,
                     }
                 else:

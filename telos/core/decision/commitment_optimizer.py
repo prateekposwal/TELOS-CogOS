@@ -25,9 +25,14 @@ logger = logging.getLogger('telos_commitment')
 @dataclass
 class CommitmentScore:
     """Multi-dimensional commitment score for a decision.
-    
-    J(τ) = E(R) - M - Rec - IC + OP + CF - PE
-    
+
+    J(τ) = αU - βC_m - γC_r - δC_i - εC_align
+           + ζG_theory + ηI_gain - θE_interpret
+           + OP + CF - PE
+
+    Unified Cognitive Functional — extends Axiom 5.1 with information
+    gain, theory gain, alignment cost, and interpretation energy.
+
     With Fix 2 (gamma discounting):
       The expected_reward and future_option_value are discounted across
       the planning horizon using gamma^t weighting.
@@ -37,22 +42,30 @@ class CommitmentScore:
     recovery_cost: float = 0.0
     identity_cost: float = 0.0
     future_option_value: float = 0.0
-    counterfactual_diversity: float = 0.0  # 🔴 NEW: CF first-class term
-    prediction_error: float = 0.0           # 🔴 NEW: PE term
+    counterfactual_diversity: float = 0.0
+    prediction_error: float = 0.0
+    information_gain: float = 0.0        # ηI_gain — expected info gain
+    theory_gain: float = 0.0             # ζG_theory — abstraction progress
+    uncertainty_bonus: float = 0.0       # αU — exploration from tripartite U
+    alignment_cost: float = 0.0          # εC_align — constitutional alignment
+    interpretation_energy: float = 0.0   # θE_interpret — conflict resolution cost
+    identity_violation: float = 0.0      # δC_i — out-of-character penalty
     gamma: float = 0.95
     horizon: int = 1
     discounted_reward: float = 0.0
 
     @property
     def commitment(self) -> float:
-        """J(τ) = E(R) - M - Rec - IC + OP + CF - PE, normalized to [0, 1].
-        
-        Matches the Formal Mathematical Decision Theory.
+        """J(τ) = αU - βC_m - γC_r - δC_i - εC_align
+                  + ζG_theory + ηI_gain - θE_interpret
+                  + OP + CF - PE, normalized to [0, 1].
         """
         er = self.discounted_reward if self.horizon > 1 else self.expected_reward
         raw = (er - self.maintenance_cost - self.recovery_cost
-               - self.identity_cost + self.future_option_value
-               + self.counterfactual_diversity - self.prediction_error)
+               - self.identity_cost - self.alignment_cost - self.identity_violation
+               + self.future_option_value + self.counterfactual_diversity
+               + self.information_gain + self.theory_gain + self.uncertainty_bonus
+               - self.prediction_error - self.interpretation_energy)
         return float(np.clip(raw, 0.0, 1.0))
 
     @property
@@ -70,9 +83,15 @@ class CommitmentScore:
             "maintenance_cost": self.maintenance_cost,
             "recovery_cost": self.recovery_cost,
             "identity_cost": self.identity_cost,
+            "alignment_cost": self.alignment_cost,
+            "identity_violation": self.identity_violation,
             "future_option_value": self.future_option_value,
             "counterfactual_diversity": self.counterfactual_diversity,
             "prediction_error": self.prediction_error,
+            "information_gain": self.information_gain,
+            "theory_gain": self.theory_gain,
+            "uncertainty_bonus": self.uncertainty_bonus,
+            "interpretation_energy": self.interpretation_energy,
             "gamma": self.gamma,
             "horizon": self.horizon,
             "commitment": self.commitment,
@@ -191,17 +210,26 @@ class CommitmentOptimizer:
                  counterfactual_diversity: Optional[float] = None,
                  horizon: int = 1,
                  terminal_value: float = 0.0,
-                 prediction_error: float = 0.0) -> CommitmentScore:  # 🔴 NEW: PE
+                 prediction_error: float = 0.0,
+                 information_gain: Optional[float] = None,
+                 theory_gain: Optional[float] = None,
+                 uncertainty_bonus: Optional[float] = None,
+                 alignment_cost: Optional[float] = None,
+                 interpretation_energy: Optional[float] = None,
+                 identity_violation: Optional[float] = None) -> CommitmentScore:
         """Compute C* from all available signals.
-        
-        J(τ) = E(R) - M - Rec - IC + OP + CF - PE
-        
-        When optional signals are provided, they modulate the base costs:
-          - identity_entropy: high entropy → higher identity cost
-          - recovery_ratio: high ratio → higher recovery cost
-          - counterfactual_diversity: high diversity → higher CF
-          - terminal_value: terminal reward at horizon endpoint → added to F
-          - prediction_error: trajectory divergence → PE penalty
+
+        J(τ) = αU - βC_m - γC_r - δC_i - εC_align
+               + ζG_theory + ηI_gain - θE_interpret
+               + OP + CF - PE
+
+        New Unified terms:
+          - information_gain: expected info from action
+          - theory_gain: expected abstraction progress
+          - uncertainty_bonus: αU from tripartite uncertainty
+          - alignment_cost: constitutional alignment penalty
+          - interpretation_energy: conflict resolution cost
+          - identity_violation: out-of-character penalty
         """
         M = maintenance_cost
         Rec = recovery_cost
@@ -209,6 +237,12 @@ class CommitmentOptimizer:
         F = future_option_value
         CF = 0.0
         PE = prediction_error if prediction_error > 0 else 0.0
+        IG = min(0.5, information_gain) if information_gain is not None else 0.0
+        TG = min(0.5, theory_gain) if theory_gain is not None else 0.0
+        AU = min(0.3, uncertainty_bonus) if uncertainty_bonus is not None else 0.0
+        AC = min(0.5, alignment_cost) if alignment_cost is not None else 0.0
+        IE = min(0.3, interpretation_energy) if interpretation_energy is not None else 0.0
+        IV = min(0.3, identity_violation) if identity_violation is not None else 0.0
 
         if identity_entropy is not None:
             I += abs(identity_entropy) * 0.1
@@ -233,6 +267,12 @@ class CommitmentOptimizer:
             future_option_value=F,
             counterfactual_diversity=CF,
             prediction_error=PE,
+            information_gain=IG,
+            theory_gain=TG,
+            uncertainty_bonus=AU,
+            alignment_cost=AC,
+            interpretation_energy=IE,
+            identity_violation=IV,
             gamma=self.gamma,
             horizon=horizon,
             discounted_reward=discounted_reward,
@@ -240,9 +280,11 @@ class CommitmentOptimizer:
 
         logger.debug(
             "Commitment: gamma={:.3f}, horizon={}, reward={:.3f}->discounted={:.3f}, "
-            "terminal={:.3f}, CF={:.3f}, PE={:.3f}, commitment={:.3f}".format(
+            "terminal={:.3f}, CF={:.3f}, PE={:.3f}, IG={:.3f}, TG={:.3f}, "
+            "αU={:.3f}, AC={:.3f}, IE={:.3f}, IV={:.3f}, commitment={:.3f}".format(
                 self.gamma, horizon, expected_reward, discounted_reward,
-                terminal_value, CF, PE, score.commitment
+                terminal_value, CF, PE, IG, TG,
+                AU, AC, IE, IV, score.commitment
             )
         )
 

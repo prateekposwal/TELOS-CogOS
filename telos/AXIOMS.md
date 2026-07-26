@@ -39,7 +39,7 @@
 ## Layer 5: Commitment Theory
 | # | Axiom | Meaning | Implementation |
 |---|-------|---------|----------------|
-| 5.1 | TELOS Commitment | `C* = argmax[E(R) - M - Rec - I + F]` — commitment modulated by maintenance cost, recovery cost, identity cost, and future opportunity preservation | `SelectPhase` — `commitment_mod = identity_gate × cost_gate × diversity_bonus` |
+| 5.1 | TELOS Commitment (Unified) | `J = αU - βC_m - γC_r - δC_i - εC_align + ζG_theory + ηI_gain - θE_interpret + OP + CF - PE` — Unified Cognitive Functional extending commitment with information gain, theory gain, uncertainty bonus, alignment cost, interpretation energy, and identity violation cost | `CommitmentScore` in `commitment_optimizer.py` — 15-term optimization objective |
 
 ## Layer 6: Cognitive Dynamics (v2.5 — July 2026)
 | # | Axiom | Meaning | Implementation |

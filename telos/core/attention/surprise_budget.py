@@ -213,6 +213,12 @@ class SurpriseBudget:
             return 0.5
         return sum(self._prediction_window) / len(self._prediction_window)
 
+    def compute_information_gain(self, error: float, expected: float,
+                                  novelty: float = 0.0) -> float:
+        ratio = error / max(expected, 1e-6)
+        ig = math.log2(1 + ratio) / 5.0 * (0.5 + novelty * 0.5)
+        return min(1.0, ig)
+
     def compute_budget(self, cycle: int) -> BudgetAllocation:
         """Compute the budget allocation for this cycle based on surprise.
 
