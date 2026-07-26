@@ -734,9 +734,9 @@ class TelosV14Pipeline:
                     div = self._sim_engine.rolling_diversity
                     self._attention_engine.record_counterfactual_variance(div)
 
-                # ── v2: TheoryBuilder — build abstractions after action ──
+                # ── v2: TheoryBuilder + RegretMemory — share outcome_success ──
+                outcome_success = not (ctx.council_blocked or ctx.firewall_blocked)
                 try:
-                    outcome_success = not (ctx.council_blocked or ctx.firewall_blocked)
                     self._theory_builder.observe_outcome(
                         outcome=outcome_success,
                         context=str(ctx.state)[:80],
@@ -744,13 +744,12 @@ class TelosV14Pipeline:
                 except Exception:
                     pass
 
-                # ── v2: RegretMemory — archive counterfactuals after action ──
                 try:
                     if ctx.selected_intent:
                         self._regret_memory.record_decision(
                             chosen_intent=ctx.selected_intent.intent_type,
                             alternatives=[o.get("intent_type", "unknown") for o in getattr(ctx, 'sim_options', [])[:3]],
-                            outcome=outcome_success if 'outcome_success' in dir() else True,
+                            outcome=outcome_success,
                         )
                 except Exception:
                     pass
