@@ -255,6 +255,7 @@ class TelosV14Pipeline:
         self._identity_utility = IdentityUtilityEngine()
         # P2.4: Identity changes utility functions — not thresholds
         self._assumption_auditor = AssumptionAuditor()
+        self._curiosity_drive.set_assumption_auditor(self._assumption_auditor)
         # P2.3: Curiosity questions assumptions — not just 'what's out there?'
         self._error_attribution = ErrorAttributionEngine()
         # P2.2: Meta-error attribution — 'which subsystem caused it?'
@@ -1292,6 +1293,35 @@ class TelosV14Pipeline:
                 )
             # IdentityUtility: compute utility profile based on creator presence
             self._identity_utility.compute_utility(is_creator=self._creator_present)
+            # AxiomEvolution: observe cycle + HumanGateway approval for proposals
+            self._axiom_evolution.observe(
+                cycle=self._cycle_count, di=trace.decision_integrity if trace else 0.0,
+                md=trace.mission_drift if trace else 0.0,
+                was_blocked=was_blocked,
+                council_signals=[], stream_activations={}, identity_state={})
+            pending = self._axiom_evolution.get_pending_proposals()
+            if pending and self._human_gateway is not None:
+                for prop in pending[:1]:  # one per cycle max
+                    gw = self._human_gateway
+                    if gw.should_review(council_validated=not was_blocked,
+                                        decision_integrity=trace.decision_integrity if trace else 1.0):
+                        verdict = gw.review(
+                            intent=f"axiom_proposal:{prop.name}",
+                            council_signals=[], decision_integrity=trace.decision_integrity if trace else 1.0,
+                        )
+                        if verdict.approved:
+                            self._axiom_evolution.review(prop.id, approved=True)
+                        else:
+                            self._axiom_evolution.review(prop.id, approved=False)
+            # InterpretationEngine: learn from cycle outcome
+            if ctx.verdict and ctx.verdict.validated:
+                try:
+                    self._interpretation_engine.record_outcome(
+                        conflict_id="auto",
+                        outcome_quality=trace.decision_integrity if trace else 0.5,
+                    )
+                except Exception:
+                    pass
             # AssumptionAuditor: challenge assumptions periodically
             self._assumption_auditor.auto_audit(self._cycle_count)
         except Exception as e:

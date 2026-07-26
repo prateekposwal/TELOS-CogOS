@@ -464,3 +464,23 @@ class SelectPhase(Phase):
                 ]
                 ctx.intents.sort(key=lambda x: x[1], reverse=True)
                 ctx.selected_intent = ctx.intents[0][0]
+
+        # ── RegretMemory: capture counterfactuals from selection ──
+        regret = getattr(pipeline, '_regret_memory', None)
+        if regret is not None and ctx.selected_intent is not None:
+            try:
+                cf_options = []
+                for i, (intent, score) in enumerate(getattr(ctx, 'intents', [])[:5]):
+                    cf_options.append({"intent": intent.intent_type, "estimated_score": score})
+                # Only record if we have alternatives
+                if len(cf_options) > 1:
+                    regret.record_decision(
+                        cycle=ctx.cycle_count,
+                        chosen_intent=ctx.selected_intent.intent_type,
+                        chosen_score=ctx.simulation_confidence or 0.5,
+                        chosen_outcome=True,  # optimistic at selection time
+                        counterfactual_options=cf_options[1:],
+                        decision_type="selection",
+                    )
+            except Exception:
+                pass

@@ -10,7 +10,7 @@
 - **24/24 self-audit checks passing**
 - **20/20 axioms satisfied**
 - **9-phase pipeline** operational (Perceive, Streams, Simulate, Evaluate, Synthesis, Select, Council, Act, Reflect)
-- **5 cognitive streams** (Reflex 1.0, Perception 0.9, Inquiry 0.8, Memory 0.7, Planning 0.5)
+- **6 cognitive streams** (Reflex 1.0, Perception 0.9, Inquiry 0.8, Memory 0.7, Planning 0.5, Theory 0.4)
 - **Ω operator** with adaptive threshold + continuous sigmoid blend
 - **Tripartite uncertainty** U = (U_W, U_I, U_O)
 - **Relational Reasoning scaffold** (R_t slot reserved, interface defined)
