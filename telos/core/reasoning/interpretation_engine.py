@@ -118,8 +118,8 @@ class InterpretationEngine:
         principle_names = {p.name for p in principles}
         for conflict_type, (p1, p2) in self._registered_principle_sets.items():
             # Check if both principles of any known conflict are present
-            p1_match = any(p1 in p.name or p in p1 for p in principle_names)
-            p2_match = any(p2 in p.name or p in p2 for p in principle_names)
+            p1_match = any(p1 in p or p in p1 for p in principle_names)
+            p2_match = any(p2 in p or p in p2 for p in principle_names)
 
             # Also check axiom_ref matching
             for p in principles:

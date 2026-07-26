@@ -313,6 +313,15 @@ class ExplanationCompression:
         jaccard = len(a_words & b_words) / len(a_words | b_words)
         return jaccard > 0.3
 
+    def _pattern_similar(self, pattern_a: str, pattern_b: str) -> bool:
+        """Check if two condition patterns are semantically similar."""
+        words_a = set(pattern_a.lower().split())
+        words_b = set(pattern_b.lower().split())
+        if not words_a or not words_b:
+            return False
+        jaccard = len(words_a & words_b) / len(words_a | words_b)
+        return jaccard > 0.3
+
     def _extract_condition_pattern(self,
                                     instances: List[ExplanationInstance]) -> str:
         """Extract the common condition pattern from a set of instances."""
