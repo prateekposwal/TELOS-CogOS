@@ -4,7 +4,7 @@
   "traces": [
     {
       "cycle_id": 1,
-      "timestamp": 1785094461.138761,
+      "timestamp": 1785094977.070016,
       "world_state": [
         2.0,
         1.0,
@@ -30,32 +30,32 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.03314018249511719,
-          "budget_remaining_ms": 99.96685981750488
+          "cost_ms": 0.04076957702636719,
+          "budget_remaining_ms": 99.95923042297363
         },
         {
           "name": "PerceptionStream",
           "priority": 0.9,
           "activated": true,
           "intent_type": "perceive",
-          "cost_ms": 0.14495849609375,
-          "budget_remaining_ms": 99.82190132141113
+          "cost_ms": 0.10609626770019531,
+          "budget_remaining_ms": 99.85313415527344
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_miss",
-          "cost_ms": 0.010967254638671875,
-          "budget_remaining_ms": 99.81093406677246
+          "cost_ms": 0.010013580322265625,
+          "budget_remaining_ms": 99.84312057495117
         },
         {
           "name": "PlanningStream",
           "priority": 0.5,
           "activated": true,
           "intent_type": "plan_trajectory",
-          "cost_ms": 1.5311241149902344,
-          "budget_remaining_ms": 98.27980995178223
+          "cost_ms": 1.251220703125,
+          "budget_remaining_ms": 98.59189987182617
         }
       ],
       "selected_intent": {
@@ -64,13 +64,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": 16.720190048217773,
+      "budget_consumed_ms": 16.408100128173828,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 6.269931793212891,
+      "cycle_duration_ms": 3.924846649169922,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.1424984265758666,
+      "mission_drift": 0.27082163789643654,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -103,20 +103,14 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.3282633903357395,
+          "score": 0.3184791863031249,
           "horizon": 5,
           "metadata": {
-            "index": 33,
-            "state_norm": 2.138608383901284
+            "index": 19,
+            "state_norm": 2.1399226166328225
           },
-          "variance": 9.212518107877786e-05,
-          "probabilistic": {
-            "mean": 0.3282633903357395,
-            "std": 0.009598186343199316,
-            "ci_lower": 0.31893318188084774,
-            "ci_upper": 0.34053189362513403,
-            "n_samples": 3
-          }
+          "variance": 0.0,
+          "probabilistic": null
         }
       ],
       "perception_quality": {
@@ -196,7 +190,7 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 4.1696903633374774e-05,
+        "counterfactual_diversity": 2.7585696087754868e-05,
         "attention_momentum": 0.0,
         "mean_threat_ratio": 0.25836862038478137,
         "mean_opportunity_ratio": 0.3356235475819907,
@@ -204,7 +198,7 @@
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.1424984265758666
+          0.27082163789643654
         ],
         "allocation_count": 1,
         "default_action_space": 10,
@@ -281,9 +275,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": 16.720190048217773,
+            "consumed_ms": 16.408100128173828,
             "total_ms": 100.0,
-            "utilization": 0.16720190048217773,
+            "utilization": 0.16408100128173828,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -311,9 +305,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": 16.720190048217773,
+          "consumed_ms": 16.408100128173828,
           "total_ms": 100.0,
-          "utilization": 0.16720190048217773,
+          "utilization": 0.16408100128173828,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -341,13 +335,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.0712492132879333,
+          "U_W": 0.13541081894821827,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "none"
         },
-        "U_W": 0.0712492132879333,
+        "U_W": 0.13541081894821827,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -387,15 +381,15 @@
       "j_term_breakdown": {
         "expected_reward": 0.765,
         "discounted_reward": 0.765,
-        "maintenance_cost": 0.00516057014465332,
+        "maintenance_cost": 0.004224300384521484,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.19655961990356446,
+        "future_option_value": 0.19718379974365235,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "gamma": 0.95,
         "horizon": 1,
-        "commitment": 0.9563990497589112,
+        "commitment": 0.9579594993591309,
         "is_suppressed": false,
         "is_full": true
       },
@@ -406,8 +400,8 @@
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
       "spent_ctx_id": null,
-      "produced_ctx_id": "ctx_1_1785094461138",
-      "merkle_root": "aaaa0bd1eff57f03b10e560aa060989fff0cbfb121600c4e72c976842b1c934c",
+      "produced_ctx_id": "ctx_1_1785094977070",
+      "merkle_root": "9172cd2117153f9eb708465a8c5e1f205202c4a21dd4d22d5b1d1cbb51472564",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -427,11 +421,11 @@
           },
           "PlanningStream": {
             "intent": "plan_trajectory",
-            "confidence": 0.3151619530301629,
-            "signature": "3ead4bb2919b8bf3"
+            "confidence": 0.31609435045470374,
+            "signature": "5d7db86058487a4a"
           }
         },
-        "council_signature": "f37db216e8514e75"
+        "council_signature": "78ea183d5f09d211"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -446,20 +440,14 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.3282633903357395,
+            "score": 0.3184791863031249,
             "horizon": 5,
             "metadata": {
-              "index": 33,
-              "state_norm": 2.138608383901284
+              "index": 19,
+              "state_norm": 2.1399226166328225
             },
-            "variance": 9.212518107877786e-05,
-            "probabilistic": {
-              "mean": 0.3282633903357395,
-              "std": 0.009598186343199316,
-              "ci_lower": 0.31893318188084774,
-              "ci_upper": 0.34053189362513403,
-              "n_samples": 3
-            }
+            "variance": 0.0,
+            "probabilistic": null
           }
         ],
         "stream_activations": [
@@ -468,28 +456,28 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.03314018249511719
+            "cost_ms": 0.04076957702636719
           },
           {
             "name": "PerceptionStream",
             "priority": 0.9,
             "activated": true,
             "intent_type": "perceive",
-            "cost_ms": 0.14495849609375
+            "cost_ms": 0.10609626770019531
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_miss",
-            "cost_ms": 0.010967254638671875
+            "cost_ms": 0.010013580322265625
           },
           {
             "name": "PlanningStream",
             "priority": 0.5,
             "activated": true,
             "intent_type": "plan_trajectory",
-            "cost_ms": 1.5311241149902344
+            "cost_ms": 1.251220703125
           }
         ],
         "causal_graph": {
@@ -502,9 +490,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": 16.720190048217773,
+            "consumed_ms": 16.408100128173828,
             "total_ms": 100.0,
-            "utilization": 0.16720190048217773,
+            "utilization": 0.16408100128173828,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -532,13 +520,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.0712492132879333,
+            "U_W": 0.13541081894821827,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "none"
           },
-          "U_W": 0.0712492132879333,
+          "U_W": 0.13541081894821827,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -561,24 +549,24 @@
             },
             "PlanningStream": {
               "intent": "plan_trajectory",
-              "confidence": 0.3151619530301629,
-              "signature": "3ead4bb2919b8bf3"
+              "confidence": 0.31609435045470374,
+              "signature": "5d7db86058487a4a"
             }
           },
-          "council_signature": "f37db216e8514e75"
+          "council_signature": "78ea183d5f09d211"
         },
         "j_term_breakdown": {
           "expected_reward": 0.765,
           "discounted_reward": 0.765,
-          "maintenance_cost": 0.00516057014465332,
+          "maintenance_cost": 0.004224300384521484,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.19655961990356446,
+          "future_option_value": 0.19718379974365235,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "gamma": 0.95,
           "horizon": 1,
-          "commitment": 0.9563990497589112,
+          "commitment": 0.9579594993591309,
           "is_suppressed": false,
           "is_full": true
         },
@@ -608,7 +596,7 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 4.1696903633374774e-05,
+          "counterfactual_diversity": 2.7585696087754868e-05,
           "attention_momentum": 0.0,
           "mean_threat_ratio": 0.25836862038478137,
           "mean_opportunity_ratio": 0.3356235475819907,
@@ -616,7 +604,7 @@
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.1424984265758666
+            0.27082163789643654
           ],
           "allocation_count": 1,
           "default_action_space": 10,
@@ -663,7 +651,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.1424984265758666,
+        "mission_drift": 0.27082163789643654,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -712,9 +700,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": 16.720190048217773,
+              "consumed_ms": 16.408100128173828,
               "total_ms": 100.0,
-              "utilization": 0.16720190048217773,
+              "utilization": 0.16408100128173828,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -740,7 +728,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "aaaa0bd1eff57f03b10e560aa060989fff0cbfb121600c4e72c976842b1c934c",
+        "merkle_root": "9172cd2117153f9eb708465a8c5e1f205202c4a21dd4d22d5b1d1cbb51472564",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -760,7 +748,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.25,
-        "learning_rate": 0.0237,
+        "learning_rate": 0.0451,
         "boredom_count": 1,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -772,24 +760,755 @@
     },
     {
       "cycle_id": 2,
-      "timestamp": 1785094461.1435819,
+      "timestamp": 1785094977.093434,
       "world_state": [
-        1.9828735085871638,
-        1.1176624779819087,
-        0.024671422331815365,
-        -0.07671733625152749,
-        0.10011088110290256,
-        0.1675832836521951
+        2.025317785715043,
+        0.9690546319225412,
+        0.08394252186365861,
+        0.02891726923638841,
+        -0.11492126503301653,
+        -0.2537342662720751
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.285947799050032
+          "energy": 2.264166412448201
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.285947799050032,
-          "uncertainty": 0.751965316566461
+          "distance_from_origin": 2.264166412448201,
+          "uncertainty": 0.8037912775191959
+        }
+      },
+      "stream_activations": [
+        {
+          "name": "PerceptionStream",
+          "priority": 0.9,
+          "activated": false,
+          "intent_type": null,
+          "cost_ms": 0.0,
+          "budget_remaining_ms": 150.0
+        },
+        {
+          "name": "ReflexStream",
+          "priority": 1.0,
+          "activated": true,
+          "intent_type": "reflex",
+          "cost_ms": 0.011205673217773438,
+          "budget_remaining_ms": 149.98879432678223
+        },
+        {
+          "name": "MemoryStream",
+          "priority": 0.7,
+          "activated": true,
+          "intent_type": "memory_recall",
+          "cost_ms": 0.010013580322265625,
+          "budget_remaining_ms": 149.97878074645996
+        }
+      ],
+      "selected_intent": {
+        "type": "perceive",
+        "confidence": 0.85
+      },
+      "selected_action": null,
+      "representation": "spatial",
+      "budget_consumed_ms": -34.97878074645996,
+      "budget_total_ms": 100.0,
+      "worlds_simulated": 1,
+      "cycle_duration_ms": 22.05204963684082,
+      "council_validated": true,
+      "decision_integrity": 1.0,
+      "mission_drift": 0.2704774507785356,
+      "blocking_validator": null,
+      "council_signals": [],
+      "escalation_requested": false,
+      "escalation_reason": null,
+      "semantic_depths": [],
+      "governance_signals": [
+        {
+          "check": "all_governance_checks",
+          "passed": true,
+          "reason": "All governance checks passed"
+        }
+      ],
+      "firewall_blocked": false,
+      "firewall_blocked_by": null,
+      "strategic_options": [
+        {
+          "rank": 1,
+          "score": 0.3240034427166099,
+          "horizon": 5,
+          "metadata": {
+            "index": 24,
+            "state_norm": 2.21224372466892
+          },
+          "variance": 9.086312076015356e-05,
+          "probabilistic": {
+            "mean": 0.3240034427166099,
+            "std": 0.00953221489267597,
+            "ci_lower": 0.3120256443323019,
+            "ci_upper": 0.3338026378205045,
+            "n_samples": 3
+          }
+        }
+      ],
+      "perception_quality": {
+        "quality_score": 0.0,
+        "resolution": [
+          0,
+          0
+        ],
+        "target_size_px": null,
+        "notes": "Invalid frame dimensions",
+        "proxy_recommended": true
+      },
+      "gate_verdict": null,
+      "reflection": {
+        "pattern_count": 1,
+        "cross_domain_hits": 0,
+        "stable": false,
+        "adaptive_horizon": null,
+        "recommended_horizon": null,
+        "horizon_reason": "neutral",
+        "policy_mode": 0.0,
+        "recurring_blocks": []
+      },
+      "knowledge_report": {
+        "domain": "unknown",
+        "approach": null,
+        "outcome": null,
+        "avoid": [],
+        "adjust_risk": 0.0,
+        "adjust_exploration": 0.0,
+        "summary": "Consultation throttled for 'unknown' (last cycle 1)",
+        "quality_adjustment": 0.0,
+        "throttled": true
+      },
+      "perception_explanation": {
+        "explanation": {
+          "summary": "Input is very low (0x0). Quality score: 0%. Below threshold \u2014 blocked direct detection, using proxy mode.",
+          "details": [
+            {
+              "aspect": "resolution",
+              "value": "0x0",
+              "label": "very low"
+            },
+            {
+              "aspect": "gate",
+              "value": "blocked",
+              "proxy_mode": true
+            }
+          ],
+          "suggestions": [
+            {
+              "action": "higher_resolution",
+              "label": "Use a 720p+ video",
+              "reason": "0x0 limits detection to objects >= 15px",
+              "impact": "high"
+            },
+            {
+              "action": "proxy_mode",
+              "label": "Tracking motion hotspots",
+              "reason": "Proxy mode active \u2014 following movement clusters",
+              "impact": "medium"
+            },
+            {
+              "action": "super_resolution",
+              "label": "Apply 2x upscale",
+              "reason": "0px is very low \u2014 upscale may improve edge detection",
+              "impact": "low"
+            }
+          ],
+          "quality_score": 0.0,
+          "proxy_mode": true
+        },
+        "capabilities": [],
+        "best_capability": null
+      },
+      "system_mood": "curious",
+      "local_optima_escape": null,
+      "attention_metrics": {
+        "identity_entropy": 1.0,
+        "entropy_collapse_rate": 0.0,
+        "counterfactual_diversity": 3.3461590342890807e-05,
+        "attention_momentum": 0.0,
+        "mean_threat_ratio": 0.26155428909634804,
+        "mean_opportunity_ratio": 0.3274318280379622,
+        "mean_maintenance_ratio": 0.41101388286568974,
+        "is_attention_locked": false,
+        "is_identity_collapse": false,
+        "trajectory_divergences": [
+          0.27082163789643654,
+          0.2704774507785356
+        ],
+        "allocation_count": 2,
+        "default_action_space": 10,
+        "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+        "identity_entropy_signal": {
+          "collapse_rate": 0.0,
+          "is_critical": true,
+          "projected_size": 1.0
+        },
+        "current_allocation": {
+          "threat_ratio": 0.26473995780791465,
+          "opportunity_ratio": 0.3192401084939337,
+          "maintenance_ratio": 0.41601993369815154
+        },
+        "cost_tracker": {
+          "total_maintenance": 0.1,
+          "total_recovery": 0,
+          "total_cost": 0.1,
+          "maintenance_ratio": 1.0,
+          "recovery_ratio": 0.0,
+          "cost_efficiency": 2.0,
+          "trend": "insufficient_data",
+          "cycles_recorded": 1,
+          "recent_maintenance": [
+            0.1
+          ],
+          "recent_recovery": []
+        }
+      },
+      "representation_confidence": 0.7,
+      "causal_annotations": null,
+      "identity_state": {
+        "G_t": {
+          "last_action": "perceive",
+          "progress_indicator": "moving"
+        },
+        "M_t": {
+          "action": "perceive",
+          "observation": "moving",
+          "mood": "curious"
+        },
+        "B_t": {
+          "decision_quality": {
+            "high": 0.025581395348837212,
+            "medium": 0.9488372093023257,
+            "low": 0.025581395348837212
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "C_t": {
+          "active_constraints": [
+            "risk_tolerance=0.50",
+            "exploration_budget=0.30"
+          ]
+        },
+        "K_t": {
+          "last_action": "perceive",
+          "skill_relevant": true
+        },
+        "V_t": {
+          "identity_markers": [
+            "exploring",
+            "nascent"
+          ]
+        },
+        "Res_t": {
+          "energy": {
+            "consumed_ms": -34.97878074645996,
+            "total_ms": 100.0,
+            "utilization": -0.3497878074645996,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 2,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "R_t": {
+          "trust": 0.5,
+          "authority": 0.5,
+          "collaboration": 0.5,
+          "dependency": 0.0,
+          "responsibility": 0.5
+        }
+      },
+      "resource_budgets": {
+        "energy": {
+          "consumed_ms": -34.97878074645996,
+          "total_ms": 100.0,
+          "utilization": -0.3497878074645996,
+          "description": "compute_budget_ms consumed this cycle"
+        },
+        "memory": {
+          "trace_history_length": 2,
+          "description": "trace_history length (number of stored traces)"
+        },
+        "identity": {
+          "identity_entropy": 0.0,
+          "identity_stability": 1.0,
+          "description": "identity entropy (1 - identity_stability)"
+        },
+        "recovery": {
+          "recovery_mode_cycles": 0,
+          "current_state": "exploring",
+          "description": "number of recovery_mode cycles active"
+        }
+      },
+      "meta_cognition": {
+        "current_state": "exploring",
+        "exploration_mode": true,
+        "recovery_mode": false,
+        "epistemic_repair": false,
+        "trigger_reason": null,
+        "stream_uncertainties": {
+          "PerceptionStream": 0.2,
+          "perception": 0.2
+        },
+        "consecutive_council_blocks": 0,
+        "mode": "PLAN",
+        "tripartite_u": {
+          "U_W": 0.335324772168743,
+          "U_I": 0.0,
+          "U_O": 0.0,
+          "answered_questions": 0,
+          "dominant": "environmental"
+        },
+        "U_W": 0.335324772168743,
+        "U_I": 0.0,
+        "U_O": 0.0
+      },
+      "causal_graph": {
+        "edges": [],
+        "variables": [
+          "energy"
+        ],
+        "interventions": 0,
+        "has_structural_equations": false
+      },
+      "gamma_discount": 0.95,
+      "terminal_value": 0.0,
+      "belief_state": {
+        "decision_quality": {
+          "high": 0.025581395348837212,
+          "medium": 0.9488372093023257,
+          "low": 0.025581395348837212
+        },
+        "environment_stability": {
+          "stable": 0.25,
+          "changing": 0.25,
+          "unpredictable": 0.25,
+          "unknown": 0.25
+        },
+        "resource_availability": {
+          "abundant": 0.25,
+          "sufficient": 0.25,
+          "limited": 0.25,
+          "critical": 0.25
+        }
+      },
+      "capabilities_k": {
+        "last_action": "perceive",
+        "skill_relevant": true
+      },
+      "j_term_breakdown": {
+        "expected_reward": 1.0,
+        "discounted_reward": 1.0,
+        "maintenance_cost": -0.14993634223937988,
+        "recovery_cost": 0.0,
+        "identity_cost": 0.0,
+        "future_option_value": 0.2999575614929199,
+        "counterfactual_diversity": 0.0,
+        "prediction_error": 0.0,
+        "gamma": 0.95,
+        "horizon": 1,
+        "commitment": 1.0,
+        "is_suppressed": false,
+        "is_full": true
+      },
+      "inquiry_skipped": false,
+      "selected_question": null,
+      "inquiry_omega_value": 0.0,
+      "inquiry_omega_vector": null,
+      "inquiry_blend": 0.0,
+      "relational_coherence": 1.0,
+      "spent_ctx_id": "ctx_1_1785094977070",
+      "produced_ctx_id": "ctx_2_1785094977093",
+      "merkle_root": "4a3e1067cab4fa121f4a737bae1210001ab22196760419ee0b321ab4b0b5f8e3",
+      "psdt": {
+        "partials": {
+          "ReflexStream": {
+            "intent": "reflex",
+            "confidence": 0.0,
+            "signature": "1690e957c69fa97d"
+          },
+          "MemoryStream": {
+            "intent": "memory_recall",
+            "confidence": 0.8359189987182617,
+            "signature": "52fecb8bfb9b16f2"
+          }
+        },
+        "council_signature": "9b5cfb555d5c0ffb"
+      },
+      "intent_timelock": {
+        "intent_type": "perceive",
+        "cycles_since_last_selection": 0,
+        "timelock_active": false,
+        "all_timelocks": {
+          "perceive": 2
+        }
+      },
+      "reasoning_witness": {
+        "council_signals": [],
+        "strategic_options": [
+          {
+            "rank": 1,
+            "score": 0.3240034427166099,
+            "horizon": 5,
+            "metadata": {
+              "index": 24,
+              "state_norm": 2.21224372466892
+            },
+            "variance": 9.086312076015356e-05,
+            "probabilistic": {
+              "mean": 0.3240034427166099,
+              "std": 0.00953221489267597,
+              "ci_lower": 0.3120256443323019,
+              "ci_upper": 0.3338026378205045,
+              "n_samples": 3
+            }
+          }
+        ],
+        "stream_activations": [
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": false,
+            "intent_type": null,
+            "cost_ms": 0.0
+          },
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent_type": "reflex",
+            "cost_ms": 0.011205673217773438
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent_type": "memory_recall",
+            "cost_ms": 0.010013580322265625
+          }
+        ],
+        "causal_graph": {
+          "edges": [],
+          "variables": [
+            "energy"
+          ],
+          "interventions": 0,
+          "has_structural_equations": false
+        },
+        "resource_budgets": {
+          "energy": {
+            "consumed_ms": -34.97878074645996,
+            "total_ms": 100.0,
+            "utilization": -0.3497878074645996,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 2,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "meta_cognition": {
+          "current_state": "exploring",
+          "exploration_mode": true,
+          "recovery_mode": false,
+          "epistemic_repair": false,
+          "trigger_reason": null,
+          "stream_uncertainties": {
+            "PerceptionStream": 0.2,
+            "perception": 0.2
+          },
+          "consecutive_council_blocks": 0,
+          "mode": "PLAN",
+          "tripartite_u": {
+            "U_W": 0.335324772168743,
+            "U_I": 0.0,
+            "U_O": 0.0,
+            "answered_questions": 0,
+            "dominant": "environmental"
+          },
+          "U_W": 0.335324772168743,
+          "U_I": 0.0,
+          "U_O": 0.0
+        },
+        "psdt": {
+          "partials": {
+            "ReflexStream": {
+              "intent": "reflex",
+              "confidence": 0.0,
+              "signature": "1690e957c69fa97d"
+            },
+            "MemoryStream": {
+              "intent": "memory_recall",
+              "confidence": 0.8359189987182617,
+              "signature": "52fecb8bfb9b16f2"
+            }
+          },
+          "council_signature": "9b5cfb555d5c0ffb"
+        },
+        "j_term_breakdown": {
+          "expected_reward": 1.0,
+          "discounted_reward": 1.0,
+          "maintenance_cost": -0.14993634223937988,
+          "recovery_cost": 0.0,
+          "identity_cost": 0.0,
+          "future_option_value": 0.2999575614929199,
+          "counterfactual_diversity": 0.0,
+          "prediction_error": 0.0,
+          "gamma": 0.95,
+          "horizon": 1,
+          "commitment": 1.0,
+          "is_suppressed": false,
+          "is_full": true
+        },
+        "capabilities_k": {
+          "last_action": "perceive",
+          "skill_relevant": true
+        },
+        "belief_state": {
+          "decision_quality": {
+            "high": 0.025581395348837212,
+            "medium": 0.9488372093023257,
+            "low": 0.025581395348837212
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "attention_metrics": {
+          "identity_entropy": 1.0,
+          "entropy_collapse_rate": 0.0,
+          "counterfactual_diversity": 3.3461590342890807e-05,
+          "attention_momentum": 0.0,
+          "mean_threat_ratio": 0.26155428909634804,
+          "mean_opportunity_ratio": 0.3274318280379622,
+          "mean_maintenance_ratio": 0.41101388286568974,
+          "is_attention_locked": false,
+          "is_identity_collapse": false,
+          "trajectory_divergences": [
+            0.27082163789643654,
+            0.2704774507785356
+          ],
+          "allocation_count": 2,
+          "default_action_space": 10,
+          "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+          "identity_entropy_signal": {
+            "collapse_rate": 0.0,
+            "is_critical": true,
+            "projected_size": 1.0
+          },
+          "current_allocation": {
+            "threat_ratio": 0.26473995780791465,
+            "opportunity_ratio": 0.3192401084939337,
+            "maintenance_ratio": 0.41601993369815154
+          },
+          "cost_tracker": {
+            "total_maintenance": 0.1,
+            "total_recovery": 0,
+            "total_cost": 0.1,
+            "maintenance_ratio": 1.0,
+            "recovery_ratio": 0.0,
+            "cost_efficiency": 2.0,
+            "trend": "insufficient_data",
+            "cycles_recorded": 1,
+            "recent_maintenance": [
+              0.1
+            ],
+            "recent_recovery": []
+          }
+        },
+        "local_optima_escape": null,
+        "reflection": {
+          "pattern_count": 1,
+          "cross_domain_hits": 0,
+          "stable": false,
+          "adaptive_horizon": null,
+          "recommended_horizon": null,
+          "horizon_reason": "neutral",
+          "policy_mode": 0.0,
+          "recurring_blocks": []
+        }
+      },
+      "decision_core": {
+        "selected_intent": {
+          "type": "perceive",
+          "confidence": 0.85
+        },
+        "selected_action": null,
+        "decision_integrity": 1.0,
+        "mission_drift": 0.2704774507785356,
+        "council_validated": true,
+        "identity_state": {
+          "G_t": {
+            "last_action": "perceive",
+            "progress_indicator": "moving"
+          },
+          "M_t": {
+            "action": "perceive",
+            "observation": "moving",
+            "mood": "curious"
+          },
+          "B_t": {
+            "decision_quality": {
+              "high": 0.025581395348837212,
+              "medium": 0.9488372093023257,
+              "low": 0.025581395348837212
+            },
+            "environment_stability": {
+              "stable": 0.25,
+              "changing": 0.25,
+              "unpredictable": 0.25,
+              "unknown": 0.25
+            },
+            "resource_availability": {
+              "abundant": 0.25,
+              "sufficient": 0.25,
+              "limited": 0.25,
+              "critical": 0.25
+            }
+          },
+          "C_t": {
+            "active_constraints": [
+              "risk_tolerance=0.50",
+              "exploration_budget=0.30"
+            ]
+          },
+          "K_t": {
+            "last_action": "perceive",
+            "skill_relevant": true
+          },
+          "V_t": {
+            "identity_markers": [
+              "exploring",
+              "nascent"
+            ]
+          },
+          "Res_t": {
+            "energy": {
+              "consumed_ms": -34.97878074645996,
+              "total_ms": 100.0,
+              "utilization": -0.3497878074645996,
+              "description": "compute_budget_ms consumed this cycle"
+            },
+            "memory": {
+              "trace_history_length": 2,
+              "description": "trace_history length (number of stored traces)"
+            },
+            "identity": {
+              "identity_entropy": 0.0,
+              "identity_stability": 1.0,
+              "description": "identity entropy (1 - identity_stability)"
+            },
+            "recovery": {
+              "recovery_mode_cycles": 0,
+              "current_state": "exploring",
+              "description": "number of recovery_mode cycles active"
+            }
+          },
+          "R_t": {
+            "trust": 0.5,
+            "authority": 0.5,
+            "collaboration": 0.5,
+            "dependency": 0.0,
+            "responsibility": 0.5
+          }
+        },
+        "merkle_root": "4a3e1067cab4fa121f4a737bae1210001ab22196760419ee0b321ab4b0b5f8e3",
+        "inquiry_summary": {
+          "selected_question": null,
+          "omega_value": 0.0,
+          "omega_vector": null,
+          "blend": 0.0,
+          "skipped": false
+        },
+        "blocking_validator": null,
+        "firewall_blocked": false
+      },
+      "inquiry_summary": {
+        "selected_question": null,
+        "omega_value": 0.0,
+        "omega_vector": null,
+        "blend": 0.0,
+        "skipped": false
+      },
+      "curiosity_state": {
+        "curiosity_level": 0.2,
+        "learning_rate": 0.0666,
+        "boredom_count": 2,
+        "novelty_seeking": false,
+        "self_intent_active": false,
+        "exploration_cycles": 0,
+        "exploitation_cycles": 2,
+        "balance": "0% explore"
+      },
+      "curiosity_bonus": 1.125
+    },
+    {
+      "cycle_id": 3,
+      "timestamp": 1785094977.097156,
+      "world_state": [
+        2.016212174543011,
+        1.0281160921013437,
+        0.04870610121504448,
+        0.07172288845303271,
+        -0.14059074854473702,
+        -0.26726519201571336
+      ],
+      "domain_facts": {
+        "resources": {
+          "energy": 2.2849173136191117
+        },
+        "constraints": [],
+        "events": [],
+        "metrics": {
+          "distance_from_origin": 2.2849173136191117,
+          "uncertainty": 0.811798037206834
         }
       },
       "stream_activations": [
@@ -814,8 +1533,8 @@
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.008106231689453125,
-          "budget_remaining_ms": 149.9849796295166
+          "cost_ms": 0.010013580322265625,
+          "budget_remaining_ms": 149.9830722808838
         }
       ],
       "selected_intent": {
@@ -824,13 +1543,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.9849796295166,
+      "budget_consumed_ms": -34.98307228088379,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 3.3588409423828125,
+      "cycle_duration_ms": 1.6362667083740234,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.33445138827960497,
+      "mission_drift": 0.11365861218221099,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -848,11 +1567,11 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.31384334187328766,
+          "score": 0.3111171070850988,
           "horizon": 5,
           "metadata": {
-            "index": 24,
-            "state_norm": 2.186303058179083
+            "index": 10,
+            "state_norm": 2.2142237672789666
           },
           "variance": 0.0,
           "probabilistic": null
@@ -936,742 +1655,17 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 3.88297515514454e-05,
-        "attention_momentum": 0.0,
-        "mean_threat_ratio": 0.25739655024268815,
-        "mean_opportunity_ratio": 0.3381231565188018,
-        "mean_maintenance_ratio": 0.40448029323851,
+        "counterfactual_diversity": 3.935393247347799e-05,
+        "attention_momentum": 0.08799279329362583,
+        "mean_threat_ratio": 0.2630276175585417,
+        "mean_opportunity_ratio": 0.32364326913517855,
+        "mean_maintenance_ratio": 0.41332911330627975,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.1424984265758666,
-          0.33445138827960497
-        ],
-        "allocation_count": 2,
-        "default_action_space": 10,
-        "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
-        "identity_entropy_signal": {
-          "collapse_rate": 0.0,
-          "is_critical": true,
-          "projected_size": 1.0
-        },
-        "current_allocation": {
-          "threat_ratio": 0.256424480100595,
-          "opportunity_ratio": 0.34062276545561293,
-          "maintenance_ratio": 0.40295275444379214
-        },
-        "cost_tracker": {
-          "total_maintenance": 0.1,
-          "total_recovery": 0,
-          "total_cost": 0.1,
-          "maintenance_ratio": 1.0,
-          "recovery_ratio": 0.0,
-          "cost_efficiency": 2.0,
-          "trend": "insufficient_data",
-          "cycles_recorded": 1,
-          "recent_maintenance": [
-            0.1
-          ],
-          "recent_recovery": []
-        }
-      },
-      "representation_confidence": 0.7,
-      "causal_annotations": null,
-      "identity_state": {
-        "G_t": {
-          "last_action": "perceive",
-          "progress_indicator": "moving"
-        },
-        "M_t": {
-          "action": "perceive",
-          "observation": "moving",
-          "mood": "curious"
-        },
-        "B_t": {
-          "decision_quality": {
-            "high": 0.025581395348837212,
-            "medium": 0.9488372093023257,
-            "low": 0.025581395348837212
-          },
-          "environment_stability": {
-            "stable": 0.25,
-            "changing": 0.25,
-            "unpredictable": 0.25,
-            "unknown": 0.25
-          },
-          "resource_availability": {
-            "abundant": 0.25,
-            "sufficient": 0.25,
-            "limited": 0.25,
-            "critical": 0.25
-          }
-        },
-        "C_t": {
-          "active_constraints": [
-            "risk_tolerance=0.50",
-            "exploration_budget=0.30"
-          ]
-        },
-        "K_t": {
-          "last_action": "perceive",
-          "skill_relevant": true
-        },
-        "V_t": {
-          "identity_markers": [
-            "exploring",
-            "nascent"
-          ]
-        },
-        "Res_t": {
-          "energy": {
-            "consumed_ms": -34.9849796295166,
-            "total_ms": 100.0,
-            "utilization": -0.349849796295166,
-            "description": "compute_budget_ms consumed this cycle"
-          },
-          "memory": {
-            "trace_history_length": 2,
-            "description": "trace_history length (number of stored traces)"
-          },
-          "identity": {
-            "identity_entropy": 0.0,
-            "identity_stability": 1.0,
-            "description": "identity entropy (1 - identity_stability)"
-          },
-          "recovery": {
-            "recovery_mode_cycles": 0,
-            "current_state": "exploring",
-            "description": "number of recovery_mode cycles active"
-          }
-        },
-        "R_t": {
-          "trust": 0.5,
-          "authority": 0.5,
-          "collaboration": 0.5,
-          "dependency": 0.0,
-          "responsibility": 0.5
-        }
-      },
-      "resource_budgets": {
-        "energy": {
-          "consumed_ms": -34.9849796295166,
-          "total_ms": 100.0,
-          "utilization": -0.349849796295166,
-          "description": "compute_budget_ms consumed this cycle"
-        },
-        "memory": {
-          "trace_history_length": 2,
-          "description": "trace_history length (number of stored traces)"
-        },
-        "identity": {
-          "identity_entropy": 0.0,
-          "identity_stability": 1.0,
-          "description": "identity entropy (1 - identity_stability)"
-        },
-        "recovery": {
-          "recovery_mode_cycles": 0,
-          "current_state": "exploring",
-          "description": "number of recovery_mode cycles active"
-        }
-      },
-      "meta_cognition": {
-        "current_state": "exploring",
-        "exploration_mode": true,
-        "recovery_mode": false,
-        "epistemic_repair": false,
-        "trigger_reason": null,
-        "stream_uncertainties": {
-          "PerceptionStream": 0.2,
-          "perception": 0.2
-        },
-        "consecutive_council_blocks": 0,
-        "mode": "PLAN",
-        "tripartite_u": {
-          "U_W": 0.3192374537138679,
-          "U_I": 0.0,
-          "U_O": 0.0,
-          "answered_questions": 0,
-          "dominant": "environmental"
-        },
-        "U_W": 0.3192374537138679,
-        "U_I": 0.0,
-        "U_O": 0.0
-      },
-      "causal_graph": {
-        "edges": [],
-        "variables": [
-          "energy"
-        ],
-        "interventions": 0,
-        "has_structural_equations": false
-      },
-      "gamma_discount": 0.95,
-      "terminal_value": 0.0,
-      "belief_state": {
-        "decision_quality": {
-          "high": 0.025581395348837212,
-          "medium": 0.9488372093023257,
-          "low": 0.025581395348837212
-        },
-        "environment_stability": {
-          "stable": 0.25,
-          "changing": 0.25,
-          "unpredictable": 0.25,
-          "unknown": 0.25
-        },
-        "resource_availability": {
-          "abundant": 0.25,
-          "sufficient": 0.25,
-          "limited": 0.25,
-          "critical": 0.25
-        }
-      },
-      "capabilities_k": {
-        "last_action": "perceive",
-        "skill_relevant": true
-      },
-      "j_term_breakdown": {
-        "expected_reward": 1.0,
-        "discounted_reward": 1.0,
-        "maintenance_cost": -0.1499549388885498,
-        "recovery_cost": 0.0,
-        "identity_cost": 0.0,
-        "future_option_value": 0.2999699592590332,
-        "counterfactual_diversity": 0.0,
-        "prediction_error": 0.0,
-        "gamma": 0.95,
-        "horizon": 1,
-        "commitment": 1.0,
-        "is_suppressed": false,
-        "is_full": true
-      },
-      "inquiry_skipped": false,
-      "selected_question": null,
-      "inquiry_omega_value": 0.0,
-      "inquiry_omega_vector": null,
-      "inquiry_blend": 0.0,
-      "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_1_1785094461138",
-      "produced_ctx_id": "ctx_2_1785094461143",
-      "merkle_root": "db4a1a8a1ea38937a4e13490fe33f49ee75ca91c0b2643a5166d626ef2534935",
-      "psdt": {
-        "partials": {
-          "ReflexStream": {
-            "intent": "reflex",
-            "confidence": 0.0,
-            "signature": "1690e957c69fa97d"
-          },
-          "MemoryStream": {
-            "intent": "memory_recall",
-            "confidence": 0.8327980995178222,
-            "signature": "de6e5eca61e8681a"
-          }
-        },
-        "council_signature": "d959c6ca07d63bfc"
-      },
-      "intent_timelock": {
-        "intent_type": "perceive",
-        "cycles_since_last_selection": 0,
-        "timelock_active": false,
-        "all_timelocks": {
-          "perceive": 2
-        }
-      },
-      "reasoning_witness": {
-        "council_signals": [],
-        "strategic_options": [
-          {
-            "rank": 1,
-            "score": 0.31384334187328766,
-            "horizon": 5,
-            "metadata": {
-              "index": 24,
-              "state_norm": 2.186303058179083
-            },
-            "variance": 0.0,
-            "probabilistic": null
-          }
-        ],
-        "stream_activations": [
-          {
-            "name": "PerceptionStream",
-            "priority": 0.9,
-            "activated": false,
-            "intent_type": null,
-            "cost_ms": 0.0
-          },
-          {
-            "name": "ReflexStream",
-            "priority": 1.0,
-            "activated": true,
-            "intent_type": "reflex",
-            "cost_ms": 0.0069141387939453125
-          },
-          {
-            "name": "MemoryStream",
-            "priority": 0.7,
-            "activated": true,
-            "intent_type": "memory_recall",
-            "cost_ms": 0.008106231689453125
-          }
-        ],
-        "causal_graph": {
-          "edges": [],
-          "variables": [
-            "energy"
-          ],
-          "interventions": 0,
-          "has_structural_equations": false
-        },
-        "resource_budgets": {
-          "energy": {
-            "consumed_ms": -34.9849796295166,
-            "total_ms": 100.0,
-            "utilization": -0.349849796295166,
-            "description": "compute_budget_ms consumed this cycle"
-          },
-          "memory": {
-            "trace_history_length": 2,
-            "description": "trace_history length (number of stored traces)"
-          },
-          "identity": {
-            "identity_entropy": 0.0,
-            "identity_stability": 1.0,
-            "description": "identity entropy (1 - identity_stability)"
-          },
-          "recovery": {
-            "recovery_mode_cycles": 0,
-            "current_state": "exploring",
-            "description": "number of recovery_mode cycles active"
-          }
-        },
-        "meta_cognition": {
-          "current_state": "exploring",
-          "exploration_mode": true,
-          "recovery_mode": false,
-          "epistemic_repair": false,
-          "trigger_reason": null,
-          "stream_uncertainties": {
-            "PerceptionStream": 0.2,
-            "perception": 0.2
-          },
-          "consecutive_council_blocks": 0,
-          "mode": "PLAN",
-          "tripartite_u": {
-            "U_W": 0.3192374537138679,
-            "U_I": 0.0,
-            "U_O": 0.0,
-            "answered_questions": 0,
-            "dominant": "environmental"
-          },
-          "U_W": 0.3192374537138679,
-          "U_I": 0.0,
-          "U_O": 0.0
-        },
-        "psdt": {
-          "partials": {
-            "ReflexStream": {
-              "intent": "reflex",
-              "confidence": 0.0,
-              "signature": "1690e957c69fa97d"
-            },
-            "MemoryStream": {
-              "intent": "memory_recall",
-              "confidence": 0.8327980995178222,
-              "signature": "de6e5eca61e8681a"
-            }
-          },
-          "council_signature": "d959c6ca07d63bfc"
-        },
-        "j_term_breakdown": {
-          "expected_reward": 1.0,
-          "discounted_reward": 1.0,
-          "maintenance_cost": -0.1499549388885498,
-          "recovery_cost": 0.0,
-          "identity_cost": 0.0,
-          "future_option_value": 0.2999699592590332,
-          "counterfactual_diversity": 0.0,
-          "prediction_error": 0.0,
-          "gamma": 0.95,
-          "horizon": 1,
-          "commitment": 1.0,
-          "is_suppressed": false,
-          "is_full": true
-        },
-        "capabilities_k": {
-          "last_action": "perceive",
-          "skill_relevant": true
-        },
-        "belief_state": {
-          "decision_quality": {
-            "high": 0.025581395348837212,
-            "medium": 0.9488372093023257,
-            "low": 0.025581395348837212
-          },
-          "environment_stability": {
-            "stable": 0.25,
-            "changing": 0.25,
-            "unpredictable": 0.25,
-            "unknown": 0.25
-          },
-          "resource_availability": {
-            "abundant": 0.25,
-            "sufficient": 0.25,
-            "limited": 0.25,
-            "critical": 0.25
-          }
-        },
-        "attention_metrics": {
-          "identity_entropy": 1.0,
-          "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 3.88297515514454e-05,
-          "attention_momentum": 0.0,
-          "mean_threat_ratio": 0.25739655024268815,
-          "mean_opportunity_ratio": 0.3381231565188018,
-          "mean_maintenance_ratio": 0.40448029323851,
-          "is_attention_locked": false,
-          "is_identity_collapse": false,
-          "trajectory_divergences": [
-            0.1424984265758666,
-            0.33445138827960497
-          ],
-          "allocation_count": 2,
-          "default_action_space": 10,
-          "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
-          "identity_entropy_signal": {
-            "collapse_rate": 0.0,
-            "is_critical": true,
-            "projected_size": 1.0
-          },
-          "current_allocation": {
-            "threat_ratio": 0.256424480100595,
-            "opportunity_ratio": 0.34062276545561293,
-            "maintenance_ratio": 0.40295275444379214
-          },
-          "cost_tracker": {
-            "total_maintenance": 0.1,
-            "total_recovery": 0,
-            "total_cost": 0.1,
-            "maintenance_ratio": 1.0,
-            "recovery_ratio": 0.0,
-            "cost_efficiency": 2.0,
-            "trend": "insufficient_data",
-            "cycles_recorded": 1,
-            "recent_maintenance": [
-              0.1
-            ],
-            "recent_recovery": []
-          }
-        },
-        "local_optima_escape": null,
-        "reflection": {
-          "pattern_count": 1,
-          "cross_domain_hits": 0,
-          "stable": false,
-          "adaptive_horizon": null,
-          "recommended_horizon": null,
-          "horizon_reason": "neutral",
-          "policy_mode": 0.0,
-          "recurring_blocks": []
-        }
-      },
-      "decision_core": {
-        "selected_intent": {
-          "type": "perceive",
-          "confidence": 0.85
-        },
-        "selected_action": null,
-        "decision_integrity": 1.0,
-        "mission_drift": 0.33445138827960497,
-        "council_validated": true,
-        "identity_state": {
-          "G_t": {
-            "last_action": "perceive",
-            "progress_indicator": "moving"
-          },
-          "M_t": {
-            "action": "perceive",
-            "observation": "moving",
-            "mood": "curious"
-          },
-          "B_t": {
-            "decision_quality": {
-              "high": 0.025581395348837212,
-              "medium": 0.9488372093023257,
-              "low": 0.025581395348837212
-            },
-            "environment_stability": {
-              "stable": 0.25,
-              "changing": 0.25,
-              "unpredictable": 0.25,
-              "unknown": 0.25
-            },
-            "resource_availability": {
-              "abundant": 0.25,
-              "sufficient": 0.25,
-              "limited": 0.25,
-              "critical": 0.25
-            }
-          },
-          "C_t": {
-            "active_constraints": [
-              "risk_tolerance=0.50",
-              "exploration_budget=0.30"
-            ]
-          },
-          "K_t": {
-            "last_action": "perceive",
-            "skill_relevant": true
-          },
-          "V_t": {
-            "identity_markers": [
-              "exploring",
-              "nascent"
-            ]
-          },
-          "Res_t": {
-            "energy": {
-              "consumed_ms": -34.9849796295166,
-              "total_ms": 100.0,
-              "utilization": -0.349849796295166,
-              "description": "compute_budget_ms consumed this cycle"
-            },
-            "memory": {
-              "trace_history_length": 2,
-              "description": "trace_history length (number of stored traces)"
-            },
-            "identity": {
-              "identity_entropy": 0.0,
-              "identity_stability": 1.0,
-              "description": "identity entropy (1 - identity_stability)"
-            },
-            "recovery": {
-              "recovery_mode_cycles": 0,
-              "current_state": "exploring",
-              "description": "number of recovery_mode cycles active"
-            }
-          },
-          "R_t": {
-            "trust": 0.5,
-            "authority": 0.5,
-            "collaboration": 0.5,
-            "dependency": 0.0,
-            "responsibility": 0.5
-          }
-        },
-        "merkle_root": "db4a1a8a1ea38937a4e13490fe33f49ee75ca91c0b2643a5166d626ef2534935",
-        "inquiry_summary": {
-          "selected_question": null,
-          "omega_value": 0.0,
-          "omega_vector": null,
-          "blend": 0.0,
-          "skipped": false
-        },
-        "blocking_validator": null,
-        "firewall_blocked": false
-      },
-      "inquiry_summary": {
-        "selected_question": null,
-        "omega_value": 0.0,
-        "omega_vector": null,
-        "blend": 0.0,
-        "skipped": false
-      },
-      "curiosity_state": {
-        "curiosity_level": 0.2,
-        "learning_rate": 0.0827,
-        "boredom_count": 2,
-        "novelty_seeking": false,
-        "self_intent_active": false,
-        "exploration_cycles": 0,
-        "exploitation_cycles": 2,
-        "balance": "0% explore"
-      },
-      "curiosity_bonus": 1.125
-    },
-    {
-      "cycle_id": 3,
-      "timestamp": 1785094461.147397,
-      "world_state": [
-        2.064139363108944,
-        1.2074754990385623,
-        -0.045016394792541756,
-        0.013373279488553935,
-        0.19325418311245526,
-        0.10366359536122789
-      ],
-      "domain_facts": {
-        "resources": {
-          "energy": 2.4018674051271645
-        },
-        "constraints": [],
-        "events": [],
-        "metrics": {
-          "distance_from_origin": 2.4018674051271645,
-          "uncertainty": 0.7835853260738115
-        }
-      },
-      "stream_activations": [
-        {
-          "name": "PerceptionStream",
-          "priority": 0.9,
-          "activated": false,
-          "intent_type": null,
-          "cost_ms": 0.0,
-          "budget_remaining_ms": 150.0
-        },
-        {
-          "name": "ReflexStream",
-          "priority": 1.0,
-          "activated": true,
-          "intent_type": "reflex",
-          "cost_ms": 0.0069141387939453125,
-          "budget_remaining_ms": 149.99308586120605
-        },
-        {
-          "name": "MemoryStream",
-          "priority": 0.7,
-          "activated": true,
-          "intent_type": "memory_recall",
-          "cost_ms": 0.009059906005859375,
-          "budget_remaining_ms": 149.9840259552002
-        }
-      ],
-      "selected_intent": {
-        "type": "perceive",
-        "confidence": 0.85
-      },
-      "selected_action": null,
-      "representation": "spatial",
-      "budget_consumed_ms": -34.984025955200195,
-      "budget_total_ms": 100.0,
-      "worlds_simulated": 1,
-      "cycle_duration_ms": 1.6560554504394531,
-      "council_validated": true,
-      "decision_integrity": 1.0,
-      "mission_drift": 0.10262086368052271,
-      "blocking_validator": null,
-      "council_signals": [],
-      "escalation_requested": false,
-      "escalation_reason": null,
-      "semantic_depths": [],
-      "governance_signals": [
-        {
-          "check": "all_governance_checks",
-          "passed": true,
-          "reason": "All governance checks passed"
-        }
-      ],
-      "firewall_blocked": false,
-      "firewall_blocked_by": null,
-      "strategic_options": [
-        {
-          "rank": 1,
-          "score": 0.3011405910003435,
-          "horizon": 5,
-          "metadata": {
-            "index": 10,
-            "state_norm": 2.3618998070259725
-          },
-          "variance": 2.2523253364797635e-05,
-          "probabilistic": {
-            "mean": 0.3011405910003435,
-            "std": 0.004745866977149448,
-            "ci_lower": 0.2953536157321841,
-            "ci_upper": 0.3063382372959007,
-            "n_samples": 3
-          }
-        }
-      ],
-      "perception_quality": {
-        "quality_score": 0.0,
-        "resolution": [
-          0,
-          0
-        ],
-        "target_size_px": null,
-        "notes": "Invalid frame dimensions",
-        "proxy_recommended": true
-      },
-      "gate_verdict": null,
-      "reflection": {
-        "pattern_count": 1,
-        "cross_domain_hits": 0,
-        "stable": false,
-        "adaptive_horizon": null,
-        "recommended_horizon": null,
-        "horizon_reason": "neutral",
-        "policy_mode": 0.0,
-        "recurring_blocks": []
-      },
-      "knowledge_report": {
-        "domain": "unknown",
-        "approach": null,
-        "outcome": null,
-        "avoid": [],
-        "adjust_risk": 0.0,
-        "adjust_exploration": 0.0,
-        "summary": "Consultation throttled for 'unknown' (last cycle 1)",
-        "quality_adjustment": 0.0,
-        "throttled": true
-      },
-      "perception_explanation": {
-        "explanation": {
-          "summary": "Input is very low (0x0). Quality score: 0%. Below threshold \u2014 blocked direct detection, using proxy mode.",
-          "details": [
-            {
-              "aspect": "resolution",
-              "value": "0x0",
-              "label": "very low"
-            },
-            {
-              "aspect": "gate",
-              "value": "blocked",
-              "proxy_mode": true
-            }
-          ],
-          "suggestions": [
-            {
-              "action": "higher_resolution",
-              "label": "Use a 720p+ video",
-              "reason": "0x0 limits detection to objects >= 15px",
-              "impact": "high"
-            },
-            {
-              "action": "proxy_mode",
-              "label": "Tracking motion hotspots",
-              "reason": "Proxy mode active \u2014 following movement clusters",
-              "impact": "medium"
-            },
-            {
-              "action": "super_resolution",
-              "label": "Apply 2x upscale",
-              "reason": "0px is very low \u2014 upscale may improve edge detection",
-              "impact": "low"
-            }
-          ],
-          "quality_score": 0.0,
-          "proxy_mode": true
-        },
-        "capabilities": [],
-        "best_capability": null
-      },
-      "system_mood": "curious",
-      "local_optima_escape": null,
-      "attention_metrics": {
-        "identity_entropy": 1.0,
-        "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 3.507370290754604e-05,
-        "attention_momentum": 0.4138053308618701,
-        "mean_threat_ratio": 0.2587864839934687,
-        "mean_opportunity_ratio": 0.33454904115965184,
-        "mean_maintenance_ratio": 0.40666447484687945,
-        "is_attention_locked": false,
-        "is_identity_collapse": false,
-        "trajectory_divergences": [
-          0.1424984265758666,
-          0.33445138827960497,
-          0.10262086368052271
+          0.27082163789643654,
+          0.2704774507785356,
+          0.11365861218221099
         ],
         "allocation_count": 3,
         "default_action_space": 10,
@@ -1682,9 +1676,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.2615663514950298,
-          "opportunity_ratio": 0.32740081044135183,
-          "maintenance_ratio": 0.41103283806361834
+          "threat_ratio": 0.26597427448292893,
+          "opportunity_ratio": 0.31606615132961124,
+          "maintenance_ratio": 0.41795957418745977
         },
         "cost_tracker": {
           "total_maintenance": 0.19,
@@ -1751,9 +1745,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.984025955200195,
+            "consumed_ms": -34.98307228088379,
             "total_ms": 100.0,
-            "utilization": -0.34984025955200193,
+            "utilization": -0.34983072280883787,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -1781,9 +1775,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.984025955200195,
+          "consumed_ms": -34.98307228088379,
           "total_ms": 100.0,
-          "utilization": -0.34984025955200193,
+          "utilization": -0.34983072280883787,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -1814,13 +1808,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.2965951130893324,
+          "U_W": 0.3091596168095305,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
-          "dominant": "none"
+          "dominant": "environmental"
         },
-        "U_W": 0.2965951130893324,
+        "U_W": 0.3091596168095305,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -1860,10 +1854,10 @@
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.14995207786560058,
+        "maintenance_cost": -0.14994921684265136,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.2999680519104004,
+        "future_option_value": 0.29996614456176757,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "gamma": 0.95,
@@ -1878,9 +1872,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_2_1785094461143",
-      "produced_ctx_id": "ctx_3_1785094461147",
-      "merkle_root": "98bfcb5571dc8b24f272938cb9cc8edbae6cbdde05aa795e594d655977925239",
+      "spent_ctx_id": "ctx_2_1785094977093",
+      "produced_ctx_id": "ctx_3_1785094977097",
+      "merkle_root": "1871267a3263e32ae4512e0ef78f93bcc140c14f0a0720c74a2c155c7ddf6a90",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -1894,7 +1888,7 @@
             "signature": "d5e7bbac3bb12804"
           }
         },
-        "council_signature": "ffa6f8c035f5f2ce"
+        "council_signature": "6612e559884dbec9"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -1909,20 +1903,14 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.3011405910003435,
+            "score": 0.3111171070850988,
             "horizon": 5,
             "metadata": {
               "index": 10,
-              "state_norm": 2.3618998070259725
+              "state_norm": 2.2142237672789666
             },
-            "variance": 2.2523253364797635e-05,
-            "probabilistic": {
-              "mean": 0.3011405910003435,
-              "std": 0.004745866977149448,
-              "ci_lower": 0.2953536157321841,
-              "ci_upper": 0.3063382372959007,
-              "n_samples": 3
-            }
+            "variance": 0.0,
+            "probabilistic": null
           }
         ],
         "stream_activations": [
@@ -1945,7 +1933,7 @@
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.009059906005859375
+            "cost_ms": 0.010013580322265625
           }
         ],
         "causal_graph": {
@@ -1958,9 +1946,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.984025955200195,
+            "consumed_ms": -34.98307228088379,
             "total_ms": 100.0,
-            "utilization": -0.34984025955200193,
+            "utilization": -0.34983072280883787,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -1991,13 +1979,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.2965951130893324,
+            "U_W": 0.3091596168095305,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
-            "dominant": "none"
+            "dominant": "environmental"
           },
-          "U_W": 0.2965951130893324,
+          "U_W": 0.3091596168095305,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -2014,15 +2002,15 @@
               "signature": "d5e7bbac3bb12804"
             }
           },
-          "council_signature": "ffa6f8c035f5f2ce"
+          "council_signature": "6612e559884dbec9"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.14995207786560058,
+          "maintenance_cost": -0.14994921684265136,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.2999680519104004,
+          "future_option_value": 0.29996614456176757,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "gamma": 0.95,
@@ -2057,17 +2045,17 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 3.507370290754604e-05,
-          "attention_momentum": 0.4138053308618701,
-          "mean_threat_ratio": 0.2587864839934687,
-          "mean_opportunity_ratio": 0.33454904115965184,
-          "mean_maintenance_ratio": 0.40666447484687945,
+          "counterfactual_diversity": 3.935393247347799e-05,
+          "attention_momentum": 0.08799279329362583,
+          "mean_threat_ratio": 0.2630276175585417,
+          "mean_opportunity_ratio": 0.32364326913517855,
+          "mean_maintenance_ratio": 0.41332911330627975,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.1424984265758666,
-            0.33445138827960497,
-            0.10262086368052271
+            0.27082163789643654,
+            0.2704774507785356,
+            0.11365861218221099
           ],
           "allocation_count": 3,
           "default_action_space": 10,
@@ -2078,9 +2066,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.2615663514950298,
-            "opportunity_ratio": 0.32740081044135183,
-            "maintenance_ratio": 0.41103283806361834
+            "threat_ratio": 0.26597427448292893,
+            "opportunity_ratio": 0.31606615132961124,
+            "maintenance_ratio": 0.41795957418745977
           },
           "cost_tracker": {
             "total_maintenance": 0.19,
@@ -2117,7 +2105,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.10262086368052271,
+        "mission_drift": 0.11365861218221099,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -2166,9 +2154,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.984025955200195,
+              "consumed_ms": -34.98307228088379,
               "total_ms": 100.0,
-              "utilization": -0.34984025955200193,
+              "utilization": -0.34983072280883787,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -2194,7 +2182,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "98bfcb5571dc8b24f272938cb9cc8edbae6cbdde05aa795e594d655977925239",
+        "merkle_root": "1871267a3263e32ae4512e0ef78f93bcc140c14f0a0720c74a2c155c7ddf6a90",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -2214,7 +2202,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.15,
-        "learning_rate": 0.0075,
+        "learning_rate": 0.0087,
         "boredom_count": 3,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -2226,24 +2214,24 @@
     },
     {
       "cycle_id": 4,
-      "timestamp": 1785094461.1519082,
+      "timestamp": 1785094977.102463,
       "world_state": [
-        2.053500471086144,
-        1.3079089428790378,
-        -0.005579988092472829,
-        -0.11334554945893013,
-        0.14323678662824052,
-        -0.044414326706833915
+        1.9978614800285643,
+        1.0224266995864333,
+        0.18563760234190874,
+        -0.10280776173917555,
+        -0.1989863980434185,
+        -0.21348521039408666
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.4418963423789393
+          "energy": 2.273105612669483
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.4418963423789393,
-          "uncertainty": 0.8268551271788149
+          "distance_from_origin": 2.273105612669483,
+          "uncertainty": 0.8124461801811043
         }
       },
       "stream_activations": [
@@ -2260,16 +2248,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.0059604644775390625,
-          "budget_remaining_ms": 149.99403953552246
+          "cost_ms": 0.0057220458984375,
+          "budget_remaining_ms": 149.99427795410156
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.008344650268554688,
-          "budget_remaining_ms": 149.9856948852539
+          "cost_ms": 0.008106231689453125,
+          "budget_remaining_ms": 149.9861717224121
         }
       ],
       "selected_intent": {
@@ -2278,13 +2266,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.985694885253906,
+      "budget_consumed_ms": -34.98617172241211,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 1.7879009246826172,
+      "cycle_duration_ms": 2.640247344970703,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.1398431970633397,
+      "mission_drift": 0.2694511954868146,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -2303,20 +2291,14 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.29683913367571396,
+          "score": 0.3171954714356639,
           "horizon": 5,
           "metadata": {
-            "index": 11,
-            "state_norm": 2.4125722965268013
+            "index": 8,
+            "state_norm": 2.1526301289040566
           },
-          "variance": 1.3502659567364925e-05,
-          "probabilistic": {
-            "mean": 0.29683913367571396,
-            "std": 0.0036745965176281496,
-            "ci_lower": 0.2926972398987917,
-            "ci_upper": 0.3012340428550436,
-            "n_samples": 3
-          }
+          "variance": 0.0,
+          "probabilistic": null
         }
       ],
       "perception_quality": {
@@ -2343,9 +2325,9 @@
       "knowledge_report": {
         "domain": "unknown",
         "approach": "perceive",
-        "outcome": 0.8973791363194773,
+        "outcome": 0.886341387817789,
         "avoid": [],
-        "summary": "Knowledge: perceive scored 0.90 \u2014 exploiting proven strategy",
+        "summary": "Knowledge: perceive scored 0.89 \u2014 exploiting proven strategy",
         "adjust_risk": 0.010000000000000002,
         "adjust_exploration": -0.010000000000000002,
         "quality_adjustment": 0.0
@@ -2396,18 +2378,18 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 3.39692988941501e-05,
-        "attention_momentum": 0.1752188644311586,
-        "mean_threat_ratio": 0.2611550449152257,
-        "mean_opportunity_ratio": 0.32845845593227674,
-        "mean_maintenance_ratio": 0.41038649915249753,
+        "counterfactual_diversity": 4.1016644995846916e-05,
+        "attention_momentum": 0.04755892234636657,
+        "mean_threat_ratio": 0.2637891195051441,
+        "mean_opportunity_ratio": 0.3216851212724866,
+        "mean_maintenance_ratio": 0.4145257592223693,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.1424984265758666,
-          0.33445138827960497,
-          0.10262086368052271,
-          0.1398431970633397
+          0.27082163789643654,
+          0.2704774507785356,
+          0.11365861218221099,
+          0.2694511954868146
         ],
         "allocation_count": 4,
         "default_action_space": 10,
@@ -2418,9 +2400,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.26826072768049664,
-          "opportunity_ratio": 0.3101867002501516,
-          "maintenance_ratio": 0.42155257206935187
+          "threat_ratio": 0.2660736253449514,
+          "opportunity_ratio": 0.3158106776844108,
+          "maintenance_ratio": 0.41811569697063794
         },
         "cost_tracker": {
           "total_maintenance": 0.271,
@@ -2488,9 +2470,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.985694885253906,
+            "consumed_ms": -34.98617172241211,
             "total_ms": 100.0,
-            "utilization": -0.34985694885253904,
+            "utilization": -0.34986171722412107,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -2518,9 +2500,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.985694885253906,
+          "consumed_ms": -34.98617172241211,
           "total_ms": 100.0,
-          "utilization": -0.34985694885253904,
+          "utilization": -0.34986171722412107,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -2551,13 +2533,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.29615257483724455,
+          "U_W": 0.3089312097412602,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
-          "dominant": "none"
+          "dominant": "environmental"
         },
-        "U_W": 0.29615257483724455,
+        "U_W": 0.3089312097412602,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -2597,10 +2579,10 @@
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.1499570846557617,
+        "maintenance_cost": -0.14995851516723632,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.2999713897705078,
+        "future_option_value": 0.2999723434448242,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "gamma": 0.95,
@@ -2615,9 +2597,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_3_1785094461147",
-      "produced_ctx_id": "ctx_4_1785094461151",
-      "merkle_root": "f93baa8e1b7085dd2f0eabcb01ba2b27c883c13a0cf16eeadd76f3fd1b7b191b",
+      "spent_ctx_id": "ctx_3_1785094977097",
+      "produced_ctx_id": "ctx_4_1785094977102",
+      "merkle_root": "414f922d032a22d97c77389d42feebe1a0f1b658c802d2f86047a35e8c17aa03",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -2631,7 +2613,7 @@
             "signature": "89caa37b85ee269a"
           }
         },
-        "council_signature": "bbd72f1f68fec730"
+        "council_signature": "90f706d2796d0018"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -2646,20 +2628,14 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.29683913367571396,
+            "score": 0.3171954714356639,
             "horizon": 5,
             "metadata": {
-              "index": 11,
-              "state_norm": 2.4125722965268013
+              "index": 8,
+              "state_norm": 2.1526301289040566
             },
-            "variance": 1.3502659567364925e-05,
-            "probabilistic": {
-              "mean": 0.29683913367571396,
-              "std": 0.0036745965176281496,
-              "ci_lower": 0.2926972398987917,
-              "ci_upper": 0.3012340428550436,
-              "n_samples": 3
-            }
+            "variance": 0.0,
+            "probabilistic": null
           }
         ],
         "stream_activations": [
@@ -2675,14 +2651,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.0059604644775390625
+            "cost_ms": 0.0057220458984375
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.008344650268554688
+            "cost_ms": 0.008106231689453125
           }
         ],
         "causal_graph": {
@@ -2695,9 +2671,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.985694885253906,
+            "consumed_ms": -34.98617172241211,
             "total_ms": 100.0,
-            "utilization": -0.34985694885253904,
+            "utilization": -0.34986171722412107,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -2728,13 +2704,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.29615257483724455,
+            "U_W": 0.3089312097412602,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
-            "dominant": "none"
+            "dominant": "environmental"
           },
-          "U_W": 0.29615257483724455,
+          "U_W": 0.3089312097412602,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -2751,15 +2727,15 @@
               "signature": "89caa37b85ee269a"
             }
           },
-          "council_signature": "bbd72f1f68fec730"
+          "council_signature": "90f706d2796d0018"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.1499570846557617,
+          "maintenance_cost": -0.14995851516723632,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.2999713897705078,
+          "future_option_value": 0.2999723434448242,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "gamma": 0.95,
@@ -2794,18 +2770,18 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 3.39692988941501e-05,
-          "attention_momentum": 0.1752188644311586,
-          "mean_threat_ratio": 0.2611550449152257,
-          "mean_opportunity_ratio": 0.32845845593227674,
-          "mean_maintenance_ratio": 0.41038649915249753,
+          "counterfactual_diversity": 4.1016644995846916e-05,
+          "attention_momentum": 0.04755892234636657,
+          "mean_threat_ratio": 0.2637891195051441,
+          "mean_opportunity_ratio": 0.3216851212724866,
+          "mean_maintenance_ratio": 0.4145257592223693,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.1424984265758666,
-            0.33445138827960497,
-            0.10262086368052271,
-            0.1398431970633397
+            0.27082163789643654,
+            0.2704774507785356,
+            0.11365861218221099,
+            0.2694511954868146
           ],
           "allocation_count": 4,
           "default_action_space": 10,
@@ -2816,9 +2792,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.26826072768049664,
-            "opportunity_ratio": 0.3101867002501516,
-            "maintenance_ratio": 0.42155257206935187
+            "threat_ratio": 0.2660736253449514,
+            "opportunity_ratio": 0.3158106776844108,
+            "maintenance_ratio": 0.41811569697063794
           },
           "cost_tracker": {
             "total_maintenance": 0.271,
@@ -2856,7 +2832,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.1398431970633397,
+        "mission_drift": 0.2694511954868146,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -2905,9 +2881,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.985694885253906,
+              "consumed_ms": -34.98617172241211,
               "total_ms": 100.0,
-              "utilization": -0.34985694885253904,
+              "utilization": -0.34986171722412107,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -2933,7 +2909,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "f93baa8e1b7085dd2f0eabcb01ba2b27c883c13a0cf16eeadd76f3fd1b7b191b",
+        "merkle_root": "414f922d032a22d97c77389d42feebe1a0f1b658c802d2f86047a35e8c17aa03",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -2965,24 +2941,24 @@
     },
     {
       "cycle_id": 5,
-      "timestamp": 1785094461.157011,
+      "timestamp": 1785094977.1079412,
       "world_state": [
-        2.1687835366837604,
-        1.0584354904583435,
-        -0.0031159974899746695,
-        -0.14408166743831405,
-        0.18368956699502897,
-        0.02554520245798325
+        1.945733741383481,
+        1.049333731748133,
+        0.008207739743399584,
+        -0.062340466775674785,
+        0.0324104238089416,
+        -0.14940226925853728
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.424679642174594
+          "energy": 2.2168234587723044
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.424679642174594,
-          "uncertainty": 0.8242036948767864
+          "distance_from_origin": 2.2168234587723044,
+          "uncertainty": 0.7730025150535684
         }
       },
       "stream_activations": [
@@ -2999,16 +2975,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.0057220458984375,
-          "budget_remaining_ms": 149.99427795410156
+          "cost_ms": 0.0069141387939453125,
+          "budget_remaining_ms": 149.99308586120605
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.009059906005859375,
-          "budget_remaining_ms": 149.9852180480957
+          "cost_ms": 0.011920928955078125,
+          "budget_remaining_ms": 149.98116493225098
         }
       ],
       "selected_intent": {
@@ -3017,13 +2993,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.9852180480957,
+      "budget_consumed_ms": -34.98116493225098,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 1.7650127410888672,
+      "cycle_duration_ms": 1.9469261169433594,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.16396146029547784,
+      "mission_drift": 0.14839716487025265,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -3042,18 +3018,18 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.30445279471695286,
+          "score": 0.31659244575939904,
           "horizon": 5,
           "metadata": {
-            "index": 14,
-            "state_norm": 2.287627131855611
+            "index": 0,
+            "state_norm": 2.109493391350553
           },
-          "variance": 1.8054371067232385e-05,
+          "variance": 0.00020376293636413325,
           "probabilistic": {
-            "mean": 0.30445279471695286,
-            "std": 0.0042490435473447885,
-            "ci_lower": 0.3007622493421714,
-            "ci_upper": 0.30998485036396756,
+            "mean": 0.31659244575939904,
+            "std": 0.014274555557499269,
+            "ci_lower": 0.2979180822014403,
+            "ci_upper": 0.3267068628517086,
             "n_samples": 3
           }
         }
@@ -3136,19 +3112,19 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 3.3434395075336946e-05,
-        "attention_momentum": 0.48187552484093255,
-        "mean_threat_ratio": 0.2624963055863119,
-        "mean_opportunity_ratio": 0.3250094999209123,
-        "mean_maintenance_ratio": 0.4124941944927758,
+        "counterfactual_diversity": 4.1414936082692046e-05,
+        "attention_momentum": 0.0647433722326214,
+        "mean_threat_ratio": 0.26300525060522284,
+        "mean_opportunity_ratio": 0.32370078415799836,
+        "mean_maintenance_ratio": 0.41329396523677875,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.1424984265758666,
-          0.33445138827960497,
-          0.10262086368052271,
-          0.1398431970633397,
-          0.16396146029547784
+          0.27082163789643654,
+          0.2704774507785356,
+          0.11365861218221099,
+          0.2694511954868146,
+          0.14839716487025265
         ],
         "allocation_count": 5,
         "default_action_space": 10,
@@ -3159,9 +3135,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.26786134827065655,
-          "opportunity_ratio": 0.3112136758754547,
-          "maintenance_ratio": 0.4209249758538889
+          "threat_ratio": 0.2598697750055379,
+          "opportunity_ratio": 0.3317634357000455,
+          "maintenance_ratio": 0.40836678929441667
         },
         "cost_tracker": {
           "total_maintenance": 0.3439000000000001,
@@ -3231,9 +3207,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.9852180480957,
+            "consumed_ms": -34.98116493225098,
             "total_ms": 100.0,
-            "utilization": -0.349852180480957,
+            "utilization": -0.34981164932250974,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -3261,9 +3237,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.9852180480957,
+          "consumed_ms": -34.98116493225098,
           "total_ms": 100.0,
-          "utilization": -0.349852180480957,
+          "utilization": -0.34981164932250974,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -3294,13 +3270,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.2677375868398901,
+          "U_W": 0.28858449542321307,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "none"
         },
-        "U_W": 0.2677375868398901,
+        "U_W": 0.28858449542321307,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -3340,10 +3316,10 @@
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.1499556541442871,
+        "maintenance_cost": -0.14994349479675292,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.2999704360961914,
+        "future_option_value": 0.29996232986450194,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "gamma": 0.95,
@@ -3358,9 +3334,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_4_1785094461151",
-      "produced_ctx_id": "ctx_5_1785094461157",
-      "merkle_root": "c7d32056fa761f7249b99bc7b9eff49f51b336b57a16bb3d560783de35e2a457",
+      "spent_ctx_id": "ctx_4_1785094977102",
+      "produced_ctx_id": "ctx_5_1785094977107",
+      "merkle_root": "bc3530bb15ee8f319749d2aaf4d1fe581e85bcad8898b81ea5ac6c52a93faf8d",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -3374,7 +3350,7 @@
             "signature": "2dfd36a0eaa0add0"
           }
         },
-        "council_signature": "ec68afee1501c8f7"
+        "council_signature": "f191e7341bfb5f7c"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -3389,18 +3365,18 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.30445279471695286,
+            "score": 0.31659244575939904,
             "horizon": 5,
             "metadata": {
-              "index": 14,
-              "state_norm": 2.287627131855611
+              "index": 0,
+              "state_norm": 2.109493391350553
             },
-            "variance": 1.8054371067232385e-05,
+            "variance": 0.00020376293636413325,
             "probabilistic": {
-              "mean": 0.30445279471695286,
-              "std": 0.0042490435473447885,
-              "ci_lower": 0.3007622493421714,
-              "ci_upper": 0.30998485036396756,
+              "mean": 0.31659244575939904,
+              "std": 0.014274555557499269,
+              "ci_lower": 0.2979180822014403,
+              "ci_upper": 0.3267068628517086,
               "n_samples": 3
             }
           }
@@ -3418,14 +3394,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.0057220458984375
+            "cost_ms": 0.0069141387939453125
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.009059906005859375
+            "cost_ms": 0.011920928955078125
           }
         ],
         "causal_graph": {
@@ -3438,9 +3414,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.9852180480957,
+            "consumed_ms": -34.98116493225098,
             "total_ms": 100.0,
-            "utilization": -0.349852180480957,
+            "utilization": -0.34981164932250974,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -3471,13 +3447,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.2677375868398901,
+            "U_W": 0.28858449542321307,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "none"
           },
-          "U_W": 0.2677375868398901,
+          "U_W": 0.28858449542321307,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -3494,15 +3470,15 @@
               "signature": "2dfd36a0eaa0add0"
             }
           },
-          "council_signature": "ec68afee1501c8f7"
+          "council_signature": "f191e7341bfb5f7c"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.1499556541442871,
+          "maintenance_cost": -0.14994349479675292,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.2999704360961914,
+          "future_option_value": 0.29996232986450194,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "gamma": 0.95,
@@ -3537,19 +3513,19 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 3.3434395075336946e-05,
-          "attention_momentum": 0.48187552484093255,
-          "mean_threat_ratio": 0.2624963055863119,
-          "mean_opportunity_ratio": 0.3250094999209123,
-          "mean_maintenance_ratio": 0.4124941944927758,
+          "counterfactual_diversity": 4.1414936082692046e-05,
+          "attention_momentum": 0.0647433722326214,
+          "mean_threat_ratio": 0.26300525060522284,
+          "mean_opportunity_ratio": 0.32370078415799836,
+          "mean_maintenance_ratio": 0.41329396523677875,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.1424984265758666,
-            0.33445138827960497,
-            0.10262086368052271,
-            0.1398431970633397,
-            0.16396146029547784
+            0.27082163789643654,
+            0.2704774507785356,
+            0.11365861218221099,
+            0.2694511954868146,
+            0.14839716487025265
           ],
           "allocation_count": 5,
           "default_action_space": 10,
@@ -3560,9 +3536,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.26786134827065655,
-            "opportunity_ratio": 0.3112136758754547,
-            "maintenance_ratio": 0.4209249758538889
+            "threat_ratio": 0.2598697750055379,
+            "opportunity_ratio": 0.3317634357000455,
+            "maintenance_ratio": 0.40836678929441667
           },
           "cost_tracker": {
             "total_maintenance": 0.3439000000000001,
@@ -3601,7 +3577,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.16396146029547784,
+        "mission_drift": 0.14839716487025265,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -3651,9 +3627,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.9852180480957,
+              "consumed_ms": -34.98116493225098,
               "total_ms": 100.0,
-              "utilization": -0.349852180480957,
+              "utilization": -0.34981164932250974,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -3679,7 +3655,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "c7d32056fa761f7249b99bc7b9eff49f51b336b57a16bb3d560783de35e2a457",
+        "merkle_root": "bc3530bb15ee8f319749d2aaf4d1fe581e85bcad8898b81ea5ac6c52a93faf8d",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -3699,7 +3675,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.25,
-        "learning_rate": 0.0095,
+        "learning_rate": 0.0068,
         "boredom_count": 5,
         "novelty_seeking": true,
         "self_intent_active": false,
