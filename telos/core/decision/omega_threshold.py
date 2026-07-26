@@ -36,6 +36,35 @@ class OmegaThresholdLearner:
         self.decision_difficulty: float = 0.0
         self._difficulty_history: list = []  # rolling window, last 20
         self._max_difficulty_history: int = 20
+        self._seed_priors()
+
+    def _seed_priors(self) -> None:
+        """Pre-populate buckets with weak synthetic priors.
+
+        Low omega values (< 0.3): inquiry tends to improve DI → more alpha.
+        Mid omega values (0.3-0.7): mixed results → balanced alpha/beta.
+        High omega values (> 0.7): inquiry tends to waste compute → more beta.
+
+        Priors are weak (3-5 synthetic observations) so real data overrides them.
+        Checkpoint restore overwrites these entirely — this only affects cold start.
+        """
+        for i in range(11):
+            bucket_key = f"{i * 0.1:.1f}"
+            omega_val = i * 0.1
+            if omega_val < 0.3:
+                alpha = 4
+                beta = 1
+            elif omega_val < 0.7:
+                alpha = 3
+                beta = 3
+            else:
+                alpha = 1
+                beta = 4
+            self.buckets[bucket_key] = {
+                'alpha': alpha,
+                'beta': beta,
+                'count': alpha + beta,
+            }
 
     def compute_decision_difficulty(self, trajectory_quality: float,
                                      worlds_simulated: int,
@@ -136,7 +165,10 @@ class OmegaThresholdLearner:
     @classmethod
     def from_dict(cls, d: Dict) -> 'OmegaThresholdLearner':
         t = cls(default_threshold=d.get('default_threshold', 0.5))
-        t.buckets = d.get('buckets', {})
+        restored = d.get('buckets', {})
+        # Merge restored data over seeded priors: restored buckets replace seed data
+        for k, v in restored.items():
+            t.buckets[k] = v
         t.decision_difficulty = d.get('decision_difficulty', 0.0)
         t._difficulty_history = d.get('difficulty_history', [])
         return t

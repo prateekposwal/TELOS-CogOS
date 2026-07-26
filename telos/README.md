@@ -133,6 +133,32 @@ PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT → COUNCIL → ACT
 ## Part III: Key Components
 
 
+## Part IIIb: v2/v2.5 Modules
+
+19 architectural modules supplement the core pipeline with meta-cognition, curiosity, regret, debate, and identity compression. Each runs at a specific phase hook:
+
+| Module | Phase Hook | Purpose |
+|--------|-----------|---------|
+| `UnknownUnknownDetector` | Post-Perceive | Finds blind spots — what the system should know but hasn't considered |
+| `ModelCompetition` | Post-Evaluate | Bayesian competition between multiple hypotheses |
+| `InternalDebate` | Post-Select | Multi-perspective deliberation (optimist, skeptic, economist, engineer, ethicist) |
+| `CouncilReflector` | Post-Council | Meta-learning — evaluates council accuracy after outcomes |
+| `TheoryBuilder` | Post-Act | Experience → cluster → hypothesis → theory pipeline |
+| `RegretMemory` | Post-Act | Counterfactual what-if archival for future planning |
+| `AxiomProver` | Post-Council | Verifies all 20 axioms against the decision trace |
+| `SurpriseBudget` | Post-cycle | Prediction error drives compute allocation |
+| `CognitiveEnergy` | Post-cycle | Mental fatigue model — depletes on hard decisions |
+| `DualConfidence` | Post-cycle | Separates decision confidence from explanation confidence |
+| `TimeHorizonSeparator` | Post-cycle | Four-horizon utility (immediate/short/long/irreversible) |
+| `IdentityCompression` | Post-cycle | Batches experiences into identity markers |
+| `ExplanationCompression` | Post-cycle | Finds minimal rules from outcome patterns |
+| `IdentityUtilityEngine` | Post-cycle | Identity-modulated utility function selection |
+| `AssumptionAuditor` | Post-cycle | Periodic assumption challenges |
+| `ActiveForgetting` | Post-cycle | Deliberate belief examination and pruning |
+| `IntrospectionScheduler` | Post-cycle | 3-tier reflection (cycle/reflect/strategic) |
+| `ErrorAttributionEngine` | Post-cycle | Subsystem-level error attribution |
+| `AxiomEvolutionEngine` | Post-cycle | System proposes new axioms, human approves |
+
 ### Knowledge & Inference (`telos/core/knowledge/`)
 Powered by `KGInferenceEngine`, providing Euclidean similarity for knowledge retrieval and clustering of failure patterns for structural memory enhancement (Axiom 3.3).
 
@@ -247,7 +273,7 @@ print(f"Streams activated: {len([a for a in trace.stream_activations if a.activa
 python3 -m pytest tests/
 ```
 
-340+ tests across 37+ files covering all 20 axioms, the Pipeline, Council, Governance, WorldLedger, InfrastructureManager, Transparency Monitor, domain plugin compliance (DSI contract), StrategicOption queries, and architectural invariance.
+422 tests across 47 files covering all 20 axioms, the Pipeline, Council, Governance, WorldLedger, InfrastructureManager, Transparency Monitor, domain plugin compliance (DSI contract), StrategicOption queries, architectural invariance, and all 19 v2/v2.5 modules.
 
 ---
 
