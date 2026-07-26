@@ -15,11 +15,12 @@ Axiom 4.6 (Emergent Intelligence).
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 
 from telos.core.phases.base import Phase, PhaseContext, SynthesisOutput
 from telos.intent_ir import IntentIR
+from telos.core.reasoning.interpretation_engine import Principle
 
 logger = logging.getLogger('telos_synthesis')
 
@@ -197,6 +198,33 @@ class SynthesisPhase(Phase):
                 )
                 # Keep the safety intent as reconciled but mark irreconcilable
                 # so the Council handles the conflict in the next phase
+
+        # InterpretationEngine: detect principle conflicts in synthesis
+        try:
+            ie = getattr(pipeline, '_interpretation_engine', None)
+            if ie is not None and hasattr(ie, 'detect_conflict'):
+                principles = []
+                for intent, _ in ctx.intents:
+                    stream = intent.metadata.get('stream', 'unknown') if intent.metadata else 'unknown'
+                    principles.append(Principle(
+                        name=intent.intent_type,
+                        description=f"Intent from {stream}",
+                        axiom_ref="4.6",
+                        current_priority=float(intent.confidence),
+                    ))
+                if principles:
+                    conflict = ie.detect_conflict(principles=principles, context={
+                        "cycle": ctx.cycle_count,
+                        "compatibility": compatibility,
+                    })
+                    if conflict is not None:
+                        ie.interpret(
+                            conflict_type=conflict,
+                            principles=principles,
+                            context={"compatibility": compatibility},
+                        )
+        except Exception:
+            pass
 
         ctx.synthesis = SynthesisOutput(
             reconciled_intent=merged,

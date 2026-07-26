@@ -1252,8 +1252,18 @@ class TelosV14Pipeline:
                 md=trace.mission_drift if trace else 0.0,
             )
             # IntrospectionScheduler: multi-timescale reflection
-            self._introspection_scheduler.tick()
-            self._introspection_scheduler.maybe_introspect(self._cycle_count, ctx, trace)
+            self._introspection_scheduler.get_due_tiers(self._cycle_count)
+            self._introspection_scheduler.introspect(self._cycle_count)
+            # STRATEGIC tier triggers theory formation
+            if self._cycle_count % 1000 == 0:
+                try:
+                    tb = self._theory_builder
+                    if tb.total_experiences > 0:
+                        tb.cluster()
+                        tb.hypothesize()
+                        tb.promote()
+                except Exception:
+                    pass
             # CognitiveEnergy: deplete on hard decisions, recover on rest
             self._cognitive_energy.deplete(1.0 if was_blocked else 0.3)
             self._cognitive_energy.tick()

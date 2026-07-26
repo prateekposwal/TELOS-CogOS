@@ -1,4 +1,4 @@
-# TELOS — 24 Axioms of Systemic Intelligence (v2.0)
+# TELOS — 42 Axioms of Systemic Intelligence (v2.0)
 
 ## Layer 1: Architectural Invariance
 | # | Axiom | Formal | Meaning | Implementation |
