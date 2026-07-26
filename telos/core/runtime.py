@@ -28,6 +28,8 @@ from telos.core.attention.projection import AttentionProjectionEngine, Attention
 from telos.core.attention.identity_entropy import IdentityEntropyTracker
 from telos.core.decision.commitment_optimizer import CommitmentOptimizer
 from telos.core.decision.omega_threshold import OmegaThresholdLearner
+from telos.core.decision.cognitive_momentum import CognitiveMomentum
+from telos.core.streams.implementations import TheoryStream
 from telos.core.resource.gradient import ResourceGradientTracker
 from telos.core.streams.base import CognitiveStream
 from telos.core.simulation import CounterfactualEngine, StrategicOption
@@ -244,6 +246,8 @@ class TelosV14Pipeline:
         # P2.8: Axiom evolution — system proposes, human approves (proposal)
         self._theory_builder = TheoryBuilder()
         # P2.7: Theory builder — experience → cluster → hypothesis → test → theory
+        self._cognitive_momentum = CognitiveMomentum()
+        # Cognitive momentum — M_c = Σ w_i · a_i, decision inertia tracking
         self._regret_memory = RegretMemory()
         # P2.6: Regret memory — counterfactual what-if archival
         self._introspection_scheduler = IntrospectionScheduler()
@@ -754,6 +758,16 @@ class TelosV14Pipeline:
                 except Exception:
                     pass
 
+                # ── v2: CognitiveMomentum — record decision inertia ──
+                try:
+                    intent_type = ctx.selected_intent.intent_type if ctx.selected_intent else "unknown"
+                    self._cognitive_momentum.record_decision(
+                        cycle=ctx.cycle_count,
+                        intent_type=intent_type,
+                    )
+                except Exception:
+                    pass
+
                 # P1 D3: Multi-resource budget tracking — fallback if not already set
                 # (primary budget computation happens after STREAMS phase)
                 existing = getattr(ctx, 'resource_budgets', None)
@@ -1252,6 +1266,11 @@ class TelosV14Pipeline:
             )
             # ActiveForgetting: flag stale beliefs for review
             self._active_forgetting.tick()
+            # CognitiveMomentum: detect policy lock-in
+            momentum_rec = self._cognitive_momentum.recommend_unstick()
+            if momentum_rec:
+                logger.info(f"CognitiveMomentum: {momentum_rec} "
+                           f"(M={self._cognitive_momentum.momentum:.2f})")
             # TimeHorizonSeparator: compute multi-horizon utility if action taken
             if ctx.selected_intent and ctx.selected_intent.params.get("action_vector") is not None:
                 self._time_horizon.evaluate_action(

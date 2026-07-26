@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.WARNING)
 
 from telos.core.runtime import PipelineConfig, TelosV14Pipeline
 from telos.core.streams.implementations import (
-    ReflexStream, PerceptionStream, MemoryStream, PlanningStream,
+    ReflexStream, PerceptionStream, MemoryStream, PlanningStream, TheoryStream,
 )
 from telos.core.streams.inquiry_stream import InquiryStream
 from telos.core.council.validators import (
@@ -489,6 +489,7 @@ def main():
     pipeline.register_stream(MemoryStream(skill_lib))
     pipeline.register_stream(PlanningStream(skill_lib, sim_engine=sim_engine))
     pipeline.register_stream(InquiryStream(skill_lib))
+    pipeline.register_stream(TheoryStream(skill_lib, theory_builder=getattr(pipeline, '_theory_builder', None)))
     pipeline.register_validator(RealityValidator())
     pipeline.register_validator(ConstraintValidator())
     memory_advisor = MemoryAdvisor(skill_lib)

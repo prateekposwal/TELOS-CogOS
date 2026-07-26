@@ -17,13 +17,14 @@ safety check for NaN/Inf detection and safety_score violations.
 import hashlib
 import numpy as np
 import logging
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from telos.core.streams.base import CognitiveStream
 from telos.world.world import World
 from telos.world.facts import DomainFacts
 from telos.core.ledger.skill_library import SkillLibrary
 from telos.intent_ir import IntentIR
+from telos.core.reasoning.theory_builder import TheoryBuilder
 
 logger = logging.getLogger('telos_streams')
 
@@ -294,3 +295,102 @@ class PlanningStream(CognitiveStream):
                 params={"error": str(e)},
                 metadata={"stream": "planning"},
             )
+
+
+class TheoryStream(CognitiveStream):
+    """Proposes new hypotheses and theories from accumulated experience.
+
+    Wraps TheoryBuilder as a first-class cognitive stream so that
+    theory formation is unbypassable at the architecture level.
+
+    Runs with priority 0.4 (after planning, before council) and
+    proposes "propose_hypothesis" or "propose_theory" intents
+    when abstraction progress has been made.
+    """
+
+    def __init__(self, skill_library: SkillLibrary,
+                 theory_builder: Optional[TheoryBuilder] = None):
+        super().__init__(skill_library)
+        self._builder = theory_builder or TheoryBuilder()
+        self._last_proposal_cycle: int = 0
+        self._abstraction_level: str = "none"
+
+    def set_builder(self, builder: TheoryBuilder) -> None:
+        self._builder = builder
+
+    @property
+    def builder(self) -> TheoryBuilder:
+        return self._builder
+
+    @property
+    def priority(self) -> float:
+        return 0.4
+
+    @property
+    def estimated_cost_ms(self) -> float:
+        return 4.0
+
+    def process(self, world: World) -> IntentIR:
+        cycle = int(getattr(world, 'cycle', 0))
+
+        # Cluster experiences into patterns
+        patterns = self._builder.cluster()
+        if patterns and len(patterns) > 0:
+            self._abstraction_level = "pattern"
+
+        # Generate hypotheses from patterns
+        hypotheses = self._builder.hypothesize()
+        if hypotheses and len(hypotheses) > 0:
+            self._abstraction_level = "hypothesis"
+
+        # Attempt to promote to theories
+        promoted = self._builder.promote()
+        if promoted and len(promoted) > 0:
+            self._abstraction_level = "theory"
+
+        theories = self._builder.get_active_theories()
+        n_theories = len(theories) if theories else 0
+        n_hypotheses = len(self._builder.get_active_hypotheses()) if hasattr(self._builder, 'get_active_hypotheses') else 0
+
+        # Only propose intent when something changed
+        if n_theories > 0 and cycle > self._last_proposal_cycle:
+            self._last_proposal_cycle = cycle
+            return IntentIR(
+                intent_type="propose_theory",
+                confidence=min(0.7, 0.3 + 0.1 * n_theories),
+                params={
+                    "n_theories": n_theories,
+                    "n_hypotheses": n_hypotheses,
+                    "abstraction_level": self._abstraction_level,
+                },
+                metadata={
+                    "stream": "theory",
+                    "n_theories": n_theories,
+                    "abstraction_level": self._abstraction_level,
+                },
+            )
+
+        if n_hypotheses > 0 and cycle > self._last_proposal_cycle + 3:
+            self._last_proposal_cycle = cycle
+            return IntentIR(
+                intent_type="propose_hypothesis",
+                confidence=0.4,
+                params={
+                    "n_hypotheses": n_hypotheses,
+                    "n_theories": n_theories,
+                },
+                metadata={
+                    "stream": "theory",
+                    "n_hypotheses": n_hypotheses,
+                },
+            )
+
+        return IntentIR(
+            intent_type="theory_idle",
+            confidence=0.2,
+            params={
+                "total_experiences": self._builder.total_experiences,
+                "abstraction_level": self._abstraction_level,
+            },
+            metadata={"stream": "theory"},
+        )
