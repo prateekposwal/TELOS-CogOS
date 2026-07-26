@@ -674,6 +674,27 @@ class TelosV14Pipeline:
                 except Exception:
                     pass
 
+            # ── Identity Modeling (parallel track): update identity before select ──
+            if phase.name == "select":
+                try:
+                    ss = self._system_self
+                    if ss is not None:
+                        outcome_success = not (getattr(ctx, 'council_blocked', False)
+                                               or getattr(ctx, 'firewall_blocked', False))
+                        ss.update(ctx.state if hasattr(ctx, 'state') else None,
+                                  ctx.selected_intent.intent_type if ctx.selected_intent else "none",
+                                  outcome_success,
+                                  {"cycle": ctx.cycle_count})
+                        ctx.identity_state = ss.get_state()
+                    # Identity entropy refresh
+                    ie = self._identity_entropy
+                    if ie is not None:
+                        n_options = len(getattr(ctx, 'sim_options', []) or [])
+                        ie.record(max(1, n_options))
+                        ctx.identity_entropy = ie.collapse_rate
+                except Exception:
+                    pass
+
             # ── v2: InternalDebate — multi-perspective analysis before decision ──
             if phase.name == "select":
                 try:
