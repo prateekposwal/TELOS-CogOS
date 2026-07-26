@@ -453,6 +453,34 @@ class TheoryBuilder:
                 return False
         return True
 
+    def estimate_theory_gain(self, context: Dict[str, Any],
+                              action: str) -> float:
+        """Estimate expected theory gain from taking an action.
+
+        TG is high when:
+        - There's no matching theory yet (novel context)
+        - There are active hypotheses that could be confirmed
+        - The system has many uncategorized patterns
+
+        Returns float [0, 1].
+        """
+        n_theories = len(self._theories)
+        n_hypotheses = len([h for h in self._hypotheses.values() if not h.falsified])
+        n_patterns = len(self._patterns)
+
+        # No abstraction yet → high potential gain
+        if n_theories == 0 and n_hypotheses == 0 and n_patterns < 3:
+            return 0.8  # fertile ground for new theories
+
+        # Active hypotheses that could be tested
+        hypothesis_ratio = n_hypotheses / max(n_hypotheses + n_theories, 1)
+
+        # Unclustered patterns ready for abstraction
+        pattern_potential = min(1.0, n_patterns / 10.0) if n_patterns > 2 else 0.0
+
+        gain = hypothesis_ratio * 0.6 + pattern_potential * 0.4
+        return min(1.0, gain)
+
     def get_active_theories(self) -> List[Theory]:
         return list(self._theories.values())
 
