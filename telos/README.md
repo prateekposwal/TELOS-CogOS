@@ -115,7 +115,7 @@ The TELOS runtime is a **pure reasoning pipeline** governed by the axioms above.
 A single decision cycle executes seven phases, each satisfying specific axioms:
 
 ```
-PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT → COUNCIL → ACT
+PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT → COUNCIL → ACT → REFLECT
 ```
 
 | Phase | Axioms Satisfied | Description |
