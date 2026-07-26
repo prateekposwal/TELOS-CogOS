@@ -153,7 +153,22 @@ class ReflectPhase(Phase):
         infra = getattr(pipeline, '_infra_manager', None)
         policy_mode = float(infra.policy.current.recovery_mode) if (infra and infra.policy) else 0.0
 
-        # 6. Attach reflection data to context for telemetry
+        # 6. TheoryBuilder: abstraction during reflection
+        tb = getattr(pipeline, '_theory_builder', None)
+        if tb is not None and tb.total_experiences > 0:
+            try:
+                patterns = tb.cluster()
+                hypotheses = tb.hypothesize()
+                promoted = tb.promote()
+                if promoted:
+                    logger.info(
+                        f"Cycle {ctx.cycle_count}: TheoryBuilder promoted "
+                        f"{len(promoted)} hypothesis(es) to theory during reflection"
+                    )
+            except Exception:
+                pass
+
+        # 7. Attach reflection data to context for telemetry
         ctx.reflection = {
             "pattern_count": len(self._pattern_lib.stats()["domains"]),
             "cross_domain_hits": len(cross),

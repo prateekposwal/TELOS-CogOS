@@ -139,7 +139,19 @@ class CuriosityDrive:
             self.state.exploitation_cycles += 1
             self.state.self_intent_generated = False
 
+        # 7. Trigger assumption auditing when boredom or high curiosity
+        aa = getattr(self, '_assumption_auditor', None)
+        if aa is not None and (self.state.novelty_seeking or self.state.curiosity_level > 0.7):
+            try:
+                aa.auto_audit(cycle=0, curiosity_level=self.state.curiosity_level)
+            except Exception:
+                pass
+
         return self.get_report()
+
+    def set_assumption_auditor(self, auditor) -> None:
+        """Inject AssumptionAuditor for curiosity-triggered audits."""
+        self._assumption_auditor = auditor
 
     def should_generate_self_intent(self) -> bool:
         """Should the system generate its own intent without external stimulus?
