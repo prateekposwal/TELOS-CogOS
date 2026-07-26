@@ -273,7 +273,7 @@ print(f"Streams activated: {len([a for a in trace.stream_activations if a.activa
 python3 -m pytest tests/
 ```
 
-422 tests across 47 files covering all 20 axioms, the Pipeline, Council, Governance, WorldLedger, InfrastructureManager, Transparency Monitor, domain plugin compliance (DSI contract), StrategicOption queries, architectural invariance, all 19 v2/v2.5 modules, and the complete Unified Cognitive Functional J.
+428 tests across 47 files covering all 20 axioms, the Pipeline, Council, Governance, WorldLedger, InfrastructureManager, Transparency Monitor, domain plugin compliance (DSI contract), StrategicOption queries, architectural invariance, all 19 v2/v2.5 modules, the complete Unified Cognitive Functional J, and the Resource Accounting Layer R(a,s).
 
 ---
 

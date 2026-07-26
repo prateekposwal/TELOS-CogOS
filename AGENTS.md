@@ -11,6 +11,7 @@
 - **20/20 axioms satisfied**
 - **9-phase pipeline** operational (Perceive, Streams, Simulate, Evaluate, Synthesis, Select, Council, Act, Reflect)
 - **6 cognitive streams** (Reflex 1.0, Perception 0.9, Inquiry 0.8, Memory 0.7, Planning 0.5, Theory 0.4)
+- **Resource Accounting Layer** R(a,s) = (C_compute, C_memory, C_bandwidth, C_storage) — per-action costing with pluggable blockchain backend
 - **Ω operator** with adaptive threshold + continuous sigmoid blend
 - **Tripartite uncertainty** U = (U_W, U_I, U_O)
 - **Relational Reasoning scaffold** (R_t slot reserved, interface defined)
@@ -19,7 +20,7 @@
 - **Deterministic execution** — cycle-aware seeding for reproducible runs
 - **Curiosity Drive** — intrinsic motivation via learning progress + boredom detection
 - **5 GridWorld upgrades** — Dynamic terrain, Fog of war, Multiple goals, Time pressure, Second agent
-- **135 Python files, 24,091 lines, 15 git commits**
+- **168 Python files, 33,000+ lines, 35 git commits**
 
 ## All shipping blockers fixed
 - ✅ Firewall loop detection tuned (3→4 threshold, available_moves check)
