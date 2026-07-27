@@ -1,5 +1,5 @@
 # TELOS Transparency Report
-**Generated:** 2026-07-28 05:03:01
+**Generated:** 2026-07-28 05:13:00
 **Total Decision Cycles:** 5
 
 ## Principle of Latent Cognition
@@ -27,10 +27,10 @@ decision traces that produced each visible action.
 | Cycles | 5 |
 | Stream Activations | 12/16 |
 | Activation Rate | 75.0% |
-| Total Budget Consumed | -123.8ms |
-| Average Health | 1.248 |
+| Total Budget Consumed | -123.0ms |
+| Average Health | 1.246 |
 | Average Decision Integrity (DI) | 1.000 |
-| Average Mission Drift (MD) | 0.203 |
+| Average Mission Drift (MD) | 0.249 |
 | Council-Blocked Cycles | 0 |
 
 ### Decision Integrity (DI)
@@ -43,30 +43,30 @@ Average DI of 1.000 means the system is strongly evidence-led across all cycles.
 
 MD = ||PredictedState - ObservedState||
 
-Average MD of 0.203 means the system's world model is well-calibrated.
+Average MD of 0.249 means the system's world model is well-calibrated.
 
 ---
 
 ## Decision Cycle Details
 
 ### Cycle 1
-- **Duration:** 3.83ms
-- **Budget:** 16.2/100.0ms
-- **Health:** 0.838
+- **Duration:** 4.40ms
+- **Budget:** 16.9/100.0ms
+- **Health:** 0.831
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.353
+- **MD:** 0.127
 
 **Stream Activations (Latent Processes):**
 
 | Stream | Priority | Activated | Intent | Cost |
 |--------|----------|-----------|--------|------|
 | ReflexStream | 1.0 | yes | reflex | 0.01ms |
-| PerceptionStream | 0.9 | yes | perceive | 0.05ms |
+| PerceptionStream | 0.9 | yes | perceive | 0.04ms |
 | MemoryStream | 0.7 | yes | memory_miss | 0.01ms |
-| PlanningStream | 0.5 | yes | plan_trajectory | 1.08ms |
+| PlanningStream | 0.5 | yes | plan_trajectory | 1.83ms |
 
 **Governance (Cognitive Confidentiality):**
 
@@ -82,7 +82,7 @@ Average MD of 0.203 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.3179, horizon=5
+  - Rank #1: score=0.3107, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`
@@ -92,14 +92,14 @@ Average MD of 0.203 means the system's world model is well-calibrated.
 ---
 
 ### Cycle 2
-- **Duration:** 3.44ms
+- **Duration:** 3.86ms
 - **Budget:** -35.0/100.0ms
 - **Health:** 1.350
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.153
+- **MD:** 0.281
 
 **Stream Activations (Latent Processes):**
 
@@ -107,7 +107,7 @@ Average MD of 0.203 means the system's world model is well-calibrated.
 |--------|----------|-----------|--------|------|
 | PerceptionStream | 0.9 | SKIPPED | - | 0.00ms |
 | ReflexStream | 1.0 | yes | reflex | 0.01ms |
-| MemoryStream | 0.7 | yes | memory_recall | 0.01ms |
+| MemoryStream | 0.7 | yes | memory_recall | 0.02ms |
 
 **Governance (Cognitive Confidentiality):**
 
@@ -117,7 +117,7 @@ Average MD of 0.203 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.3066, horizon=5
+  - Rank #1: score=0.3426, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`
@@ -127,14 +127,14 @@ Average MD of 0.203 means the system's world model is well-calibrated.
 ---
 
 ### Cycle 3
-- **Duration:** 1.91ms
+- **Duration:** 2.01ms
 - **Budget:** -35.0/100.0ms
 - **Health:** 1.350
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.085
+- **MD:** 0.233
 
 **Stream Activations (Latent Processes):**
 
@@ -152,7 +152,7 @@ Average MD of 0.203 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.2991, horizon=5
+  - Rank #1: score=0.3352, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`
@@ -162,14 +162,51 @@ Average MD of 0.203 means the system's world model is well-calibrated.
 ---
 
 ### Cycle 4
-- **Duration:** 2.65ms
+- **Duration:** 2.09ms
 - **Budget:** -35.0/100.0ms
 - **Health:** 1.350
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.161
+- **MD:** 0.311
+
+  🔒 **Firewall Blocked:** `action_loop`
+
+**Stream Activations (Latent Processes):**
+
+| Stream | Priority | Activated | Intent | Cost |
+|--------|----------|-----------|--------|------|
+| PerceptionStream | 0.9 | SKIPPED | - | 0.00ms |
+| ReflexStream | 1.0 | yes | reflex | 0.01ms |
+| MemoryStream | 0.7 | yes | memory_recall | 0.01ms |
+
+**Governance (Cognitive Confidentiality):**
+
+| Check | Passed | Reason |
+|-------|--------|--------|
+| loop_detection | ❌ | Same action 'perceive' repeated 4+ consecutive cycles |
+
+**Strategic Options (Alternative Futures):**
+
+  - Rank #1: score=0.3320, horizon=5
+
+**Decision Trace:**
+- Intent: `perceive`
+- Confidence: 0.850
+
+
+---
+
+### Cycle 5
+- **Duration:** 2.61ms
+- **Budget:** -35.0/100.0ms
+- **Health:** 1.350
+- **Representation:** spatial
+- **Worlds Simulated:** 1
+- **Council: ✅ APPROVED**
+- **DI:** 1.000
+- **MD:** 0.293
 
   🔒 **Firewall Blocked:** `action_loop`
 
@@ -189,44 +226,7 @@ Average MD of 0.203 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.2924, horizon=5
-
-**Decision Trace:**
-- Intent: `perceive`
-- Confidence: 0.850
-
-
----
-
-### Cycle 5
-- **Duration:** 2.62ms
-- **Budget:** -35.0/100.0ms
-- **Health:** 1.350
-- **Representation:** spatial
-- **Worlds Simulated:** 1
-- **Council: ✅ APPROVED**
-- **DI:** 1.000
-- **MD:** 0.261
-
-  🔒 **Firewall Blocked:** `action_loop`
-
-**Stream Activations (Latent Processes):**
-
-| Stream | Priority | Activated | Intent | Cost |
-|--------|----------|-----------|--------|------|
-| PerceptionStream | 0.9 | SKIPPED | - | 0.00ms |
-| ReflexStream | 1.0 | yes | reflex | 0.01ms |
-| MemoryStream | 0.7 | yes | memory_recall | 0.01ms |
-
-**Governance (Cognitive Confidentiality):**
-
-| Check | Passed | Reason |
-|-------|--------|--------|
-| loop_detection | ❌ | Same action 'perceive' repeated 4+ consecutive cycles |
-
-**Strategic Options (Alternative Futures):**
-
-  - Rank #1: score=0.2909, horizon=5
+  - Rank #1: score=0.3361, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`

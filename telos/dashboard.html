@@ -159,6 +159,9 @@
 
   .fullscreen-btn { position:absolute; top:4px; right:4px; background:rgba(30,30,46,0.6); border:1px solid #1e1e2e; border-radius:4px; color:#888; font-size:10px; padding:2px 6px; cursor:pointer; z-index:10; }
   .fullscreen-btn:hover { background:#2a2a3e; color:#fff; }
+  .grid-panel.fullscreen, .chart-panel.fullscreen, .memory-panel.fullscreen {
+    position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:1000; margin:0; border-radius:0;
+  }
 
   .phase-detail-panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#1a1a2e; border:1px solid #2a2a3e; border-radius:12px; padding:20px; z-index:999; min-width:320px; max-width:420px; display:none; box-shadow:0 0 40px rgba(0,0,0,0.8); }
   .phase-detail-panel h3 { font-size:16px; margin-bottom:12px; }
@@ -365,6 +368,7 @@
           <h3 style="margin-bottom:0;">🌐 GRIDWORLD — 3D ISOMETRIC</h3>
           <span style="font-size:11px;color:#555;font-family:monospace;" id="step-counter">Drag to orbit · Scroll to zoom · Click to set goal</span>
           <div style="display:flex;gap:4px;">
+            <button class="fullscreen-btn" style="position:static;" onclick="toggleGridFullscreen()">⛶ Full</button>
             <button id="btn-cost-view" onclick="toggleCostView()" style="background:#181825;border:1px solid #1e1e2e;border-radius:6px;padding:3px 8px;color:#aaa;font-size:11px;cursor:pointer;">📊 Costs</button>
             <button id="btn-heat-mode" onclick="toggleHeatMode()" style="background:#181825;border:1px solid #1e1e2e;border-radius:6px;padding:3px 8px;color:#aaa;font-size:11px;cursor:pointer;">🔥 Heat</button>
             <button id="btn-omega-heat" onclick="toggleOmegaHeatmap()" style="background:#181825;border:1px solid #1e1e2e;border-radius:6px;padding:3px 8px;color:#aaa;font-size:11px;cursor:pointer;">🌡️ Omega</button>
@@ -393,8 +397,11 @@
         <h3>🔁 7 Phases</h3>
         <div id="pipeline-container"></div>
       </div>
-      <div class="chart-panel">
-        <h3>📈 DI / MD</h3>
+      <div class="chart-panel" style="position:relative;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="margin-bottom:0;">📈 DI / MD</h3>
+          <button class="fullscreen-btn" style="position:static;" onclick="toggleChartFullscreen()">⛶ Full</button>
+        </div>
         <canvas id="chart-canvas" width="520" height="200"></canvas>
       </div>
     </div>
@@ -427,8 +434,11 @@
     </div>
     <!-- Memory, Chat, Log side by side below KG -->
     <div style="display:flex;gap:12px;width:100%;min-height:0;flex:1;">
-      <div class="memory-panel" style="flex:1;">
-        <h3>💾 Memory Timeline</h3>
+      <div class="memory-panel" style="flex:1;position:relative;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="margin-bottom:0;">💾 Memory Timeline</h3>
+          <button class="fullscreen-btn" style="position:static;" onclick="toggleMemoryFullscreen()">⛶ Full</button>
+        </div>
         <div id="memory-timeline"><div class="empty-state">No decision traces yet</div></div>
       </div>
       <div class="chat-panel" style="width:260px;flex-shrink:0;">
@@ -2562,6 +2572,57 @@ function toggleKGFullscreen(){
     kp.style.position='';kp.style.top='';kp.style.left='';
     kp.style.width='';kp.style.height='';kp.style.zIndex='';
     kp.style.margin='';kp.style.borderRadius='';
+  }
+}
+
+// ─── Fullscreen for GridWorld ───
+var _gridFullscreen=false;
+function toggleGridFullscreen(){
+  _gridFullscreen=!_gridFullscreen;
+  var gp=document.querySelector('.grid-panel');
+  if(!gp)return;
+  if(_gridFullscreen){
+    gp.style.position='fixed';gp.style.top='0';gp.style.left='0';
+    gp.style.width='100vw';gp.style.height='100vh';gp.style.zIndex='1000';
+    gp.style.margin='0';gp.style.borderRadius='0';
+  }else{
+    gp.style.position='';gp.style.top='';gp.style.left='';
+    gp.style.width='';gp.style.height='';gp.style.zIndex='';
+    gp.style.margin='';gp.style.borderRadius='';
+  }
+}
+
+// ─── Fullscreen for Chart ───
+var _chartFullscreen=false;
+function toggleChartFullscreen(){
+  _chartFullscreen=!_chartFullscreen;
+  var cp=document.querySelector('.chart-panel');
+  if(!cp)return;
+  if(_chartFullscreen){
+    cp.style.position='fixed';cp.style.top='0';cp.style.left='0';
+    cp.style.width='100vw';cp.style.height='100vh';cp.style.zIndex='1000';
+    cp.style.margin='0';cp.style.borderRadius='0';
+  }else{
+    cp.style.position='';cp.style.top='';cp.style.left='';
+    cp.style.width='';cp.style.height='';cp.style.zIndex='';
+    cp.style.margin='';cp.style.borderRadius='';
+  }
+}
+
+// ─── Fullscreen for Memory ───
+var _memoryFullscreen=false;
+function toggleMemoryFullscreen(){
+  _memoryFullscreen=!_memoryFullscreen;
+  var mp=document.querySelector('.memory-panel');
+  if(!mp)return;
+  if(_memoryFullscreen){
+    mp.style.position='fixed';mp.style.top='0';mp.style.left='0';
+    mp.style.width='100vw';mp.style.height='100vh';mp.style.zIndex='1000';
+    mp.style.margin='0';mp.style.borderRadius='0';
+  }else{
+    mp.style.position='';mp.style.top='';mp.style.left='';
+    mp.style.width='';mp.style.height='';mp.style.zIndex='';
+    mp.style.margin='';mp.style.borderRadius='';
   }
 }
 
