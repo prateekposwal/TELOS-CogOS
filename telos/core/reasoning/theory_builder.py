@@ -86,6 +86,7 @@ class Hypothesis:
     tests_failed: int = 0
     created: float = 0.0
     falsified: bool = False
+    parent_theory_id: Optional[str] = None
 
     @property
     def test_ratio(self) -> float:
@@ -132,6 +133,7 @@ class Theory:
     domains: List[str]  # which domains this theory applies to
     created: float
     promoted_from: AbstractionLevel = AbstractionLevel.HYPOTHESIS
+    parent_theory_id: Optional[str] = None
 
 
 class TheoryBuilder:

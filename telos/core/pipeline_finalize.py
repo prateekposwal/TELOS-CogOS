@@ -114,7 +114,31 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     except Exception:
         pass
 
-    # 5. IdentityUtilityEngine: compute with active profile weights
+    # 5. Research cycle: seasons, discovery rate, ecology update
+    try:
+        season = pipeline._research_seasons.get_phase(ctx.cycle_count)
+        bonus = pipeline._research_seasons.exploration_bonus(ctx.cycle_count)
+        ctx.research_season = season.value
+        ctx.research_bonus = bonus
+
+        pipeline._discovery_rate.record(ctx.cycle_count, new_insights=1 if not was_blocked else 0)
+        ctx.discovery_rate = pipeline._discovery_rate.marginal_rate
+
+        pipeline._ecosystem.update_discovery_rate("core", 1 if not was_blocked else 0, 1.0)
+
+        discovery_step = pipeline._discovery_orchestrator.cycle(
+            ctx.cycle_count,
+            identity_active=True,
+            mission_active=True,
+            project_active=getattr(ctx, 'selected_intent', None) is not None,
+            n_theories=len(getattr(pipeline._theory_builder, '_theories', {})),
+            n_bridges=len(pipeline._ecosystem.get_bridge_candidates()),
+        )
+        ctx.discovery_step = discovery_step
+    except Exception:
+        pass
+
+    # 6. IdentityUtilityEngine: compute with active profile weights
     try:
         iu = pipeline._identity_utility
         profile = iu.active_profile

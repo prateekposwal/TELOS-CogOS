@@ -814,3 +814,67 @@ class TestMethodLayerSmoke:
         s = CommitmentScore(aesthetic_value=0.2)
         assert s.aesthetic_value == 0.2
         assert s.commitment > 0.0
+
+
+class TestInsightsSmoke:
+    def test_ecosystem(self):
+        from telos.core.ecology.ecosystem import Ecosystem, EcologicalRole, NicheRelation
+        eco = Ecosystem()
+        n = eco.register("test_niche", EcologicalRole.PIONEER, cycle=0)
+        assert n.name == "test_niche"
+        eco.update_discovery_rate(n.id, new_discoveries=5, total_effort=10)
+        assert 0.4 <= eco._niches[n.id].marginal_discovery_rate <= 0.6
+        exhausted = eco.get_exhausted_niches()
+        assert isinstance(exhausted, list)
+
+    def test_research_seasons(self):
+        from telos.core.research.seasons import ResearchSeasons, SeasonPhase
+        rs = ResearchSeasons()
+        phase = rs.get_phase(5)
+        assert isinstance(phase, SeasonPhase)
+        bonus = rs.exploration_bonus(5)
+        assert bonus >= 0.5
+
+    def test_discovery_rate(self):
+        from telos.core.research.discovery_rate import DiscoveryRateTracker
+        dr = DiscoveryRateTracker()
+        dr.record(1, new_insights=3, effort=1.0)
+        assert dr.marginal_rate == 3.0
+        assert dr.is_discovering
+
+    def test_research_debt(self):
+        from telos.core.research.debt import ResearchDebtTracker
+        rd = ResearchDebtTracker()
+        rd.incur("test debt", severity=0.5, cycle=1)
+        assert rd.total_debt == 0.5
+        rd.resolve("test debt")
+        assert rd.total_debt == 0.0
+
+    def test_belief_capital(self):
+        from telos.core.research.belief_capital import BeliefCapitalMarket
+        bcm = BeliefCapitalMarket()
+        acct = bcm.register("idea_1", "Test Idea")
+        bcm.record_prediction("idea_1", correct=True)
+        assert acct.accuracy == 1.0
+        assert acct.capital > 0.0
+
+    def test_theory_genealogy(self):
+        from telos.core.reasoning.genealogy import TheoryGenealogy
+        tg = TheoryGenealogy()
+        pid = tg.register("Newton", cycle=0)
+        cid = tg.register("Einstein", parent_id=pid, cycle=1)
+        lineage = tg.get_lineage(cid)
+        assert len(lineage) == 1
+        assert lineage[0].name == "Newton"
+        descendants = tg.get_descendants(pid)
+        assert len(descendants) == 1
+
+    def test_discovery_orchestrator(self):
+        from telos.core.discovery.orchestrator import DiscoveryOrchestrator
+        do = DiscoveryOrchestrator()
+        step = do.cycle(1, identity_active=False, mission_active=False,
+                        project_active=False, n_theories=0, n_bridges=0)
+        assert step == "awaiting_identity"
+        step = do.cycle(2, identity_active=True, mission_active=True,
+                        project_active=True, n_theories=5, n_bridges=3)
+        assert step == "active_research"

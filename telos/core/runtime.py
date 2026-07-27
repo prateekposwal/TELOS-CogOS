@@ -38,6 +38,13 @@ from telos.core.project.substrate import ProjectPortfolio
 from telos.core.project.rational_abandonment import AbandonmentGate
 from telos.core.project.strategic_coherence import StrategicCoherence
 from telos.core.project.method import MethodRegistry
+from telos.core.ecology.ecosystem import Ecosystem
+from telos.core.research.seasons import ResearchSeasons
+from telos.core.research.discovery_rate import DiscoveryRateTracker
+from telos.core.research.debt import ResearchDebtTracker
+from telos.core.research.belief_capital import BeliefCapitalMarket
+from telos.core.reasoning.genealogy import TheoryGenealogy
+from telos.core.discovery.orchestrator import DiscoveryOrchestrator
 from telos.core.identity.mission import MissionPortfolio
 from telos.core.identity.mission_arbitration import MissionArbiter
 from telos.core.identity.mission_lifecycle import MissionLifecycleEngine
@@ -229,6 +236,14 @@ class TelosV14Pipeline:
         self._abandonment_gate = AbandonmentGate()
         self._strategic_coherence = StrategicCoherence()
         self._method_registry = MethodRegistry()
+        # Insights 1-20: Ecology, Research, Genealogy, Discovery OS
+        self._ecosystem = Ecosystem()
+        self._research_seasons = ResearchSeasons()
+        self._discovery_rate = DiscoveryRateTracker()
+        self._research_debt = ResearchDebtTracker()
+        self._belief_capital = BeliefCapitalMarket()
+        self._theory_genealogy = TheoryGenealogy()
+        self._discovery_orchestrator = DiscoveryOrchestrator()
         self._identity_core = IdentityCore()
         self._mission_portfolio = MissionPortfolio()
         self._mission_arbiter = MissionArbiter()

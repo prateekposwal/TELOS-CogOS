@@ -517,6 +517,11 @@ class SelectPhase(Phase):
                     except Exception:
                         av = 0.0
 
+                    # Season bonus: research phases modulate exploration
+                    season_bonus = getattr(ctx, 'research_bonus', 1.0)
+                    discovery_rate = getattr(ctx, 'discovery_rate', 0.0)
+                    belief_capital_value = discovery_rate * 0.1
+
                     # Mission -> Project connection: auto-spawn if no project
                     try:
                         mp = getattr(pipeline, '_mission_portfolio', None)
@@ -585,6 +590,9 @@ class SelectPhase(Phase):
                             )
                             pg = coherence.score
                             ctx.project_coherence = coherence
+
+                    # Modulate reward by research season + belief capital
+                    modulated_reward = modulated_reward * season_bonus + belief_capital_value
 
                     score = commitment_opt.evaluate(
                         expected_reward=modulated_reward,
