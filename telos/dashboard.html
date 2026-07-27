@@ -249,18 +249,14 @@
   </div>
 
   <div class="brain-panel" style="margin-bottom:10px;">
-    <h3>REDACTED - Conscious Pipeline - 3 Visualization Modes</h3>
-    <div id="brain-mode-1" style="margin-bottom:8px;">
-      <div style="font-size:11px;color:#888;margin-bottom:3px;">🌀 Neural Orbit - 6 Identity Layers</div>
-      <canvas id="brain-orbit" style="display:block;border-radius:8px;width:100%;height:420px;background:#0f0f18;"></canvas>
+    <h3>REDACTED - Conscious Pipeline - 2 Visualization Modes</h3>
+    <div id="brain-mode-1" style="margin-bottom:10px;">
+      <div style="font-size:12px;color:#888;margin-bottom:4px;">🌀 Neural Orbit - 6 Identity Layers</div>
+      <canvas id="brain-orbit" style="display:block;border-radius:8px;width:100%;height:600px;background:#0f0f18;"></canvas>
     </div>
-    <div id="brain-mode-2" style="margin-bottom:8px;">
-      <div style="font-size:11px;color:#888;margin-bottom:3px;">🔀 Pipeline Flow - 3x3 Snake Layout</div>
-      <canvas id="brain-flow" style="display:block;border-radius:8px;width:100%;height:420px;background:#0f0f18;"></canvas>
-    </div>
-    <div id="brain-mode-3" style="margin-bottom:8px;">
-      <div style="font-size:11px;color:#888;margin-bottom:3px;">🌳 Root System - 9 Phase Canopy</div>
-      <canvas id="brain-tree" style="display:block;border-radius:8px;width:100%;height:420px;background:#0f0f18;"></canvas>
+    <div id="brain-mode-3" style="margin-bottom:10px;">
+      <div style="font-size:12px;color:#888;margin-bottom:4px;">🌳 Root System - 9 Phase Canopy</div>
+      <canvas id="brain-tree" style="display:block;border-radius:8px;width:100%;height:600px;background:#0f0f18;"></canvas>
     </div>
     <div id="brain-debug" style="font-size:10px;color:#555;margin-top:4px;text-align:center;"></div>
   </div>
@@ -305,28 +301,20 @@
   <div class="bottom-row" style="flex-direction:column;gap:10px;">
     <div class="knowledge-panel" style="width:100%;flex:none;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <h3 style="margin-bottom:0;">Knowledge Graph - 5 Visualization Modes</h3>
+        <h3 style="margin-bottom:0;">Knowledge Graph - 3 Visualization Modes</h3>
         <span id="node-count" class="node-count-label">0 nodes</span>
       </div>
-      <div id="kg-mode-1" style="margin-bottom:8px;">
-        <div style="font-size:11px;color:#888;margin-bottom:3px;">1. Constellation - Star Map</div>
-        <canvas id="kg-constellation" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
+      <div id="kg-mode-2" style="margin-bottom:10px;">
+        <div style="font-size:12px;color:#888;margin-bottom:4px;">1. Knowledge Tree - Domain Branches</div>
+        <canvas id="kg-tree" style="display:block;border-radius:8px;width:100%;height:500px;background:#0f0f18;"></canvas>
       </div>
-      <div id="kg-mode-2" style="margin-bottom:8px;">
-        <div style="font-size:11px;color:#888;margin-bottom:3px;">2. Knowledge Tree - Domain Branches</div>
-        <canvas id="kg-tree" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
+      <div id="kg-mode-3" style="margin-bottom:10px;">
+        <div style="font-size:12px;color:#888;margin-bottom:4px;">2. Solar System - Planet Orbits</div>
+        <canvas id="kg-solar" style="display:block;border-radius:8px;width:100%;height:500px;background:#0f0f18;"></canvas>
       </div>
-      <div id="kg-mode-3" style="margin-bottom:8px;">
-        <div style="font-size:11px;color:#888;margin-bottom:3px;">3. Solar System - Planet Orbits</div>
-        <canvas id="kg-solar" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
-      </div>
-      <div id="kg-mode-4" style="margin-bottom:8px;">
-        <div style="font-size:11px;color:#888;margin-bottom:3px;">4. Neural Network - Synaptic Mesh</div>
-        <canvas id="kg-neural" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
-      </div>
-      <div id="kg-mode-5" style="margin-bottom:8px;">
-        <div style="font-size:11px;color:#888;margin-bottom:3px;">5. Bubble Map - Domain Clusters</div>
-        <canvas id="kg-bubble" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
+      <div id="kg-mode-5" style="margin-bottom:10px;">
+        <div style="font-size:12px;color:#888;margin-bottom:4px;">3. Bubble Map - Domain Clusters</div>
+        <canvas id="kg-bubble" style="display:block;border-radius:8px;width:100%;height:500px;background:#0f0f18;"></canvas>
       </div>
       <div id="kg-debug" style="margin-top:4px;font-size:0;text-align:center;min-height:20px;line-height:1.8;"></div>
     </div>
@@ -2209,26 +2197,20 @@ const DOMAIN_COLORS = {
 // ─── 3-Mode Brain Visualization (single rAF loop) ───
 (function(){
   var bco=document.getElementById('brain-orbit');
-  var bcf=document.getElementById('brain-flow');
   var bct=document.getElementById('brain-tree');
-  if(!bco||!bcf||!bct)return;
-  var co=bco.getContext('2d'), cf=bcf.getContext('2d'), ct=bct.getContext('2d');
-  if(!co||!cf||!ct)return;
+  if(!bco||!bct)return;
+  var co=bco.getContext('2d'), ct=bct.getContext('2d');
+  if(!co||!ct)return;
   var P=['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
   var C=['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
   var L_=['Core','Narrative','Mission','Project','Method','Action'];
-  // ── Mode 1: Neural Orbit ──
   var to=0; var _co=co, _bco=bco;
-  // ── Mode 2: Pipeline Flow ──
-  var tf=0; var _cf=cf, _bcf=bcf;
-  // ── Mode 3: Root System ──
   var tt=0; var _ct=ct, _bct=bct;
-  var _snake=[0,1,2,5,8,7,6,3,4];
 
   function draw(){
     // ── Mode 1: Neural Orbit ──
     to+=0.02;
-    var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||420;
+    var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||600;
     var cx=w/2,cy=h/2,R=Math.min(w,h)*0.35;
     var bg=_co.createRadialGradient(cx,cy,0,cx,cy,R*1.4);
     bg.addColorStop(0,'#111122'); bg.addColorStop(1,'#06060a');
@@ -2286,47 +2268,7 @@ const DOMAIN_COLORS = {
       _co.textAlign='center'; _co.fillText(P[i],ppx,ppy+pu+6);
     }
 
-    // ── Mode 2: Pipeline Flow ──
-    tf+=0.02;
-    w=_bcf.width=_bcf.clientWidth||280; h=_bcf.height=_bcf.clientHeight||280;
-    bg=_cf.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.6);
-    bg.addColorStop(0,'#111122'); bg.addColorStop(1,'#06060a');
-    _cf.fillStyle=bg; _cf.fillRect(0,0,w,h);
-    _cf.fillStyle='rgba(255,255,255,0.18)'; _cf.font='9px sans-serif'; _cf.textAlign='center';
-    _cf.fillText('Pipeline Flow - Snake Layout',w/2,10);
-    var cw=w/3.3,ch=h/3.3,nw=cw*0.5,nh=ch*0.28;
-    var pos=[];
-    for(var i=0;i<9;i++){var si=_snake[i],row=Math.floor(si/3),col=si%3;pos.push({x:cw*(col+0.65),y:ch*(row+0.7)});}
-    for(var i=1;i<P.length;i++){
-      var p1=pos[i-1],p2=pos[i];
-      _cf.beginPath(); _cf.moveTo(p1.x,p1.y); _cf.lineTo(p2.x,p2.y);
-      _cf.strokeStyle='rgba(80,140,220,'+(0.12+0.08*Math.sin(tf*0.8+i))+')'; _cf.lineWidth=1.2; _cf.stroke();
-      var ft=(tf*0.3+i*0.12)%1;
-      _cf.beginPath(); _cf.arc(p1.x+(p2.x-p1.x)*ft,p1.y+(p2.y-p1.y)*ft,1.5,0,Math.PI*2);
-      _cf.fillStyle='rgba(180,220,255,0.4)'; _cf.fill();
-    }
-    for(var i=0;i<P.length;i++){
-      var p=pos[i],ia=(i===act);
-      var rx=p.x-nw/2,ry=p.y-nh/2;
-      _cf.fillStyle=ia?C[i]+'33':'rgba(25,25,50,0.5)';
-      _cf.strokeStyle=ia?C[i]:'rgba(70,70,110,0.35)'; _cf.lineWidth=ia?1.5:0.5;
-      var cr=3;
-      _cf.beginPath(); _cf.moveTo(rx+cr,ry); _cf.lineTo(rx+nw-cr,ry);
-      _cf.arcTo(rx+nw,ry,rx+nw,ry+cr,cr); _cf.lineTo(rx+nw,ry+nh-cr);
-      _cf.arcTo(rx+nw,ry+nh,rx+nw-cr,ry+nh,cr); _cf.lineTo(rx+cr,ry+nh);
-      _cf.arcTo(rx,ry+nh,rx,ry+nh-cr,cr); _cf.lineTo(rx,ry+cr);
-      _cf.arcTo(rx,ry,rx+cr,ry,cr); _cf.closePath(); _cf.fill(); _cf.stroke();
-      if(ia){
-        var ag=_cf.createRadialGradient(p.x,p.y,0,p.x,p.y,nw*0.8);
-        ag.addColorStop(0,C[i]+'44'); ag.addColorStop(1,'transparent');
-        _cf.fillStyle=ag; _cf.beginPath(); _cf.arc(p.x,p.y,nw*0.8,0,Math.PI*2); _cf.fill();
-      }
-      _cf.fillStyle=ia?'#fff':'#999'; _cf.font=ia?'bold 7px sans-serif':'6px sans-serif';
-      _cf.textAlign='center'; _cf.textBaseline='middle';
-      _cf.fillText(P[i],p.x,p.y);
-    }
-
-    // ── Mode 3: Root System ──
+    // ── Mode 2: Root System ──
     tt+=0.02;
     w=_bct.width=_bct.clientWidth||280; h=_bct.height=_bct.clientHeight||280;
     bg=_ct.createRadialGradient(w/2,h,0,w/2,h,w*0.7);
@@ -2373,7 +2315,7 @@ const DOMAIN_COLORS = {
       _ct.fillStyle='rgba(150,200,255,'+(0.25*(1-ft))+')'; _ct.fill();
     }
     var bd=document.getElementById('brain-debug');
-    if(bd)bd.textContent='Orbit / Flow / Tree - active: '+P[act];
+    if(bd)bd.textContent='Neural Orbit / Root System - active: '+P[act];
     requestAnimationFrame(draw);
   }
   draw();
@@ -2396,8 +2338,8 @@ setInterval(function() {
 
 // ─── 5-Mode KG Visualization (single rAF loop) ───
 (function(){
-  var kgIds=['kg-constellation','kg-tree','kg-solar','kg-neural','kg-bubble'];
-  var kgLabels=['Constellation','Knowledge Tree','Solar System','Neural Network','Bubble Map'];
+  var kgIds=['kg-tree','kg-solar','kg-bubble'];
+  var kgLabels=['Knowledge Tree','Solar System','Bubble Map'];
   var kgCanvases=[], kgContexts=[];
   for(var ki=0;ki<kgIds.length;ki++){
     var el=document.getElementById(kgIds[ki]);
@@ -2407,10 +2349,10 @@ setInterval(function() {
     kgCanvases.push(el); kgContexts.push(cx);
   }
   var kgt=0;
-  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||350;}
+  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||500;}
   function kgProject(){
     if(kgNodes.length===0)return[];
-    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||350;
+    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||500;
     var focal=4,scale=Math.min(w,h)*0.28;
     return kgNodes.map(function(n){
       var nx=n.x||0,ny=n.y||0,nz=n.z||0;
@@ -2444,11 +2386,9 @@ setInterval(function() {
       var modeNodes=proj.slice();
       modeNodes.sort(function(a,b){return a.depth-b.depth;});
       switch(ki){
-        case 0:kgConstellation(ctx,w,h,modeNodes);break;
-        case 1:kgTree(ctx,w,h,modeNodes);break;
-        case 2:kgSolar(ctx,w,h,modeNodes);break;
-        case 3:kgNeural(ctx,w,h,modeNodes);break;
-        case 4:kgBubble(ctx,w,h,modeNodes);break;
+        case 0:kgTree(ctx,w,h,modeNodes);break;
+        case 1:kgSolar(ctx,w,h,modeNodes);break;
+        case 2:kgBubble(ctx,w,h,modeNodes);break;
       }
     }
     var kd=document.getElementById('kg-debug');
@@ -2462,34 +2402,7 @@ setInterval(function() {
     }
     requestAnimationFrame(kgDrawAll);
   }
-  // ── 1. Constellation ──
-  function kgConstellation(ctx,w,h,nodes){
-    for(var ei=0;ei<kgEdges.length;ei++){
-      var e=kgEdges[ei],s=null,t=null;
-      for(var si=0;si<nodes.length;si++){if(nodes[si].id===e.source){s=nodes[si];break;}}
-      for(var ti=0;ti<nodes.length;ti++){if(nodes[ti].id===e.target){t=nodes[ti];break;}}
-      if(!s||!t)continue;
-      var spx=w/2+s.px,spy=h/2+s.py,tpx=w/2+t.px,tpy=h/2+t.py;
-      ctx.beginPath();ctx.moveTo(spx,spy);ctx.lineTo(tpx,tpy);
-      ctx.strokeStyle='rgba(80,160,255,'+(0.04+0.06*Math.sin(kgt+ei))+')';ctx.lineWidth=0.3;ctx.stroke();
-    }
-    for(var i=0;i<nodes.length;i++){
-      var n=nodes[i],px=w/2+n.px,py=h/2+n.py;
-      var tw=0.4+0.6*Math.sin(kgt*2+i*1.7+n.depth),r=Math.max(1,n.size*0.5*tw);
-      var col=DOMAIN_COLORS[n.domain]||'#888888';
-      var g=ctx.createRadialGradient(px,py,0,px,py,r*6);
-      g.addColorStop(0,col+(tw>0.7?'55':'33'));g.addColorStop(1,'transparent');
-      ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r*6,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,'+(0.1+0.15*tw)+')';
-      ctx.beginPath();ctx.arc(px-r*0.2,py-r*0.2,r*0.3,0,Math.PI*2);ctx.fill();
-      if(n.label&&n.persp>0.2){
-        ctx.fillStyle='rgba(200,200,255,'+(0.15+0.2*tw)+')';ctx.font='5px sans-serif';
-        ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(n.label,px,py+r+1);
-      }
-    }
-  }
-  // ── 2. Knowledge Tree ──
+  // ── 1. Knowledge Tree ──
   function kgTree(ctx,w,h,nodes){
     var rootX=w/2,rootY=h-15,trunkH=h*0.4;
     // Trunk
@@ -2573,49 +2486,7 @@ setInterval(function() {
     }
   }
   // ── 4. Neural Network ──
-  function kgNeural(ctx,w,h,nodes){
-    // Edges as neural synapses
-    for(var ei=0;ei<kgEdges.length;ei++){
-      var e=kgEdges[ei],s=null,t=null;
-      for(var si=0;si<nodes.length;si++){if(nodes[si].id===e.source){s=nodes[si];break;}}
-      for(var ti=0;ti<nodes.length;ti++){if(nodes[ti].id===e.target){t=nodes[ti];break;}}
-      if(!s||!t)continue;
-      var spx=w/2+s.px,spy=h/2+s.py,tpx=w/2+t.px,tpy=h/2+t.py;
-      var pulse=0.3+0.5*Math.sin(kgt*1.5+ei*0.7);
-      ctx.beginPath();ctx.moveTo(spx,spy);ctx.lineTo(tpx,tpy);
-      ctx.strokeStyle='rgba(80,180,255,'+(0.06+e.weight*0.2*pulse)+')';
-      ctx.lineWidth=0.4+e.weight*1.5;ctx.stroke();
-      // Synaptic burst traveling along edge
-      var bp=(kgt*0.5+ei*0.11)%1;
-      var bx=spx+(tpx-spx)*bp,by=spy+(tpy-spy)*bp;
-      ctx.fillStyle='rgba(180,230,255,'+(0.4*(1-Math.abs(bp-0.5)*2))+')';
-      ctx.beginPath();ctx.arc(bx,by,1.5*(1-Math.abs(bp-0.5)*2),0,Math.PI*2);ctx.fill();
-    }
-    // Nodes as neurons
-    for(var i=0;i<nodes.length;i++){
-      var n=nodes[i],px=w/2+n.px,py=h/2+n.py;
-      var col=DOMAIN_COLORS[n.domain]||'#888';
-      var r=2+Math.sin(kgt*2+i*1.3)*0.8;
-      // Neural burst when active
-      var burst=Math.sin(kgt*1.5+i*2.1)*0.5+0.5;
-      if(burst>0.7){
-        var bg2=ctx.createRadialGradient(px,py,0,px,py,r*8);
-        bg2.addColorStop(0,col+'44');bg2.addColorStop(1,'transparent');
-        ctx.fillStyle=bg2;ctx.beginPath();ctx.arc(px,py,r*8,0,Math.PI*2);ctx.fill();
-      }
-      // Dendrite-like glow
-      var dend=ctx.createRadialGradient(px,py,0,px,py,r*4);
-      dend.addColorStop(0,col+'33');dend.addColorStop(1,'transparent');
-      ctx.fillStyle=dend;ctx.beginPath();ctx.arc(px,py,r*4,0,Math.PI*2);ctx.fill();
-      // Neuron body
-      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,r*2.5,0,Math.PI*2);ctx.fill();
-      if(n.label&&n.persp>0.2){
-        ctx.fillStyle='rgba(200,200,200,0.4)';ctx.font='5px sans-serif';
-        ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(n.label,px,py+r*2+2);
-      }
-    }
-  }
-  // ── 5. Bubble Map ──
+  // ── 3. Bubble Map ──
   function kgBubble(ctx,w,h,nodes){
     var domains={};
     for(var i=0;i<nodes.length;i++){
