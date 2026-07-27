@@ -2377,13 +2377,13 @@ async function pollCheckpoints() {
     const hresp = await fetch('/api/health');
     const h = await hresp.json();
     const el = document.getElementById('health-score');
-    if (el) el.textContent = h.health !== undefined && h.health !== 'N/A' ? (h.health * 100).toFixed(0) + '%' : '--';
+    if (el) el.textContent = typeof h.health === 'number' ? (h.health * 100).toFixed(0) + '%' : '--';
     const sel = document.getElementById('system-score');
-    if (sel) sel.textContent = h.system_score !== undefined ? (h.system_score * 100).toFixed(0) + '%' : '--';
+    if (sel) sel.textContent = typeof h.system_score === 'number' ? (h.system_score * 100).toFixed(0) + '%' : '--';
     const mel = document.getElementById('mission-score');
-    if (mel) mel.textContent = h.mission !== undefined ? (h.mission * 100).toFixed(0) + '%' : '--';
+    if (mel) mel.textContent = typeof h.mission === 'number' ? (h.mission * 100).toFixed(0) + '%' : '--';
     if (healthPanelVisible) fetchHealthDetail();
-  } catch {}
+  } catch(e) { console.warn('Health poll failed:', e); }
 }
 
 var healthPanelVisible = false;
@@ -2425,8 +2425,9 @@ var html = '<div class="health-scores">';
       }
       html += '</div>';
     });
-    document.getElementById('health-panel').innerHTML = html;
-  } catch(e) {}
+    var panel = document.getElementById('health-panel');
+    if (panel) panel.innerHTML = html;
+  } catch(e) { console.warn('Health detail failed:', e); }
 }
 function updateHealthPanel() {
   if (healthPanelVisible) fetchHealthDetail();
