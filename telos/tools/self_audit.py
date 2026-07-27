@@ -31,6 +31,7 @@ Checks list (24 items):
 
 import sys
 import os
+import re
 import importlib
 import traceback
 from typing import List, Tuple, Dict
@@ -297,6 +298,31 @@ def run_audit(verbose=True) -> Dict:
                        "save(), load(), restore() available"))
     except Exception as e:
         checks.append((False, "CheckpointManager exists", f"Error: {e}"))
+
+    # ── Check 25: Axiom count matches AXIOMS.md ──
+    try:
+        from telos.core.genesis import ANCHOR
+        from telos.core.identity.system_self import IdentityCore
+        genesis_count = ANCHOR.axioms_count
+        identity_count = IdentityCore.axioms_count
+        axioms_path = os.path.join(os.path.dirname(__file__), '..', 'AXIOMS.md')
+        with open(axioms_path) as f:
+            content = f.read()
+        main_section = content.split('| # | Short Name | Layer |')[0]
+        md_count = 0
+        for line in main_section.splitlines():
+            if re.match(r'^\| \d+\.\d+ \|', line):
+                md_count += 1
+        ok = genesis_count == identity_count == md_count
+        details = (f"Axioms: {md_count}/AXIOMS.md = {genesis_count}/genesis.py = "
+                   f"{identity_count}/system_self.py"
+                   if ok else
+                   f"AXIOMS.md has {md_count} but genesis.py declares {genesis_count} "
+                   f"and system_self.py declares {identity_count}")
+        checks.append((ok, "Axiom count verified across AXIOMS.md, genesis.py, system_self.py",
+                       details))
+    except Exception as e:
+        checks.append((False, "Axiom count verified", f"Error: {e}"))
 
     passed = sum(1 for c in checks if c[0])
     failed = len(checks) - passed
