@@ -22,10 +22,13 @@ const PHASE_COLORS_2D = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb9
 const STREAM_COLORS_2D = { Reflex: '#ff6b6b', Perception: '#4ade80', Memory: '#60a5fa', Planning: '#fbbf24' };
 
 function initBrain() {
+  var bd = document.getElementById('brain-debug');
+  if (bd) bd.textContent = '⏳ initBrain() running...';
+  
   brainCanvas = document.getElementById('brain-container');
   if (!brainCanvas || brainCanvas.tagName !== 'CANVAS') {
     const container = document.getElementById('brain-container') || document.querySelector('.brain-panel');
-    if (!container) return;
+    if (!container) { if (bd) bd.textContent = '❌ No container'; return; }
     brainCanvas = document.createElement('canvas');
     brainCanvas.id = 'brain-canvas';
     brainCanvas.style.width = '100%';
@@ -33,19 +36,19 @@ function initBrain() {
     container.innerHTML = '';
     container.appendChild(brainCanvas);
   }
+  if (bd) bd.textContent = '✅ Canvas created';
 
   ctx = brainCanvas.getContext('2d');
-  if (!ctx) { console.warn('Canvas not supported'); return; }
+  if (!ctx) { if (bd) bd.textContent = '❌ No context'; console.warn('Canvas not supported'); return; }
 
   resizeBrain();
   window.addEventListener('resize', resizeBrain);
   
+  if (bd) bd.textContent = '✅ Init OK: ' + brainW + 'x' + brainH;
+  
   // Show brain is active
   ctx.fillStyle = '#0f0f18';
   ctx.fillRect(0, 0, brainW, brainH);
-  
-  var bd = document.getElementById('brain-debug');
-  if (bd) bd.textContent = '✅ Init OK: ' + brainW + 'x' + brainH;
   
   ctx.fillStyle = '#4ade80';
   ctx.font = 'bold 14px sans-serif';

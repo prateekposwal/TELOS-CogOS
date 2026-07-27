@@ -2224,10 +2224,11 @@ function drawKnowledgeGraph(canvas) {
 
   // Project nodes to 2D with perspective
   const projected = kgNodes.map(n => {
+    const nx = n.x || 0, ny = n.y || 0, nz = n.z || 0;
     const cosR = Math.cos(kgRotation), sinR = Math.sin(kgRotation);
-    const rx = n.x * cosR - n.z * sinR;
-    const rz = n.x * sinR + n.z * cosR + focal;
-    const persp = focal / rz;
+    const rx = nx * cosR - nz * sinR;
+    const rz = nx * sinR + nz * cosR + focal;
+    const persp = focal / Math.max(rz, 0.1);
     const px = w/2 + rx * scale * persp;
     const py = h/2 - n.y * scale * persp;
     const size = (3.5 + n.importance * 6) * persp;
@@ -2893,15 +2894,18 @@ try {
 // Brain viz — force load and init
 (function loadBrain() {
   _dbg('Loading brain viz...');
+  var bdd = document.getElementById('brain-debug');
+  if (bdd) bdd.textContent = '⏳ Loading aviku-brain.js...';
   const bs = document.createElement('script');
   bs.src = '/aviku-brain.js?v=' + Date.now();
   bs.onload = () => {
     _dbg('Brain viz loaded, initializing...');
-    if (window.initBrain) { setTimeout(() => { window.initBrain(); _dbg('Brain init done'); }, 50); }
+    if (bdd) bdd.textContent = '✅ Script loaded, initBrain called...';
+    if (window.initBrain) { setTimeout(() => { window.initBrain(); _dbg('Brain init done'); if (bdd) bdd.textContent = '✅ InitBrain complete'; }, 50); }
     const orig = applyTrace;
     applyTrace = function(t) { orig(t); if (window.visualizeTrace) setTimeout(() => window.visualizeTrace(t), 50); };
   };
-  bs.onerror = () => { console.warn('[TELOS] Brain viz failed to load'); _dbg('Brain viz FAILED'); };
+  bs.onerror = () => { console.warn('[TELOS] Brain viz failed to load'); _dbg('Brain viz FAILED'); if (bdd) bdd.textContent = '❌ Script load FAILED'; };
   document.head.appendChild(bs);
 })();
 
