@@ -2230,7 +2230,7 @@ function drawKnowledgeGraph(canvas) {
     const rz = nx * sinR + nz * cosR + focal;
     const persp = focal / Math.max(rz, 0.1);
     const px = w/2 + rx * scale * persp;
-    const py = h/2 - n.y * scale * persp;
+    const py = h/2 - ny * scale * persp;
     const size = (3.5 + n.importance * 6) * persp;
     return { ...n, px, py, size, persp, depth: rz };
   });
