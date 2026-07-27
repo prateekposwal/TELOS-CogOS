@@ -56,6 +56,7 @@ def _make_minimal_pipeline(
         '_telemetry': MockTelemetry(),
         '_infra_manager': MockInfraManager(),
         '_experience_manager': type('EM', (), {'skill_library': MockSkillLib()}),
+        '_checkpointer': type('MC', (), {'latest_path': checkpoint_path})(),
     })()
     return pipeline
 
