@@ -2840,13 +2840,26 @@ setInterval(() => {
   }
 }, 12000);
 
-// Also show demo KG if real KG never arrives
-let _kgDemoTimer = setTimeout(() => {
-  if (!kgLoaded) {
-    console.log('[TELOS] No KG data — loading demo KG');
-    fetchKnowledge();
+// Populate KG immediately with demo data so it's never blank
+(function bootKG() {
+  const demo = generateDemoKnowledge();
+  for (const n of demo.nodes) {
+    if (!kgNodes.some(k => k.id === n.id)) {
+      const angle = Math.random() * Math.PI * 2;
+      kgNodes.push({
+        id: n.id,
+        label: n.label,
+        domain: n.domain || 'general',
+        importance: n.importance || 0.5,
+        x: Math.cos(angle) * 0.3,
+        y: (Math.random() - 0.5) * 0.6,
+        z: Math.sin(angle) * 0.3,
+        size: 3 + Math.random() * 3,
+      });
+    }
   }
-}, 5000);
+  document.getElementById('node-count').textContent = `${kgNodes.length} nodes`;
+})();
 // Brain viz
 const bs = document.createElement('script');
 bs.src = '/REDACTED-brain.js?v=' + Date.now();
@@ -2856,15 +2869,20 @@ bs.onload = () => {
 };
 document.head.appendChild(bs);
 
-// — Auto-start auto-refresh after 5 seconds of idle —
+// — Auto-start auto-refresh after 2 seconds —
 setTimeout(() => {
-  if (!state.autoRefresh && state.traces.length > 0) {
-    state.autoRefresh = true;
-    scheduleAuto();
-    const btn = document.getElementById('auto-btn');
-    if (btn) { btn.textContent = '⏹ Stop'; btn.className = 'active'; }
+  state.autoRefresh = true;
+  const btn = document.getElementById('auto-btn');
+  if (btn) { btn.textContent = '⏹ Stop'; btn.className = 'active'; }
+}, 2000);
+
+// — Force brain visualization to trigger on first trace —
+let _brainTimer = setInterval(() => {
+  if (state.traces.length > 0 && window.visualizeTrace) {
+    window.visualizeTrace(state.traces[state.traces.length - 1]);
+    clearInterval(_brainTimer);
   }
-}, 5000);
+}, 500);
 
 // — Learning data ticker: shows what TELOS is learning —
 setInterval(() => {
