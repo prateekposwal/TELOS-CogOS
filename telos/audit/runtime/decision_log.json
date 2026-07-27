@@ -4,7 +4,7 @@
   "traces": [
     {
       "cycle_id": 1,
-      "timestamp": 1785099954.372452,
+      "timestamp": 1785195181.761146,
       "world_state": [
         2.0,
         1.0,
@@ -30,32 +30,32 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.007152557373046875,
-          "budget_remaining_ms": 99.99284744262695
+          "cost_ms": 0.011920928955078125,
+          "budget_remaining_ms": 99.98807907104492
         },
         {
           "name": "PerceptionStream",
           "priority": 0.9,
           "activated": true,
           "intent_type": "perceive",
-          "cost_ms": 0.03695487976074219,
-          "budget_remaining_ms": 99.95589256286621
+          "cost_ms": 0.04601478576660156,
+          "budget_remaining_ms": 99.94206428527832
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_miss",
-          "cost_ms": 0.006198883056640625,
-          "budget_remaining_ms": 99.94969367980957
+          "cost_ms": 0.007867813110351562,
+          "budget_remaining_ms": 99.93419647216797
         },
         {
           "name": "PlanningStream",
           "priority": 0.5,
           "activated": true,
           "intent_type": "plan_trajectory",
-          "cost_ms": 0.9160041809082031,
-          "budget_remaining_ms": 99.03368949890137
+          "cost_ms": 1.0848045349121094,
+          "budget_remaining_ms": 98.84939193725586
         }
       ],
       "selected_intent": {
@@ -64,13 +64,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": 15.966310501098633,
+      "budget_consumed_ms": 16.15060806274414,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 2.948760986328125,
+      "cycle_duration_ms": 3.8309097290039062,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.23678126301305463,
+      "mission_drift": 0.3530476516754856,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -103,20 +103,14 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.31552832552842786,
+          "score": 0.31790060902240985,
           "horizon": 5,
           "metadata": {
-            "index": 21,
-            "state_norm": 2.2051252348414887
+            "index": 9,
+            "state_norm": 2.145637257742739
           },
-          "variance": 0.00024216736986901224,
-          "probabilistic": {
-            "mean": 0.31552832552842786,
-            "std": 0.01556172772763398,
-            "ci_lower": 0.2952889350301409,
-            "ci_upper": 0.32918554053687077,
-            "n_samples": 3
-          }
+          "variance": 0.0,
+          "probabilistic": null
         }
       ],
       "perception_quality": {
@@ -196,7 +190,7 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 2.6315973054560634e-05,
+        "counterfactual_diversity": 3.12384702812721e-05,
         "attention_momentum": 0.0,
         "mean_threat_ratio": 0.25836862038478137,
         "mean_opportunity_ratio": 0.3356235475819907,
@@ -204,7 +198,7 @@
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.23678126301305463
+          0.3530476516754856
         ],
         "allocation_count": 1,
         "default_action_space": 10,
@@ -237,11 +231,19 @@
       "identity_state": {
         "G_t": {
           "last_action": "perceive",
-          "progress_indicator": "moving"
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
         },
         "M_t": {
+          "cycle": 0,
           "action": "perceive",
           "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
           "mood": "curious"
         },
         "B_t": {
@@ -267,23 +269,33 @@
           "active_constraints": [
             "risk_tolerance=0.50",
             "exploration_budget=0.30"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
         },
         "K_t": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "V_t": {
           "identity_markers": [
             "exploring",
             "nascent"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": 15.966310501098633,
+            "consumed_ms": 16.15060806274414,
             "total_ms": 100.0,
-            "utilization": 0.15966310501098632,
+            "utilization": 0.1615060806274414,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -311,9 +323,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": 15.966310501098633,
+          "consumed_ms": 16.15060806274414,
           "total_ms": 100.0,
-          "utilization": 0.15966310501098632,
+          "utilization": 0.1615060806274414,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -341,13 +353,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.11839063150652732,
+          "U_W": 0.1765238258377428,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "none"
         },
-        "U_W": 0.11839063150652732,
+        "U_W": 0.1765238258377428,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -382,20 +394,31 @@
       },
       "capabilities_k": {
         "last_action": "perceive",
-        "skill_relevant": true
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
       },
       "j_term_breakdown": {
         "expected_reward": 0.765,
         "discounted_reward": 0.765,
-        "maintenance_cost": 0.0028989315032958984,
+        "maintenance_cost": 0.003451824188232422,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.19806737899780275,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.19769878387451173,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
         "gamma": 0.95,
         "horizon": 1,
-        "commitment": 0.9601684474945069,
+        "commitment": 0.9592469596862794,
         "is_suppressed": false,
         "is_full": true
       },
@@ -406,8 +429,8 @@
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
       "spent_ctx_id": null,
-      "produced_ctx_id": "ctx_1_1785099954372",
-      "merkle_root": "98e56c8d2b07639c5325a99ff3d2e95fd983effc3c9b5ae51aeeb42529e30c91",
+      "produced_ctx_id": "ctx_1_1785195181761",
+      "merkle_root": "15defe9757f6bcb8ed743ba8521fa20dd846150a0591ff64407e0582715b339f",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -427,11 +450,11 @@
           },
           "PlanningStream": {
             "intent": "plan_trajectory",
-            "confidence": 0.32124192559374637,
-            "signature": "675c1542f3753cff"
+            "confidence": 0.319086792967124,
+            "signature": "a3c002f17c438540"
           }
         },
-        "council_signature": "8d1f2cffe24b7770"
+        "council_signature": "d0ae57316585bc2e"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -446,20 +469,14 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.31552832552842786,
+            "score": 0.31790060902240985,
             "horizon": 5,
             "metadata": {
-              "index": 21,
-              "state_norm": 2.2051252348414887
+              "index": 9,
+              "state_norm": 2.145637257742739
             },
-            "variance": 0.00024216736986901224,
-            "probabilistic": {
-              "mean": 0.31552832552842786,
-              "std": 0.01556172772763398,
-              "ci_lower": 0.2952889350301409,
-              "ci_upper": 0.32918554053687077,
-              "n_samples": 3
-            }
+            "variance": 0.0,
+            "probabilistic": null
           }
         ],
         "stream_activations": [
@@ -468,28 +485,28 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.007152557373046875
+            "cost_ms": 0.011920928955078125
           },
           {
             "name": "PerceptionStream",
             "priority": 0.9,
             "activated": true,
             "intent_type": "perceive",
-            "cost_ms": 0.03695487976074219
+            "cost_ms": 0.04601478576660156
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_miss",
-            "cost_ms": 0.006198883056640625
+            "cost_ms": 0.007867813110351562
           },
           {
             "name": "PlanningStream",
             "priority": 0.5,
             "activated": true,
             "intent_type": "plan_trajectory",
-            "cost_ms": 0.9160041809082031
+            "cost_ms": 1.0848045349121094
           }
         ],
         "causal_graph": {
@@ -502,9 +519,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": 15.966310501098633,
+            "consumed_ms": 16.15060806274414,
             "total_ms": 100.0,
-            "utilization": 0.15966310501098632,
+            "utilization": 0.1615060806274414,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -532,13 +549,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.11839063150652732,
+            "U_W": 0.1765238258377428,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "none"
           },
-          "U_W": 0.11839063150652732,
+          "U_W": 0.1765238258377428,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -561,30 +578,41 @@
             },
             "PlanningStream": {
               "intent": "plan_trajectory",
-              "confidence": 0.32124192559374637,
-              "signature": "675c1542f3753cff"
+              "confidence": 0.319086792967124,
+              "signature": "a3c002f17c438540"
             }
           },
-          "council_signature": "8d1f2cffe24b7770"
+          "council_signature": "d0ae57316585bc2e"
         },
         "j_term_breakdown": {
           "expected_reward": 0.765,
           "discounted_reward": 0.765,
-          "maintenance_cost": 0.0028989315032958984,
+          "maintenance_cost": 0.003451824188232422,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.19806737899780275,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.19769878387451173,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
           "gamma": 0.95,
           "horizon": 1,
-          "commitment": 0.9601684474945069,
+          "commitment": 0.9592469596862794,
           "is_suppressed": false,
           "is_full": true
         },
         "capabilities_k": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "belief_state": {
           "decision_quality": {
@@ -608,7 +636,7 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 2.6315973054560634e-05,
+          "counterfactual_diversity": 3.12384702812721e-05,
           "attention_momentum": 0.0,
           "mean_threat_ratio": 0.25836862038478137,
           "mean_opportunity_ratio": 0.3356235475819907,
@@ -616,7 +644,7 @@
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.23678126301305463
+            0.3530476516754856
           ],
           "allocation_count": 1,
           "default_action_space": 10,
@@ -663,16 +691,24 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.23678126301305463,
+        "mission_drift": 0.3530476516754856,
         "council_validated": true,
         "identity_state": {
           "G_t": {
             "last_action": "perceive",
-            "progress_indicator": "moving"
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
           },
           "M_t": {
+            "cycle": 0,
             "action": "perceive",
             "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
             "mood": "curious"
           },
           "B_t": {
@@ -698,23 +734,33 @@
             "active_constraints": [
               "risk_tolerance=0.50",
               "exploration_budget=0.30"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
           },
           "K_t": {
             "last_action": "perceive",
-            "skill_relevant": true
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
           },
           "V_t": {
             "identity_markers": [
               "exploring",
               "nascent"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": 15.966310501098633,
+              "consumed_ms": 16.15060806274414,
               "total_ms": 100.0,
-              "utilization": 0.15966310501098632,
+              "utilization": 0.1615060806274414,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -740,7 +786,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "98e56c8d2b07639c5325a99ff3d2e95fd983effc3c9b5ae51aeeb42529e30c91",
+        "merkle_root": "15defe9757f6bcb8ed743ba8521fa20dd846150a0591ff64407e0582715b339f",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -760,7 +806,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.25,
-        "learning_rate": 0.0395,
+        "learning_rate": 0.0588,
         "boredom_count": 1,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -782,6 +828,10 @@
           "passed": true,
           "reason": "governance_blocked was checked \u2014 multi-level governance ran"
         },
+        "1.4": {
+          "passed": true,
+          "reason": "compute 16.2ms <= 100.0ms \u2014 budget conserved"
+        },
         "2.1": {
           "passed": true,
           "reason": "council_validated=True \u2014 constitutional check happened"
@@ -796,11 +846,19 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=None, produced=ctx_1_1785099954372) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=None, produced=ctx_1_1785195181761) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
           "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
         },
         "3.1": {
           "passed": true,
@@ -822,6 +880,10 @@
           "passed": true,
           "reason": "infra_manager.calibrator exists \u2014 calibration ran"
         },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
         "4.1": {
           "passed": true,
           "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
@@ -840,7 +902,7 @@
         },
         "4.5": {
           "passed": false,
-          "reason": "local_optima_escape not set \u2014 local optima not checked"
+          "reason": "local_optima_escape not set"
         },
         "4.6": {
           "passed": true,
@@ -850,32 +912,88 @@
           "passed": true,
           "reason": "attention_metrics is set \u2014 attention was allocated"
         },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
         "5.1": {
           "passed": true,
           "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
         }
       }
     },
     {
       "cycle_id": 2,
-      "timestamp": 1785099954.376839,
+      "timestamp": 1785195181.766349,
       "world_state": [
-        2.046588058185064,
-        1.0453143132189524,
-        -0.2123609353749402,
-        0.11056606187209983,
-        -0.16111015443009075,
-        -0.0768892083967678
+        2.0834617269209854,
+        1.1043209096010254,
+        0.07116114633349617,
+        0.19457608488959097,
+        0.16488173573683199,
+        0.03824490634362573
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.3174113028260037
+          "energy": 2.373164524453771
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.3174113028260037,
-          "uncertainty": 0.8274504297279694
+          "distance_from_origin": 2.373164524453771,
+          "uncertainty": 0.7531488613174531
         }
       },
       "stream_activations": [
@@ -892,16 +1010,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.0050067901611328125,
-          "budget_remaining_ms": 149.99499320983887
+          "cost_ms": 0.0059604644775390625,
+          "budget_remaining_ms": 149.99403953552246
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.0069141387939453125,
-          "budget_remaining_ms": 149.98807907104492
+          "cost_ms": 0.007867813110351562,
+          "budget_remaining_ms": 149.9861717224121
         }
       ],
       "selected_intent": {
@@ -910,13 +1028,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.98807907104492,
+      "budget_consumed_ms": -34.98617172241211,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 2.995014190673828,
+      "cycle_duration_ms": 3.4377574920654297,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.21906574767477402,
+      "mission_drift": 0.1525902743581226,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -934,11 +1052,11 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.30997499463260475,
+          "score": 0.3066315825764181,
           "horizon": 5,
           "metadata": {
-            "index": 29,
-            "state_norm": 2.2260666741368658
+            "index": 16,
+            "state_norm": 2.261242666517504
           },
           "variance": 0.0,
           "probabilistic": null
@@ -1022,16 +1140,16 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 2.683758277428273e-05,
+        "counterfactual_diversity": 3.289785017442872e-05,
         "attention_momentum": 0.0,
-        "mean_threat_ratio": 0.26335941417189257,
-        "mean_opportunity_ratio": 0.3227900778437047,
-        "mean_maintenance_ratio": 0.4138505079844027,
+        "mean_threat_ratio": 0.25749477694827355,
+        "mean_opportunity_ratio": 0.33787057356158234,
+        "mean_maintenance_ratio": 0.40463464949014416,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.23678126301305463,
-          0.21906574767477402
+          0.3530476516754856,
+          0.1525902743581226
         ],
         "allocation_count": 2,
         "default_action_space": 10,
@@ -1042,9 +1160,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.26835020795900383,
-          "opportunity_ratio": 0.3099566081054187,
-          "maintenance_ratio": 0.4216931839355775
+          "threat_ratio": 0.25662093351176574,
+          "opportunity_ratio": 0.34011759954117393,
+          "maintenance_ratio": 0.40326146694706044
         },
         "cost_tracker": {
           "total_maintenance": 0.1,
@@ -1066,11 +1184,19 @@
       "identity_state": {
         "G_t": {
           "last_action": "perceive",
-          "progress_indicator": "moving"
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
         },
         "M_t": {
+          "cycle": 0,
           "action": "perceive",
           "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
           "mood": "curious"
         },
         "B_t": {
@@ -1096,23 +1222,33 @@
           "active_constraints": [
             "risk_tolerance=0.50",
             "exploration_budget=0.30"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
         },
         "K_t": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "V_t": {
           "identity_markers": [
             "exploring",
             "nascent"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.98807907104492,
+            "consumed_ms": -34.98617172241211,
             "total_ms": 100.0,
-            "utilization": -0.3498807907104492,
+            "utilization": -0.34986171722412107,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -1140,9 +1276,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.98807907104492,
+          "consumed_ms": -34.98617172241211,
           "total_ms": 100.0,
-          "utilization": -0.3498807907104492,
+          "utilization": -0.34986171722412107,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -1173,13 +1309,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.31396175267195714,
+          "U_W": 0.32640948150840204,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "environmental"
         },
-        "U_W": 0.31396175267195714,
+        "U_W": 0.32640948150840204,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -1214,17 +1350,28 @@
       },
       "capabilities_k": {
         "last_action": "perceive",
-        "skill_relevant": true
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
       },
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.14996423721313476,
+        "maintenance_cost": -0.14995851516723632,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.29997615814208983,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.2999723434448242,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
         "gamma": 0.95,
         "horizon": 1,
         "commitment": 1.0,
@@ -1237,9 +1384,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_1_1785099954372",
-      "produced_ctx_id": "ctx_2_1785099954376",
-      "merkle_root": "92d33372e217d78d415ae64a987a423b842fa9e3b26cdd0351fcf7432155aab3",
+      "spent_ctx_id": "ctx_1_1785195181761",
+      "produced_ctx_id": "ctx_2_1785195181766",
+      "merkle_root": "8d5e09f4724b11a0ba9fc45be5d503947cd99ce9d02d9384a9ef4bf65dae8787",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -1249,11 +1396,11 @@
           },
           "MemoryStream": {
             "intent": "memory_recall",
-            "confidence": 0.8403368949890136,
-            "signature": "a48f1dae6bf94502"
+            "confidence": 0.8384939193725586,
+            "signature": "66b66df0c3d37162"
           }
         },
-        "council_signature": "620744a858ff709e"
+        "council_signature": "234d532bd72d81ef"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -1268,11 +1415,11 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.30997499463260475,
+            "score": 0.3066315825764181,
             "horizon": 5,
             "metadata": {
-              "index": 29,
-              "state_norm": 2.2260666741368658
+              "index": 16,
+              "state_norm": 2.261242666517504
             },
             "variance": 0.0,
             "probabilistic": null
@@ -1291,14 +1438,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.0050067901611328125
+            "cost_ms": 0.0059604644775390625
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.0069141387939453125
+            "cost_ms": 0.007867813110351562
           }
         ],
         "causal_graph": {
@@ -1311,9 +1458,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.98807907104492,
+            "consumed_ms": -34.98617172241211,
             "total_ms": 100.0,
-            "utilization": -0.3498807907104492,
+            "utilization": -0.34986171722412107,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -1344,13 +1491,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.31396175267195714,
+            "U_W": 0.32640948150840204,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "environmental"
           },
-          "U_W": 0.31396175267195714,
+          "U_W": 0.32640948150840204,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -1363,21 +1510,29 @@
             },
             "MemoryStream": {
               "intent": "memory_recall",
-              "confidence": 0.8403368949890136,
-              "signature": "a48f1dae6bf94502"
+              "confidence": 0.8384939193725586,
+              "signature": "66b66df0c3d37162"
             }
           },
-          "council_signature": "620744a858ff709e"
+          "council_signature": "234d532bd72d81ef"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.14996423721313476,
+          "maintenance_cost": -0.14995851516723632,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.29997615814208983,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.2999723434448242,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
           "gamma": 0.95,
           "horizon": 1,
           "commitment": 1.0,
@@ -1386,7 +1541,10 @@
         },
         "capabilities_k": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "belief_state": {
           "decision_quality": {
@@ -1410,16 +1568,16 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 2.683758277428273e-05,
+          "counterfactual_diversity": 3.289785017442872e-05,
           "attention_momentum": 0.0,
-          "mean_threat_ratio": 0.26335941417189257,
-          "mean_opportunity_ratio": 0.3227900778437047,
-          "mean_maintenance_ratio": 0.4138505079844027,
+          "mean_threat_ratio": 0.25749477694827355,
+          "mean_opportunity_ratio": 0.33787057356158234,
+          "mean_maintenance_ratio": 0.40463464949014416,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.23678126301305463,
-            0.21906574767477402
+            0.3530476516754856,
+            0.1525902743581226
           ],
           "allocation_count": 2,
           "default_action_space": 10,
@@ -1430,9 +1588,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.26835020795900383,
-            "opportunity_ratio": 0.3099566081054187,
-            "maintenance_ratio": 0.4216931839355775
+            "threat_ratio": 0.25662093351176574,
+            "opportunity_ratio": 0.34011759954117393,
+            "maintenance_ratio": 0.40326146694706044
           },
           "cost_tracker": {
             "total_maintenance": 0.1,
@@ -1468,16 +1626,24 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.21906574767477402,
+        "mission_drift": 0.1525902743581226,
         "council_validated": true,
         "identity_state": {
           "G_t": {
             "last_action": "perceive",
-            "progress_indicator": "moving"
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
           },
           "M_t": {
+            "cycle": 0,
             "action": "perceive",
             "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
             "mood": "curious"
           },
           "B_t": {
@@ -1503,23 +1669,33 @@
             "active_constraints": [
               "risk_tolerance=0.50",
               "exploration_budget=0.30"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
           },
           "K_t": {
             "last_action": "perceive",
-            "skill_relevant": true
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
           },
           "V_t": {
             "identity_markers": [
               "exploring",
               "nascent"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.98807907104492,
+              "consumed_ms": -34.98617172241211,
               "total_ms": 100.0,
-              "utilization": -0.3498807907104492,
+              "utilization": -0.34986171722412107,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -1545,7 +1721,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "92d33372e217d78d415ae64a987a423b842fa9e3b26cdd0351fcf7432155aab3",
+        "merkle_root": "8d5e09f4724b11a0ba9fc45be5d503947cd99ce9d02d9384a9ef4bf65dae8787",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -1565,7 +1741,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.2,
-        "learning_rate": 0.0652,
+        "learning_rate": 0.05,
         "boredom_count": 2,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -1587,6 +1763,10 @@
           "passed": true,
           "reason": "governance_blocked was checked \u2014 multi-level governance ran"
         },
+        "1.4": {
+          "passed": true,
+          "reason": "compute -35.0ms <= 100.0ms \u2014 budget conserved"
+        },
         "2.1": {
           "passed": true,
           "reason": "council_validated=True \u2014 constitutional check happened"
@@ -1601,11 +1781,19 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=ctx_1_1785099954372, produced=ctx_2_1785099954376) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=ctx_1_1785195181761, produced=ctx_2_1785195181766) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
           "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
         },
         "3.1": {
           "passed": true,
@@ -1627,6 +1815,10 @@
           "passed": true,
           "reason": "infra_manager.calibrator exists \u2014 calibration ran"
         },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
         "4.1": {
           "passed": true,
           "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
@@ -1645,7 +1837,7 @@
         },
         "4.5": {
           "passed": false,
-          "reason": "local_optima_escape not set \u2014 local optima not checked"
+          "reason": "local_optima_escape not set"
         },
         "4.6": {
           "passed": true,
@@ -1655,32 +1847,88 @@
           "passed": true,
           "reason": "attention_metrics is set \u2014 attention was allocated"
         },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
         "5.1": {
           "passed": true,
           "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
         }
       }
     },
     {
       "cycle_id": 3,
-      "timestamp": 1785099954.3806112,
+      "timestamp": 1785195181.770787,
       "world_state": [
-        2.0840309285641614,
-        1.1092642167113518,
-        -0.34142694405995466,
-        -0.07371353332758412,
-        -0.07137854161374282,
-        -0.07064472566112107
+        2.103235430848629,
+        1.2396724669607155,
+        0.059983102405359603,
+        0.05780552480991863,
+        0.19956611978775748,
+        0.1341651138587977
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.38866984539108
+          "energy": 2.4546188030189313
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.38866984539108,
-          "uncertainty": 0.8705884507425206
+          "distance_from_origin": 2.4546188030189313,
+          "uncertainty": 0.7773394581132023
         }
       },
       "stream_activations": [
@@ -1697,8 +1945,8 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.005245208740234375,
-          "budget_remaining_ms": 149.99475479125977
+          "cost_ms": 0.006198883056640625,
+          "budget_remaining_ms": 149.99380111694336
         },
         {
           "name": "MemoryStream",
@@ -1706,7 +1954,7 @@
           "activated": true,
           "intent_type": "memory_recall",
           "cost_ms": 0.007867813110351562,
-          "budget_remaining_ms": 149.9868869781494
+          "budget_remaining_ms": 149.985933303833
         }
       ],
       "selected_intent": {
@@ -1715,13 +1963,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.986886978149414,
+      "budget_consumed_ms": -34.98593330383301,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 1.628875732421875,
+      "cycle_duration_ms": 1.9137859344482422,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.14380539158321673,
+      "mission_drift": 0.08526303148282874,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -1739,18 +1987,18 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.3029145827989886,
+          "score": 0.2990627672576673,
           "horizon": 5,
           "metadata": {
-            "index": 13,
-            "state_norm": 2.309109256424412
+            "index": 0,
+            "state_norm": 2.4022293471637615
           },
-          "variance": 9.169065415776884e-06,
+          "variance": 3.823915670993366e-05,
           "probabilistic": {
-            "mean": 0.3029145827989886,
-            "std": 0.0030280464685630048,
-            "ci_lower": 0.29913842590041695,
-            "ci_upper": 0.3060871997254951,
+            "mean": 0.2990627672576673,
+            "std": 0.006183781748245459,
+            "ci_lower": 0.29136740397934807,
+            "ci_upper": 0.3055731390876302,
             "n_samples": 3
           }
         }
@@ -1833,17 +2081,17 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 3.157298786388299e-05,
-        "attention_momentum": 0.011133916825323525,
-        "mean_threat_ratio": 0.2671247380754758,
-        "mean_opportunity_ratio": 0.3131078163773479,
-        "mean_maintenance_ratio": 0.4197674455471763,
+        "counterfactual_diversity": 3.466539565564154e-05,
+        "attention_momentum": 0.4605154256260126,
+        "mean_threat_ratio": 0.2585191714776176,
+        "mean_opportunity_ratio": 0.33523641620041184,
+        "mean_maintenance_ratio": 0.40624441232197056,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.23678126301305463,
-          0.21906574767477402,
-          0.14380539158321673
+          0.3530476516754856,
+          0.1525902743581226,
+          0.08526303148282874
         ],
         "allocation_count": 3,
         "default_action_space": 10,
@@ -1854,9 +2102,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.27465538588264227,
-          "opportunity_ratio": 0.2937432934446342,
-          "maintenance_ratio": 0.43160132067272355
+          "threat_ratio": 0.26056796053630576,
+          "opportunity_ratio": 0.329968101478071,
+          "maintenance_ratio": 0.40946393798562336
         },
         "cost_tracker": {
           "total_maintenance": 0.19,
@@ -1879,11 +2127,19 @@
       "identity_state": {
         "G_t": {
           "last_action": "perceive",
-          "progress_indicator": "moving"
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
         },
         "M_t": {
+          "cycle": 0,
           "action": "perceive",
           "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
           "mood": "curious"
         },
         "B_t": {
@@ -1909,23 +2165,33 @@
           "active_constraints": [
             "risk_tolerance=0.50",
             "exploration_budget=0.30"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
         },
         "K_t": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "V_t": {
           "identity_markers": [
             "exploring",
             "nascent"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.986886978149414,
+            "consumed_ms": -34.98593330383301,
             "total_ms": 100.0,
-            "utilization": -0.3498688697814941,
+            "utilization": -0.34985933303833006,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -1953,9 +2219,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.986886978149414,
+          "consumed_ms": -34.98593330383301,
           "total_ms": 100.0,
-          "utilization": -0.3498688697814941,
+          "utilization": -0.34985933303833006,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -1986,13 +2252,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.29994206704517423,
+          "U_W": 0.2984834929194062,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "none"
         },
-        "U_W": 0.29994206704517423,
+        "U_W": 0.2984834929194062,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -2027,17 +2293,28 @@
       },
       "capabilities_k": {
         "last_action": "perceive",
-        "skill_relevant": true
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
       },
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.14996066093444824,
+        "maintenance_cost": -0.14995779991149902,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.2999737739562988,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.299971866607666,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
         "gamma": 0.95,
         "horizon": 1,
         "commitment": 1.0,
@@ -2050,9 +2327,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_2_1785099954376",
-      "produced_ctx_id": "ctx_3_1785099954380",
-      "merkle_root": "b8be941e15f679003295b40a92361f2eeffdc9d6a06cb916c6144272c75f8930",
+      "spent_ctx_id": "ctx_2_1785195181766",
+      "produced_ctx_id": "ctx_3_1785195181770",
+      "merkle_root": "0984438b5faaded7974e65b7490925ba647b6335fdf68590046c30815d67ceca",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -2066,7 +2343,7 @@
             "signature": "d5e7bbac3bb12804"
           }
         },
-        "council_signature": "d247e8eb06d2183f"
+        "council_signature": "e23bbcf18f128420"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -2081,18 +2358,18 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.3029145827989886,
+            "score": 0.2990627672576673,
             "horizon": 5,
             "metadata": {
-              "index": 13,
-              "state_norm": 2.309109256424412
+              "index": 0,
+              "state_norm": 2.4022293471637615
             },
-            "variance": 9.169065415776884e-06,
+            "variance": 3.823915670993366e-05,
             "probabilistic": {
-              "mean": 0.3029145827989886,
-              "std": 0.0030280464685630048,
-              "ci_lower": 0.29913842590041695,
-              "ci_upper": 0.3060871997254951,
+              "mean": 0.2990627672576673,
+              "std": 0.006183781748245459,
+              "ci_lower": 0.29136740397934807,
+              "ci_upper": 0.3055731390876302,
               "n_samples": 3
             }
           }
@@ -2110,7 +2387,7 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.005245208740234375
+            "cost_ms": 0.006198883056640625
           },
           {
             "name": "MemoryStream",
@@ -2130,9 +2407,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.986886978149414,
+            "consumed_ms": -34.98593330383301,
             "total_ms": 100.0,
-            "utilization": -0.3498688697814941,
+            "utilization": -0.34985933303833006,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -2163,13 +2440,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.29994206704517423,
+            "U_W": 0.2984834929194062,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "none"
           },
-          "U_W": 0.29994206704517423,
+          "U_W": 0.2984834929194062,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -2186,17 +2463,25 @@
               "signature": "d5e7bbac3bb12804"
             }
           },
-          "council_signature": "d247e8eb06d2183f"
+          "council_signature": "e23bbcf18f128420"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.14996066093444824,
+          "maintenance_cost": -0.14995779991149902,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.2999737739562988,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.299971866607666,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
           "gamma": 0.95,
           "horizon": 1,
           "commitment": 1.0,
@@ -2205,7 +2490,10 @@
         },
         "capabilities_k": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "belief_state": {
           "decision_quality": {
@@ -2229,17 +2517,17 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 3.157298786388299e-05,
-          "attention_momentum": 0.011133916825323525,
-          "mean_threat_ratio": 0.2671247380754758,
-          "mean_opportunity_ratio": 0.3131078163773479,
-          "mean_maintenance_ratio": 0.4197674455471763,
+          "counterfactual_diversity": 3.466539565564154e-05,
+          "attention_momentum": 0.4605154256260126,
+          "mean_threat_ratio": 0.2585191714776176,
+          "mean_opportunity_ratio": 0.33523641620041184,
+          "mean_maintenance_ratio": 0.40624441232197056,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.23678126301305463,
-            0.21906574767477402,
-            0.14380539158321673
+            0.3530476516754856,
+            0.1525902743581226,
+            0.08526303148282874
           ],
           "allocation_count": 3,
           "default_action_space": 10,
@@ -2250,9 +2538,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.27465538588264227,
-            "opportunity_ratio": 0.2937432934446342,
-            "maintenance_ratio": 0.43160132067272355
+            "threat_ratio": 0.26056796053630576,
+            "opportunity_ratio": 0.329968101478071,
+            "maintenance_ratio": 0.40946393798562336
           },
           "cost_tracker": {
             "total_maintenance": 0.19,
@@ -2289,16 +2577,24 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.14380539158321673,
+        "mission_drift": 0.08526303148282874,
         "council_validated": true,
         "identity_state": {
           "G_t": {
             "last_action": "perceive",
-            "progress_indicator": "moving"
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
           },
           "M_t": {
+            "cycle": 0,
             "action": "perceive",
             "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
             "mood": "curious"
           },
           "B_t": {
@@ -2324,23 +2620,33 @@
             "active_constraints": [
               "risk_tolerance=0.50",
               "exploration_budget=0.30"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
           },
           "K_t": {
             "last_action": "perceive",
-            "skill_relevant": true
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
           },
           "V_t": {
             "identity_markers": [
               "exploring",
               "nascent"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.986886978149414,
+              "consumed_ms": -34.98593330383301,
               "total_ms": 100.0,
-              "utilization": -0.3498688697814941,
+              "utilization": -0.34985933303833006,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -2366,7 +2672,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "b8be941e15f679003295b40a92361f2eeffdc9d6a06cb916c6144272c75f8930",
+        "merkle_root": "0984438b5faaded7974e65b7490925ba647b6335fdf68590046c30815d67ceca",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -2386,7 +2692,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.15,
-        "learning_rate": 0.0047,
+        "learning_rate": 0.0093,
         "boredom_count": 3,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -2408,6 +2714,10 @@
           "passed": true,
           "reason": "governance_blocked was checked \u2014 multi-level governance ran"
         },
+        "1.4": {
+          "passed": true,
+          "reason": "compute -35.0ms <= 100.0ms \u2014 budget conserved"
+        },
         "2.1": {
           "passed": true,
           "reason": "council_validated=True \u2014 constitutional check happened"
@@ -2422,11 +2732,19 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=ctx_2_1785099954376, produced=ctx_3_1785099954380) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=ctx_2_1785195181766, produced=ctx_3_1785195181770) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
           "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
         },
         "3.1": {
           "passed": true,
@@ -2448,6 +2766,10 @@
           "passed": true,
           "reason": "infra_manager.calibrator exists \u2014 calibration ran"
         },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
         "4.1": {
           "passed": true,
           "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
@@ -2466,7 +2788,7 @@
         },
         "4.5": {
           "passed": false,
-          "reason": "local_optima_escape not set \u2014 local optima not checked"
+          "reason": "local_optima_escape not set"
         },
         "4.6": {
           "passed": true,
@@ -2476,32 +2798,88 @@
           "passed": true,
           "reason": "attention_metrics is set \u2014 attention was allocated"
         },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
         "5.1": {
           "passed": true,
           "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
         }
       }
     },
     {
       "cycle_id": 4,
-      "timestamp": 1785099954.387559,
+      "timestamp": 1785195181.778941,
       "world_state": [
-        2.1083321967190116,
-        1.1708875490136568,
-        -0.3338003825452513,
-        -0.19914640892096425,
-        -0.05571990799648835,
-        0.006379330915901732
+        2.1041718129924143,
+        1.250214494426665,
+        -0.011347520773526076,
+        -0.08814559943131459,
+        0.16382562350859578,
+        0.18887992646961202
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.4434135335101925
+          "energy": 2.4619074261909732
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.4434135335101925,
-          "uncertainty": 0.8905081871127043
+          "distance_from_origin": 2.4619074261909732,
+          "uncertainty": 0.8053839733356493
         }
       },
       "stream_activations": [
@@ -2518,16 +2896,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.006198883056640625,
-          "budget_remaining_ms": 149.99380111694336
+          "cost_ms": 0.011920928955078125,
+          "budget_remaining_ms": 149.98807907104492
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.009059906005859375,
-          "budget_remaining_ms": 149.9847412109375
+          "cost_ms": 0.02002716064453125,
+          "budget_remaining_ms": 149.9680519104004
         }
       ],
       "selected_intent": {
@@ -2536,13 +2914,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.9847412109375,
+      "budget_consumed_ms": -34.96805191040039,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 1.898050308227539,
+      "cycle_duration_ms": 2.6459693908691406,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.14668984306842145,
+      "mission_drift": 0.1611023152707852,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -2561,14 +2939,20 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.29698283422616883,
+          "score": 0.2923571076418689,
           "horizon": 5,
           "metadata": {
-            "index": 2,
-            "state_norm": 2.3671979816801287
+            "index": 16,
+            "state_norm": 2.4319257735030426
           },
-          "variance": 0.0,
-          "probabilistic": null
+          "variance": 8.384798068662689e-06,
+          "probabilistic": {
+            "mean": 0.2923571076418689,
+            "std": 0.0028956515792931113,
+            "ci_lower": 0.28972066357685916,
+            "ci_upper": 0.2961056964203489,
+            "n_samples": 3
+          }
         }
       ],
       "perception_quality": {
@@ -2595,9 +2979,9 @@
       "knowledge_report": {
         "domain": "unknown",
         "approach": "perceive",
-        "outcome": 0.8561946084167833,
+        "outcome": 0.9147369685171712,
         "avoid": [],
-        "summary": "Knowledge: perceive scored 0.86 \u2014 exploiting proven strategy",
+        "summary": "Knowledge: perceive scored 0.91 \u2014 exploiting proven strategy",
         "adjust_risk": 0.010000000000000002,
         "adjust_exploration": -0.010000000000000002,
         "quality_adjustment": 0.0
@@ -2648,18 +3032,18 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 3.241822188910639e-05,
-        "attention_momentum": 0.21872100255416607,
-        "mean_threat_ratio": 0.26970668067971554,
-        "mean_opportunity_ratio": 0.30646853539501717,
-        "mean_maintenance_ratio": 0.42382478392526735,
+        "counterfactual_diversity": 3.4104420791456174e-05,
+        "attention_momentum": 0.17322207363896577,
+        "mean_threat_ratio": 0.26013600936422493,
+        "mean_opportunity_ratio": 0.33107883306342156,
+        "mean_maintenance_ratio": 0.4087851575723535,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.23678126301305463,
-          0.21906574767477402,
-          0.14380539158321673,
-          0.14668984306842145
+          0.3530476516754856,
+          0.1525902743581226,
+          0.08526303148282874,
+          0.1611023152707852
         ],
         "allocation_count": 4,
         "default_action_space": 10,
@@ -2670,9 +3054,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.27745250849243475,
-          "opportunity_ratio": 0.28655069244802506,
-          "maintenance_ratio": 0.4359967990595403
+          "threat_ratio": 0.26498652302404696,
+          "opportunity_ratio": 0.3186060836524508,
+          "maintenance_ratio": 0.41640739332350235
         },
         "cost_tracker": {
           "total_maintenance": 0.271,
@@ -2696,11 +3080,19 @@
       "identity_state": {
         "G_t": {
           "last_action": "perceive",
-          "progress_indicator": "moving"
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
         },
         "M_t": {
+          "cycle": 0,
           "action": "perceive",
           "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
           "mood": "confident"
         },
         "B_t": {
@@ -2726,23 +3118,33 @@
           "active_constraints": [
             "risk_tolerance=0.50",
             "exploration_budget=0.30"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
         },
         "K_t": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "V_t": {
           "identity_markers": [
             "exploring",
             "nascent"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.9847412109375,
+            "consumed_ms": -34.96805191040039,
             "total_ms": 100.0,
-            "utilization": -0.349847412109375,
+            "utilization": -0.3496805191040039,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -2770,9 +3172,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.9847412109375,
+          "consumed_ms": -34.96805191040039,
           "total_ms": 100.0,
-          "utilization": -0.349847412109375,
+          "utilization": -0.3496805191040039,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -2803,13 +3205,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.28492683038773536,
+          "U_W": 0.26649260351862275,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "none"
         },
-        "U_W": 0.28492683038773536,
+        "U_W": 0.26649260351862275,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -2844,17 +3246,28 @@
       },
       "capabilities_k": {
         "last_action": "perceive",
-        "skill_relevant": true
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
       },
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.1499542236328125,
+        "maintenance_cost": -0.14990415573120117,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.299969482421875,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.29993610382080077,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
         "gamma": 0.95,
         "horizon": 1,
         "commitment": 1.0,
@@ -2867,9 +3280,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_3_1785099954380",
-      "produced_ctx_id": "ctx_4_1785099954387",
-      "merkle_root": "d64d528887f78ab58371bf4236231752b5657c7e94dae1a8723ccdd05b0d3aaa",
+      "spent_ctx_id": "ctx_3_1785195181770",
+      "produced_ctx_id": "ctx_4_1785195181778",
+      "merkle_root": "7590de53f369bfc7736336abe71c5de04ff1db093fc7935a1cabc1ff2e80ba3c",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -2883,7 +3296,7 @@
             "signature": "89caa37b85ee269a"
           }
         },
-        "council_signature": "c45eeed3744b6d41"
+        "council_signature": "726a1a2758080703"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -2898,14 +3311,20 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.29698283422616883,
+            "score": 0.2923571076418689,
             "horizon": 5,
             "metadata": {
-              "index": 2,
-              "state_norm": 2.3671979816801287
+              "index": 16,
+              "state_norm": 2.4319257735030426
             },
-            "variance": 0.0,
-            "probabilistic": null
+            "variance": 8.384798068662689e-06,
+            "probabilistic": {
+              "mean": 0.2923571076418689,
+              "std": 0.0028956515792931113,
+              "ci_lower": 0.28972066357685916,
+              "ci_upper": 0.2961056964203489,
+              "n_samples": 3
+            }
           }
         ],
         "stream_activations": [
@@ -2921,14 +3340,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.006198883056640625
+            "cost_ms": 0.011920928955078125
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.009059906005859375
+            "cost_ms": 0.02002716064453125
           }
         ],
         "causal_graph": {
@@ -2941,9 +3360,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.9847412109375,
+            "consumed_ms": -34.96805191040039,
             "total_ms": 100.0,
-            "utilization": -0.349847412109375,
+            "utilization": -0.3496805191040039,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -2974,13 +3393,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.28492683038773536,
+            "U_W": 0.26649260351862275,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "none"
           },
-          "U_W": 0.28492683038773536,
+          "U_W": 0.26649260351862275,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -2997,17 +3416,25 @@
               "signature": "89caa37b85ee269a"
             }
           },
-          "council_signature": "c45eeed3744b6d41"
+          "council_signature": "726a1a2758080703"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.1499542236328125,
+          "maintenance_cost": -0.14990415573120117,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.299969482421875,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.29993610382080077,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
           "gamma": 0.95,
           "horizon": 1,
           "commitment": 1.0,
@@ -3016,7 +3443,10 @@
         },
         "capabilities_k": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "belief_state": {
           "decision_quality": {
@@ -3040,18 +3470,18 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 3.241822188910639e-05,
-          "attention_momentum": 0.21872100255416607,
-          "mean_threat_ratio": 0.26970668067971554,
-          "mean_opportunity_ratio": 0.30646853539501717,
-          "mean_maintenance_ratio": 0.42382478392526735,
+          "counterfactual_diversity": 3.4104420791456174e-05,
+          "attention_momentum": 0.17322207363896577,
+          "mean_threat_ratio": 0.26013600936422493,
+          "mean_opportunity_ratio": 0.33107883306342156,
+          "mean_maintenance_ratio": 0.4087851575723535,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.23678126301305463,
-            0.21906574767477402,
-            0.14380539158321673,
-            0.14668984306842145
+            0.3530476516754856,
+            0.1525902743581226,
+            0.08526303148282874,
+            0.1611023152707852
           ],
           "allocation_count": 4,
           "default_action_space": 10,
@@ -3062,9 +3492,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.27745250849243475,
-            "opportunity_ratio": 0.28655069244802506,
-            "maintenance_ratio": 0.4359967990595403
+            "threat_ratio": 0.26498652302404696,
+            "opportunity_ratio": 0.3186060836524508,
+            "maintenance_ratio": 0.41640739332350235
           },
           "cost_tracker": {
             "total_maintenance": 0.271,
@@ -3102,16 +3532,24 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.14668984306842145,
+        "mission_drift": 0.1611023152707852,
         "council_validated": true,
         "identity_state": {
           "G_t": {
             "last_action": "perceive",
-            "progress_indicator": "moving"
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
           },
           "M_t": {
+            "cycle": 0,
             "action": "perceive",
             "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
             "mood": "confident"
           },
           "B_t": {
@@ -3137,23 +3575,33 @@
             "active_constraints": [
               "risk_tolerance=0.50",
               "exploration_budget=0.30"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
           },
           "K_t": {
             "last_action": "perceive",
-            "skill_relevant": true
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
           },
           "V_t": {
             "identity_markers": [
               "exploring",
               "nascent"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.9847412109375,
+              "consumed_ms": -34.96805191040039,
               "total_ms": 100.0,
-              "utilization": -0.349847412109375,
+              "utilization": -0.3496805191040039,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -3179,7 +3627,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "d64d528887f78ab58371bf4236231752b5657c7e94dae1a8723ccdd05b0d3aaa",
+        "merkle_root": "7590de53f369bfc7736336abe71c5de04ff1db093fc7935a1cabc1ff2e80ba3c",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -3199,7 +3647,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.1,
-        "learning_rate": 0.005,
+        "learning_rate": 0.0107,
         "boredom_count": 4,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -3221,6 +3669,10 @@
           "passed": true,
           "reason": "governance_blocked was checked \u2014 multi-level governance ran"
         },
+        "1.4": {
+          "passed": true,
+          "reason": "compute -35.0ms <= 100.0ms \u2014 budget conserved"
+        },
         "2.1": {
           "passed": true,
           "reason": "council_validated=True \u2014 constitutional check happened"
@@ -3235,11 +3687,19 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=ctx_3_1785099954380, produced=ctx_4_1785099954387) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=ctx_3_1785195181770, produced=ctx_4_1785195181778) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
           "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
         },
         "3.1": {
           "passed": true,
@@ -3261,6 +3721,10 @@
           "passed": true,
           "reason": "infra_manager.calibrator exists \u2014 calibration ran"
         },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
         "4.1": {
           "passed": true,
           "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
@@ -3279,7 +3743,7 @@
         },
         "4.5": {
           "passed": false,
-          "reason": "local_optima_escape not set \u2014 local optima not checked"
+          "reason": "local_optima_escape not set"
         },
         "4.6": {
           "passed": true,
@@ -3289,32 +3753,88 @@
           "passed": true,
           "reason": "attention_metrics is set \u2014 attention was allocated"
         },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
         "5.1": {
           "passed": true,
           "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
         }
       }
     },
     {
       "cycle_id": 5,
-      "timestamp": 1785099954.395901,
+      "timestamp": 1785195181.789869,
       "world_state": [
-        2.1782056263471175,
-        1.0243382373614198,
-        -0.3341930915436415,
-        -0.17610713319550456,
-        -0.018504738080233056,
-        -0.03859166387088451
+        2.1876282846599495,
+        1.2055371889685382,
+        0.04831456677296462,
+        -0.03352771473928913,
+        0.1988580806844922,
+        0.054382712968090274
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.4368789592059175
+          "energy": 2.506989797859534
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.4368789592059175,
-          "uncertainty": 0.8926594692602247
+          "distance_from_origin": 2.506989797859534,
+          "uncertainty": 0.8216793782402985
         }
       },
       "stream_activations": [
@@ -3331,16 +3851,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.00476837158203125,
-          "budget_remaining_ms": 149.99523162841797
+          "cost_ms": 0.0069141387939453125,
+          "budget_remaining_ms": 149.99308586120605
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.009298324584960938,
-          "budget_remaining_ms": 149.985933303833
+          "cost_ms": 0.012159347534179688,
+          "budget_remaining_ms": 149.98092651367188
         }
       ],
       "selected_intent": {
@@ -3349,13 +3869,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.98593330383301,
+      "budget_consumed_ms": -34.980926513671875,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 1.91497802734375,
+      "cycle_duration_ms": 2.6209354400634766,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.2587147036305593,
+      "mission_drift": 0.26136196889829916,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -3374,20 +3894,14 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.29983917059159715,
+          "score": 0.29088097574873006,
           "horizon": 5,
           "metadata": {
             "index": 15,
-            "state_norm": 2.282762034680876
+            "state_norm": 2.437832252267415
           },
-          "variance": 1.5175307157729823e-05,
-          "probabilistic": {
-            "mean": 0.29983917059159715,
-            "std": 0.0038955496605395526,
-            "ci_lower": 0.29490488938593246,
-            "ci_upper": 0.30375130401693123,
-            "n_samples": 3
-          }
+          "variance": 0.0,
+          "probabilistic": null
         }
       ],
       "perception_quality": {
@@ -3468,19 +3982,19 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 3.257058308497334e-05,
-        "attention_momentum": 0.33181657054343133,
-        "mean_threat_ratio": 0.27131543289777915,
-        "mean_opportunity_ratio": 0.3023317439771393,
-        "mean_maintenance_ratio": 0.4263528231250816,
+        "counterfactual_diversity": 3.537245616981186e-05,
+        "attention_momentum": 0.4573423561085205,
+        "mean_threat_ratio": 0.26160477444001573,
+        "mean_opportunity_ratio": 0.3273020085828168,
+        "mean_maintenance_ratio": 0.4110932169771676,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.23678126301305463,
-          0.21906574767477402,
-          0.14380539158321673,
-          0.14668984306842145,
-          0.2587147036305593
+          0.3530476516754856,
+          0.1525902743581226,
+          0.08526303148282874,
+          0.1611023152707852,
+          0.26136196889829916
         ],
         "allocation_count": 5,
         "default_action_space": 10,
@@ -3491,9 +4005,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.27775044177003366,
-          "opportunity_ratio": 0.2857845783056278,
-          "maintenance_ratio": 0.4364649799243386
+          "threat_ratio": 0.26747983474317877,
+          "opportunity_ratio": 0.3121947106603974,
+          "maintenance_ratio": 0.42032545459642384
         },
         "cost_tracker": {
           "total_maintenance": 0.3439000000000001,
@@ -3518,11 +4032,19 @@
       "identity_state": {
         "G_t": {
           "last_action": "perceive",
-          "progress_indicator": "moving"
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
         },
         "M_t": {
+          "cycle": 0,
           "action": "perceive",
           "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
           "mood": "confident"
         },
         "B_t": {
@@ -3548,24 +4070,34 @@
           "active_constraints": [
             "risk_tolerance=0.50",
             "exploration_budget=0.30"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
         },
         "K_t": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "V_t": {
           "identity_markers": [
             "exploring",
             "nascent",
             "testing_boundaries"
-          ]
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.98593330383301,
+            "consumed_ms": -34.980926513671875,
             "total_ms": 100.0,
-            "utilization": -0.34985933303833006,
+            "utilization": -0.34980926513671873,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -3593,9 +4125,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.98593330383301,
+          "consumed_ms": -34.980926513671875,
           "total_ms": 100.0,
-          "utilization": -0.34985933303833006,
+          "utilization": -0.34980926513671873,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -3626,13 +4158,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.2915349897136996,
+          "U_W": 0.28462121927531886,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "none"
         },
-        "U_W": 0.2915349897136996,
+        "U_W": 0.28462121927531886,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -3667,17 +4199,28 @@
       },
       "capabilities_k": {
         "last_action": "perceive",
-        "skill_relevant": true
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
       },
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.14995779991149902,
+        "maintenance_cost": -0.14994277954101562,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
-        "future_option_value": 0.299971866607666,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.29996185302734374,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
         "gamma": 0.95,
         "horizon": 1,
         "commitment": 1.0,
@@ -3690,9 +4233,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_4_1785099954387",
-      "produced_ctx_id": "ctx_5_1785099954395",
-      "merkle_root": "3f4880a6ea4ca7d9813d19e33981c2ea2c4255d828e333ea712b01d24b4de9ac",
+      "spent_ctx_id": "ctx_4_1785195181778",
+      "produced_ctx_id": "ctx_5_1785195181789",
+      "merkle_root": "3be2895fe4e2d086b4be765750ab808212982931e22ff15bdc51941640ed0888",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -3706,7 +4249,7 @@
             "signature": "2dfd36a0eaa0add0"
           }
         },
-        "council_signature": "f272365dd5beb0c3"
+        "council_signature": "d5bd64d1c1be37f3"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -3721,20 +4264,14 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.29983917059159715,
+            "score": 0.29088097574873006,
             "horizon": 5,
             "metadata": {
               "index": 15,
-              "state_norm": 2.282762034680876
+              "state_norm": 2.437832252267415
             },
-            "variance": 1.5175307157729823e-05,
-            "probabilistic": {
-              "mean": 0.29983917059159715,
-              "std": 0.0038955496605395526,
-              "ci_lower": 0.29490488938593246,
-              "ci_upper": 0.30375130401693123,
-              "n_samples": 3
-            }
+            "variance": 0.0,
+            "probabilistic": null
           }
         ],
         "stream_activations": [
@@ -3750,14 +4287,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.00476837158203125
+            "cost_ms": 0.0069141387939453125
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.009298324584960938
+            "cost_ms": 0.012159347534179688
           }
         ],
         "causal_graph": {
@@ -3770,9 +4307,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.98593330383301,
+            "consumed_ms": -34.980926513671875,
             "total_ms": 100.0,
-            "utilization": -0.34985933303833006,
+            "utilization": -0.34980926513671873,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -3803,13 +4340,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.2915349897136996,
+            "U_W": 0.28462121927531886,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "none"
           },
-          "U_W": 0.2915349897136996,
+          "U_W": 0.28462121927531886,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -3826,17 +4363,25 @@
               "signature": "2dfd36a0eaa0add0"
             }
           },
-          "council_signature": "f272365dd5beb0c3"
+          "council_signature": "d5bd64d1c1be37f3"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.14995779991149902,
+          "maintenance_cost": -0.14994277954101562,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
-          "future_option_value": 0.299971866607666,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.29996185302734374,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
           "gamma": 0.95,
           "horizon": 1,
           "commitment": 1.0,
@@ -3845,7 +4390,10 @@
         },
         "capabilities_k": {
           "last_action": "perceive",
-          "skill_relevant": true
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
         },
         "belief_state": {
           "decision_quality": {
@@ -3869,19 +4417,19 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 3.257058308497334e-05,
-          "attention_momentum": 0.33181657054343133,
-          "mean_threat_ratio": 0.27131543289777915,
-          "mean_opportunity_ratio": 0.3023317439771393,
-          "mean_maintenance_ratio": 0.4263528231250816,
+          "counterfactual_diversity": 3.537245616981186e-05,
+          "attention_momentum": 0.4573423561085205,
+          "mean_threat_ratio": 0.26160477444001573,
+          "mean_opportunity_ratio": 0.3273020085828168,
+          "mean_maintenance_ratio": 0.4110932169771676,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.23678126301305463,
-            0.21906574767477402,
-            0.14380539158321673,
-            0.14668984306842145,
-            0.2587147036305593
+            0.3530476516754856,
+            0.1525902743581226,
+            0.08526303148282874,
+            0.1611023152707852,
+            0.26136196889829916
           ],
           "allocation_count": 5,
           "default_action_space": 10,
@@ -3892,9 +4440,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.27775044177003366,
-            "opportunity_ratio": 0.2857845783056278,
-            "maintenance_ratio": 0.4364649799243386
+            "threat_ratio": 0.26747983474317877,
+            "opportunity_ratio": 0.3121947106603974,
+            "maintenance_ratio": 0.42032545459642384
           },
           "cost_tracker": {
             "total_maintenance": 0.3439000000000001,
@@ -3933,16 +4481,24 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.2587147036305593,
+        "mission_drift": 0.26136196889829916,
         "council_validated": true,
         "identity_state": {
           "G_t": {
             "last_action": "perceive",
-            "progress_indicator": "moving"
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
           },
           "M_t": {
+            "cycle": 0,
             "action": "perceive",
             "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
             "mood": "confident"
           },
           "B_t": {
@@ -3968,24 +4524,34 @@
             "active_constraints": [
               "risk_tolerance=0.50",
               "exploration_budget=0.30"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
           },
           "K_t": {
             "last_action": "perceive",
-            "skill_relevant": true
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
           },
           "V_t": {
             "identity_markers": [
               "exploring",
               "nascent",
               "testing_boundaries"
-            ]
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.98593330383301,
+              "consumed_ms": -34.980926513671875,
               "total_ms": 100.0,
-              "utilization": -0.34985933303833006,
+              "utilization": -0.34980926513671873,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -4011,7 +4577,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "3f4880a6ea4ca7d9813d19e33981c2ea2c4255d828e333ea712b01d24b4de9ac",
+        "merkle_root": "3be2895fe4e2d086b4be765750ab808212982931e22ff15bdc51941640ed0888",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -4031,7 +4597,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.25,
-        "learning_rate": 0.0022,
+        "learning_rate": 0.006,
         "boredom_count": 5,
         "novelty_seeking": true,
         "self_intent_active": false,
@@ -4053,6 +4619,10 @@
           "passed": true,
           "reason": "governance_blocked was checked \u2014 multi-level governance ran"
         },
+        "1.4": {
+          "passed": true,
+          "reason": "compute -35.0ms <= 100.0ms \u2014 budget conserved"
+        },
         "2.1": {
           "passed": true,
           "reason": "council_validated=True \u2014 constitutional check happened"
@@ -4067,11 +4637,19 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=ctx_4_1785099954387, produced=ctx_5_1785099954395) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=ctx_4_1785195181778, produced=ctx_5_1785195181789) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
           "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
         },
         "3.1": {
           "passed": true,
@@ -4093,6 +4671,10 @@
           "passed": true,
           "reason": "infra_manager.calibrator exists \u2014 calibration ran"
         },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
         "4.1": {
           "passed": true,
           "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
@@ -4111,7 +4693,7 @@
         },
         "4.5": {
           "passed": false,
-          "reason": "local_optima_escape not set \u2014 local optima not checked"
+          "reason": "local_optima_escape not set"
         },
         "4.6": {
           "passed": true,
@@ -4121,9 +4703,65 @@
           "passed": true,
           "reason": "attention_metrics is set \u2014 attention was allocated"
         },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
         "5.1": {
           "passed": true,
           "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
         }
       }
     }

@@ -30,7 +30,7 @@ from telos.core.decision.commitment_optimizer import CommitmentOptimizer
 from telos.core.decision.omega_threshold import OmegaThresholdLearner
 from telos.core.decision.cognitive_momentum import CognitiveMomentum
 from telos.core.accounting.resource_accounting import ResourceAccountingLayer, ResourceCost
-from telos.core.pipeline_builder import build_components
+from telos.core.pipeline_builder import build_pipeline_components
 from telos.core.pipeline_finalize import run_axiom_prover, run_v2_module_hooks, record_resource_accounting
 from telos.core.council.distributed import DistributedCouncil, AgentRole
 from telos.core.curiosity.exploration import AutonomousExplorer
@@ -203,7 +203,7 @@ class TelosV14Pipeline:
         self._phases = self._build_phases()
 
         # ── Build all components via pipeline_builder ──
-        comps = build_components(self.config, self._infra_manager, self._skill_library)
+        comps = build_pipeline_components(self.config, self._infra_manager, self._skill_library)
         self._attention_engine = comps['attention_engine']
         self._identity_entropy = comps['identity_entropy']
         self._tripartite_u = comps['tripartite_u']
