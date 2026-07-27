@@ -34,31 +34,60 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     di = trace.decision_integrity if trace else 0.0
     md = trace.mission_drift if trace else 0.0
 
+    # 1. CouncilReflector with REAL validator signals
     try:
-        # CouncilReflector
+        signals = []
+        if ctx.verdict:
+            for s in ctx.verdict.signals:
+                signals.append({
+                    "validator_name": s.validator_name,
+                    "passed": s.passed,
+                    "confidence": s.confidence,
+                    "reason": s.reason,
+                    "evidence_weight": getattr(s, 'evidence_weight', 0.5),
+                })
         pipeline._council_reflector.record_decision(
             was_blocked=was_blocked, predicted_block=was_blocked,
-            actual_block=was_blocked, validator_signals=[],
+            actual_block=was_blocked, validator_signals=signals,
         )
     except Exception:
         pass
 
+    # 2. IntrospectionScheduler: consume tier results for pipeline behavior
     try:
-        pipeline._introspection_scheduler.get_due_tiers(ctx.cycle_count)
-        pipeline._introspection_scheduler.introspect(ctx.cycle_count)
+        due_tiers = pipeline._introspection_scheduler.get_due_tiers(ctx.cycle_count)
+        reports = pipeline._introspection_scheduler.introspect(ctx.cycle_count)
+        if due_tiers:
+            from telos.core.introspection.scheduler import IntrospectionTier
+            for tier in due_tiers:
+                if tier == IntrospectionTier.REFLECT and ctx.cycle_count > 0:
+                    logger.info(f"Introspection: REFLECT tier due at cycle {ctx.cycle_count}")
+                elif tier == IntrospectionTier.STRATEGIC:
+                    logger.info(f"Introspection: STRATEGIC tier due at cycle {ctx.cycle_count}")
+                    tb = getattr(pipeline, '_theory_builder', None)
+                    if tb and tb.total_experiences > 0:
+                        tb.cluster()
+                        tb.hypothesize()
+                        tb.promote()
     except Exception:
         pass
 
+    # 3. UnknownUnknownDetector: wire into curiosity cycle
     try:
-        if ctx.cycle_count % 1000 == 0 and hasattr(pipeline, '_theory_builder'):
-            tb = pipeline._theory_builder
-            if tb.total_experiences > 0:
-                tb.cluster()
-                tb.hypothesize()
-                tb.promote()
+        uud = getattr(pipeline, '_unknown_unknown_detector', None)
+        if uud is not None and hasattr(ctx, 'state') and ctx.state is not None:
+            import numpy as np
+            state = ctx.state
+            predictions = {"state_norm": float(np.linalg.norm(state))}
+            observations = {"state_norm": float(np.linalg.norm(state))}
+            uud.record_observation(ctx.cycle_count, predictions, observations)
+            questions = uud.promote_to_questions(ctx.cycle_count)
+            if questions:
+                logger.info(f"UnknownUnknownDetector: {len(questions)} new question(s) formed")
     except Exception:
         pass
 
+    # 4. CognitiveEnergy
     try:
         pipeline._cognitive_energy.consume(1.0 if was_blocked else 0.3)
     except Exception:
@@ -85,9 +114,22 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     except Exception:
         pass
 
+    # 5. IdentityUtilityEngine: compute with active profile weights
     try:
         iu = pipeline._identity_utility
-        iu.compute_utility(is_creator=getattr(pipeline, '_creator_present', False))
+        profile = iu.active_profile
+        if profile is not None:
+            marker_value = 1.0 if getattr(pipeline, '_creator_present', False) else 0.5
+            iu.compute_utility(
+                dimension_scores={
+                    "exploration": 0.5,
+                    "correctness": 0.8,
+                    "safety": 0.6,
+                    "efficiency": 0.4,
+                    "coherence": marker_value,
+                },
+                identity_markers=list(profile.identity_markers)[:3] if hasattr(profile, 'identity_markers') else None,
+            )
     except Exception:
         pass
 

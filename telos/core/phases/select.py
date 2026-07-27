@@ -465,6 +465,24 @@ class SelectPhase(Phase):
                     # Per-axis modulation: identity cost weight
                     identity_cost_weight = getattr(ctx, 'identity_cost_weight', 1.0)
 
+                    # IdentityUtilityEngine: profile-aware identity cost
+                    iu = getattr(pipeline, '_identity_utility', None)
+                    if iu is not None and iu.active_profile is not None:
+                        profile = iu.active_profile
+                        action_type = ctx.selected_intent.intent_type if ctx.selected_intent else "unknown"
+                        action_scores = {
+                            "exploration": 0.5 if "explore" in action_type or "inquiry" in action_type else 0.2,
+                            "correctness": 0.7,
+                            "safety": 0.3 if "reflex" in action_type else 0.6,
+                            "efficiency": 0.5,
+                            "coherence": 0.8,
+                        }
+                        dot = sum(action_scores.get(k, 0) * v for k, v in profile.weights.items())
+                        norm_a = max(1e-6, sum(v*v for v in action_scores.values())**0.5)
+                        norm_p = max(1e-6, sum(v*v for v in profile.weights.values())**0.5)
+                        profile_similarity = dot / (norm_a * norm_p)
+                        identity_cost_weight = max(identity_cost_weight, 1.0 - profile_similarity)
+
                     # Low diversity penalty
                     future_val = min(1.0, div * 2.0) if div > 0 else 0.0
                     if div < 0.3 and sim and sim.rolling_diversity < 0.3:

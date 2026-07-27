@@ -39,6 +39,30 @@ class CouncilPhase(Phase):
         logger.debug(f"Council configured: criticality={criticality}, "
                       f"threshold={pipeline.council._config.voting_threshold}")
 
+        # ── InternalDebate: multi-perspective analysis feeds into council ──
+        debate_note = ""
+        try:
+            debate = getattr(pipeline, '_internal_debate', None)
+            if debate is not None and ctx.selected_intent is not None:
+                result = debate.debate(
+                    context={
+                        "uncertainty": getattr(ctx, 'inquiry_omega_value', 0.5),
+                        "options": [i.intent_type for i, _ in getattr(ctx, 'intents', [])[:3]],
+                        "resources": {"budget": pipeline.budget_manager.total_budget_ms},
+                        "goals": {"survival": 1.0},
+                    },
+                    context_description=f"Council review of {ctx.selected_intent.intent_type}",
+                )
+                if hasattr(result, 'consensus_level'):
+                    debate_note = f"debate_consensus={result.consensus_level:.2f}"
+                    if result.consensus_level < 0.5:
+                        logger.warning(
+                            f"Council: InternalDebate low consensus ({result.consensus_level:.2f}) "
+                            f"for {ctx.selected_intent.intent_type}"
+                        )
+        except Exception:
+            pass
+
         # Evaluate the primary selected intent
         ctx.verdict = pipeline.council.evaluate(
             ctx.world, ctx.selected_intent, ctx.domain_facts,
