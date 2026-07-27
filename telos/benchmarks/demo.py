@@ -3,13 +3,17 @@ TELOS Benchmark Demo — run a full benchmark suite on the pipeline.
 
 Usage:
     python3 -m telos.benchmarks.demo [--cycles 10] [--save /tmp/benchmark.json]
-    
-This demonstrates:
+
+Demonstrates:
   1. Wiring BenchmarkCollector into the pipeline
   2. Running N pipeline cycles with automatic collection
   3. Generating a structured BenchmarkReport
   4. Rendering as markdown
   5. Saving snapshots and baselines
+
+Benchmark framework measures 7 conserved cognitive processes:
+  Perception, Learning, Identity, Knowledge, Resources, Projects, Social
+With 4-level hierarchical aggregation: Metrics → Subsystem → System → Mission
 """
 
 from __future__ import annotations
@@ -34,7 +38,7 @@ from telos.core.ledger.skill_library import SkillLibrary
 def create_minimal_pipeline() -> TelosV14Pipeline:
     """Create a minimal but functional TELOS pipeline."""
     from tests.core.conftest import MockSimulator
-    
+
     sim = MockSimulator()
     sim.initialize()
     config = PipelineConfig(
@@ -68,14 +72,14 @@ def main():
     args = parser.parse_args()
 
     print("=" * 60)
-    print("  TELOS Benchmark Demo")
+    print("  TELOS Benchmark Demo — 7 Conserved Cognitive Processes")
     print("=" * 60)
     print()
 
     # 1. Create pipeline
     print("1. Creating pipeline...")
     pipeline = create_minimal_pipeline()
-    
+
     # 2. Wire collector
     print("2. Wiring BenchmarkCollector...")
     collector = BenchmarkCollector(output_dir="/tmp/telos_benchmark_data")
@@ -105,7 +109,8 @@ def main():
     # 4. Generate report
     print("4. Generating benchmark report...")
     report = collector.get_report()
-    print(f"   Health Score: {report.current_health_score:.4f} ({report.health_score_trend})")
+    print(f"   System Score: {report.current_system_score:.4f} ({report.system_score_trend})")
+    print(f"   Mission Score: {report.current_mission_score:.4f}")
     print(f"   Cycles: {report.cycle_count}")
     print()
 
@@ -114,7 +119,7 @@ def main():
     print(f"   {'Metric':30s} {'Trend':15s}")
     print(f"   {'-'*30} {'-'*15}")
     for name, trend in sorted(report.trends.items()):
-        arrow = {"rising": "↑", "stable": "→", 
+        arrow = {"rising": "↑", "stable": "→",
                  "declining": "↓", "insufficient_data": "?"}.get(trend, "?")
         print(f"   {name:30s} {arrow} {trend:15s}")
     print()
@@ -123,40 +128,64 @@ def main():
     if "all" in report.epochs:
         agg = report.epochs["all"].aggregate()
         if agg:
-            print("6. Aggregate (all cycles):")
-            ph = agg["pipeline_health"]
-            print(f"   Pipeline:   DI={ph['avg_di']:.3f}  MD={ph['avg_md']:.3f}  "
-                  f"Block={ph['block_rate']:.1%}  Axiom={ph['axiom_compliance_rate']:.1%}")
-            cp = agg["cognitive_performance"]
-            print(f"   Cognitive:  Cur={cp['avg_curiosity']:.3f}  "
-                  f"Learn={cp['avg_learning_rate']:.4f}  "
-                  f"Compress={cp['avg_compression']:.3f}")
-            ih = agg["identity_health"]
-            print(f"   Identity:   Entropy={ih['avg_entropy']:.3f}  "
-                  f"Coherence={ih['avg_relational_coherence']:.3f}")
-            eh = agg["ecosystem_health"]
-            print(f"   Ecosystem:  Niches={eh['latest_niches']}  "
-                  f"Exhaust={eh['avg_exhaustion_rate']:.1%}")
-            rp = agg["research_productivity"]
-            print(f"   Research:   Disc={rp['avg_discovery_rate']:.3f}  "
-                  f"Debt={rp['latest_debt']:.3f}")
-            sc = agg["strategic_coherence"]
-            print(f"   Strategy:   Compl={sc['avg_completion_rate']:.1%}  "
-                  f"Coher={sc['avg_strategic_coherence']:.3f}")
-            hs = agg["health_score"]
-            print(f"   Health:     Avg={hs['avg']:.3f}  "
-                  f"Trend={hs['trend']}")
+            print("6. Aggregate (all cycles) — Hidden Cognitive State Projections:")
+            # Perception
+            p = agg["perception"]
+            print(f"   Perception:  EstErr={p['avg_estimation_error']:.3f}  "
+                  f"Forecast={p['avg_forecast_accuracy']:.3f}  "
+                  f"Counterfact={p['avg_counterfactual_accuracy']:.3f}  "
+                  f"Score={p['avg_score']:.3f}")
+            # Learning
+            l = agg["learning"]
+            print(f"   Learning:    Cur={l['avg_curiosity']:.3f}  "
+                  f"Learn={l['avg_learning_rate']:.4f}  "
+                  f"Compress={l['avg_compression']:.3f}  "
+                  f"Score={l['avg_score']:.3f}")
+            # Identity
+            i = agg["identity"]
+            print(f"   Identity:    Entropy={i['avg_entropy']:.3f}  "
+                  f"Coherence={i['avg_coherence']:.3f}  "
+                  f"MissionAlign={i['avg_mission_alignment']:.3f}  "
+                  f"Score={i['avg_score']:.3f}")
+            # Knowledge
+            k = agg["knowledge"]
+            print(f"   Knowledge:   RepDiv={k['avg_representation_diversity']:.3f}  "
+                  f"BridgePot={k['avg_bridge_potential']:.3f}  "
+                  f"Theories={k['latest_theory_nodes']}  "
+                  f"Score={k['avg_score']:.3f}")
+            # Resources
+            r = agg["resources"]
+            print(f"   Resources:   CPU={r['avg_compute_util']:.1%}  "
+                  f"CROI={r['avg_croi']:.3f}  "
+                  f"Score={r['avg_score']:.3f}")
+            # Projects
+            pj = agg["projects"]
+            print(f"   Projects:    Compl={pj['avg_completion_rate']:.1%}  "
+                  f"MissionAlign={pj['avg_mission_alignment']:.3f}  "
+                  f"Score={pj['avg_score']:.3f}")
+            # Social
+            s = agg["social"]
+            print(f"   Social:      Niches={s['latest_niches']}  "
+                  f"Bridges={s['latest_bridges']}  "
+                  f"Collab={s['avg_collaboration']:.3f}  "
+                  f"Score={s['avg_score']:.3f}")
+            # Hierarchy
+            ss = agg["system_score"]
+            ms = agg["mission_score"]
+            print(f"   ── Hierarchy ──")
+            print(f"   System:   Avg={ss['avg']:.3f}  Trend={ss['trend']}")
+            print(f"   Mission:  Avg={ms['avg']:.3f}  Trend={ms['trend']}")
     print()
 
     # 7. Save
     if args.save:
         path = collector.save_snapshot_data(args.save)
         print(f"7. Saved snapshots: {path}")
-    
+
     if args.save_baseline:
         collector.save_baseline(args.save_baseline)
         print(f"   Saved baseline: {args.save_baseline}")
-    
+
     # 8. Optional markdown
     if args.markdown:
         print("\n" + "=" * 60)
