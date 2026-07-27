@@ -3,7 +3,7 @@
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ --ignore=tests/test_knowledge.py -q`
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q`
 
 ## Status (Session Handoff — 2026-07-27)
 - **482/482 tests passing** across 46 test files
@@ -46,7 +46,7 @@ PYTHONPATH=. python3 telos/tools/self_audit.py
 PYTHONPATH=. python3 -m telos.benchmarks.demo --cycles 10 --markdown
 
 # Tests
-PYTHONPATH=. python3 -m pytest tests/ --ignore=tests/test_knowledge.py -q
+PYTHONPATH=. python3 -m pytest tests/ -q
 ```
 
 ## Session Handoff — 2026-07-27
