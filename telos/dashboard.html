@@ -250,7 +250,7 @@
 
   <div class="brain-panel" style="margin-bottom:10px;">
     <h3>🧠 Aviku — Cognitive Pipeline</h3>
-    <canvas id="brain-canvas" style="display:block;border-radius:8px;width:100%;height:300px;background:#0f0f18;"></canvas>
+    <canvas id="brain-canvas" style="display:block;border-radius:8px;width:100%;height:500px;background:#0f0f18;"></canvas>
     <div id="brain-debug" style="font-size:10px;color:#555;margin-top:4px;text-align:center;"></div>
   </div>
 
@@ -2189,7 +2189,7 @@ const DOMAIN_COLORS = {
   var t = 0;
   function resize(){
     bc.width = bc.clientWidth || 260;
-    bc.height = bc.clientHeight || 300;
+    bc.height = bc.clientHeight || 500;
   }
   function draw(){
     resize();
@@ -2297,153 +2297,179 @@ setInterval(function() {
 
 function drawKnowledgeGraph(canvas) {
   if (!canvas || !canvas.getContext) return;
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  // Reset canvas buffer to match actual displayed size (handles resize between frames)
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var w = canvas.clientWidth, h = canvas.clientHeight;
   if (w === 0 || h === 0) return;
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
-  // Apply high-DPI scaling so we draw in CSS logical coordinates (w × h)
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var t = state.time || 0;
 
-  ctx.fillStyle = '#0f0f18';
+  // Organic background — dark neural tissue
+  var bg = ctx.createRadialGradient(w/2, h*0.4, 0, w/2, h*0.4, w*0.6);
+  bg.addColorStop(0, '#111122');
+  bg.addColorStop(0.6, '#0a0a14');
+  bg.addColorStop(1, '#06060a');
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
-  // Subtle radial glow behind graph
-  const bgGrad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w * 0.45);
-  bgGrad.addColorStop(0, 'rgba(30,30,70,0.15)');
-  bgGrad.addColorStop(0.5, 'rgba(20,20,50,0.06)');
-  bgGrad.addColorStop(1, 'rgba(10,10,15,0)');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, w, h);
+  // Slow breathing wave across canvas (two harmonics)
+  for (var wi = 0; wi < 2; wi++) {
+    ctx.beginPath();
+    for (var x = 0; x <= w; x += 8) {
+      var yw = Math.sin(x * 0.015 * (wi+1) + t * (1.5+wi) + wi*3) * 8
+            + Math.sin(x * 0.04 + t * 2.5) * 5;
+      var yy = h * 0.5 + yw + Math.sin(t*0.3 + wi) * 10;
+      x === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+    }
+    ctx.strokeStyle = wi === 0
+      ? 'rgba(74,222,128,'+(0.05+0.04*Math.sin(t))+')'
+      : 'rgba(96,165,250,'+(0.04+0.03*Math.sin(t+1))+')';
+    ctx.lineWidth = wi === 0 ? 1.5 : 1;
+    ctx.stroke();
+  }
 
   if (kgNodes.length === 0) {
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = 'rgba(136,136,136,0.6)';
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('🌀 No knowledge nodes yet', w/2, h/2);
+    var kd = document.getElementById('kg-debug');
+    if (kd) kd.innerHTML = '';
     return;
   }
-  // Show KG is active
-  ctx.fillStyle = 'rgba(100,200,255,0.03)';
-  ctx.fillRect(0, 0, w, h);
 
   // Run gentle continuous forces
   simulateKnowledgeForces(false);
-
-  // Auto-rotation
   kgRotation += 0.004;
 
-  const focal = 4;
-  const scale = Math.min(w, h) * 0.28;
+  var focal = 4;
+  var scale = Math.min(w, h) * 0.28;
 
   // Project nodes to 2D with perspective
-  const projected = kgNodes.map(n => {
-    const nx = n.x || 0, ny = n.y || 0, nz = n.z || 0;
-    const cosR = Math.cos(kgRotation), sinR = Math.sin(kgRotation);
-    const rx = nx * cosR - nz * sinR;
-    const rz = nx * sinR + nz * cosR + focal;
-    const persp = focal / Math.max(rz, 0.1);
-    const px = w/2 + rx * scale * persp;
-    const py = h/2 - ny * scale * persp;
-    const size = (3.5 + n.importance * 6) * persp;
-    return { ...n, px, py, size, persp, depth: rz };
+  var projected = kgNodes.map(function(n) {
+    var nx = n.x || 0, ny = n.y || 0, nz = n.z || 0;
+    var cosR = Math.cos(kgRotation), sinR = Math.sin(kgRotation);
+    var rx = nx * cosR - nz * sinR;
+    var rz = nx * sinR + nz * cosR + focal;
+    var persp = focal / Math.max(rz, 0.1);
+    var px = w/2 + rx * scale * persp;
+    var py = h/2 - ny * scale * persp;
+    var size = (3.5 + n.importance * 6) * persp;
+    return { id: n.id, label: n.label, domain: n.domain, importance: n.importance,
+             x: n.x, y: n.y, z: n.z, px: px, py: py, size: size, persp: persp, depth: rz };
   });
 
-  // Draw edges (sorted by avg depth)
-  const edgeDraws = [];
-  for (const e of kgEdges) {
-    const s = projected.find(n => n.id === e.source);
-    const t = projected.find(n => n.id === e.target);
-    if (!s || !t) continue;
-    edgeDraws.push({ s, t, w: e.weight || 0.5, depth: (s.depth + t.depth) / 2 });
+  // Edges with biological glow pulses
+  var edgeDraws = [];
+  for (var ei = 0; ei < kgEdges.length; ei++) {
+    var e = kgEdges[ei];
+    var s = null, ti = null;
+    for (var si = 0; si < projected.length; si++) { if (projected[si].id === e.source) { s = projected[si]; break; } }
+    for (var ti2 = 0; ti2 < projected.length; ti2++) { if (projected[ti2].id === e.target) { ti = projected[ti2]; break; } }
+    if (!s || !ti) continue;
+    edgeDraws.push({ s: s, t: ti, w: e.weight || 0.5, depth: (s.depth + ti.depth) / 2 });
   }
-  edgeDraws.sort((a, b) => a.depth - b.depth);
+  edgeDraws.sort(function(a, b) { return a.depth - b.depth; });
 
-  for (const edge of edgeDraws) {
-    const alpha = 0.2 + edge.w * 0.5;
-    const glow = edge.w * 0.4;
+  for (var ei = 0; ei < edgeDraws.length; ei++) {
+    var edge = edgeDraws[ei];
+    var glowPulse = 0.3 + 0.5 * Math.sin(t * 1.2 + ei * 0.7);
+    var alpha = 0.15 + edge.w * 0.4 * glowPulse;
     ctx.beginPath();
     ctx.moveTo(edge.s.px, edge.s.py);
     ctx.lineTo(edge.t.px, edge.t.py);
-    ctx.strokeStyle = `rgba(100,180,255,${alpha})`;
-    ctx.lineWidth = Math.max(0.8, edge.w * 2.5);
-    if (glow > 0.05) {
-      ctx.shadowColor = `rgba(100,180,255,${glow})`;
-      ctx.shadowBlur = 8 + edge.w * 4;
+    ctx.strokeStyle = 'rgba(100,180,255,'+alpha+')';
+    ctx.lineWidth = Math.max(0.8, edge.w * 2.2);
+    if (edge.w > 0.3) {
+      ctx.shadowColor = 'rgba(100,200,255,'+(edge.w * 0.3 * glowPulse)+')';
+      ctx.shadowBlur = 4 + edge.w * 6;
     }
     ctx.stroke();
     ctx.shadowBlur = 0;
+
+    // Synaptic energy pulse traveling along each edge
+    var pulsePos = (t * 0.5 + ei * 0.13) % 1;
+    var pex = edge.s.px + (edge.t.px - edge.s.px) * pulsePos;
+    var pey = edge.s.py + (edge.t.py - edge.s.py) * pulsePos;
+    var pSize = 2.5 * (1 - Math.abs(pulsePos - 0.5) * 2);
+    ctx.beginPath();
+    ctx.arc(pex, pey, pSize, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(180,230,255,'+(0.6 * (1 - Math.abs(pulsePos - 0.5) * 2))+')';
+    ctx.fill();
   }
 
-  // Debug: show KG is rendering
-  ctx.fillStyle = 'rgba(100,200,255,0.05)';
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#555';
-  ctx.font = '11px monospace';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  // Draw a test square at a fixed position to verify canvas context works
-  ctx.fillStyle = '#00ff00';
-  ctx.fillRect(30, 30, 20, 20);
-
-  ctx.fillStyle = '#888';
-  ctx.font = '11px monospace';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText('KG: ' + kgNodes.length + ' nodes | ' + projected.length + ' projected', 10, 10);
-  // Show first node position
-  if (projected.length > 0) {
-    var p0 = projected[0];
-    ctx.fillText('Node0: px=' + Math.round(p0.px) + ' py=' + Math.round(p0.py) + ' r=' + Math.round(p0.size), 10, 24);
+  // Floating cellular particles drifting through 3D space
+  for (var pi = 0; pi < 15; pi++) {
+    var pa = (t * 0.15 + pi * 0.42) % (Math.PI * 2);
+    var pr = 0.2 + 0.5 * Math.sin(t * 0.3 + pi * 1.3);
+    var ppx = w/2 + Math.cos(pa) * w * 0.25 * pr;
+    var ppy = h/2 + Math.sin(pa) * h * 0.2 * pr;
+    var pz = Math.sin(t * 0.5 + pi * 2) * 0.5 + 0.5;
+    var psz = Math.max(0.5, Math.sin(t * 1.2 + pi) * 1.0);
+    ctx.beginPath();
+    ctx.arc(ppx, ppy, psz, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(150,200,255,'+(0.03 + 0.04 * pz)+')';
+    ctx.fill();
   }
 
-  // Fallback: draw node labels in a div
+  // KG debug in div
   var kd = document.getElementById('kg-debug');
   if (kd) {
     kd.innerHTML = projected.map(function(n) {
-      return '<span style="color:' + (DOMAIN_COLORS[n.domain] || '#888') + ';margin:2px 6px;font-size:10px;">● ' + (n.label || '?') + '</span>';
+      return '<span style="color:'+(DOMAIN_COLORS[n.domain]||'#888')+';margin:2px 6px;font-size:10px;">● '+(n.label||'?')+'</span>';
     }).join('');
   }
 
-  // Draw nodes (far to near) — with breathing animation
-  const sorted = [...projected].sort((a, b) => a.depth - b.depth);
-  const time = state.time || 0;
-
-  for (const node of sorted) {
-    // Skip invalid positions
+  // Draw nodes (far to near) with neural pulse
+  var sorted = projected.slice().sort(function(a, b) { return a.depth - b.depth; });
+  for (var ni = 0; ni < sorted.length; ni++) {
+    var node = sorted[ni];
     if (isNaN(node.px) || isNaN(node.py) || node.persp <= 0) continue;
-    const color = DOMAIN_COLORS[node.domain] || DOMAIN_COLORS['general'];
-    const pulse = 0.75 + Math.sin(time * 2.5 + (node.x || 0) * 4 + (node.y || 0) * 3) * 0.25;
-    const r = Math.max(2, node.size * pulse);
-    // Gentle floating — each node gets its own offset
-    const floatX = Math.sin(time * 0.3 + (node.y || 0) * 2) * 1.5;
-    const floatY = Math.cos(time * 0.4 + (node.x || 0) * 2) * 1.5;
-    if (!node.floatOffX) { node.floatOffX = floatX; node.floatOffY = floatY; }
-    node.px += (floatX - node.floatOffX) * 0.02;
-    node.py += (floatY - node.floatOffY) * 0.02;
-    node.floatOffX = floatX;
-    node.floatOffY = floatY;
+    var color = DOMAIN_COLORS[node.domain] || DOMAIN_COLORS['general'];
+    var pulse = 0.75 + Math.sin(t * 2.5 + node.depth * 1.5 + ni * 0.7) * 0.25;
+    var r = Math.max(2, node.size * pulse);
+    // Gentle floating wobble
+    var fx = Math.sin(t * 0.3 + (node.y||0) * 2) * 1.5;
+    var fy = Math.cos(t * 0.4 + (node.x||0) * 2) * 1.5;
+    if (!node._fOx) { node._fOx = fx; node._fOy = fy; }
+    node.px += (fx - node._fOx) * 0.02;
+    node.py += (fy - node._fOy) * 0.02;
+    node._fOx = fx; node._fOy = fy;
 
-    // Draw solid node circle
+    // Glow aura
+    var gr = ctx.createRadialGradient(node.px, node.py, 0, node.px, node.py, r*4);
+    gr.addColorStop(0, color+'44');
+    gr.addColorStop(1, 'transparent');
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.arc(node.px, node.py, r*4, 0, Math.PI*2); ctx.fill();
+
+    // Core circle
     ctx.fillStyle = color;
-    ctx.globalAlpha = 0.8;
-    ctx.fillRect(node.px - 5, node.py - 5, 10, 10);
-    ctx.fillRect(w/2 - 2, h/2 - 2, 4, 4);
-    ctx.globalAlpha = 1.0;
+    ctx.beginPath(); ctx.arc(node.px, node.py, r, 0, Math.PI*2); ctx.fill();
+
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.arc(node.px - r*0.15, node.py - r*0.15, r*0.3, 0, Math.PI*2); ctx.fill();
 
     // Label
     if (node.label && node.persp > 0.15) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.min(0.6, 0.3 * node.persp + 0.1)})`;
-      ctx.font = `${Math.max(5, 7 * Math.min(1, node.persp * 1.2))}px sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,'+Math.min(0.6, 0.3*node.persp+0.1)+')';
+      ctx.font = Math.max(5, 7*Math.min(1, node.persp*1.2))+'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(node.label, node.px, node.py + r + 2);
     }
   }
+
+  // Small overlay info
+  ctx.fillStyle = 'rgba(136,136,136,0.5)';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('🧬 KG · '+kgNodes.length+' nodes · '+edgeDraws.length+' edges', 8, 6);
 }
 
 // ─── Memory Timeline ───
