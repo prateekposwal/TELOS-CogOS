@@ -2409,8 +2409,8 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       _ct.beginPath(); _ct.moveTo(rx,ry);
       _ct.quadraticCurveTo(rx+Math.cos(ang)*len*0.5,ry+Math.sin(ang)*len*0.5-8,ex,ey);
       _ct.strokeStyle='rgba(100,140,200,'+(0.18+li*0.07)+')'; _ct.lineWidth=1.8-li*0.15; _ct.stroke();
-      _ct.fillStyle='rgba(255,255,255,0.35)'; _ct.font='12px sans-serif'; _ct.textAlign='center';
-      _ct.fillText(L_[li],ex,ey+12);
+      _ct.fillStyle='rgba(255,255,255,0.45)'; _ct.font='14px sans-serif'; _ct.textAlign='center';
+      _ct.fillText(L_[li],ex,ey+14);
     }
     _ct.beginPath(); _ct.moveTo(rx-10,ry);
     _ct.quadraticCurveTo(rx-5,ry-trunkH*0.5,rx-14,ry-trunkH);
@@ -2423,7 +2423,7 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       _ct.beginPath(); _ct.moveTo(rx,ry-trunkH);
       _ct.quadraticCurveTo(rx+Math.cos(ang)*cpR*0.32,cpY+Math.sin(ang)*cpR*0.22-10,bx,by);
       _ct.strokeStyle='rgba(60,80,60,'+(0.18+0.1*Math.sin(tt+i))+')'; _ct.lineWidth=1.2; _ct.stroke();
-      var ia=(i===act), pu=ia?22+5*Math.sin(tt*2.5):14+4*Math.sin(tt*1.5+i*0.9);
+      var ia=(i===act), pu=ia?28+6*Math.sin(tt*2.5):18+5*Math.sin(tt*1.5+i*0.9);
       if(ia){
         var ag=_ct.createRadialGradient(bx,by,0,bx,by,pu*4);
         ag.addColorStop(0,C[i]+'55'); ag.addColorStop(1,'transparent');
@@ -2432,8 +2432,8 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       _ct.fillStyle=C[i]; _ct.beginPath(); _ct.arc(bx,by,pu,0,Math.PI*2); _ct.fill();
       _ct.fillStyle='rgba(255,255,255,0.1)';
       _ct.beginPath(); _ct.arc(bx-pu*0.15,by-pu*0.15,pu*0.25,0,Math.PI*2); _ct.fill();
-      _ct.fillStyle=ia?'#fff':'#bbb'; _ct.font=ia?'bold 13px sans-serif':'12px sans-serif';
-      _ct.textAlign='center'; _ct.fillText(P[i],bx,by+pu+11);
+      _ct.fillStyle=ia?'#fff':'#ccc'; _ct.font=ia?'bold 16px sans-serif':'14px sans-serif';
+      _ct.textAlign='center'; _ct.fillText(P[i],bx,by+pu+14);
     }
     for(var pi=0;pi<8;pi++){
       var ft=(tt*0.2+pi*0.125)%1;
@@ -2779,22 +2779,22 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
       ctx.beginPath();ctx.moveTo(rootX,rootY-trunkH);
       ctx.quadraticCurveTo(rootX+Math.cos(dAngle)*50,rootY-trunkH+Math.sin(dAngle)*35-12,bx,by);
       ctx.strokeStyle='rgba(60,80,70,'+(0.18+0.07*Math.sin(kgt+di))+')';ctx.lineWidth=1.5;ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='8px sans-serif';
-      ctx.textAlign='center';ctx.fillText(dNames[di].substring(0,6),bx,by+4);
+      ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='12px sans-serif';
+      ctx.textAlign='center';ctx.fillText(dNames[di].substring(0,6),bx,by+6);
       for(var ni=0;ni<dNodes.length;ni++){
         var n=dNodes[ni],pct=(ni+0.5)/dNodes.length;
-        var lx=bx+Math.cos(dAngle+0.5)*pct*40,ly=by+Math.sin(dAngle+0.5)*pct*40-16;
+        var lx=bx+Math.cos(dAngle+0.5)*pct*50,ly=by+Math.sin(dAngle+0.5)*pct*50-20;
         var col=DOMAIN_COLORS[n.domain]||'#888';
-        var r=6+Math.sin(kgt+ni+di)*3;
-        ctx.fillStyle=col;ctx.beginPath();ctx.arc(lx,ly,r*3.5,0,Math.PI*2);ctx.fill();
+        var r=8+Math.sin(kgt+ni+di)*3;
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(lx,ly,r*4,0,Math.PI*2);ctx.fill();
         if(n.label&&pct>0.4){
-          ctx.fillStyle='rgba(200,200,200,0.4)';ctx.font='7px sans-serif';
-          ctx.textAlign='center';ctx.fillText(n.label,lx,ly+10);
+          ctx.fillStyle='rgba(200,200,200,0.5)';ctx.font='10px sans-serif';
+          ctx.textAlign='center';ctx.fillText(n.label,lx,ly+14);
         }
       }
     }
-    ctx.fillStyle='rgba(255,255,255,0.12)';ctx.font='8px sans-serif';
-    ctx.textAlign='center';ctx.fillText('Knowledge',rootX,rootY+10);
+    ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font='12px sans-serif';
+    ctx.textAlign='center';ctx.fillText('Knowledge',rootX,rootY+14);
     // Tree ambient particles
     for(var tp=0;tp<5;tp++){
       var tpct=(kgt*0.1+tp*0.2+state.time*0.005)%1;
@@ -2811,12 +2811,12 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
       domains[d].push(nodes[i]);
     }
     var dNames=Object.keys(domains),dCount=dNames.length;
-    var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,40);
-    sg.addColorStop(0,'rgba(255,200,100,0.5)');sg.addColorStop(1,'transparent');
-    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,40,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(255,200,100,0.8)';ctx.beginPath();ctx.arc(cx,cy,8,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('TELOS',cx,cy+15);
+    var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,50);
+    sg.addColorStop(0,'rgba(255,200,100,0.55)');sg.addColorStop(1,'transparent');
+    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,50,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,200,100,0.85)';ctx.beginPath();ctx.arc(cx,cy,12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('TELOS',cx,cy+20);
     for(var di=0;di<dCount;di++){
       var orbitR=40+(di+1)*(Math.min(w,h)*0.20);
       var angle=kgt*(0.3+di*0.1)+di*1.2;
@@ -2824,16 +2824,16 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
       var col=DOMAIN_COLORS[dNames[di]]||'#888';
       ctx.beginPath();ctx.arc(cx,cy,orbitR,0,Math.PI*2);
       ctx.strokeStyle='rgba(80,80,120,'+(0.06+di*0.03)+')';ctx.lineWidth=0.7;ctx.stroke();
-      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,10,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(px-3,py-3,3.5,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
-      ctx.fillText(dNames[di].substring(0,5),px,py+12);
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,13,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(px-4,py-4,4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillText(dNames[di].substring(0,5),px,py+16);
       var moons=domains[dNames[di]];
       for(var mi=0;mi<moons.length;mi++){
         var m=moons[mi],mAngle=angle+Math.PI/2+(mi/moons.length)*Math.PI*2+kgt*0.5;
-        var mR=14+mi*8;
+        var mR=18+mi*10;
         var mx=px+Math.cos(mAngle)*mR,my=py+Math.sin(mAngle)*mR;
-        ctx.fillStyle=col;ctx.beginPath();ctx.arc(mx,my,5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(mx,my,7,0,Math.PI*2);ctx.fill();
       }
     }
   }
@@ -2851,22 +2851,22 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
       var angle=(di/dCount)*Math.PI*2+centerAngle;
       var radius=Math.min(w,h)*0.28;
       var bx=w/2+Math.cos(angle)*radius,by=h/2+Math.sin(angle)*radius*0.7;
-      var bSize=40+Math.sin(kgt*0.5+di)*6;
+      var bSize=50+Math.sin(kgt*0.5+di)*8;
       var col=DOMAIN_COLORS[dNames[di]]||'#888';
       var bg2=ctx.createRadialGradient(bx,by,0,bx,by,bSize*1.5);
       bg2.addColorStop(0,col+'22');bg2.addColorStop(1,'transparent');
       ctx.fillStyle=bg2;ctx.beginPath();ctx.arc(bx,by,bSize*1.5,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle=col+'44';ctx.lineWidth=1.0;
+      ctx.strokeStyle=col+'44';ctx.lineWidth=1.2;
       ctx.beginPath();ctx.arc(bx,by,bSize,0,Math.PI*2);ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px sans-serif';
-      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dNames[di].substring(0,5),bx,by-bSize-7);
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='13px sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dNames[di].substring(0,5),bx,by-bSize-8);
       var innerNodes=domains[dNames[di]];
       for(var ni=0;ni<innerNodes.length;ni++){
         var n=innerNodes[ni];
         var ia=(ni/innerNodes.length)*Math.PI*2+kgt*0.3+di;
-        var ir=7+ni*5;
+        var ir=10+ni*7;
         var ix=bx+Math.cos(ia)*ir,iy=by+Math.sin(ia)*ir;
-        var r=5+Math.sin(kgt+ni+di)*2;
+        var r=7+Math.sin(kgt+ni+di)*2;
         ctx.fillStyle=col;ctx.beginPath();ctx.arc(ix,iy,r*(1+n.importance),0,Math.PI*2);ctx.fill();
         ctx.fillStyle='rgba(255,255,255,0.1)';
         ctx.beginPath();ctx.arc(ix-r*0.2,iy-r*0.2,r*0.3,0,Math.PI*2);ctx.fill();
