@@ -2891,38 +2891,66 @@ try {
   console.warn('[TELOS] KG boot error:', e);
   _dbg('KG ERROR: ' + e.message);
 }
-// Brain viz — force load and init with direct container fallback
-(function loadBrain() {
-  _dbg('Loading brain viz...');
+// Inline brain visualization (replaces external aviku-brain.js)
+(function initInlineBrain() {
+  _dbg('Initializing inline brain...');
   var bc = document.getElementById('brain-container');
   var bdd = document.getElementById('brain-debug');
-  function brainStatus(msg) {
-    if (bdd) bdd.textContent = msg;
-    if (bc) bc.setAttribute('data-status', msg);
-  }
-  brainStatus('⏳ Loading aviku-brain.js...');
-  const bs = document.createElement('script');
-  bs.src = '/aviku-brain.js?v=' + Date.now();
-  bs.onload = () => {
-    _dbg('Brain viz loaded, initializing...');
-    brainStatus('✅ Script loaded');
-    if (window.initBrain) { 
-      try {
-        window.initBrain(); 
-        _dbg('Brain init done'); 
-        brainStatus('✅ Init called');
-      } catch(e) {
-        _dbg('Brain init error: ' + e.message);
-        brainStatus('❌ Init error: ' + e.message);
-      }
-    } else {
-      _dbg('window.initBrain not found');
-      brainStatus('❌ initBrain not found');
+  if (!bc) { _dbg('No brain-container found'); return; }
+  if (bdd) bdd.textContent = '✅ Inline brain active';
+  // Create canvas directly
+  var c = document.createElement('canvas');
+  c.width = bc.clientWidth || 260;
+  c.height = bc.clientHeight || 200;
+  c.style.width = '100%'; c.style.height = '100%';
+  bc.innerHTML = '';
+  bc.appendChild(c);
+  var cx = c.getContext('2d');
+  if (!cx) return;
+  // Simple animated pipeline visualization
+  var phases = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
+  var colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888'];
+  function renderPipeline() {
+    requestAnimationFrame(renderPipeline);
+    var w = c.width, h = c.height, t = Date.now() / 1000;
+    cx.fillStyle = '#0f0f18';
+    cx.fillRect(0, 0, w, h);
+    // Draw phase nodes in a circle
+    var cx1 = w/2, cy1 = h/2, r = Math.min(w, h) * 0.3;
+    for (var i = 0; i < phases.length; i++) {
+      var a = (i / phases.length) * Math.PI * 2 - Math.PI/2;
+      var px = cx1 + Math.cos(a) * r;
+      var py = cy1 + Math.sin(a) * r * 0.7;
+      var pulse = 0.7 + Math.sin(t * 2 + i) * 0.3;
+      var sz = 8 + Math.sin(t * 3 + i) * 3;
+      // Draw glow
+      var g = cx.createRadialGradient(px, py, 0, px, py, sz * 3);
+      g.addColorStop(0, colors[i] + '44');
+      g.addColorStop(1, colors[i] + '00');
+      cx.fillStyle = g;
+      cx.beginPath(); cx.arc(px, py, sz * 3, 0, Math.PI * 2); cx.fill();
+      // Draw node
+      cx.fillStyle = colors[i];
+      cx.globalAlpha = 0.6 + 0.4 * pulse;
+      cx.beginPath(); cx.arc(px, py, sz, 0, Math.PI * 2); cx.fill();
+      cx.globalAlpha = 1;
+      // Label
+      cx.fillStyle = '#aaa';
+      cx.font = '7px sans-serif';
+      cx.textAlign = 'center';
+      cx.fillText(phases[i], px, py + sz + 10);
     }
-    const orig = applyTrace;
-    applyTrace = function(t) { orig(t); if (window.visualizeTrace) setTimeout(() => window.visualizeTrace(t), 50); };
+    if (bdd) bdd.textContent = '🔄 ' + phases.length + ' phases running';
+  }
+  renderPipeline();
+  _dbg('Inline brain active: ' + phases.length + ' phases');
+  // Also load aviku-brain.js for advanced viz
+  var bs = document.createElement('script');
+  bs.src = '/aviku-brain.js?v=' + Date.now();
+  bs.onload = function() {
+    _dbg('aviku-brain.js loaded for enhanced viz');
+    if (window.initBrain) window.initBrain();
   };
-  bs.onerror = () => { console.warn('[TELOS] Brain viz failed to load'); _dbg('Brain viz FAILED'); brainStatus('❌ Script load FAILED'); };
   document.head.appendChild(bs);
 })();
 
