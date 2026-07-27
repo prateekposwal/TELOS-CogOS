@@ -52,11 +52,11 @@ from telos.core.identity.mission_arbitration import MissionArbiter
 from telos.core.identity.mission_lifecycle import MissionLifecycleEngine
 from telos.core.identity.system_self import IdentityCore
 from telos.core.streams.implementations import TheoryStream
-from telos.core.resource.gradient import ResourceGradientTracker
+from telos.core.accounting.resource_gradient import ResourceGradientTracker
 from telos.core.streams.base import CognitiveStream
 from telos.core.simulation import CounterfactualEngine, StrategicOption
 from telos.core.planner import RepresentationPlanner
-from telos.core.meta_cognition import MetaCognitionModule, MetaState
+from telos.core.meta.meta_cognition import MetaCognitionModule, MetaState
 from telos.core.uncertainty.tripartite import TripartiteUncertainty
 from telos.core.reasoning.relational import RelationalContext
 from telos.core.representation_selector import RepresentationSelector
@@ -116,8 +116,8 @@ from telos.core.decision.time_horizon import TimeHorizonSeparator
 from telos.core.attention.surprise_budget import SurpriseBudget
 from telos.core.memory.active_forgetting import ActiveForgetting
 from telos.core.council.internal_debate import InternalDebate
-from telos.core.energy.cognitive_energy import CognitiveEnergy
-from telos.core.confidence.dual_confidence import DualConfidence
+from telos.core.reasoning.energy.cognitive_energy import CognitiveEnergy
+from telos.core.reasoning.confidence.dual_confidence import DualConfidence
 from telos.core.identity.identity_compression import IdentityCompression
 from telos.core.knowledge.explanation_compression import ExplanationCompression
 

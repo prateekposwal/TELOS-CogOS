@@ -36,7 +36,7 @@ from telos.core.infra_manager.audit_controller import AuditController
 from telos.core.infra_manager.health_manager import SystemHealthManager
 from telos.core.infra_manager.knowledge_manager import KnowledgeManager
 from telos.core.identity.system_self import SystemSelf
-from telos.core.resource.gradient import ResourceGradientTracker
+from telos.core.accounting.resource_gradient import ResourceGradientTracker
 
 logger = logging.getLogger('telos_infra')
 

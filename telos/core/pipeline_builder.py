@@ -10,11 +10,11 @@ from telos.core.decision.omega_threshold import OmegaThresholdLearner
 from telos.core.decision.cognitive_momentum import CognitiveMomentum
 from telos.core.decision.commitment_optimizer import CommitmentOptimizer
 from telos.core.attention.identity_entropy import IdentityEntropyTracker
-from telos.core.resource.gradient import ResourceGradientTracker
+from telos.core.accounting.resource_gradient import ResourceGradientTracker
 from telos.core.curiosity.drive import CuriosityDrive
 from telos.core.governance.firewall import DecisionFirewall
 from telos.core.governance.trust_manager import TrustManager
-from telos.core.meta_cognition import MetaCognitionModule
+from telos.core.meta.meta_cognition import MetaCognitionModule
 from telos.core.uncertainty.tripartite import TripartiteUncertainty
 from telos.core.reasoning.relational import RelationalContext
 from telos.core.representation_selector import RepresentationSelector
@@ -38,8 +38,8 @@ from telos.core.memory.regret_memory import RegretMemory
 from telos.core.memory.active_forgetting import ActiveForgetting
 from telos.core.decision.time_horizon import TimeHorizonSeparator
 from telos.core.attention.surprise_budget import SurpriseBudget
-from telos.core.energy.cognitive_energy import CognitiveEnergy
-from telos.core.confidence.dual_confidence import DualConfidence
+from telos.core.reasoning.energy.cognitive_energy import CognitiveEnergy
+from telos.core.reasoning.confidence.dual_confidence import DualConfidence
 from telos.core.knowledge.explanation_compression import ExplanationCompression
 from telos.core.accounting.resource_accounting import ResourceAccountingLayer
 from telos.core.council.validators import ConstraintValidator

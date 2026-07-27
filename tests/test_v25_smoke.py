@@ -483,12 +483,12 @@ class TestInternalDebateSmoke:
 
 class TestCognitiveEnergySmoke:
     def test_instantiate(self):
-        from telos.core.energy.cognitive_energy import CognitiveEnergy
+        from telos.core.reasoning.energy.cognitive_energy import CognitiveEnergy
         ce = CognitiveEnergy(max_energy=100)
         assert ce.energy_ratio == 1.0
 
     def test_consume_and_rest(self):
-        from telos.core.energy.cognitive_energy import CognitiveEnergy
+        from telos.core.reasoning.energy.cognitive_energy import CognitiveEnergy
         ce = CognitiveEnergy(max_energy=100, recharge_rate=50)
         ce.consume(difficulty=0.5)
         assert ce.energy_ratio < 1.0
@@ -496,14 +496,14 @@ class TestCognitiveEnergySmoke:
         assert ce.energy_ratio > 0.0
 
     def test_fatigue(self):
-        from telos.core.energy.cognitive_energy import CognitiveEnergy
+        from telos.core.reasoning.energy.cognitive_energy import CognitiveEnergy
         ce = CognitiveEnergy(max_energy=10, recharge_rate=0, base_cost=5)
         assert not ce.is_fatigued
         ce.consume(difficulty=1.0)
         assert ce.is_fatigued
 
     def test_compute_difficulty(self):
-        from telos.core.energy.cognitive_energy import CognitiveEnergy
+        from telos.core.reasoning.energy.cognitive_energy import CognitiveEnergy
         ce = CognitiveEnergy()
         d = ce.compute_difficulty(n_options=5, uncertainty=0.7)
         assert isinstance(d, float)
@@ -511,12 +511,12 @@ class TestCognitiveEnergySmoke:
 
 class TestDualConfidenceSmoke:
     def test_instantiate(self):
-        from telos.core.confidence.dual_confidence import DualConfidence
+        from telos.core.reasoning.confidence.dual_confidence import DualConfidence
         dc = DualConfidence(window_size=5)
         assert isinstance(dc.average_decision_confidence, float)
 
     def test_compute_and_report(self):
-        from telos.core.confidence.dual_confidence import DualConfidence
+        from telos.core.reasoning.confidence.dual_confidence import DualConfidence
         dc = DualConfidence(window_size=10)
         dc_1 = dc.compute_decision_confidence(
             predictive_accuracy=0.8, option_scores=[0.7, 0.3], familiarity=0.5,
@@ -532,7 +532,7 @@ class TestDualConfidenceSmoke:
         assert isinstance(dc.dominant_gap_type, str)
 
     def test_to_dict(self):
-        from telos.core.confidence.dual_confidence import DualConfidence
+        from telos.core.reasoning.confidence.dual_confidence import DualConfidence
         dc = DualConfidence()
         dc_ = dc.compute_decision_confidence(0.8, [0.7, 0.3], 0.5)
         ec_ = dc.compute_explanation_confidence(0.6, 0.7, 0.5)

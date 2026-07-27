@@ -1,7 +1,7 @@
 import logging
 
 from telos.core.phases.base import Phase, PhaseContext
-from telos.core.causal.scm import StructuralCausalModel
+from telos.core.reasoning.causal.scm import StructuralCausalModel
 
 logger = logging.getLogger('telos_pipeline')
 
