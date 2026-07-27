@@ -250,19 +250,17 @@
 
   <div class="brain-panel" style="margin-bottom:10px;">
     <h3>Aviku - Conscious Pipeline - 3 Visualization Modes</h3>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:220px;">
-        <div style="font-size:10px;color:#777;margin-bottom:3px;text-align:center;">🌀 Neural Orbit</div>
-        <canvas id="brain-orbit" style="display:block;border-radius:6px;width:100%;height:280px;background:#0f0f18;"></canvas>
-      </div>
-      <div style="flex:1;min-width:220px;">
-        <div style="font-size:10px;color:#777;margin-bottom:3px;text-align:center;">🔀 Pipeline Flow</div>
-        <canvas id="brain-flow" style="display:block;border-radius:6px;width:100%;height:280px;background:#0f0f18;"></canvas>
-      </div>
-      <div style="flex:1;min-width:220px;">
-        <div style="font-size:10px;color:#777;margin-bottom:3px;text-align:center;">🌳 Root System</div>
-        <canvas id="brain-tree" style="display:block;border-radius:6px;width:100%;height:280px;background:#0f0f18;"></canvas>
-      </div>
+    <div id="brain-mode-1" style="margin-bottom:8px;">
+      <div style="font-size:11px;color:#888;margin-bottom:3px;">🌀 Neural Orbit - 6 Identity Layers</div>
+      <canvas id="brain-orbit" style="display:block;border-radius:8px;width:100%;height:420px;background:#0f0f18;"></canvas>
+    </div>
+    <div id="brain-mode-2" style="margin-bottom:8px;">
+      <div style="font-size:11px;color:#888;margin-bottom:3px;">🔀 Pipeline Flow - 3x3 Snake Layout</div>
+      <canvas id="brain-flow" style="display:block;border-radius:8px;width:100%;height:420px;background:#0f0f18;"></canvas>
+    </div>
+    <div id="brain-mode-3" style="margin-bottom:8px;">
+      <div style="font-size:11px;color:#888;margin-bottom:3px;">🌳 Root System - 9 Phase Canopy</div>
+      <canvas id="brain-tree" style="display:block;border-radius:8px;width:100%;height:420px;background:#0f0f18;"></canvas>
     </div>
     <div id="brain-debug" style="font-size:10px;color:#555;margin-top:4px;text-align:center;"></div>
   </div>
@@ -310,17 +308,25 @@
         <h3 style="margin-bottom:0;">Knowledge Graph - 5 Visualization Modes</h3>
         <span id="node-count" class="node-count-label">0 nodes</span>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">1. Constellation</div>
-          <canvas id="kg-constellation" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
-        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">2. Knowledge Tree</div>
-          <canvas id="kg-tree" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
-        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">3. Solar System</div>
-          <canvas id="kg-solar" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
-        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">4. Neural Network</div>
-          <canvas id="kg-neural" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
-        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">5. Bubble Map</div>
-          <canvas id="kg-bubble" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
+      <div id="kg-mode-1" style="margin-bottom:8px;">
+        <div style="font-size:11px;color:#888;margin-bottom:3px;">1. Constellation - Star Map</div>
+        <canvas id="kg-constellation" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
+      </div>
+      <div id="kg-mode-2" style="margin-bottom:8px;">
+        <div style="font-size:11px;color:#888;margin-bottom:3px;">2. Knowledge Tree - Domain Branches</div>
+        <canvas id="kg-tree" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
+      </div>
+      <div id="kg-mode-3" style="margin-bottom:8px;">
+        <div style="font-size:11px;color:#888;margin-bottom:3px;">3. Solar System - Planet Orbits</div>
+        <canvas id="kg-solar" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
+      </div>
+      <div id="kg-mode-4" style="margin-bottom:8px;">
+        <div style="font-size:11px;color:#888;margin-bottom:3px;">4. Neural Network - Synaptic Mesh</div>
+        <canvas id="kg-neural" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
+      </div>
+      <div id="kg-mode-5" style="margin-bottom:8px;">
+        <div style="font-size:11px;color:#888;margin-bottom:3px;">5. Bubble Map - Domain Clusters</div>
+        <canvas id="kg-bubble" style="display:block;border-radius:8px;width:100%;height:350px;background:#0f0f18;"></canvas>
       </div>
       <div id="kg-debug" style="margin-top:4px;font-size:0;text-align:center;min-height:20px;line-height:1.8;"></div>
     </div>
@@ -2222,7 +2228,7 @@ const DOMAIN_COLORS = {
   function draw(){
     // ── Mode 1: Neural Orbit ──
     to+=0.02;
-    var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||280;
+    var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||420;
     var cx=w/2,cy=h/2,R=Math.min(w,h)*0.35;
     var bg=_co.createRadialGradient(cx,cy,0,cx,cy,R*1.4);
     bg.addColorStop(0,'#111122'); bg.addColorStop(1,'#06060a');
@@ -2401,10 +2407,10 @@ setInterval(function() {
     kgCanvases.push(el); kgContexts.push(cx);
   }
   var kgt=0;
-  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||220;}
+  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||350;}
   function kgProject(){
     if(kgNodes.length===0)return[];
-    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||220;
+    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||350;
     var focal=4,scale=Math.min(w,h)*0.28;
     return kgNodes.map(function(n){
       var nx=n.x||0,ny=n.y||0,nz=n.z||0;
