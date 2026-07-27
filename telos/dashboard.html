@@ -2195,6 +2195,8 @@ const DOMAIN_COLORS = {
 };
 
 // ─── 3-Mode Brain Visualization (single rAF loop) ───
+var _brainPaused=false;
+var _lastHealthData={di:0.5, compute:{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5}};
 (function(){
   var bco=document.getElementById('brain-orbit');
   var bct=document.getElementById('brain-tree');
@@ -2209,7 +2211,8 @@ const DOMAIN_COLORS = {
 
   function draw(){
     // ── Mode 1: Neural Orbit ──
-    to+=0.02;
+    if(!_brainPaused)to+=0.02;
+    var diVal=state.diHistory.length>0?state.diHistory[state.diHistory.length-1]:0.5;
     var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||600;
     var cx=w/2,cy=h/2,R=Math.min(w,h)*0.50;
     var bg=_co.createRadialGradient(cx,cy,0,cx,cy,R*1.4);
@@ -2217,9 +2220,10 @@ const DOMAIN_COLORS = {
     _co.fillStyle=bg; _co.fillRect(0,0,w,h);
     _co.fillStyle='rgba(255,255,255,0.45)'; _co.font='18px sans-serif'; _co.textAlign='center';
     _co.fillText('Neural Orbit - 6 Identity Layers',cx,16);
+    var ringClr=diVal>0.8?'74,222,128':diVal>0.5?'251,191,36':'255,68,68';
     for(var li=0;li<L_.length;li++){
       var ri=R*(0.24+li*0.13); _co.beginPath(); _co.arc(cx,cy,ri,0,Math.PI*2);
-      _co.strokeStyle='rgba(80,140,220,'+(0.035+li*0.025)+')'; _co.lineWidth=1.0; _co.stroke();
+      _co.strokeStyle='rgba('+ringClr+','+(0.035+li*0.025+diVal*0.04)+')'; _co.lineWidth=1.0; _co.stroke();
       _co.fillStyle='rgba(255,255,255,'+(0.04+li*0.015)+')'; _co.font='10px sans-serif'; _co.textAlign='left';
       _co.fillText(L_[li],cx+ri+6,cy+1);
     }
@@ -2230,29 +2234,29 @@ const DOMAIN_COLORS = {
       a===0?_co.moveTo(wx,wy):_co.lineTo(wx,wy);
     }
     _co.closePath();
-    _co.strokeStyle='rgba(74,222,128,'+(0.1+0.06*Math.sin(to))+')'; _co.lineWidth=2; _co.stroke();
-    var act=Math.floor(to*0.45)%P.length;
+    _co.strokeStyle='rgba('+ringClr+','+(0.1+0.06*Math.sin(to)+diVal*0.08)+')'; _co.lineWidth=2; _co.stroke();
+    var act=_brainPaused?act:Math.floor(to*0.45)%P.length;
     for(var i=0;i<P.length;i++){
       var a1=(i/P.length)*Math.PI*2-Math.PI/2;
       var px1=cx+Math.cos(a1)*R,py1=cy+Math.sin(a1)*R*0.75;
       var a2=((i+1)/P.length)*Math.PI*2-Math.PI/2;
       var px2=cx+Math.cos(a2)*R,py2=cy+Math.sin(a2)*R*0.75;
       _co.beginPath(); _co.moveTo(px1,py1); _co.lineTo(px2,py2);
-      _co.strokeStyle='rgba(80,140,220,'+(0.1+0.08*Math.sin(to*0.6+i))+')'; _co.lineWidth=1.0; _co.stroke();
+      _co.strokeStyle='rgba('+ringClr+','+(0.1+0.08*Math.sin(to*0.6+i))+')'; _co.lineWidth=1.0; _co.stroke();
       var da=Math.atan2(py2-py1,px2-px1);
       var ax=px2-Math.cos(da)*10,ay=py2-Math.sin(da)*10;
       _co.beginPath(); _co.moveTo(px2,py2); _co.lineTo(ax-Math.sin(da)*5,ay+Math.cos(da)*5);
       _co.lineTo(ax+Math.sin(da)*5,ay-Math.cos(da)*5); _co.closePath();
-      _co.fillStyle='rgba(100,180,255,0.3)'; _co.fill();
+      _co.fillStyle='rgba('+ringClr+',0.3)'; _co.fill();
       var tr=(to*0.35+i/P.length)%1;
       var ex=px1+(px2-px1)*tr,ey=py1+(py2-py1)*tr;
       _co.beginPath(); _co.arc(ex,ey,3*(1-Math.abs(tr-0.5)*2),0,Math.PI*2);
-      _co.fillStyle='rgba(180,220,255,'+(0.45*(1-Math.abs(tr-0.5)*2))+')'; _co.fill();
+      _co.fillStyle='rgba('+ringClr+','+(0.45*(1-Math.abs(tr-0.5)*2))+')'; _co.fill();
     }
     for(var i=0;i<P.length;i++){
       var aa=(i/P.length)*Math.PI*2-Math.PI/2+Math.sin(to*0.2+i*0.7)*0.01;
       var ppx=cx+Math.cos(aa)*R,ppy=cy+Math.sin(aa)*R*0.75;
-      var ia=(i===act),pu=ia?18+5*Math.sin(to*3):12+4*Math.sin(to*1.5+i*1.1);
+      var ia=(i===act),pu=ia?(18+5*Math.sin(to*3))*(0.6+diVal*0.6):(12+4*Math.sin(to*1.5+i*1.1))*(0.6+diVal*0.4);
       if(ia){
         var ag=_co.createRadialGradient(ppx,ppy,0,ppx,ppy,pu*5);
         ag.addColorStop(0,C[i]+'77'); ag.addColorStop(1,'transparent');
@@ -2269,7 +2273,9 @@ const DOMAIN_COLORS = {
     }
 
     // ── Mode 2: Root System ──
-    tt+=0.02;
+    if(!_brainPaused)tt+=0.02;
+    var diVal2=state.diHistory.length>0?state.diHistory[state.diHistory.length-1]:0.5;
+    var ringClr2=diVal2>0.8?'74,222,128':diVal2>0.5?'251,191,36':'255,68,68';
     w=_bct.width=_bct.clientWidth||280; h=_bct.height=_bct.clientHeight||280;
     bg=_ct.createRadialGradient(w/2,h,0,w/2,h,w*0.7);
     bg.addColorStop(0,'#0d0d1a'); bg.addColorStop(1,'#06060a');
@@ -2622,6 +2628,8 @@ async function pollCheckpoints() {
   try {
     const hresp = await fetch('/api/health');
     const h = await hresp.json();
+    _lastHealthData.di = typeof h.decision_integrity === 'number' ? h.decision_integrity : (state.diHistory.length > 0 ? state.diHistory[state.diHistory.length-1] : 0.5);
+    if (h.resources) _lastHealthData.compute = h.resources;
     const el = document.getElementById('health-score');
     if (el) el.textContent = typeof h.health === 'number' ? (h.health * 100).toFixed(0) + '%' : '--';
     const sel = document.getElementById('system-score');
