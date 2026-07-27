@@ -6,12 +6,8 @@
 - **Tests:** `PYTHONPATH=. python3 -m pytest tests/ --ignore=tests/test_knowledge.py -q`
 
 ## Status (Session Handoff — 2026-07-25)
-- **360/360 tests passing**
+- **469/469 tests passing**
 - **24/24 self-audit checks passing**
-- **20/20 axioms satisfied**
-- **9-phase pipeline** operational (Perceive, Streams, Simulate, Evaluate, Synthesis, Select, Council, Act, Reflect)
-- **6 cognitive streams** (Reflex 1.0, Perception 0.9, Inquiry 0.8, Memory 0.7, Planning 0.5, Theory 0.4)
-- **Resource Accounting Layer** R(a,s) = (C_compute, C_memory, C_bandwidth, C_storage) — per-action costing with pluggable blockchain backend
 - **Ω operator** with adaptive threshold + continuous sigmoid blend
 - **Tripartite uncertainty** U = (U_W, U_I, U_O)
 - **Relational Reasoning scaffold** (R_t slot reserved, interface defined)
@@ -20,7 +16,7 @@
 - **Deterministic execution** — cycle-aware seeding for reproducible runs
 - **Curiosity Drive** — intrinsic motivation via learning progress + boredom detection
 - **5 GridWorld upgrades** — Dynamic terrain, Fog of war, Multiple goals, Time pressure, Second agent
-- **168 Python files, 33,000+ lines, 35 git commits**
+- **197 Python files, 35,000+ lines, 61 git commits**
 
 ## All shipping blockers fixed
 - ✅ Firewall loop detection tuned (3→4 threshold, available_moves check)
@@ -114,4 +110,184 @@ We discussed creating a **Bitcoin Block Priority Oracle** — a sidecar protocol
 
 ### Checkpoint
 - /tmp/telos_checkpoints/checkpoint_0030.json
+
+
+## Session Handoff — 2026-07-27 19:34:56
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 19:34:56
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 19:34:56
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 19:42:24
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 19:42:24
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 19:42:24
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 20:08:56
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 20:08:56
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 20:08:56
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 22:05:43
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 22:05:43
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-27 22:05:43
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
 
