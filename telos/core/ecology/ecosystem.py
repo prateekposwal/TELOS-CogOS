@@ -84,6 +84,45 @@ class Ecosystem:
                relation: NicheRelation, strength: float = 0.5) -> None:
         self._relations.append(EcosystemRelation(source_id, target_id, relation, strength))
 
+    def apply_competition(self, niche_id: str) -> None:
+        """Reduce discovery rate if competing niches are more productive."""
+        n = self._niches.get(niche_id)
+        if n is None:
+            return
+        competitors = self.find_competing(niche_id)
+        if not competitors:
+            return
+        for comp in competitors:
+            if comp.marginal_discovery_rate > n.marginal_discovery_rate * 1.5:
+                n.marginal_discovery_rate *= 0.95
+                n.stagnation_cycles += 1
+                break
+
+    def niche_fitness(self, niche_id: str) -> float:
+        """Compute fitness from role-weighted metrics."""
+        n = self._niches.get(niche_id)
+        if n is None:
+            return 0.0
+        role_bonus = {"keystone": 1.2, "bridge": 1.1, "decomposer": 0.8,
+                      "pioneer": 1.0, "specialist": 0.9}.get(n.role.value, 1.0)
+        return (n.marginal_discovery_rate * 0.5 + n.bridge_count * 0.3 +
+                n.exploration_depth * 0.2) * role_bonus
+
+    def cycle(self) -> List[str]:
+        """Run one ecological cycle: competition, fitness evaluation, stagnation."""
+        dead = []
+        for nid in list(self._niches.keys()):
+            self.apply_competition(nid)
+            fitness = self.niche_fitness(nid)
+            n = self._niches[nid]
+            if fitness < 0.01 and n.stagnation_cycles > 50:
+                dead.append(nid)
+        for nid in dead:
+            n = self._niches.pop(nid, None)
+            if n:
+                logger.info(f"Ecosystem: niche '{n.name}' died from competition")
+        return dead
+
     def update_discovery_rate(self, niche_id: str, new_discoveries: int,
                                total_effort: float) -> None:
         n = self._niches.get(niche_id)

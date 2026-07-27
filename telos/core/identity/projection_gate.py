@@ -37,31 +37,71 @@ class IdentityProjectionGate:
         self._narrative = narrative
 
     def is_admissible(self, intent_type: str, project_id: Optional[str] = None,
-                      mission_active: bool = False) -> bool:
-        """F(I) projection: is this trajectory admissible?"""
+                      mission_active: bool = False, mission_ids: Optional[List[str]] = None,
+                      narrative_role: Optional[str] = None) -> bool:
+        """F(I) projection: is this trajectory admissible?
+
+        Checks trajectory τ against all 6 identity layers:
+        1. Core values — does the intent violate core values?
+        2. Narrative role — is this intent compatible with who the system is?
+        3. Active missions — does this serve a current mission?
+        4. Project assignment — is this project still valid?
+        """
         if intent_type in ("reflex", "halt", "emergency_stop"):
             return True
 
+        # Layer 1: Core values check
         if intent_type == "curiosity_explore" and not self._core.recognizes("curiosity"):
             logger.debug(f"F(I) blocked {intent_type}: violates core curiosity")
             return False
 
-        if intent_type == "theft" or "steal" in intent_type:
-            if not self._core.recognizes("integrity"):
-                return True
-            logger.debug(f"F(I) blocked {intent_type}: violates core integrity")
+        if "steal" in intent_type or "deceive" in intent_type:
+            if self._core.recognizes("integrity"):
+                logger.debug(f"F(I) blocked {intent_type}: violates core integrity")
+                return False
+
+        if "exploit" in intent_type and "explore" in intent_type and self._core.recognizes("epistemic_humility"):
+            if "harm" in intent_type:
+                logger.debug(f"F(I) blocked {intent_type}: violates epistemic humility")
+                return False
+
+        # Layer 2: Narrative role consistency
+        if narrative_role:
+            role_incompatible = {
+                "explorer": ["exploit", "refine", "optimize"],
+                "mathematician": ["exploit", "random_walk"],
+                "guardian": ["explore_dangerous", "high_risk"],
+            }
+            incompatible = role_incompatible.get(narrative_role, [])
+            if any(inc in intent_type for inc in incompatible):
+                logger.debug(f"F(I) blocked {intent_type}: incompatible with role '{narrative_role}'")
+                return False
+
+        # Layer 3: Active mission check
+        if not mission_active and intent_type not in ("reflex", "theory_idle", "memory_recall"):
+            logger.debug(f"F(I) blocked {intent_type}: no active mission")
+            return False
+
+        # Layer 4: Project validity (if specified)
+        if project_id and mission_ids and mission_ids[0] and project_id not in mission_ids:
+            logger.debug(f"F(I) blocked {intent_type}: project {project_id} not in active missions")
             return False
 
         return True
 
-    def project_intents(self, intents: List[Any]) -> List[Any]:
+    def project_intents(self, intents: List[Any], mission_active: bool = False,
+                        mission_ids: Optional[List[str]] = None) -> List[Any]:
         """Filter a list of intents through F(I), returning only admissible ones."""
         admissible = []
         for intent in intents:
-            intent_type = getattr(intent, 'intent_type', 'unknown') if not isinstance(intent, tuple) else intent[0].intent_type if hasattr(intent[0], 'intent_type') else 'unknown'
-            if isinstance(intent, tuple) and hasattr(intent[0], 'intent_type'):
+            intent_type = "unknown"
+            if hasattr(intent, 'intent_type'):
+                intent_type = intent.intent_type
+            elif isinstance(intent, tuple) and hasattr(intent[0], 'intent_type'):
                 intent_type = intent[0].intent_type
-            if self.is_admissible(intent_type):
+
+            if self.is_admissible(intent_type, mission_active=mission_active,
+                                 mission_ids=mission_ids, narrative_role=self._narrative.role):
                 admissible.append(intent)
             else:
                 logger.info(f"F(I) projected out: {intent_type}")

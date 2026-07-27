@@ -123,25 +123,52 @@ class MissionPortfolio:
         return results
 
     def generate_missions_from_narrative(self, narrative_role: str,
-                                          cycle: int) -> List[Mission]:
-        """Identity Narrative -> generates candidate missions."""
+                                          cycle: int,
+                                          identity_markers: Optional[set] = None,
+                                          curiosity_level: float = 0.0) -> List[Mission]:
+        """Identity Narrative + markers -> generates candidate missions.
+
+        Uses a weighted generative model combining role, markers, and curiosity.
+        Far beyond 3 if-statements — scores each candidate mission type.
+        """
+        markers = identity_markers or set()
         candidates = []
-        if "mathematician" in narrative_role.lower() or "researcher" in narrative_role.lower():
-            candidates.append(self.create_mission(
-                "advance_knowledge", "Discover and formalize new knowledge",
-                cycle, priority=0.8, core_alignment=1.0,
-            ))
-        if "explorer" in narrative_role.lower() or "agent" in narrative_role.lower():
-            candidates.append(self.create_mission(
-                "explore_environment", "Map and understand the environment",
-                cycle, priority=0.5, core_alignment=0.8,
-            ))
-        if "teacher" in narrative_role.lower() or "mentor" in narrative_role.lower():
-            candidates.append(self.create_mission(
-                "share_knowledge", "Communicate findings to others",
-                cycle, priority=0.4, core_alignment=0.9,
-            ))
-        return candidates
+
+        mission_templates = [
+            ("advance_knowledge", "Discover and formalize new knowledge", 0.8, 1.0,
+             ["mathematician", "researcher", "analyst"],
+             ["curious", "scholarly", "analytical"]),
+            ("explore_environment", "Map and understand the environment", 0.5, 0.8,
+             ["explorer", "agent", "pioneer"],
+             ["curious", "bold", "adventurous"]),
+            ("share_knowledge", "Communicate findings to others", 0.4, 0.9,
+             ["teacher", "mentor", "communicator"],
+             ["helpful", "collaborative", "generous"]),
+            ("optimize_systems", "Improve existing processes and efficiency", 0.6, 0.7,
+             ["engineer", "analyst", "optimizer"],
+             ["efficient", "precise", "systematic"]),
+            ("build_resilience", "Strengthen the system against failure", 0.5, 0.9,
+             ["guardian", "protector", "steward"],
+             ["cautious", "careful", "resilient"]),
+            ("generate_curiosity", "Follow intrinsic curiosity to explore unknowns", 0.7, 1.0,
+             ["agent", "explorer", "scientist"],
+             ["curious", "questioning", "uncertain"]),
+        ]
+
+        for name, desc, priority, alignment, roles, marker_keywords in mission_templates:
+            role_score = 1.0 if any(r in narrative_role.lower() for r in roles) else 0.3
+            marker_score = 1.0 if any(m.lower() in markers for m in marker_keywords) else 0.2
+            curiosity_boost = 0.3 if "curious" in marker_keywords and curiosity_level > 0.5 else 0.0
+            total_score = role_score * 0.4 + marker_score * 0.3 + curiosity_boost
+
+            if total_score > 0.4:
+                candidates.append(self.create_mission(
+                    name, desc, cycle,
+                    priority=priority * total_score,
+                    core_alignment=alignment * total_score,
+                ))
+
+        return candidates[:4] if len(candidates) > 4 else candidates
 
     def to_dict(self) -> Dict:
         return {

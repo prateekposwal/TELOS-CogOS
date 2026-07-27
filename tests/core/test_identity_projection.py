@@ -14,7 +14,7 @@ class TestIdentityProjectionGate:
 
     def test_admits_curiosity_with_core(self):
         gate = IdentityProjectionGate()
-        assert gate.is_admissible("curiosity_explore") is True
+        assert gate.is_admissible("curiosity_explore", mission_active=True) is True
 
     def test_to_dict(self):
         gate = IdentityProjectionGate()
@@ -29,8 +29,8 @@ class TestIdentityProjectionGate:
         class MockIntent:
             def __init__(self, t):
                 self.intent_type = t
-        intents = [MockIntent("reflex"), MockIntent("explore"), MockIntent("plan_trajectory")]
-        result = gate.project_intents(intents)
+        intents = [MockIntent("reflex"), MockIntent("curiosity_explore"), MockIntent("plan_trajectory")]
+        result = gate.project_intents(intents, mission_active=True, mission_ids=["m1"])
         assert len(result) == 3
 
     def test_custom_narrative(self):
