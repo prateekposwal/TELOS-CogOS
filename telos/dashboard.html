@@ -2177,6 +2177,36 @@ const DOMAIN_COLORS = {
   'system': '#94a3b8',
 };
 
+// Brain canvas rendering (moved to top to avoid execution issues)
+(function(){
+  var bc = document.getElementById('brain-canvas');
+  if (!bc) return;
+  var ctx = bc.getContext('2d');
+  if (!ctx) return;
+  bc.width = bc.clientWidth || 260;
+  bc.height = bc.clientHeight || 300;
+  ctx.fillStyle = '#4ade80';
+  ctx.fillRect(0, 0, bc.width, bc.height);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🧠 REDACTED Cognitive Pipeline', bc.width/2, 30);
+  var phases = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
+  var colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
+  var cx = bc.width/2, cy = bc.height/2 + 20, r = Math.min(bc.width, bc.height) * 0.25;
+  for (var i = 0; i < phases.length; i++) {
+    var a = (i / phases.length) * Math.PI * 2 - Math.PI/2;
+    var px = cx + Math.cos(a) * r;
+    var py = cy + Math.sin(a) * r * 0.7;
+    ctx.fillStyle = colors[i];
+    ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ddd';
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(phases[i], px, py + 18);
+  }
+})();
+
 function drawKnowledgeGraph(canvas) {
   if (!canvas || !canvas.getContext) return;
   const ctx = canvas.getContext('2d');
@@ -2859,38 +2889,7 @@ setInterval(() => {
   }
 }, 12000);
 
-// Draw on brain canvas
-(function(){
-  var bc = document.getElementById('brain-canvas');
-  if (!bc) return;
-  var ctx = bc.getContext('2d');
-  if (!ctx) return;
-  bc.width = bc.clientWidth || 260;
-  bc.height = bc.clientHeight || 300;
-  ctx.fillStyle = '#4ade80';
-  ctx.fillRect(0, 0, bc.width, bc.height);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 24px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('🧠 REDACTED Cognitive Pipeline', bc.width/2, 40);
-  // Draw 9 phase nodes
-  var phases = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
-  var colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
-  var cx = bc.width/2, cy = bc.height/2 + 30, r = Math.min(bc.width, bc.height) * 0.25;
-  for (var i = 0; i < phases.length; i++) {
-    var a = (i / phases.length) * Math.PI * 2 - Math.PI/2;
-    var px = cx + Math.cos(a) * r;
-    var py = cy + Math.sin(a) * r * 0.7;
-    ctx.fillStyle = colors[i];
-    ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#aaa';
-    ctx.font = '7px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(phases[i], px, py + 16);
-  }
-  var bd = document.getElementById('brain-debug');
-  if (bd) bd.textContent = '✅ Brain: ' + phases.length + ' phases';
-})();
+// Brain code moved to top of script (after DOMAIN_COLORS)
 </script>
 <div id="learning-ticker" style="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);
   color:#555;font-size:11px;z-index:500;text-align:center;pointer-events:none;
