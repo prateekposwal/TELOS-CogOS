@@ -2891,8 +2891,11 @@ try {
   console.warn('[TELOS] KG boot error:', e);
   _dbg('KG ERROR: ' + e.message);
 }
+// Test: did we get past bootKG?
+(function() { console.log('[TELOS] Past bootKG'); })();
 // Inline brain visualization — ULTRA simple test first
 (function() {
+  console.log('[TELOS_BRAIN] Test reached');
   var testDiv = document.createElement('div');
   testDiv.textContent = '🧠 BRAIN CODE EXECUTING';
   testDiv.style.cssText = 'position:fixed;top:50%;left:50%;z-index:99999;background:red;color:white;padding:20px;font-size:24px;';
