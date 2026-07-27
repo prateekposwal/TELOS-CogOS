@@ -1,0 +1,13 @@
+{
+  "session_id": "unknown",
+  "cycle_count": 0,
+  "top_skills": [],
+  "top_theories": [],
+  "persistent_questions": [],
+  "failure_patterns": [],
+  "metrics": {
+    "di": 1.0,
+    "md": 0.0,
+    "cycles": 0
+  }
+}

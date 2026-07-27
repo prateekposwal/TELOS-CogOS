@@ -47,7 +47,7 @@ from telos.core.council.validators import ConstraintValidator
 logger = logging.getLogger('telos_pipeline_builder')
 
 
-def build_components(config, infra_manager=None, skill_library=None):
+def build_pipeline_components(config, infra_manager=None, skill_library=None):
     """Build all pipeline component instances from config.
 
     Returns a dict of component_name -> instance for use by TelosV14Pipeline.
