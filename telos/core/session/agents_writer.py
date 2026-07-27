@@ -36,24 +36,89 @@ class AgentsWriter:
     """Backward-compatible session handoff writer."""
     def __init__(self, path: Optional[str] = None):
         self._path = path or AGENTS_PATH
+        self.agents_path = self._path
 
     def generate_markdown(self, summary: SessionSummary) -> str:
-        return build_handoff(None, {
-            "di": getattr(summary, 'di', summary.metrics.get('di', 1.0)),
-            "md": getattr(summary, 'md', summary.metrics.get('md', 0.0)),
-            "cycles": getattr(summary, 'cycles', summary.metrics.get('cycle_count', 0)),
-            "mood": getattr(summary, 'mood', 'neutral'),
-        })
+        ts = (summary.timestamp or datetime.now().strftime('%Y-%m-%d %H:%M:%S'))[:19]
+        lines = [
+            f"## Session Handoff — {ts}",
+            "",
+            "### Current State",
+        ]
+        if getattr(summary, 'current_state', None):
+            lines.extend(f"- {s}" for s in summary.current_state)
+        else:
+            lines.append("*(No current state captured)*")
 
-    def write_summary(self, summary: SessionSummary,
-                      path: Optional[str] = None) -> None:
-        markdown = self.generate_markdown(summary)
+        lines.extend(["", "### Decisions Made"])
+        if getattr(summary, 'decisions_made', None):
+            lines.extend(f"- {d}" for d in summary.decisions_made)
+        else:
+            lines.append("*(No decisions recorded)*")
+
+        lines.extend(["", "### Open Issues"])
+        if getattr(summary, 'open_issues', None):
+            lines.extend(f"- {o}" for o in summary.open_issues)
+        else:
+            lines.append("*(No open issues)*")
+
+        m = getattr(summary, 'metrics', {}) or {}
+        cp = getattr(summary, 'checkpoint_ref', None) or m.get('checkpoint_ref', "N/A")
+        tb = m.get('token_budget_pct', 0)
+        lines.extend([
+            "",
+            "### Metrics",
+            f"- DI: {m.get('di', 1.0):.3f} | MD: {m.get('md', 0.0):.3f} | "
+            f"Cycles: {m.get('cycle_count', 0)} | Token budget: {tb:.1f}%",
+            "",
+            "### Checkpoint",
+            f"- {cp}",
+            "",
+        ])
+        return "\n".join(lines)
+
+    def write_summary(self, summary_or_pipeline: Any = None,
+                      path: Optional[str] = None,
+                      pipeline: Any = None,
+                      cycle_count: int = 0,
+                      chat_history: Any = None,
+                      session_essence: Any = None) -> str:
+        if summary_or_pipeline is not None and not isinstance(summary_or_pipeline, SessionSummary):
+            if pipeline is None:
+                pipeline = summary_or_pipeline
+            summary_or_pipeline = SessionSummary(
+                metrics={"di": 1.0, "md": 0.0, "cycle_count": cycle_count},
+            )
+        if summary_or_pipeline is None:
+            summary_or_pipeline = SessionSummary(
+                metrics={"di": 1.0, "md": 0.0, "cycle_count": cycle_count},
+            )
+        # Extract checkpoint from pipeline if available
+        if pipeline is not None:
+            chk = getattr(pipeline, '_checkpointer', None)
+            if chk is not None and hasattr(chk, 'latest_path') and chk.latest_path:
+                summary_or_pipeline.checkpoint_ref = chk.latest_path
+        # Incorporate session_essence into the summary
+        if session_essence and isinstance(session_essence, dict):
+            decisions = session_essence.get('key_decisions', [])
+            if decisions and not getattr(summary_or_pipeline, 'decisions_made', None):
+                summary_or_pipeline.decisions_made = decisions
+        markdown = self.generate_markdown(summary_or_pipeline)
         target = path or self._path
-        with open(target, 'a') as f:
-            f.write("\n" + markdown + "\n")
+        if target:
+            os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
+            with open(target, 'a') as f:
+                f.write("\n" + markdown + "\n")
+        return markdown
 
-    def detect_context_pressure(self) -> float:
-        return 0.0
+    def detect_context_pressure(self, pipeline: Any = None,
+                                 cycle_count: int = 0,
+                                 budget_consumed: float = 0.0,
+                                 budget_total: float = 1.0,
+                                 chat_history: Any = None,
+                                 timestamp: str = "") -> float:
+        util = budget_consumed / max(budget_total, 1)
+        return min(1.0, 0.1 + util * 0.5 + cycle_count * 0.01)
 
 
 def build_handoff(pipeline, metrics: Dict) -> str:
