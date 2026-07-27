@@ -43,6 +43,10 @@ function initBrain() {
   // Show brain is active
   ctx.fillStyle = '#0f0f18';
   ctx.fillRect(0, 0, brainW, brainH);
+  
+  var bd = document.getElementById('brain-debug');
+  if (bd) bd.textContent = '✅ Init OK: ' + brainW + 'x' + brainH;
+  
   ctx.fillStyle = '#4ade80';
   ctx.font = 'bold 14px sans-serif';
   ctx.textAlign = 'center';
