@@ -82,7 +82,7 @@ def main():
 
     # 2. Wire collector
     print("2. Wiring BenchmarkCollector...")
-    collector = BenchmarkCollector(output_dir="/tmp/telos_benchmark_data")
+    collector = BenchmarkCollector()  # saves to telos/benchmarks/data/
     pipeline._benchmark_collector = collector
 
     # 3. Run cycles
