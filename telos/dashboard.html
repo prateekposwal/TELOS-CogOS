@@ -1542,8 +1542,9 @@ function drawAgent2(ctx) {
 }
 
 // ─── Particle System ───
-function spawnParticles() {
-  if (state.particles.length < 25 && state.time % 0.3 < 0.02) {
+ function spawnParticles() {
+   // Continuous particle spawning for living feel
+   if (state.particles.length < 80 && Math.random() < 0.3) {
     const x = Math.random() * state.gridSize;
     const y = Math.random() * state.gridSize;
     const tt = getTerrainAt(Math.floor(x), Math.floor(y));
@@ -2224,14 +2225,21 @@ function drawKnowledgeGraph(canvas) {
     ctx.shadowBlur = 0;
   }
 
-  // Draw nodes (far to near)
+  // Draw nodes (far to near) — with breathing animation
   const sorted = [...projected].sort((a, b) => a.depth - b.depth);
   const time = state.time || 0;
+  const floatX = Math.sin(time * 0.3 + (node.y || 0) * 2) * 1.5;
+  const floatY = Math.cos(time * 0.4 + (node.x || 0) * 2) * 1.5;
 
   for (const node of sorted) {
     const color = DOMAIN_COLORS[node.domain] || DOMAIN_COLORS['general'];
     const pulse = 0.75 + Math.sin(time * 2.5 + (node.x || 0) * 4 + (node.y || 0) * 3) * 0.25;
     const r = Math.max(2, node.size * pulse);
+    // Gentle floating
+    node.px += (floatX - (node.floatOffX || 0)) * 0.02;
+    node.py += (floatY - (node.floatOffY || 0)) * 0.02;
+    node.floatOffX = floatX;
+    node.floatOffY = floatY;
 
     // Outer glow
     const grad = ctx.createRadialGradient(node.px, node.py, 0, node.px, node.py, r * 5);
@@ -2721,6 +2729,41 @@ bs.onload = () => {
   applyTrace = function(t) { orig(t); if (window.visualizeTrace) setTimeout(() => window.visualizeTrace(t), 50); };
 };
 document.head.appendChild(bs);
+
+// — Auto-start auto-refresh after 5 seconds of idle —
+setTimeout(() => {
+  if (!state.autoRefresh && state.traces.length > 0) {
+    state.autoRefresh = true;
+    scheduleAuto();
+    const btn = document.getElementById('auto-btn');
+    if (btn) { btn.textContent = '⏹ Stop'; btn.className = 'active'; }
+  }
+}, 5000);
+
+// — Learning data ticker: shows what TELOS is learning —
+setInterval(() => {
+  const ticker = document.getElementById('learning-ticker');
+  if (!ticker) return;
+  const msgs = [
+    '🧠 Perceiving environment...',
+    '🔍 Analyzing patterns...',
+    '📊 Evaluating options...',
+    '⚖️ Council deliberating...',
+    '🎯 Selecting action...',
+    '✅ Executing decision...',
+    '🔄 Reflecting on outcome...',
+    '📝 Updating identity...',
+    '🌱 Compressing knowledge...',
+    '🔗 Discovering bridges...',
+  ];
+  const idx = Math.floor((Date.now() / 3000) % msgs.length);
+  ticker.textContent = msgs[idx];
+}, 3000);
 </script>
+<div id="learning-ticker" style="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);
+  color:#555;font-size:11px;z-index:500;text-align:center;pointer-events:none;
+  text-shadow:0 0 10px rgba(0,0,0,0.8);transition:opacity 0.5s;">
+  🌀 System idle — waiting for data...
+</div>
 </body>
 </html>
