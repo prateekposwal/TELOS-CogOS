@@ -2209,7 +2209,7 @@ const DOMAIN_COLORS = {
   var co=bco.getContext('2d'), cf=bcf.getContext('2d'), ct=bct.getContext('2d');
   if(!co||!cf||!ct)return;
   var P=['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
-  var C=['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888'];
+  var C=['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
   var L_=['Core','Narrative','Mission','Project','Method','Action'];
   // ── Mode 1: Neural Orbit ──
   var to=0; var _co=co, _bco=bco;
@@ -2470,7 +2470,7 @@ setInterval(function() {
     for(var i=0;i<nodes.length;i++){
       var n=nodes[i],px=w/2+n.px,py=h/2+n.py;
       var tw=0.4+0.6*Math.sin(kgt*2+i*1.7+n.depth),r=Math.max(1,n.size*0.5*tw);
-      var col=DOMAIN_COLORS[n.domain]||'#888';
+      var col=DOMAIN_COLORS[n.domain]||'#888888';
       var g=ctx.createRadialGradient(px,py,0,px,py,r*6);
       g.addColorStop(0,col+(tw>0.7?'55':'33'));g.addColorStop(1,'transparent');
       ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r*6,0,Math.PI*2);ctx.fill();
