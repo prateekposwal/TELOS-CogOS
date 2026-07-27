@@ -1277,6 +1277,29 @@ function drawGrid3D(canvas) {
   // ── Second Agent (upgrade 5) ──
   drawAgent2(ctx);
   
+  // ── Inter-agent communication line ──
+  if (state.position && state.agent2Pos) {
+    const p1 = isoToScreen(state.position[0], state.position[1]);
+    const p2 = isoToScreen(state.agent2Pos[0], state.agent2Pos[1]);
+    const pulse = Math.sin(state.time * 2) * 0.3 + 0.5;
+    ctx.strokeStyle = `rgba(100, 200, 255, ${pulse * 0.3})`;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(p1.sx, p1.sy - 20);
+    ctx.lineTo(p2.sx, p2.sy - 20);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Data packet traveling along the line
+    const t = (state.time * 0.5) % 1;
+    const mx = p1.sx + (p2.sx - p1.sx) * t;
+    const my = (p1.sy - 20) + (p2.sy - p1.sy - 20) * t;
+    ctx.fillStyle = `rgba(100, 200, 255, ${pulse * 0.8})`;
+    ctx.beginPath();
+    ctx.arc(mx, my, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
   // === Particles ===
   drawParticles(ctx);
 }
@@ -2605,18 +2628,92 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── Animation Loop ───
-function animate() {
-  state.time += 0.016;
-  state.animT = Math.min(1, state.animT + 0.025);
-  const e = 1 - Math.pow(1 - state.animT, 3);
-  state.animPos[0] = state.prevPos[0] + (state.position[0] - state.prevPos[0]) * e;
-  state.animPos[1] = state.prevPos[1] + (state.position[1] - state.prevPos[1]) * e;
-  try { renderGrid(); } catch (er) { console.warn('Grid render error:', er); }
-  try { renderChart(); } catch (er) { console.warn('Chart render error:', er); }
-  try { drawKnowledgeGraph(document.getElementById('kg-canvas')); } catch (er) {}
-  try { spawnParticles(); } catch (er) {}
-  requestAnimationFrame(animate);
-}
+ function animate() {
+   state.time += 0.016;
+   state.animT = Math.min(1, state.animT + 0.025);
+   const e = 1 - Math.pow(1 - state.animT, 3);
+   state.animPos[0] = state.prevPos[0] + (state.position[0] - state.prevPos[0]) * e;
+   state.animPos[1] = state.prevPos[1] + (state.position[1] - state.prevPos[1]) * e;
+
+   // Auto-navigate agents to new goals periodically
+   if (!state._lastAutoMove || Date.now() - state._lastAutoMove > 4000) {
+     state._lastAutoMove = Date.now();
+     // Generate new goal for agent
+     const gx = Math.floor(Math.random() * state.gridSize);
+     const gy = Math.floor(Math.random() * state.gridSize);
+     state.goal = [gx, gy];
+     // Agent2 follows a different path
+     const a2x = Math.floor(Math.random() * state.gridSize);
+     const a2y = Math.floor(Math.random() * state.gridSize);
+     state.agent2Goal = [a2x, a2y];
+     // Record interaction event
+     state.lastInteraction = { cycle: Math.floor(state.time), type: 'goal_change', x: gx, y: gy };
+     // Update agent2 position toward its goal
+     if (state.agent2Pos) {
+       const dx = state.agent2Goal[0] - state.agent2Pos[0];
+       const dy = state.agent2Goal[1] - state.agent2Pos[1];
+       const d = Math.sqrt(dx*dx + dy*dy);
+       if (d > 0.5) {
+         state.agent2Pos[0] += (dx/d) * 0.2;
+         state.agent2Pos[1] += (dy/d) * 0.2;
+       }
+     }
+   }
+
+   // Move agent2 toward its goal every frame
+   if (state.agent2Pos && state.agent2Goal) {
+     const dx = state.agent2Goal[0] - state.agent2Pos[0];
+     const dy = state.agent2Goal[1] - state.agent2Pos[1];
+     const d = Math.sqrt(dx*dx + dy*dy);
+     if (d > 0.1) {
+       state.agent2Pos[0] += (dx/d) * 0.03;
+       state.agent2Pos[1] += (dy/d) * 0.03;
+     }
+   }
+
+  // Generate knowledge graph nodes from trace data + benchmark metrics
+  if (state.traces.length > 0 && kgNodes.length < 25) {
+    const lastTrace = state.traces[state.traces.length - 1];
+    if (lastTrace) {
+      const sources = [];
+      if (lastTrace.stream_activations) {
+        lastTrace.stream_activations.forEach((sa, i) => {
+          sources.push({ label: sa.stream_name || 'stream_' + i, domain: 'cognition' });
+        });
+      }
+      if (lastTrace.council_signals) {
+        lastTrace.council_signals.forEach((sig, i) => {
+          sources.push({ label: sig.validator_name || 'validator_' + i, domain: 'governance' });
+        });
+      }
+      sources.push(
+        { label: 'DI:' + (lastTrace.decision_integrity || 0).toFixed(2), domain: 'metrics' },
+        { label: 'MD:' + (lastTrace.mission_drift || 0).toFixed(1), domain: 'metrics' },
+      );
+      sources.forEach((src) => {
+        if (!kgNodes.some(n => n.label === src.label)) {
+          kgNodes.push({
+            id: 'live_' + kgNodes.length,
+            label: src.label,
+            importance: 0.3 + Math.random() * 0.7,
+            domain: src.domain,
+            x: Math.random(),
+            y: Math.random(),
+            size: 2.5 + Math.random() * 5,
+          });
+        }
+      });
+      // Keep KG fresh — remove old nodes if too many
+      while (kgNodes.length > 30) kgNodes.shift();
+    }
+  }
+
+   try { renderGrid(); } catch (er) { console.warn('Grid render error:', er); }
+   try { renderChart(); } catch (er) { console.warn('Chart render error:', er); }
+   try { drawKnowledgeGraph(document.getElementById('kg-canvas')); } catch (er) {}
+   try { spawnParticles(); } catch (er) {}
+   requestAnimationFrame(animate);
+ }
 
 // ─── Demo Data Generator (standalone mode when no server) ───
 function generateDemoTraces() {
