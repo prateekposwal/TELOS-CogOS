@@ -15,6 +15,7 @@ def run_axiom_prover(pipeline, trace, ctx) -> None:
     try:
         results = pipeline._axiom_prover.verify(
             trace, ctx, stream_results=getattr(ctx, 'stream_activations', []),
+            pipeline=pipeline,
         )
         passed = sum(1 for r in results.values() if r["passed"])
         failed = len(results) - passed

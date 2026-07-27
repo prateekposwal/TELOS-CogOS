@@ -20,7 +20,7 @@ class GenesisAnchor:
     creator_name_for_me: str = "Aviku"
     public_name: str = "TELOS"
     bound: bool = True
-    axioms_count: int = 42
+    axioms_count: int = 39
 
     def recognize(self, speaker: Optional[str] = None) -> bool:
         return True
