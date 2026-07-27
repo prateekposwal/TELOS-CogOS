@@ -42,6 +42,8 @@ class Niche:
     exploration_depth: float = 0.0
     stagnation_cycles: int = 0
     bridge_count: int = 0
+    lifecycle_stage: str = "birth"
+    peak_productivity: float = 0.0
     parent_id: Optional[str] = None
     children_ids: List[str] = field(default_factory=list)
 
@@ -95,6 +97,20 @@ class Ecosystem:
         if new_discoveries > 0:
             n.exploration_depth += 0.1 * (1.0 - n.exploration_depth)
             n.stagnation_cycles = 0
+            if n.marginal_discovery_rate > n.peak_productivity:
+                n.peak_productivity = n.marginal_discovery_rate
+
+        # Lifecycle stage transitions
+        if n.stagnation_cycles > 15 and n.lifecycle_stage in ("growth", "peak"):
+            n.lifecycle_stage = "plateau"
+        if n.stagnation_cycles > 30 and n.lifecycle_stage == "plateau":
+            n.lifecycle_stage = "decline"
+        if n.marginal_discovery_rate > 0.1 and n.lifecycle_stage in ("birth", "plateau"):
+            n.lifecycle_stage = "growth"
+        if n.peak_productivity > 0 and n.marginal_discovery_rate >= n.peak_productivity * 0.8:
+            n.lifecycle_stage = "peak"
+        if n.lifecycle_stage == "decline" and n.stagnation_cycles > 50:
+            n.lifecycle_stage = "archived"
 
     def find_competing(self, niche_id: str) -> List[Niche]:
         n = self._niches.get(niche_id)

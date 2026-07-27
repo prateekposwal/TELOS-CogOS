@@ -64,7 +64,7 @@ class CommitmentScore:
         """
         er = self.discounted_reward if self.horizon > 1 else self.expected_reward
         raw = (er - self.maintenance_cost - self.recovery_cost
-               - self.identity_cost - self.alignment_cost
+               - self.alignment_cost
                - self.opportunity_cost
                + self.future_option_value + self.counterfactual_diversity
                + self.information_gain + self.theory_gain + self.uncertainty_bonus

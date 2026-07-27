@@ -13,7 +13,14 @@ import time
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from telos.core.curiosity.drive import CuriosityDrive
+    from telos.core.reasoning.theory_builder import TheoryBuilder
+    from telos.core.curiosity.unknown_unknown_detector import UnknownUnknownDetector
+    from telos.core.reasoning.model_competition import ModelCompetition
+    from telos.core.memory.regret_memory import RegretMemory
 
 logger = logging.getLogger('telos_project')
 
@@ -46,6 +53,19 @@ class Project:
     last_active_cycle: int = 0
     stagnation_cycles: int = 0
     notebooks: List[NotebookEntry] = field(default_factory=list)
+    curiosity_drive: Any = None
+    theory_builder: Any = None
+    unknown_unknown_detector: Any = None
+    model_competition: Any = None
+    regret_memory: Any = None
+
+    def set_cognitive_context(self, pipeline) -> None:
+        """Wire all cognitive processes into this project context."""
+        self.curiosity_drive = getattr(pipeline, '_curiosity_drive', None)
+        self.theory_builder = getattr(pipeline, '_theory_builder', None)
+        self.unknown_unknown_detector = getattr(pipeline, '_unknown_unknown_detector', None)
+        self.model_competition = getattr(pipeline, '_model_competition', None)
+        self.regret_memory = getattr(pipeline, '_regret_memory', None)
 
     def add_note(self, cycle: int, content: str,
                  entry_type: str = "reflection") -> None:
