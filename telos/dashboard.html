@@ -2014,14 +2014,28 @@ async function fetchKnowledge() {
     const resp = await fetch('/api/knowledge');
     const data = await resp.json();
     if (data && data.nodes && data.nodes.length > 0) {
-      initKnowledgeGraph(data);
-    } else {
-      initKnowledgeGraph(generateDemoKnowledge());
+      // Merge KG data with existing live nodes instead of replacing
+      for (const n of data.nodes) {
+        if (!kgNodes.some(k => k.id === (n.id || n.name || n.label))) {
+          const angle = Math.random() * Math.PI * 2;
+          const radius = 1 + Math.random();
+          kgNodes.push({
+            id: n.id || n.name || n.label || 'api_' + kgNodes.length,
+            label: n.label || n.name || n.id || '',
+            domain: n.domain || n.category || 'general',
+            importance: n.importance || n.relevance || 0.5,
+            x: Math.cos(angle) * radius * 0.3,
+            y: (Math.random() - 0.5) * 0.6,
+            z: Math.sin(angle) * radius * 0.3,
+            size: 3 + Math.random() * 3,
+          });
+        }
+      }
+      document.getElementById('node-count').textContent = `${kgNodes.length} nodes`;
     }
     kgLoaded = true;
     kgNoData = false;
   } catch {
-    initKnowledgeGraph(generateDemoKnowledge());
     kgLoaded = true;
     kgNoData = false;
   }
@@ -2671,8 +2685,16 @@ document.addEventListener('DOMContentLoaded', () => {
      }
    }
 
-  // Generate knowledge graph nodes from trace data + benchmark metrics
-  if (state.traces.length > 0 && kgNodes.length < 25) {
+  // Knowledge graph: always show something — start with demo if empty
+ if (kgNodes.length === 0 && state.traces.length === 0) {
+   kgNodes = [
+     { id: 'kg_telos', label: 'TELOS', domain: 'core', importance: 1.0, x: 0, y: 0, z: 0, size: 6 },
+     { id: 'kg_waiting', label: 'Waiting for data...', domain: 'general', importance: 0.3, x: 0.5, y: 0.5, z: 0, size: 3 },
+   ];
+ }
+
+ // Knowledge graph: generate from trace data + benchmark metrics
+ if (state.traces.length > 0) {
     const lastTrace = state.traces[state.traces.length - 1];
     if (lastTrace) {
       const sources = [];
