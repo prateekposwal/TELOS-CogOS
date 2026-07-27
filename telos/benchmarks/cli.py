@@ -1,6 +1,9 @@
 """
 Benchmark CLI — interactive benchmarking dashboard for TELOS.
 
+Measures projections of hidden cognitive state X across 7 conserved processes:
+  Perception, Learning, Identity, Knowledge, Resources, Projects, Social
+
 Usage:
     python3 -m telos.benchmarks.cli          # Run on current pipeline
     python3 -m telos.benchmarks.cli --report  # Show latest report
@@ -37,16 +40,17 @@ def show_report(report: BenchmarkReport, verbose: bool = False) -> None:
     header(f"TELOS Benchmark Report — {report.session_id}")
     print(f"  Cycles: {report.cycle_count}")
     print(f"  Duration: {report.total_duration_seconds:.1f}s")
-    print(f"  Health Score: {report.current_health_score:.4f} ({report.health_score_trend})")
+    print(f"  System Score: {report.current_system_score:.4f} ({report.system_score_trend})")
+    print(f"  Mission Score: {report.current_mission_score:.4f}")
     print()
-    
+
     # Trends
-    print("  ┌─ Metric Trends ─────────────────────────────┐")
+    print("  ┌─ Metric Trends (projections of X(t)) ───────────────┐")
     for name, trend in sorted(report.trends.items()):
         arrows = {"rising": "↑", "stable": "→", "declining": "↓", "insufficient_data": "?"}
         arrow = arrows.get(trend, "?")
         print(f"  │ {name:30s} {arrow} {trend:18s} │")
-    print("  └──────────────────────────────────────────────┘")
+    print("  └──────────────────────────────────────────────────────┘")
     print()
 
     # Epoch summaries
@@ -55,42 +59,59 @@ def show_report(report: BenchmarkReport, verbose: bool = False) -> None:
         if not agg:
             continue
         print(f"  ┌─ Epoch: {label} ({summary.n_cycles} cycles) ─────────────────┐")
-        
-        ph = agg["pipeline_health"]
-        print(f"  │ Pipeline:    DI={ph['avg_di']:.3f}  MD={ph['avg_md']:.3f}  "
-              f"Block={ph['block_rate']:.1%}  Axiom={ph['axiom_compliance_rate']:.1%} │")
-        
-        cp = agg["cognitive_performance"]
-        print(f"  │ Cognitive:   Cur={cp['avg_curiosity']:.3f}  "
-              f"Learn={cp['avg_learning_rate']:.4f}  "
-              f"Compress={cp['avg_compression']:.3f}  │")
-        
-        ih = agg["identity_health"]
-        print(f"  │ Identity:    Entropy={ih['avg_entropy']:.3f}  "
-              f"Coherence={ih['avg_relational_coherence']:.3f}  │")
-        
-        eh = agg["ecosystem_health"]
-        print(f"  │ Ecosystem:   Niches={eh['latest_niches']}  "
-              f"Exhaust={eh['avg_exhaustion_rate']:.1%}  "
-              f"Bridges={eh['latest_bridges']}  │")
-        
-        re_agg = agg["resource_efficiency"]
-        print(f"  │ Resources:   CPU={re_agg['avg_compute_util']:.1%}  "
-              f"Mem={re_agg['avg_memory_util']:.1%}  │")
-        
-        rp = agg["research_productivity"]
-        print(f"  │ Research:    Disc={rp['avg_discovery_rate']:.3f}  "
-              f"Debt={rp['latest_debt']:.3f}  "
-              f"Ideas={rp['latest_ideas']}  │")
-        
-        sc = agg["strategic_coherence"]
-        print(f"  │ Strategy:    Compl={sc['avg_completion_rate']:.1%}  "
-              f"Coher={sc['avg_strategic_coherence']:.3f}  │")
-        
-        hs = agg["health_score"]
-        print(f"  │ Health:      Avg={hs['avg']:.3f}  "
-              f"Min={hs['min']:.3f}  Max={hs['max']:.3f}  "
-              f"Trend={hs['trend']}  │")
+
+        # Perception
+        p = agg["perception"]
+        print(f"  │ Perception:  EstErr={p['avg_estimation_error']:.3f}  "
+              f"Forecast={p['avg_forecast_accuracy']:.3f}  "
+              f"Score={p['avg_score']:.3f}  │")
+
+        # Learning
+        l = agg["learning"]
+        print(f"  │ Learning:    Cur={l['avg_curiosity']:.3f}  "
+              f"Learn={l['avg_learning_rate']:.4f}  "
+              f"Yield={l['latest_yield_validated']}v  "
+              f"Score={l['avg_score']:.3f}  │")
+
+        # Identity
+        i = agg["identity"]
+        print(f"  │ Identity:    Ent={i['avg_entropy']:.3f}  "
+              f"Coh={i['avg_coherence']:.3f}  "
+              f"Prop={i['avg_mission_alignment']:.3f}  "
+              f"Score={i['avg_score']:.3f}  │")
+
+        # Knowledge
+        k = agg["knowledge"]
+        print(f"  │ Knowledge:   Div={k['avg_representation_diversity']:.3f}  "
+              f"Bridge={k['avg_bridge_potential']:.3f}  "
+              f"Theory={k['latest_theory_nodes']}  "
+              f"Score={k['avg_score']:.3f}  │")
+
+        # Resources
+        r = agg["resources"]
+        print(f"  │ Resources:   CPU={r['avg_compute_util']:.1%}  "
+              f"CROI={r['avg_croi']:.3f}  "
+              f"Score={r['avg_score']:.3f}  │")
+
+        # Projects
+        pj = agg["projects"]
+        print(f"  │ Projects:    Compl={pj['avg_completion_rate']:.1%}  "
+              f"Align={pj['avg_mission_alignment']:.3f}  "
+              f"Score={pj['avg_score']:.3f}  │")
+
+        # Social
+        s = agg["social"]
+        print(f"  │ Social:      Niches={s['latest_niches']}  "
+              f"Bridge={s['latest_bridges']}  "
+              f"Collab={s['avg_collaboration']:.3f}  "
+              f"Score={s['avg_score']:.3f}  │")
+
+        # Hierarchy
+        ss = agg["system_score"]
+        ms = agg["mission_score"]
+        print(f"  │ ── Hierarchy ─────────────────────────────────────── │")
+        print(f"  │ System:  {ss['avg']:.3f} ({ss['trend']})  |  "
+              f"Mission:  {ms['avg']:.3f} ({ms['trend']})  │")
         print("  └──────────────────────────────────────────────────────────┘")
         print()
 
@@ -118,7 +139,7 @@ def show_report(report: BenchmarkReport, verbose: bool = False) -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="TELOS Benchmark CLI — measure system performance"
+        description="TELOS Benchmark CLI — measure system performance across 7 cognitive processes"
     )
     parser.add_argument("--report", action="store_true",
                         help="Show latest benchmark report")
@@ -138,7 +159,7 @@ def main():
                         help="Load saved snapshot data")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Show detailed information")
-    
+
     args = parser.parse_args()
 
     collector = BenchmarkCollector(output_dir=args.data_dir)
@@ -150,19 +171,15 @@ def main():
 
     # Try to collect from a running pipeline if snapshots are empty
     if not collector._snapshots and not args.load:
-        # Attempt to wire into running pipeline
         try:
             from telos.core.runtime import TelosV14Pipeline
-            # Look for a global pipeline instance
             pipeline = getattr(sys.modules.get('__main__'), '_pipeline', None)
             if pipeline is None:
-                # Try to find one via introspection
                 for name, obj in sys.modules.items():
                     if hasattr(obj, '_pipeline'):
                         pipeline = obj._pipeline
                         break
             if pipeline is not None and hasattr(pipeline, '_last_trace'):
-                # Do a one-shot collection
                 trace = pipeline._last_trace
                 ctx = getattr(pipeline, '_last_ctx', None)
                 if trace is not None:
