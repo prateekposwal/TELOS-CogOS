@@ -2,6 +2,7 @@
 from telos.benchmarks.metrics import *
 from telos.benchmarks.metrics.report import EpochSummary, BaselineComparison, BenchmarkReport
 from telos.benchmarks.metrics.io import save_baseline, load_baseline
+from telos.benchmarks.metrics.report import BenchmarkReport
 
 class BenchmarkCollector:
     """Collects, stores, and reports benchmark metrics every cycle.
@@ -636,8 +637,8 @@ class BenchmarkCollector:
             return None
 
     def _auto_persist(self) -> None:
-        """Auto-save to disk every 100 cycles."""
-        if len(self._snapshots) > 0 and len(self._snapshots) % 100 == 0:
+        """Auto-save to disk every cycle."""
+        if len(self._snapshots) > 0:
             self.save_snapshot_data()
 
     # ── Utility ─────────────────────────────────────────────────

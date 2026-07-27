@@ -102,6 +102,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         """Load latest benchmark snapshot or return placeholder."""
         bm_dir = os.path.join(os.path.dirname(__file__), 'benchmarks', 'data')
         snapshots = sorted(glob.glob(os.path.join(bm_dir, 'snapshot_*.json')))
+        if not snapshots:
+            snapshots = sorted(glob.glob(os.path.join(bm_dir, 'session_*.json')))
         if snapshots:
             try:
                 with open(snapshots[-1]) as f:
