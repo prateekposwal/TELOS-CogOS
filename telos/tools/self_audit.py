@@ -67,7 +67,7 @@ def run_audit(verbose=True) -> Dict:
 
     # ── Check 3: MetaCognitionModule exists ──
     try:
-        from telos.core.meta_cognition import MetaCognitionModule, MetaState
+        from telos.core.meta.meta_cognition import MetaCognitionModule, MetaState
         mc = MetaCognitionModule()
         stats = mc.get_stats()
         ok = hasattr(mc, 'observe') and hasattr(mc, 'get_stats')
