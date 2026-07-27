@@ -72,6 +72,8 @@ class Belief:
     created_at: float = field(default_factory=time.time)
     last_used: float = field(default_factory=time.time)
     last_examined: float = field(default_factory=time.time)
+    last_used_cycle: int = 0
+    staleness_cycles: int = 0
     times_examined: int = 0
     examination_history: List[bool] = field(default_factory=list)  # survived?
     active: bool = True
@@ -215,11 +217,13 @@ class ActiveForgetting:
         belief.last_used = time.time()
         return True
 
-    def use_belief(self, belief_id: str) -> None:
+    def use_belief(self, belief_id: str, cycle: int = 0) -> None:
         """Mark a belief as having been used."""
         belief = self._beliefs.get(belief_id)
         if belief:
             belief.last_used = time.time()
+            belief.last_used_cycle = cycle
+            belief.staleness_cycles = 0
 
     def select_belief_to_examine(self, strategy: str = "least_used") -> Optional[Belief]:
         """Select a belief for examination using the given strategy.

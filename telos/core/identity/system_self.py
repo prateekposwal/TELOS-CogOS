@@ -241,79 +241,95 @@ class SystemSelf:
     # ── Fix 6 (C3): Formal identity update operator ──
 
     def formal_identity_update(self, action: str, state: Any,
-                                observation: str) -> Dict:
+                                observation: str,
+                                cycle: int = 0,
+                                di: float = 1.0,
+                                md: float = 0.0) -> Dict:
         """Fix 6: Formal ψ operator.
 
         I_{t+1} = ψ(I_t, a_t, s_t, o_t)
 
         Transforms the full identity tuple (G_t, M_t, B_t, C_t, K_t, V_t)
         as a function of the action taken, resulting state, and new observation.
-
-        This operator is the formal core of Lambda1.x identity evolution:
-          - G: Goals updated based on action outcome (progress toward target)
-          - M: Memory extended with observation (history grows)
-          - B: Belief state updated via Bayesian inference (Fix 4)
-          - C: Constraints adjusted based on action consequences
-          - K: Capabilities updated (tracked externally, flagged here)
-          - V: Values refined (identity markers evolve)
-
-        Args:
-            action: The action taken (string identifier)
-            state: The resulting world state
-            observation: The observation received after the action
-
-        Returns:
-            Updated identity state components as dict
         """
-        # ── G: Update goals ──
-        # Track progress: if action moved toward goal, record it
+        obs_lower = observation.lower()
+        is_success = "success" in obs_lower or "reward" in obs_lower
+        is_failure = "fail" in obs_lower or "block" in obs_lower or "error" in obs_lower
+
+        # ── G: Update goals with progress metrics ──
         goals_updated = {
             "last_action": action,
             "progress_indicator": observation,
+            "di": di,
+            "md": md,
+            "cycle": cycle,
+            "goal_progress": 1.0 if is_success else (-0.5 if is_failure else 0.1),
         }
 
-        # ── M: Update memory ──
-        # Append observation to history
+        # ── M: Update memory with importance-weighted retention ──
+        importance = 0.8 if is_success or is_failure else 0.3
         memory_entry = {
             "time": time.time(),
+            "cycle": cycle,
             "action": action,
             "observation": observation,
+            "di": di,
+            "md": md,
+            "importance": importance,
             "mood": self._state.mood,
         }
         self._history.append(memory_entry)
+        # Importance-weighted pruning: remove least important when over limit
         if len(self._history) > self._max_history:
-            self._history.pop(0)
+            self._history.sort(key=lambda e: e.get("importance", 0.3))
+            self._history = self._history[-self._max_history:]
 
-        # ── B: Update belief state ──
-        # Derive observation quality from action/state
-        obs_domain = "decision_quality"
-        if "fail" in observation.lower() or "block" in observation.lower():
-            self.bayesian_belief_update("low", obs_domain)
-        elif "success" in observation.lower() or "reward" in observation.lower():
-            self.bayesian_belief_update("high", obs_domain)
-        else:
-            self.bayesian_belief_update("medium", obs_domain)
+        # ── B: Update belief state across ALL domains ──
+        for domain in ["decision_quality", "environment_stability", "resource_availability"]:
+            if is_failure:
+                self.bayesian_belief_update("low", domain)
+            elif is_success:
+                self.bayesian_belief_update("high", domain)
+            else:
+                self.bayesian_belief_update("medium", domain)
 
-        # ── C: Update constraints ──
-        # If action was blocked, tighten constraints
-        # If action succeeded, relax constraints slightly
-        constraints_updated = {"action": action}
+        # ── C: Update constraints based on action outcomes ──
+        constraints_updated = {
+            "action": action,
+            "cycle": cycle,
+            "di": di,
+            "tightened": is_failure,
+            "relaxed": is_success,
+        }
 
-        # ── K: Update capabilities ──
+        # ── K: Update capabilities with skill acquisition signals ──
+        skill_acquisition = is_success and di > 0.7
+        skill_loss = is_failure and di < 0.3
         capabilities_updated = {
             "last_action": action,
             "skill_relevant": observation not in ["blocked", "failed"],
+            "skill_acquired": skill_acquisition,
+            "skill_loss": skill_loss,
+            "cumulative_successes": getattr(self, '_cumulative_successes', 0) + (1 if is_success else 0),
         }
 
-        # ── V: Update values ──
-        # Integrate markers based on observation
-        if observation == "blocked" or observation == "failed" or observation == "error":
+        # ── V: Update values with richer marker system ──
+        if is_failure:
             self._state.identity_markers.add("cautious_experience")
-        elif observation == "reward" or "success" in observation:
+            self._state.identity_markers.discard("effective_actor")
+        elif is_success and di > 0.8:
             self._state.identity_markers.add("effective_actor")
+            self._state.identity_markers.discard("cautious_experience")
+        if md > 5.0:
+            self._state.identity_markers.add("mission_aware")
+        if cycle > 0 and cycle % 100 == 0:
+            self._state.identity_markers.add("persistent")
 
         values_updated = {
             "identity_markers": sorted(self._state.identity_markers),
+            "cycle": cycle,
+            "di": di,
+            "md": md,
         }
 
         result = {
@@ -325,9 +341,7 @@ class SystemSelf:
             "V_t": values_updated,
         }
 
-        logger.debug(
-            f"Identity update ψ: action={action}, obs={observation}, "            f"mood={self._state.mood}"
-        )
+        logger.debug(f"ψ update: action={action}, obs={observation}, di={di:.2f}, md={md:.2f}")
 
         return result
 

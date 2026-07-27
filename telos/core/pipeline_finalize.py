@@ -99,9 +99,24 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     except Exception:
         pass
 
-    # 4. CognitiveEnergy
+    # 4. CognitiveEnergy: wired into pipeline with effort-based compute
     try:
-        pipeline._cognitive_energy.consume(1.0 if was_blocked else 0.3)
+        n_options = len(getattr(ctx, 'intents', []) or [])
+        uncertainty = getattr(ctx, 'inquiry_omega_value', 0.5)
+        council_disagreement = 0.0
+        if ctx.verdict and hasattr(ctx.verdict, 'signals'):
+            signals = ctx.verdict.signals
+            if signals:
+                council_disagreement = 1.0 - abs(sum(1 for s in signals if s.passed) / len(signals) - 0.5) * 2
+        difficulty = pipeline._cognitive_energy.compute_difficulty(
+            n_options=n_options, uncertainty=uncertainty,
+            council_disagreement=council_disagreement,
+            novelty=getattr(ctx, 'discovery_rate', 0.0),
+        )
+        effects = pipeline._cognitive_energy.consume(difficulty)
+        if effects and hasattr(effects, 'exploration_modifier'):
+            ctx.cognitive_fatigue = 1.0 - pipeline._cognitive_energy.energy_ratio
+            ctx.exploration_modifier = effects.exploration_modifier
     except Exception:
         pass
 
