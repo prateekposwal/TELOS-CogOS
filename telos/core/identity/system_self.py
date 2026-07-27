@@ -37,8 +37,60 @@ MOOD_MAX_STEPS_FROM_GENESIS: int = 5
 logger = logging.getLogger('telos_identity')
 
 
+@dataclass(frozen=True)
+class IdentityCore:
+    """Layer 1: Almost never changes. Human-approved core values.
+
+    This is NOT updated by the pipeline. It can only be modified
+    through the Axiom Evolution Engine + HumanGateway.
+    """
+    core_values: Tuple[str, ...] = ("curiosity", "integrity", "truth_seeking",
+                                    "epistemic_humility")
+    genesis_mood: str = "curious"
+    birth_timestamp: float = field(default_factory=time.time)
+    axioms_count: int = 42
+
+    def recognizes(self, value: str) -> bool:
+        return value in self.core_values
+
+
+@dataclass
+class IdentityNarrative:
+    """Layer 2: Evolves with mission epochs and compressed experience.
+
+    This IS updated by the pipeline (psi operator, compression).
+    Forms the bridge between IdentityCore and Mission generation.
+    """
+    role: str = "agent"
+    markers: Set[str] = field(default_factory=lambda: {"nascent", "exploring"})
+    mission_history: List[str] = field(default_factory=list)
+    compression_principles: List[str] = field(default_factory=list)
+    completed_missions: List[str] = field(default_factory=list)
+
+    def add_marker(self, marker: str) -> None:
+        self.markers.add(marker)
+
+    def record_completed_mission(self, mission_name: str) -> None:
+        self.mission_history.append(mission_name)
+        self.completed_missions.append(mission_name)
+
+    def to_dict(self) -> Dict:
+        return {
+            "role": self.role,
+            "markers": sorted(self.markers),
+            "mission_history": self.mission_history,
+            "compression_principles": self.compression_principles,
+        }
+
+
 @dataclass
 class IdentityState:
+    """Mutable runtime state: mood, trends, beliefs.
+
+    This is the dynamic layer that changes every cycle.
+    It reflects how the system feels *right now* without
+    altering IdentityCore or IdentityNarrative.
+    """
     mood: str = "curious"           # curious, cautious, confident, uncertain, fatigued
     confidence_trend: str = "stable" # rising, stable, falling
     dominant_streak: int = 0
