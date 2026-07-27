@@ -251,6 +251,7 @@
   <div class="brain-panel" style="margin-bottom:10px;">
     <h3>🧠 REDACTED — Cognitive Pipeline</h3>
     <div id="brain-container"></div>
+    <div id="brain-debug" style="font-size:10px;color:#555;margin-top:4px;text-align:center;"></div>
   </div>
 
   <div class="top-row">
@@ -297,7 +298,8 @@
           <h3 style="margin-bottom:0;">🧠 Knowledge Graph</h3>
           <span id="node-count" class="node-count-label">0 nodes</span>
         </div>
-        <canvas id="kg-canvas" style="display:block;border-radius:8px;width:100%;height:820px;background:#0f0f18;"></canvas>
+        <canvas id="kg-canvas" style="display:block;border-radius:8px;width:100%;height:400px;background:#0f0f18;"></canvas>
+        <div id="kg-debug" style="margin-top:4px;font-size:0;text-align:center;min-height:20px;line-height:1.8;"></div>
       </div>
     <!-- Memory, Chat, Log side by side below KG -->
     <div style="display:flex;gap:12px;width:100%;min-height:0;flex:1;">
@@ -2266,6 +2268,14 @@ function drawKnowledgeGraph(canvas) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.fillText('KG: ' + kgNodes.length + ' nodes | ' + projected.length + ' projected', 10, 10);
+
+  // Fallback: draw node labels in a div
+  var kd = document.getElementById('kg-debug');
+  if (kd) {
+    kd.innerHTML = projected.map(function(n) {
+      return '<span style="color:' + (DOMAIN_COLORS[n.domain] || '#888') + ';margin:2px 6px;font-size:10px;">● ' + (n.label || '?') + '</span>';
+    }).join('');
+  }
 
   // Draw nodes (far to near) — with breathing animation
   const sorted = [...projected].sort((a, b) => a.depth - b.depth);
