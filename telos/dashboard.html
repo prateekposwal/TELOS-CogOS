@@ -2276,6 +2276,11 @@ function drawKnowledgeGraph(canvas) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.fillText('KG: ' + kgNodes.length + ' nodes | ' + projected.length + ' projected', 10, 10);
+  // Show first node position
+  if (projected.length > 0) {
+    var p0 = projected[0];
+    ctx.fillText('Node0: px=' + Math.round(p0.px) + ' py=' + Math.round(p0.py) + ' r=' + Math.round(p0.size), 10, 24);
+  }
 
   // Fallback: draw node labels in a div
   var kd = document.getElementById('kg-debug');
