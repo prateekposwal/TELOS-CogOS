@@ -2842,33 +2842,46 @@ setInterval(() => {
 }, 12000);
 
 // Populate KG immediately with demo data so it's never blank
-(function bootKG() {
-  const demo = generateDemoKnowledge();
-  for (const n of demo.nodes) {
-    if (!kgNodes.some(k => k.id === n.id)) {
-      const angle = Math.random() * Math.PI * 2;
-      kgNodes.push({
-        id: n.id,
-        label: n.label,
-        domain: n.domain || 'general',
-        importance: n.importance || 0.5,
-        x: Math.cos(angle) * 0.3,
-        y: (Math.random() - 0.5) * 0.6,
-        z: Math.sin(angle) * 0.3,
-        size: 3 + Math.random() * 3,
-      });
+try {
+  (function bootKG() {
+    const demo = generateDemoKnowledge();
+    if (demo && demo.nodes && demo.nodes.length > 0) {
+      for (const n of demo.nodes) {
+        if (!kgNodes.some(k => k.id === n.id)) {
+          const angle = Math.random() * Math.PI * 2;
+          kgNodes.push({
+            id: n.id,
+            label: n.label,
+            domain: n.domain || 'general',
+            importance: n.importance || 0.5,
+            x: Math.cos(angle) * 0.3,
+            y: (Math.random() - 0.5) * 0.6,
+            z: Math.sin(angle) * 0.3,
+            size: 3 + Math.random() * 3,
+          });
+        }
+      }
+      const nc = document.getElementById('node-count');
+      if (nc) nc.textContent = `${kgNodes.length} nodes`;
+      console.log('[TELOS] KG boot: ' + kgNodes.length + ' nodes');
     }
-  }
-  document.getElementById('node-count').textContent = `${kgNodes.length} nodes`;
+  })();
+} catch (e) {
+  console.warn('[TELOS] KG boot error:', e);
+}
+// Brain viz — force load and init
+(function loadBrain() {
+  const bs = document.createElement('script');
+  bs.src = '/REDACTED-brain.js?v=' + Date.now();
+  bs.onload = () => {
+    console.log('[TELOS] Brain viz loaded');
+    if (window.initBrain) setTimeout(window.initBrain, 50);
+    const orig = applyTrace;
+    applyTrace = function(t) { orig(t); if (window.visualizeTrace) setTimeout(() => window.visualizeTrace(t), 50); };
+  };
+  bs.onerror = () => console.warn('[TELOS] Brain viz failed to load');
+  document.head.appendChild(bs);
 })();
-// Brain viz
-const bs = document.createElement('script');
-bs.src = '/REDACTED-brain.js?v=' + Date.now();
-bs.onload = () => {
-  const orig = applyTrace;
-  applyTrace = function(t) { orig(t); if (window.visualizeTrace) setTimeout(() => window.visualizeTrace(t), 50); };
-};
-document.head.appendChild(bs);
 
 // — Auto-start auto-refresh after 2 seconds —
 setTimeout(() => {
