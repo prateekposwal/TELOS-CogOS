@@ -85,8 +85,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_json({"error": "not found"}, 404)
     
     def __init__(self, *args, **kwargs):
-        # Fix JS MIME type for Python 3.9 (missing from extensions_map)
-        super().__init__(*args, **kwargs)
+        # Serve files from telos/ directory + fix JS MIME type
+        telos_dir = os.path.dirname(os.path.abspath(__file__))
+        super().__init__(*args, directory=telos_dir, **kwargs)
         if '.js' not in self.extensions_map:
             self.extensions_map['.js'] = 'application/javascript'
 
@@ -338,7 +339,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return {"response": f"Error: {str(e)}", "trace": None, "di": 0, "status": "ERROR"}
     
     def log_message(self, format, *args):
-        logger.info(f"HTTP: {args[0]} {args[1]} {args[2]}")
+        if len(args) >= 3:
+            logger.info(f"HTTP: {args[0]} {args[1]} {args[2]}")
+        elif len(args) >= 1:
+            logger.info(f"HTTP: {args[0]}")
 
 
 # ─── WebSocket Server (live trace feed) ───
