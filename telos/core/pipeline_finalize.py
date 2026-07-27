@@ -215,6 +215,14 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     except Exception:
         pass
 
+    # 7. Benchmark collection (if BenchmarkCollector is wired on pipeline)
+    try:
+        collector = getattr(pipeline, '_benchmark_collector', None)
+        if collector is not None:
+            collector.collect(pipeline, trace, ctx)
+    except Exception as e:
+        logger.warning(f"Benchmark collection failed: {e}")
+
 
 def record_resource_accounting(pipeline, ctx) -> None:
     """Record resource costs and enforce budget limits."""
@@ -248,3 +256,4 @@ def record_resource_accounting(pipeline, ctx) -> None:
             logger.warning(f"Resource budget exceeded: {budget_ok['exceeded_dimensions']}")
     except Exception as e:
         logger.warning(f"Resource Accounting failed: {e}")
+
