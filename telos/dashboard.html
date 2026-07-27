@@ -130,14 +130,14 @@
   ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
 </style>
 <style>
-.health-toggle { position:fixed; top:10px; right:10px; z-index:1000; cursor:pointer;
+.health-toggle { position:fixed; top:10px; right:10px; z-index:10000; cursor:pointer;
   background:#2a2a3e; color:#ccc; border:1px solid #444; padding:6px 12px;
   border-radius:4px; font-size:12px; }
 .health-toggle:hover { background:#3a3a5e; }
-.health-panel { position:fixed; top:45px; right:10px; width:340px; max-height:80vh;
-  overflow-y:auto; background:#1a1a2e; border:1px solid #444; border-radius:6px;
-  padding:12px; display:none; z-index:999; font-size:12px; color:#ccc;
-  box-shadow:0 4px 20px rgba(0,0,0,0.5); }
+.health-panel { position:fixed; top:45px; right:10px; width:380px; max-height:85vh;
+  overflow-y:auto; background:#1a1a2e; border:1px solid #444; border-radius:8px;
+  padding:14px; display:none; z-index:9999; font-size:12px; color:#ccc;
+  box-shadow:0 8px 30px rgba(0,0,0,0.7); }
 .health-panel h3 { margin:0 0 8px 0; font-size:14px; color:#eee; }
 .health-panel .cat { margin-bottom:8px; padding:6px; border-radius:4px; background:#222; }
 .health-panel .cat h4 { margin:0 0 4px 0; font-size:12px; display:flex;
@@ -2398,7 +2398,9 @@ async function fetchHealthDetail() {
     const r = await fetch('/api/benchmark');
     const d = await r.json();
     if (d.error) return;
-    var html = '<div class="health-scores">';
+    var hp = document.getElementById('health-panel');
+if (!hp) return;
+var html = '<div class="health-scores">';
     var cats = ['perception','learning','identity','knowledge','resources','projects','social'];
     var clrs = ['#4af','#4a4','#f4a','#a4f','#fa4','#4ff','#f44'];
     var clbl = ['Perception','Learning','Identity','Knowledge','Resources','Projects','Social'];
