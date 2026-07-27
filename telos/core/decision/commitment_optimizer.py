@@ -307,7 +307,6 @@ class CommitmentOptimizer:
             uncertainty_bonus=AU,
             alignment_cost=AC,
             interpretation_energy=IE,
-            identity_violation=IV,
             opportunity_cost=CO,
             project_coherence_gain=PG,
             aesthetic_value=AV,

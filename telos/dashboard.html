@@ -129,6 +129,27 @@
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
 </style>
+<style>
+.health-toggle { position:fixed; top:10px; right:10px; z-index:1000; cursor:pointer;
+  background:#2a2a3e; color:#ccc; border:1px solid #444; padding:6px 12px;
+  border-radius:4px; font-size:12px; }
+.health-toggle:hover { background:#3a3a5e; }
+.health-panel { position:fixed; top:45px; right:10px; width:340px; max-height:80vh;
+  overflow-y:auto; background:#1a1a2e; border:1px solid #444; border-radius:6px;
+  padding:12px; display:none; z-index:999; font-size:12px; color:#ccc;
+  box-shadow:0 4px 20px rgba(0,0,0,0.5); }
+.health-panel h3 { margin:0 0 8px 0; font-size:14px; color:#eee; }
+.health-panel .cat { margin-bottom:8px; padding:6px; border-radius:4px; background:#222; }
+.health-panel .cat h4 { margin:0 0 4px 0; font-size:12px; display:flex;
+  justify-content:space-between; }
+.health-panel .cat .bar { height:4px; background:#333; border-radius:2px; overflow:hidden; margin:2px 0; }
+.health-panel .cat .bar .fill { height:100%; border-radius:2px; transition:width 0.5s; }
+.health-panel .cat .m { display:flex; justify-content:space-between; font-size:10px; color:#888; }
+.health-scores { display:flex; gap:8px; margin-bottom:10px; }
+.health-scores .box { flex:1; text-align:center; padding:6px; border-radius:4px; background:#222; }
+.health-scores .box .val { font-size:20px; font-weight:bold; }
+.health-scores .box .lbl { font-size:9px; color:#888; }
+</style>
 </head>
 <body>
 
@@ -162,6 +183,7 @@
       Health: <span id="health-score">--</span> | 
       System: <span id="system-score">--</span> | 
       Mission: <span id="mission-score">--</span>
+      <span class="health-toggle" onclick="toggleHealth()">📊 Health</span>
     </div>
 
 
@@ -2359,7 +2381,54 @@ async function pollCheckpoints() {
     if (sel) sel.textContent = h.system_score !== undefined ? (h.system_score * 100).toFixed(0) + '%' : '--';
     const mel = document.getElementById('mission-score');
     if (mel) mel.textContent = h.mission !== undefined ? (h.mission * 100).toFixed(0) + '%' : '--';
+    updateHealthPanel(h);
   } catch {}
+}
+
+var healthPanelVisible = false;
+function toggleHealth() {
+  healthPanelVisible = !healthPanelVisible;
+  document.getElementById('health-panel').style.display = healthPanelVisible ? 'block' : 'none';
+  if (healthPanelVisible) fetchHealthDetail();
+}
+async function fetchHealthDetail() {
+  try {
+    const r = await fetch('/api/benchmark');
+    const d = await r.json();
+    if (d.error) return;
+    var html = '<div class="health-scores">';
+    var cats = ['perception','learning','identity','knowledge','resources','projects','social'];
+    var clrs = ['#4af','#4a4','#f4a','#a4f','#fa4','#4ff','#f44'];
+    var clbl = ['Perception','Learning','Identity','Knowledge','Resources','Projects','Social'];
+    var h = d.system_score && d.system_score.current !== undefined ? d.system_score.current : 0;
+    var m = d.mission_score !== undefined ? d.mission_score : 0;
+    html += '<div class="box"><div class="val" style="color:#4af">'+(h*100).toFixed(0)+'%</div><div class="lbl">System</div></div>';
+    html += '<div class="box"><div class="val" style="color:#a4f">'+(m*100).toFixed(0)+'%</div><div class="lbl">Mission</div></div></div>';
+    cats.forEach(function(c,i){
+      var s = d.epochs && d.epochs.last_10 ? d.epochs.last_10[c] : null;
+      if (!s) return;
+      var sc = s.score !== undefined ? s.score * 100 : 0;
+      var pct = Math.min(100, Math.max(0, sc));
+      var trend = d.trends ? (d.trends[clbl[i]+' Score'] || 'stable') : 'stable';
+      var arr = trend === 'rising' ? '&#8593;' : trend === 'declining' ? '&#8595;' : '&#8594;';
+      html += '<div class="cat"><h4><span>'+arr+' '+clbl[i]+'</span><span style="color:'+clrs[i]+'">'+pct.toFixed(0)+'%</span></h4>';
+      html += '<div class="bar"><div class="fill" style="width:'+pct+'%;background:'+clrs[i]+'"></div></div>';
+      if (s.metrics) {
+        for (var k in s.metrics) {
+          if (typeof s.metrics[k] === 'number')
+            html += '<div class="m"><span>'+k+'</span><span>'+(s.metrics[k]*100).toFixed(1)+'%</span></div>';
+        }
+      }
+      html += '</div>';
+    });
+    document.getElementById('health-panel').innerHTML = html;
+  } catch(e) {}
+}
+function updateHealthPanel() {
+  if (healthPanelVisible) {
+    var hp = document.getElementById('health-panel');
+    if (hp && hp.innerHTML === '') fetchHealthDetail();
+  }
 }
 
 function connectWebSocket() {
