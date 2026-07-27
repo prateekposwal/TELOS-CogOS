@@ -84,6 +84,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         
         self.send_json({"error": "not found"}, 404)
     
+    def __init__(self, *args, **kwargs):
+        # Fix JS MIME type for Python 3.9 (missing from extensions_map)
+        super().__init__(*args, **kwargs)
+        if '.js' not in self.extensions_map:
+            self.extensions_map['.js'] = 'application/javascript'
+
     def send_json(self, data, status=200):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
