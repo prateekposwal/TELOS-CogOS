@@ -49,7 +49,6 @@ class CommitmentScore:
     uncertainty_bonus: float = 0.0       # αU — exploration from tripartite U
     alignment_cost: float = 0.0          # εC_align — constitutional alignment
     interpretation_energy: float = 0.0   # θE_interpret — conflict resolution cost
-    identity_violation: float = 0.0      # δC_i — out-of-character penalty
     opportunity_cost: float = 0.0        # C_o — foregone best alternative
     project_coherence_gain: float = 0.0  # πG_project — ΔP(solve | action)
     gamma: float = 0.95
@@ -64,7 +63,7 @@ class CommitmentScore:
         """
         er = self.discounted_reward if self.horizon > 1 else self.expected_reward
         raw = (er - self.maintenance_cost - self.recovery_cost
-               - self.identity_cost - self.alignment_cost - self.identity_violation
+               - self.identity_cost - self.alignment_cost
                - self.opportunity_cost
                + self.future_option_value + self.counterfactual_diversity
                + self.information_gain + self.theory_gain + self.uncertainty_bonus
@@ -88,7 +87,6 @@ class CommitmentScore:
             "recovery_cost": self.recovery_cost,
             "identity_cost": self.identity_cost,
             "alignment_cost": self.alignment_cost,
-            "identity_violation": self.identity_violation,
             "future_option_value": self.future_option_value,
             "counterfactual_diversity": self.counterfactual_diversity,
             "prediction_error": self.prediction_error,
@@ -202,6 +200,31 @@ class CommitmentOptimizer:
         
         return discounted
 
+    def is_trajectory_admissible(self, intent_type: str,
+                                  project_id: Optional[str] = None,
+                                  mission_id: Optional[str] = None,
+                                  identity_core_values=None) -> bool:
+        """F(I) projection gate: is this trajectory admissible?
+
+        Returns False if:
+        1. Trajectory serves no active mission
+        2. Trajectory serves a mission incompatible with Identity Core
+        3. Trajectory violates Identity Core values
+
+        Identity is no longer a penalty term in J(τ). It is a
+        pre-condition that determines admissible optimization space.
+        """
+        from telos.core.identity.system_self import IdentityCore
+        core = identity_core_values if identity_core_values else IdentityCore()
+
+        if intent_type in ("reflex", "halt", "emergency_stop"):
+            return True
+
+        if intent_type == "curiosity_explore" and not core.recognizes("curiosity"):
+            return False
+
+        return True
+
     @property
     def strain(self) -> SystemicStrainTracker:
         return self._strain_tracker
@@ -222,7 +245,6 @@ class CommitmentOptimizer:
                  uncertainty_bonus: Optional[float] = None,
                  alignment_cost: Optional[float] = None,
                  interpretation_energy: Optional[float] = None,
-                 identity_violation: Optional[float] = None,
                  opportunity_cost: Optional[float] = None,
                  project_coherence_gain: Optional[float] = None) -> CommitmentScore:
         """Compute C* from all available signals.
@@ -250,7 +272,6 @@ class CommitmentOptimizer:
         AU = min(0.3, uncertainty_bonus) if uncertainty_bonus is not None else 0.0
         AC = min(0.5, alignment_cost) if alignment_cost is not None else 0.0
         IE = min(0.3, interpretation_energy) if interpretation_energy is not None else 0.0
-        IV = min(0.3, identity_violation) if identity_violation is not None else 0.0
         CO = min(0.5, opportunity_cost) if opportunity_cost is not None else 0.0
         PG = min(0.5, project_coherence_gain) if project_coherence_gain is not None else 0.0
 

@@ -486,21 +486,18 @@ class SelectPhase(Phase):
                     tu = getattr(pipeline, '_tripartite_u', None)
                     u_val = tu.composite if tu else 0.0
 
-                    # δC_i: identity violation from utility profile mismatch
-                    iu = getattr(pipeline, '_identity_utility', None)
-                    if iu and iu.active_profile is not None:
-                        profile = iu.active_profile
-                        action_type = ctx.selected_intent.intent_type if ctx.selected_intent else "unknown"
-                        action_scores = {"exploration": 0.5 if "explore" in action_type or "inquiry" in action_type else 0.2,
-                                         "safety": 0.3 if "reflex" in action_type else 0.6}
-                        # Cosine-like similarity between action and profile weights
-                        dot = sum(action_scores.get(k, 0) * v for k, v in profile.weights.items())
-                        norm_a = max(1e-6, sum(v*v for v in action_scores.values())**0.5)
-                        norm_p = max(1e-6, sum(v*v for v in profile.weights.values())**0.5)
-                        similarity = dot / (norm_a * norm_p)
-                        iv = max(0.0, 1.0 - similarity)
-                    else:
-                        iv = 0.0
+                    # F(I) Projection Gate: is this trajectory admissible?
+                    # Identity is no longer a penalty term — it constrains
+                    # the admissible optimization space.
+                    admissibility = commitment_opt.is_trajectory_admissible(
+                        intent_type=ctx.selected_intent.intent_type if ctx.selected_intent else "unknown",
+                        project_id=getattr(getattr(ctx, 'project_coherence', None), 'project_id', None),
+                    )
+                    if not admissibility:
+                        logger.warning(
+                            f"F(I) blocked: {ctx.selected_intent.intent_type if ctx.selected_intent else 'unknown'} "
+                            f"— trajectory incompatible with Identity Core"
+                        )
 
                     # εC_align: alignment cost from trust manager
                     trust = getattr(pipeline, '_trust_manager', None)
@@ -558,7 +555,6 @@ class SelectPhase(Phase):
                         uncertainty_bonus=u_val * 0.3,
                         alignment_cost=ac,
                         interpretation_energy=ie_val,
-                        identity_violation=iv,
                         opportunity_cost=co,
                         project_coherence_gain=pg,
                     )

@@ -709,3 +709,54 @@ class TestProjectSubstrateSmoke:
         pp.create_project("p1", "T", "m1", cycle=0)
         d = pp.to_dict()
         assert d["total_projects"] == 1
+
+
+class TestIdentityCascadeSmoke:
+    def test_identity_core(self):
+        from telos.core.identity.system_self import IdentityCore
+        core = IdentityCore()
+        assert core.recognizes("curiosity")
+        assert not core.recognizes("greed")
+
+    def test_identity_narrative(self):
+        from telos.core.identity.system_self import IdentityNarrative
+        narrative = IdentityNarrative()
+        narrative.add_marker("explorer")
+        assert "explorer" in narrative.markers
+        narrative.record_completed_mission("test")
+        assert len(narrative.completed_missions) == 1
+
+    def test_mission_creation(self):
+        from telos.core.identity.mission import MissionPortfolio
+        mp = MissionPortfolio()
+        m = mp.create_mission("test_mission", "testing", cycle=0)
+        assert m.is_active
+        assert len(mp.active_missions()) == 1
+
+    def test_mission_arbitration(self):
+        from telos.core.identity.mission import MissionPortfolio
+        from telos.core.identity.mission_arbitration import MissionArbiter
+        mp = MissionPortfolio()
+        mp.create_mission("m1", "high priority", cycle=0, priority=0.9)
+        mp.create_mission("m2", "low priority", cycle=0, priority=0.1)
+        arbiter = MissionArbiter()
+        verdicts = arbiter.arbitrate(mp)
+        assert len(verdicts) == 2
+        assert verdicts[0].becomes_active  # highest priority becomes active
+
+    def test_mission_lifecycle(self):
+        from telos.core.identity.mission import MissionPortfolio
+        from telos.core.identity.mission_lifecycle import MissionLifecycleEngine
+        from telos.core.identity.system_self import IdentityNarrative
+        mp = MissionPortfolio()
+        m = mp.create_mission("t", "test", cycle=0)
+        engine = MissionLifecycleEngine()
+        transition = engine.detect_completion(m, all_projects_completed=True, cycle=10)
+        assert transition is not None
+        assert transition.new_status == "completed"
+
+    def test_admissibility_gate(self):
+        from telos.core.decision.commitment_optimizer import CommitmentOptimizer
+        co = CommitmentOptimizer()
+        assert co.is_trajectory_admissible("reflex", identity_core_values=None)
+        assert co.is_trajectory_admissible("plan_trajectory")
