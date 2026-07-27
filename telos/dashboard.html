@@ -2859,13 +2859,8 @@ setInterval(() => {
   }
 }, 12000);
 
-// ULTIMATE TEST: replace everything after bootKG with direct DOM access
-try {
-  document.body.style.border = '5px solid red';
-  console.log('[TELOS] FINAL TEST WORKED');
-} catch(e) {
-  console.log('[TELOS] FINAL TEST FAILED:', e.message);
-}
+// ULTIMATE TEST: change document title — instant visual feedback
+document.title = '✅ SCRIPT WORKS | ' + document.title;
 
 // — Auto-start auto-refresh after 2 seconds —
 setTimeout(() => {
