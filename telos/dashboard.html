@@ -2891,67 +2891,10 @@ try {
   console.warn('[TELOS] KG boot error:', e);
   _dbg('KG ERROR: ' + e.message);
 }
-// BRAIN TEST: write to debug-log AND create visible element
-(function() {
-  try { document.getElementById('debug-log').textContent = 'BRAIN STEP 1'; } catch(e) {}
-  // Create visible red dot directly on body
-  var d = document.createElement('div');
-  d.id = 'brain-test-dot';
-  d.style.cssText = 'position:fixed;top:10px;left:50%;width:20px;height:20px;background:red;border-radius:50%;z-index:99999;';
-  document.body.appendChild(d);
-})();
-// Inline brain visualization using hardcoded canvas (same approach as KG)
-(function initBrainViz() {
-  try { document.getElementById('debug-log').textContent = 'BRAIN STEP 2'; } catch(e) {}
-  var c = document.getElementById('brain-canvas');
-  var bdd = document.getElementById('brain-debug');
-  if (!c) { if (bdd) bdd.textContent = '❌ No canvas'; try { document.getElementById('debug-log').textContent = 'BRAIN: no canvas'; } catch(e) {} return; }
-  if (bdd) bdd.textContent = '✅ Canvas found';
-  try { document.getElementById('debug-log').textContent = 'BRAIN: canvas OK'; } catch(e) {}
-  var cx = c.getContext('2d');
-  if (!cx) { if (bdd) bdd.textContent = '❌ No context'; return; }
-  if (bdd) bdd.textContent = '✅ Context OK';
-  try { document.getElementById('debug-log').textContent = 'BRAIN: context OK'; } catch(e) {}
-  c.width = c.clientWidth || 260;
-  c.height = c.clientHeight || 300;
-  var phases = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
-  var colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
-  function render() {
-    requestAnimationFrame(render);
-    try {
-      var w = c.width, h = c.height, t = Date.now() / 1000;
-      cx.fillStyle = '#0f0f18';
-      cx.fillRect(0, 0, w, h);
-      var cx1 = w/2, cy1 = h/2, r = Math.min(w, h) * 0.28;
-      for (var i = 0; i < phases.length; i++) {
-        var a = (i / phases.length) * Math.PI * 2 - Math.PI/2;
-        var px = cx1 + Math.cos(a) * r;
-        var py = cy1 + Math.sin(a) * r * 0.7;
-        var pulse = 0.7 + Math.sin(t * 2 + i) * 0.3;
-        var sz = 8 + Math.sin(t * 3 + i) * 3;
-        // Glow
-        var g = cx.createRadialGradient(px, py, 0, px, py, sz * 3);
-        g.addColorStop(0, colors[i] + '44');
-        g.addColorStop(1, colors[i] + '00');
-        cx.fillStyle = g;
-        cx.beginPath(); cx.arc(px, py, sz * 3, 0, Math.PI * 2); cx.fill();
-        // Node
-        cx.fillStyle = colors[i];
-        cx.globalAlpha = 0.6 + 0.4 * pulse;
-        cx.beginPath(); cx.arc(px, py, sz, 0, Math.PI * 2); cx.fill();
-        cx.globalAlpha = 1;
-        // Label
-        cx.fillStyle = '#aaa';
-        cx.font = '7px sans-serif';
-        cx.textAlign = 'center';
-        cx.fillText(phases[i], px, py + sz + 10);
-      }
-    } catch(e) {}
-  }
-  render();
-  _dbg('Brain viz running');
-  if (bdd) bdd.textContent = '🔄 ' + phases.length + ' phases';
-})();
+// FINAL TEST: if this doesn't show, nothing after bootKG works
+document.body.insertAdjacentHTML('beforeend', 
+  '<div style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:99999;background:yellow;color:black;padding:10px;font-size:18px;border-radius:8px;">✅ POST-KG CODE REACHED</div>'
+);
 
 // — Auto-start auto-refresh after 2 seconds —
 setTimeout(() => {
