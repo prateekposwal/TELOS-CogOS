@@ -527,6 +527,22 @@ class SelectPhase(Phase):
                     debate_disagreement = 1.0 - (debate_winner_weight - 0.5) * 2.0 if debate_winner_weight > 0.5 else 0.5
                     ie_val = min(0.3, ie_val + debate_disagreement * 0.1)
 
+                    # πG_project: strategic coherence gain from project alignment
+                    pg = 0.0
+                    sc = getattr(pipeline, '_strategic_coherence', None)
+                    if sc is not None:
+                        pp = getattr(pipeline, '_project_portfolio', None)
+                        active_project = pp.active_project if pp else None
+                        if active_project:
+                            coherence = sc.evaluate(
+                                action_type=ctx.selected_intent.intent_type if ctx.selected_intent else "unknown",
+                                project_id=active_project.id,
+                                project_value=active_project.value,
+                                project_stagnation=active_project.stagnation_cycles,
+                            )
+                            pg = coherence.score
+                            ctx.project_coherence = coherence
+
                     score = commitment_opt.evaluate(
                         expected_reward=modulated_reward,
                         maintenance_cost=maint_r,
@@ -544,6 +560,7 @@ class SelectPhase(Phase):
                         interpretation_energy=ie_val,
                         identity_violation=iv,
                         opportunity_cost=co,
+                        project_coherence_gain=pg,
                     )
                     commitment_mod = score.commitment
 
@@ -565,6 +582,7 @@ class SelectPhase(Phase):
                         "uncertainty_bonus": score.uncertainty_bonus,
                         "interpretation_energy": score.interpretation_energy,
                         "opportunity_cost": score.opportunity_cost,
+                        "project_coherence_gain": score.project_coherence_gain,
                         "commitment": score.commitment,
                     }
                 else:

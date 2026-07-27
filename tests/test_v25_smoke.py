@@ -663,3 +663,49 @@ class TestResourceAccountingLayerSmoke:
         d = ral.to_dict()
         assert d["current_cycle"] == 1
         assert d["pending_actions"] == 1
+
+
+class TestProjectSubstrateSmoke:
+    def test_project_creation(self):
+        from telos.core.project.substrate import ProjectPortfolio
+        pp = ProjectPortfolio()
+        p = pp.create_project("p1", "Test Project", "m1", cycle=0)
+        assert p.id == "p1"
+        assert pp.project_count == 1
+
+    def test_lifecycle(self):
+        from telos.core.project.substrate import ProjectPortfolio, ProjectLifecycle
+        pp = ProjectPortfolio()
+        pp.create_project("p1", "T", "m1", cycle=0)
+        pp.set_lifecycle("p1", ProjectLifecycle.STALLED, cycle=10)
+        assert pp._projects["p1"].lifecycle == ProjectLifecycle.STALLED
+
+    def test_abandonment_continue(self):
+        from telos.core.project.rational_abandonment import (
+            AbandonmentGate, AbandonmentDecision, Trend,
+        )
+        gate = AbandonmentGate()
+        result = gate.evaluate(Trend.RISING, Trend.RISING, 0.3, 0.5, 5)
+        assert result.decision == AbandonmentDecision.CONTINUE
+
+    def test_abandonment_obsession(self):
+        from telos.core.project.rational_abandonment import (
+            AbandonmentGate, AbandonmentDecision, Trend,
+        )
+        gate = AbandonmentGate()
+        result = gate.evaluate(Trend.RISING, Trend.DECLINING, 0.8, 0.3, 100, level="project")
+        assert result.decision == AbandonmentDecision.PAUSE
+
+    def test_strategic_coherence(self):
+        from telos.core.project.strategic_coherence import StrategicCoherence
+        sc = StrategicCoherence()
+        result = sc.evaluate("propose_theory", "p1", 0.8, 0)
+        assert result.score > 0.5
+        assert result.contribution == "direct"
+
+    def test_to_dict(self):
+        from telos.core.project.substrate import ProjectPortfolio
+        pp = ProjectPortfolio()
+        pp.create_project("p1", "T", "m1", cycle=0)
+        d = pp.to_dict()
+        assert d["total_projects"] == 1

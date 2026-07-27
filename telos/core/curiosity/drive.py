@@ -23,6 +23,7 @@ logger = logging.getLogger('telos_curiosity')
 class CuriosityState:
     """Mutable state of the curiosity drive at a given cycle."""
     curiosity_level: float = 0.3       # 0–1, baseline curiosity
+    project_id: str = "default"        # which project this curiosity serves
     learning_rate: float = 0.0         # how much learned this cycle
     boredom_count: int = 0             # consecutive cycles below boredom threshold
     novelty_seeking: bool = False      # actively seeking novelty?
