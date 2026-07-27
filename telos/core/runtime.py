@@ -32,6 +32,9 @@ from telos.core.decision.cognitive_momentum import CognitiveMomentum
 from telos.core.accounting.resource_accounting import ResourceAccountingLayer, ResourceCost
 from telos.core.pipeline_builder import build_components
 from telos.core.pipeline_finalize import run_axiom_prover, run_v2_module_hooks, record_resource_accounting
+from telos.core.council.distributed import DistributedCouncil, AgentRole
+from telos.core.curiosity.exploration import AutonomousExplorer
+from telos.core.session.persistence import save_learnings, load_learnings
 from telos.core.reasoning.representation_search import RepresentationSearch, RepresentationType
 from telos.core.timing.meta_time import MetaTime, TimeScale
 from telos.core.session.agents_writer import write_handoff
@@ -252,6 +255,11 @@ class TelosV14Pipeline:
         self._mission_portfolio = MissionPortfolio()
         self._mission_arbiter = MissionArbiter()
         self._mission_lifecycle = MissionLifecycleEngine()
+        self._distributed_council = DistributedCouncil()
+        self._autonomous_explorer = AutonomousExplorer(
+            curiosity=self._curiosity_drive,
+            unknown_unknown=self._unknown_unknown_detector,
+        )
 
         if self.config.checkpoint_path:
             self._checkpointer = CheckpointManager(
@@ -309,8 +317,12 @@ class TelosV14Pipeline:
         if self.config.adapter and hasattr(self.config.adapter, 'initialize'):
             self.config.adapter.initialize()
 
-        # Cross-session learning: load previous session context
+        # Cross-session learning: load previous session context and learnings
         inject_into_context(self)
+        prev = load_learnings()
+        if prev:
+            logger.info(f"Loaded cross-session learnings from {prev.session_id}: "
+                        f"{len(prev.top_skills)} skills, {len(prev.top_theories)} theories")
 
     def register_stream(self, stream: CognitiveStream) -> None:
         self.streams.append(stream)
@@ -648,6 +660,22 @@ class TelosV14Pipeline:
                         f"-> {ctx.effective_n_worlds}"
                     )
 
+                # Autonomous exploration goals from curiosity + unknown unknowns
+                if self._autonomous_explorer.should_explore:
+                    goals = self._autonomous_explorer.generate_goals(ctx.cycle_count)
+                    if goals:
+                        from telos.intent_ir import IntentIR
+                        for g in goals[:2]:
+                            exp_intent = IntentIR(
+                                intent_type=f"explore_{g.source}",
+                                confidence=g.priority,
+                                params={"source": g.source, "description": g.description},
+                                metadata={"stream": "curiosity", "autonomous": True},
+                            )
+                            ctx.intents.append((exp_intent, g.priority * 0.5))
+                            logger.info(
+                                f"AutonomousExplorer: '{g.description[:40]}'"
+                            )
 
             # ── Law of Attention: Project attention after PERCEIVE phase ──
             if phase.name == "perceive":
@@ -1420,7 +1448,15 @@ class TelosV14Pipeline:
                 logger.info(f"Final checkpoint saved (cycle {self._cycle_count})")
             except Exception as e:
                 logger.warning(f"Final checkpoint save failed: {e}")
-        # Cross-session learning: write session handoff
+        # Cross-session learning: write session handoff + persist learnings
+        try:
+            save_learnings(self, {
+                "di": getattr(self, '_last_trace', None).decision_integrity if hasattr(self, '_last_trace') else 1.0,
+                "md": getattr(self, '_last_trace', None).mission_drift if hasattr(self, '_last_trace') else 0.0,
+                "cycles": self._cycle_count,
+            })
+        except Exception:
+            pass
         try:
             write_handoff(self, {
                 "di": getattr(self, '_last_trace', None).decision_integrity if hasattr(self, '_last_trace') else 1.0,
