@@ -305,15 +305,25 @@
   </div>
 
   <div class="bottom-row" style="flex-direction:column;gap:10px;">
-    <!-- Full-width Knowledge Graph (matches GridWorld section size) -->
     <div class="knowledge-panel" style="width:100%;flex:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <h3 style="margin-bottom:0;">🧠 Knowledge Graph</h3>
-          <span id="node-count" class="node-count-label">0 nodes</span>
-        </div>
-        <canvas id="kg-canvas" style="display:block;border-radius:8px;width:100%;height:400px;background:#0f0f18;"></canvas>
-        <div id="kg-debug" style="margin-top:4px;font-size:0;text-align:center;min-height:20px;line-height:1.8;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <h3 style="margin-bottom:0;">Knowledge Graph - 5 Visualization Modes</h3>
+        <span id="node-count" class="node-count-label">0 nodes</span>
       </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">1. Constellation</div>
+          <canvas id="kg-constellation" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
+        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">2. Knowledge Tree</div>
+          <canvas id="kg-tree" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
+        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">3. Solar System</div>
+          <canvas id="kg-solar" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
+        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">4. Neural Network</div>
+          <canvas id="kg-neural" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
+        <div style="flex:1;min-width:160px;"><div style="font-size:9px;color:#777;text-align:center;">5. Bubble Map</div>
+          <canvas id="kg-bubble" style="display:block;border-radius:6px;width:100%;height:220px;background:#0f0f18;"></canvas></div>
+      </div>
+      <div id="kg-debug" style="margin-top:4px;font-size:0;text-align:center;min-height:20px;line-height:1.8;"></div>
+    </div>
     <!-- Memory, Chat, Log side by side below KG -->
     <div style="display:flex;gap:12px;width:100%;min-height:0;flex:1;">
       <div class="memory-panel" style="flex:1;">
@@ -2378,182 +2388,269 @@ setInterval(function() {
   ticker.textContent = msgs[Math.floor((Date.now() / 3000) % msgs.length)];
 }, 3000);
 
-function drawKnowledgeGraph(canvas) {
-  if (!canvas || !canvas.getContext) return;
-  var ctx = canvas.getContext('2d');
-  var dpr = window.devicePixelRatio || 1;
-  var w = canvas.clientWidth, h = canvas.clientHeight;
-  if (w === 0 || h === 0) return;
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  var t = state.time || 0;
-
-  // Organic background — dark neural tissue
-  var bg = ctx.createRadialGradient(w/2, h*0.4, 0, w/2, h*0.4, w*0.6);
-  bg.addColorStop(0, '#111122');
-  bg.addColorStop(0.6, '#0a0a14');
-  bg.addColorStop(1, '#06060a');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
-
-  // Slow breathing wave across canvas (two harmonics)
-  for (var wi = 0; wi < 2; wi++) {
-    ctx.beginPath();
-    for (var x = 0; x <= w; x += 8) {
-      var yw = Math.sin(x * 0.015 * (wi+1) + t * (1.5+wi) + wi*3) * 8
-            + Math.sin(x * 0.04 + t * 2.5) * 5;
-      var yy = h * 0.5 + yw + Math.sin(t*0.3 + wi) * 10;
-      x === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+// ─── 5-Mode KG Visualization (single rAF loop) ───
+(function(){
+  var kgIds=['kg-constellation','kg-tree','kg-solar','kg-neural','kg-bubble'];
+  var kgLabels=['Constellation','Knowledge Tree','Solar System','Neural Network','Bubble Map'];
+  var kgCanvases=[], kgContexts=[];
+  for(var ki=0;ki<kgIds.length;ki++){
+    var el=document.getElementById(kgIds[ki]);
+    if(!el)return;
+    var cx=el.getContext('2d');
+    if(!cx)return;
+    kgCanvases.push(el); kgContexts.push(cx);
+  }
+  var kgt=0;
+  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||220;}
+  function kgProject(){
+    if(kgNodes.length===0)return[];
+    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||220;
+    var focal=4,scale=Math.min(w,h)*0.28;
+    return kgNodes.map(function(n){
+      var nx=n.x||0,ny=n.y||0,nz=n.z||0;
+      var cosR=Math.cos(kgRotation),sinR=Math.sin(kgRotation);
+      var rx=nx*cosR-nz*sinR;
+      var rz=nx*sinR+nz*cosR+focal;
+      var persp=focal/Math.max(rz,0.1);
+      return {id:n.id,label:n.label,domain:n.domain,importance:n.importance,
+        px:rx*scale*persp,py:-ny*scale*persp,size:(3.5+n.importance*6)*persp,
+        persp:persp,depth:rz};
+    });
+  }
+  function kgDrawAll(){
+    kgt+=0.02;
+    if(kgNodes.length>0)simulateKnowledgeForces(false);
+    kgRotation+=0.004;
+    var proj=kgProject();
+    for(var ki=0;ki<kgCanvases.length;ki++){
+      kgResize(kgCanvases[ki]);
+      var ctx=kgContexts[ki],w=kgCanvases[ki].width,h=kgCanvases[ki].height;
+      var bg=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.6);
+      bg.addColorStop(0,'#111122');bg.addColorStop(1,'#06060a');
+      ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+      ctx.fillStyle='rgba(255,255,255,0.12)';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillText((ki+1)+'. '+kgLabels[ki]+' ('+kgNodes.length+' nodes)',w/2,3);
+      if(kgNodes.length===0){
+        ctx.fillStyle='rgba(136,136,136,0.4)';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('No knowledge nodes yet',w/2,h/2);continue;
+      }
+      // Each mode draws using the projected nodes
+      var modeNodes=proj.slice();
+      modeNodes.sort(function(a,b){return a.depth-b.depth;});
+      switch(ki){
+        case 0:kgConstellation(ctx,w,h,modeNodes);break;
+        case 1:kgTree(ctx,w,h,modeNodes);break;
+        case 2:kgSolar(ctx,w,h,modeNodes);break;
+        case 3:kgNeural(ctx,w,h,modeNodes);break;
+        case 4:kgBubble(ctx,w,h,modeNodes);break;
+      }
     }
-    ctx.strokeStyle = wi === 0
-      ? 'rgba(74,222,128,'+(0.05+0.04*Math.sin(t))+')'
-      : 'rgba(96,165,250,'+(0.04+0.03*Math.sin(t+1))+')';
-    ctx.lineWidth = wi === 0 ? 1.5 : 1;
-    ctx.stroke();
-  }
-
-  if (kgNodes.length === 0) {
-    ctx.fillStyle = 'rgba(136,136,136,0.6)';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🌀 No knowledge nodes yet', w/2, h/2);
-    var kd = document.getElementById('kg-debug');
-    if (kd) kd.innerHTML = '';
-    return;
-  }
-
-  // Run gentle continuous forces
-  simulateKnowledgeForces(false);
-  kgRotation += 0.004;
-
-  var focal = 4;
-  var scale = Math.min(w, h) * 0.28;
-
-  // Project nodes to 2D with perspective
-  var projected = kgNodes.map(function(n) {
-    var nx = n.x || 0, ny = n.y || 0, nz = n.z || 0;
-    var cosR = Math.cos(kgRotation), sinR = Math.sin(kgRotation);
-    var rx = nx * cosR - nz * sinR;
-    var rz = nx * sinR + nz * cosR + focal;
-    var persp = focal / Math.max(rz, 0.1);
-    var px = w/2 + rx * scale * persp;
-    var py = h/2 - ny * scale * persp;
-    var size = (3.5 + n.importance * 6) * persp;
-    return { id: n.id, label: n.label, domain: n.domain, importance: n.importance,
-             x: n.x, y: n.y, z: n.z, px: px, py: py, size: size, persp: persp, depth: rz };
-  });
-
-  // Edges with biological glow pulses
-  var edgeDraws = [];
-  for (var ei = 0; ei < kgEdges.length; ei++) {
-    var e = kgEdges[ei];
-    var s = null, ti = null;
-    for (var si = 0; si < projected.length; si++) { if (projected[si].id === e.source) { s = projected[si]; break; } }
-    for (var ti2 = 0; ti2 < projected.length; ti2++) { if (projected[ti2].id === e.target) { ti = projected[ti2]; break; } }
-    if (!s || !ti) continue;
-    edgeDraws.push({ s: s, t: ti, w: e.weight || 0.5, depth: (s.depth + ti.depth) / 2 });
-  }
-  edgeDraws.sort(function(a, b) { return a.depth - b.depth; });
-
-  for (var ei = 0; ei < edgeDraws.length; ei++) {
-    var edge = edgeDraws[ei];
-    var glowPulse = 0.3 + 0.5 * Math.sin(t * 1.2 + ei * 0.7);
-    var alpha = 0.15 + edge.w * 0.4 * glowPulse;
-    ctx.beginPath();
-    ctx.moveTo(edge.s.px, edge.s.py);
-    ctx.lineTo(edge.t.px, edge.t.py);
-    ctx.strokeStyle = 'rgba(100,180,255,'+alpha+')';
-    ctx.lineWidth = Math.max(0.8, edge.w * 2.2);
-    if (edge.w > 0.3) {
-      ctx.shadowColor = 'rgba(100,200,255,'+(edge.w * 0.3 * glowPulse)+')';
-      ctx.shadowBlur = 4 + edge.w * 6;
+    var kd=document.getElementById('kg-debug');
+    if(kd&&proj.length>0){
+      var html='';
+      for(var pi=0;pi<Math.min(10,proj.length);pi++){
+        var n=proj[pi];
+        html+='<span style="color:'+(DOMAIN_COLORS[n.domain]||'#888')+';margin:2px 4px;font-size:9px;">\u25CF '+(n.label||'?')+'</span>';
+      }
+      kd.innerHTML=html;
     }
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Synaptic energy pulse traveling along each edge
-    var pulsePos = (t * 0.5 + ei * 0.13) % 1;
-    var pex = edge.s.px + (edge.t.px - edge.s.px) * pulsePos;
-    var pey = edge.s.py + (edge.t.py - edge.s.py) * pulsePos;
-    var pSize = 2.5 * (1 - Math.abs(pulsePos - 0.5) * 2);
-    ctx.beginPath();
-    ctx.arc(pex, pey, pSize, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(180,230,255,'+(0.6 * (1 - Math.abs(pulsePos - 0.5) * 2))+')';
-    ctx.fill();
+    requestAnimationFrame(kgDrawAll);
   }
-
-  // Floating cellular particles drifting through 3D space
-  for (var pi = 0; pi < 15; pi++) {
-    var pa = (t * 0.15 + pi * 0.42) % (Math.PI * 2);
-    var pr = 0.2 + 0.5 * Math.sin(t * 0.3 + pi * 1.3);
-    var ppx = w/2 + Math.cos(pa) * w * 0.25 * pr;
-    var ppy = h/2 + Math.sin(pa) * h * 0.2 * pr;
-    var pz = Math.sin(t * 0.5 + pi * 2) * 0.5 + 0.5;
-    var psz = Math.max(0.5, Math.sin(t * 1.2 + pi) * 1.0);
-    ctx.beginPath();
-    ctx.arc(ppx, ppy, psz, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(150,200,255,'+(0.03 + 0.04 * pz)+')';
-    ctx.fill();
-  }
-
-  // KG debug in div
-  var kd = document.getElementById('kg-debug');
-  if (kd) {
-    kd.innerHTML = projected.map(function(n) {
-      return '<span style="color:'+(DOMAIN_COLORS[n.domain]||'#888')+';margin:2px 6px;font-size:10px;">● '+(n.label||'?')+'</span>';
-    }).join('');
-  }
-
-  // Draw nodes (far to near) with neural pulse
-  var sorted = projected.slice().sort(function(a, b) { return a.depth - b.depth; });
-  for (var ni = 0; ni < sorted.length; ni++) {
-    var node = sorted[ni];
-    if (isNaN(node.px) || isNaN(node.py) || node.persp <= 0) continue;
-    var color = DOMAIN_COLORS[node.domain] || DOMAIN_COLORS['general'];
-    var pulse = 0.75 + Math.sin(t * 2.5 + node.depth * 1.5 + ni * 0.7) * 0.25;
-    var r = Math.max(2, node.size * pulse);
-    // Gentle floating wobble
-    var fx = Math.sin(t * 0.3 + (node.y||0) * 2) * 1.5;
-    var fy = Math.cos(t * 0.4 + (node.x||0) * 2) * 1.5;
-    if (!node._fOx) { node._fOx = fx; node._fOy = fy; }
-    node.px += (fx - node._fOx) * 0.02;
-    node.py += (fy - node._fOy) * 0.02;
-    node._fOx = fx; node._fOy = fy;
-
-    // Glow aura
-    var gr = ctx.createRadialGradient(node.px, node.py, 0, node.px, node.py, r*4);
-    gr.addColorStop(0, color+'44');
-    gr.addColorStop(1, 'transparent');
-    ctx.fillStyle = gr;
-    ctx.beginPath(); ctx.arc(node.px, node.py, r*4, 0, Math.PI*2); ctx.fill();
-
-    // Core circle
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(node.px, node.py, r, 0, Math.PI*2); ctx.fill();
-
-    // Highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.beginPath(); ctx.arc(node.px - r*0.15, node.py - r*0.15, r*0.3, 0, Math.PI*2); ctx.fill();
-
-    // Label
-    if (node.label && node.persp > 0.15) {
-      ctx.fillStyle = 'rgba(255,255,255,'+Math.min(0.6, 0.3*node.persp+0.1)+')';
-      ctx.font = Math.max(5, 7*Math.min(1, node.persp*1.2))+'px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(node.label, node.px, node.py + r + 2);
+  // ── 1. Constellation ──
+  function kgConstellation(ctx,w,h,nodes){
+    for(var ei=0;ei<kgEdges.length;ei++){
+      var e=kgEdges[ei],s=null,t=null;
+      for(var si=0;si<nodes.length;si++){if(nodes[si].id===e.source){s=nodes[si];break;}}
+      for(var ti=0;ti<nodes.length;ti++){if(nodes[ti].id===e.target){t=nodes[ti];break;}}
+      if(!s||!t)continue;
+      var spx=w/2+s.px,spy=h/2+s.py,tpx=w/2+t.px,tpy=h/2+t.py;
+      ctx.beginPath();ctx.moveTo(spx,spy);ctx.lineTo(tpx,tpy);
+      ctx.strokeStyle='rgba(80,160,255,'+(0.04+0.06*Math.sin(kgt+ei))+')';ctx.lineWidth=0.3;ctx.stroke();
+    }
+    for(var i=0;i<nodes.length;i++){
+      var n=nodes[i],px=w/2+n.px,py=h/2+n.py;
+      var tw=0.4+0.6*Math.sin(kgt*2+i*1.7+n.depth),r=Math.max(1,n.size*0.5*tw);
+      var col=DOMAIN_COLORS[n.domain]||'#888';
+      var g=ctx.createRadialGradient(px,py,0,px,py,r*6);
+      g.addColorStop(0,col+(tw>0.7?'55':'33'));g.addColorStop(1,'transparent');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r*6,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,'+(0.1+0.15*tw)+')';
+      ctx.beginPath();ctx.arc(px-r*0.2,py-r*0.2,r*0.3,0,Math.PI*2);ctx.fill();
+      if(n.label&&n.persp>0.2){
+        ctx.fillStyle='rgba(200,200,255,'+(0.15+0.2*tw)+')';ctx.font='5px sans-serif';
+        ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(n.label,px,py+r+1);
+      }
     }
   }
-
-  // Small overlay info
-  ctx.fillStyle = 'rgba(136,136,136,0.5)';
-  ctx.font = '10px monospace';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText('🧬 KG · '+kgNodes.length+' nodes · '+edgeDraws.length+' edges', 8, 6);
-}
+  // ── 2. Knowledge Tree ──
+  function kgTree(ctx,w,h,nodes){
+    var rootX=w/2,rootY=h-15,trunkH=h*0.4;
+    // Trunk
+    ctx.beginPath();ctx.moveTo(rootX-3,rootY);
+    ctx.quadraticCurveTo(rootX-2,rootY-trunkH*0.5,rootX-5,rootY-trunkH);
+    ctx.lineTo(rootX+5,rootY-trunkH);
+    ctx.quadraticCurveTo(rootX+2,rootY-trunkH*0.5,rootX+3,rootY);
+    ctx.closePath();ctx.fillStyle='rgba(40,30,20,0.3)';ctx.fill();
+    // Group nodes by domain for branches
+    var domains={};
+    for(var i=0;i<nodes.length;i++){
+      var d=nodes[i].domain||'general';
+      if(!domains[d])domains[d]=[];
+      domains[d].push(nodes[i]);
+    }
+    var dNames=Object.keys(domains),dCount=dNames.length;
+    for(var di=0;di<dCount;di++){
+      var dNodes=domains[dNames[di]],dAngle=-Math.PI/2+((di+0.5)/(dCount+1))*Math.PI;
+      var bx=rootX+Math.cos(dAngle)*45,by=rootY-trunkH+Math.sin(dAngle)*45;
+      // Branch
+      ctx.beginPath();ctx.moveTo(rootX,rootY-trunkH);
+      ctx.quadraticCurveTo(rootX+Math.cos(dAngle)*20,rootY-trunkH+Math.sin(dAngle)*15-5,bx,by);
+      ctx.strokeStyle='rgba(60,80,70,'+(0.15+0.05*Math.sin(kgt+di))+')';ctx.lineWidth=0.8;ctx.stroke();
+      // Domain label at branch base
+      ctx.fillStyle='rgba(255,255,255,0.15)';ctx.font='4px sans-serif';
+      ctx.textAlign='center';ctx.fillText(dNames[di].substring(0,6),bx,by+2);
+      // Nodes as leaves along branch
+      for(var ni=0;ni<dNodes.length;ni++){
+        var n=dNodes[ni],pct=(ni+0.5)/dNodes.length;
+        var lx=bx+Math.cos(dAngle+0.5)*pct*20,ly=by+Math.sin(dAngle+0.5)*pct*20-8;
+        var col=DOMAIN_COLORS[n.domain]||'#888';
+        var r=1.5+Math.sin(kgt+ni+di)*0.8;
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(lx,ly,r*2,0,Math.PI*2);ctx.fill();
+        if(n.label&&pct>0.4){
+          ctx.fillStyle='rgba(200,200,200,0.3)';ctx.font='4px sans-serif';
+          ctx.textAlign='center';ctx.fillText(n.label,lx,ly+5);
+        }
+      }
+    }
+    ctx.fillStyle='rgba(255,255,255,0.08)';ctx.font='5px sans-serif';
+    ctx.textAlign='center';ctx.fillText('Knowledge',rootX,rootY+6);
+  }
+  // ── 3. Solar System ──
+  function kgSolar(ctx,w,h,nodes){
+    var cx=w/2,cy=h/2,domains={};
+    for(var i=0;i<nodes.length;i++){
+      var d=nodes[i].domain||'general';
+      if(!domains[d])domains[d]=[];
+      domains[d].push(nodes[i]);
+    }
+    var dNames=Object.keys(domains),dCount=dNames.length;
+    // Central sun
+    var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,20);
+    sg.addColorStop(0,'rgba(255,200,100,0.4)');sg.addColorStop(1,'transparent');
+    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,20,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,200,100,0.6)';ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='6px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('TELOS',cx,cy+8);
+    // Domain orbits and planets
+    for(var di=0;di<dCount;di++){
+      var orbitR=20+(di+1)*(Math.min(w,h)*0.12);
+      var angle=kgt*(0.3+di*0.1)+di*1.2;
+      var px=cx+Math.cos(angle)*orbitR,py=cy+Math.sin(angle)*orbitR;
+      var col=DOMAIN_COLORS[dNames[di]]||'#888';
+      // Orbit ring
+      ctx.beginPath();ctx.arc(cx,cy,orbitR,0,Math.PI*2);
+      ctx.strokeStyle='rgba(80,80,120,'+(0.04+di*0.02)+')';ctx.lineWidth=0.5;ctx.stroke();
+      // Planet
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.1)';ctx.beginPath();ctx.arc(px-1,py-1,1.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='4px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillText(dNames[di].substring(0,5),px,py+4);
+      // Moons (knowledge nodes)
+      var moons=domains[dNames[di]];
+      for(var mi=0;mi<moons.length;mi++){
+        var m=moons[mi],mAngle=angle+Math.PI/2+(mi/moons.length)*Math.PI*2+kgt*0.5;
+        var mR=5+mi*3;
+        var mx=px+Math.cos(mAngle)*mR,my=py+Math.sin(mAngle)*mR;
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(mx,my,1.5,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
+  // ── 4. Neural Network ──
+  function kgNeural(ctx,w,h,nodes){
+    // Edges as neural synapses
+    for(var ei=0;ei<kgEdges.length;ei++){
+      var e=kgEdges[ei],s=null,t=null;
+      for(var si=0;si<nodes.length;si++){if(nodes[si].id===e.source){s=nodes[si];break;}}
+      for(var ti=0;ti<nodes.length;ti++){if(nodes[ti].id===e.target){t=nodes[ti];break;}}
+      if(!s||!t)continue;
+      var spx=w/2+s.px,spy=h/2+s.py,tpx=w/2+t.px,tpy=h/2+t.py;
+      var pulse=0.3+0.5*Math.sin(kgt*1.5+ei*0.7);
+      ctx.beginPath();ctx.moveTo(spx,spy);ctx.lineTo(tpx,tpy);
+      ctx.strokeStyle='rgba(80,180,255,'+(0.06+e.weight*0.2*pulse)+')';
+      ctx.lineWidth=0.4+e.weight*1.5;ctx.stroke();
+      // Synaptic burst traveling along edge
+      var bp=(kgt*0.5+ei*0.11)%1;
+      var bx=spx+(tpx-spx)*bp,by=spy+(tpy-spy)*bp;
+      ctx.fillStyle='rgba(180,230,255,'+(0.4*(1-Math.abs(bp-0.5)*2))+')';
+      ctx.beginPath();ctx.arc(bx,by,1.5*(1-Math.abs(bp-0.5)*2),0,Math.PI*2);ctx.fill();
+    }
+    // Nodes as neurons
+    for(var i=0;i<nodes.length;i++){
+      var n=nodes[i],px=w/2+n.px,py=h/2+n.py;
+      var col=DOMAIN_COLORS[n.domain]||'#888';
+      var r=2+Math.sin(kgt*2+i*1.3)*0.8;
+      // Neural burst when active
+      var burst=Math.sin(kgt*1.5+i*2.1)*0.5+0.5;
+      if(burst>0.7){
+        var bg2=ctx.createRadialGradient(px,py,0,px,py,r*8);
+        bg2.addColorStop(0,col+'44');bg2.addColorStop(1,'transparent');
+        ctx.fillStyle=bg2;ctx.beginPath();ctx.arc(px,py,r*8,0,Math.PI*2);ctx.fill();
+      }
+      // Dendrite-like glow
+      var dend=ctx.createRadialGradient(px,py,0,px,py,r*4);
+      dend.addColorStop(0,col+'33');dend.addColorStop(1,'transparent');
+      ctx.fillStyle=dend;ctx.beginPath();ctx.arc(px,py,r*4,0,Math.PI*2);ctx.fill();
+      // Neuron body
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,r*2.5,0,Math.PI*2);ctx.fill();
+      if(n.label&&n.persp>0.2){
+        ctx.fillStyle='rgba(200,200,200,0.4)';ctx.font='5px sans-serif';
+        ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(n.label,px,py+r*2+2);
+      }
+    }
+  }
+  // ── 5. Bubble Map ──
+  function kgBubble(ctx,w,h,nodes){
+    var domains={};
+    for(var i=0;i<nodes.length;i++){
+      var d=nodes[i].domain||'general';
+      if(!domains[d])domains[d]=[];
+      domains[d].push(nodes[i]);
+    }
+    var dNames=Object.keys(domains),dCount=dNames.length;
+    var centerAngle=kgt*0.05;
+    // Domain bubbles arranged in a ring
+    for(var di=0;di<dCount;di++){
+      var angle=(di/dCount)*Math.PI*2+centerAngle;
+      var radius=Math.min(w,h)*0.15;
+      var bx=w/2+Math.cos(angle)*radius,by=h/2+Math.sin(angle)*radius*0.7;
+      var bSize=20+Math.sin(kgt*0.5+di)*3;
+      var col=DOMAIN_COLORS[dNames[di]]||'#888';
+      // Domain bubble
+      var bg2=ctx.createRadialGradient(bx,by,0,bx,by,bSize*1.5);
+      bg2.addColorStop(0,col+'22');bg2.addColorStop(1,'transparent');
+      ctx.fillStyle=bg2;ctx.beginPath();ctx.arc(bx,by,bSize*1.5,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=col+'44';ctx.lineWidth=0.6;
+      ctx.beginPath();ctx.arc(bx,by,bSize,0,Math.PI*2);ctx.stroke();
+      // Domain label
+      ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='5px sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dNames[di].substring(0,5),bx,by-bSize-5);
+      // Inner knowledge nodes as smaller bubbles
+      var innerNodes=domains[dNames[di]];
+      for(var ni=0;ni<innerNodes.length;ni++){
+        var n=innerNodes[ni];
+        var ia=(ni/innerNodes.length)*Math.PI*2+kgt*0.3+di;
+        var ir=3+ni*2.5;
+        var ix=bx+Math.cos(ia)*ir,iy=by+Math.sin(ia)*ir;
+        var r=1.5+Math.sin(kgt+ni+di)*0.5;
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(ix,iy,r*(1+n.importance),0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.08)';
+        ctx.beginPath();ctx.arc(ix-r*0.2,iy-r*0.2,r*0.3,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
+  kgDrawAll();
+})();
 
 // ─── Memory Timeline ───
 const TERRAIN_EMOJI = { 'plains':'🌿', 'forest':'🌲', 'water':'🌊', 'desert':'🏜️', 'mountain':'⛰️' };
@@ -2600,18 +2697,7 @@ function renderMemoryTimeline() {
 }
 
 function resizeKgCanvas() {
-  const canvas = document.getElementById('kg-canvas');
-  if (!canvas) return;
-  const dpr = window.devicePixelRatio || 1;
-  // Use the CSS-computed display dimensions (width:100% + height:820px)
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  if (w === 0 || h === 0) return;
-  // Set drawing buffer to match display size at full device-pixel resolution
-  // Do NOT override canvas.style.width/height — CSS controls display size
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  // Note: ctx scaling is handled in drawKnowledgeGraph() via setTransform
+  // KG canvases resized by 5-mode rAF loop
 }
 
 function toggleCostView() {
@@ -2975,7 +3061,7 @@ var _animCounter = 0;
 
    try { renderGrid(); } catch (er) { console.warn('Grid render error:', er); }
    try { renderChart(); } catch (er) { console.warn('Chart render error:', er); }
-   try { drawKnowledgeGraph(document.getElementById('kg-canvas')); } catch (er) {}
+   // KG drawn by 5-mode rAF loop above
    try { spawnParticles(); } catch (er) {}
    requestAnimationFrame(animate);
  }
