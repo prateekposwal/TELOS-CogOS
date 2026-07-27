@@ -2267,6 +2267,14 @@ function drawKnowledgeGraph(canvas) {
   ctx.font = '11px monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
+  // Draw a test square at a fixed position to verify canvas context works
+  ctx.fillStyle = '#00ff00';
+  ctx.fillRect(30, 30, 20, 20);
+
+  ctx.fillStyle = '#888';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
   ctx.fillText('KG: ' + kgNodes.length + ' nodes | ' + projected.length + ' projected', 10, 10);
 
   // Fallback: draw node labels in a div
@@ -2299,9 +2307,8 @@ function drawKnowledgeGraph(canvas) {
     // Draw solid node circle
     ctx.fillStyle = color;
     ctx.globalAlpha = 0.8;
-    ctx.beginPath();
-    ctx.arc(node.px, node.py, Math.max(2, r * 0.8), 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(node.px - 5, node.py - 5, 10, 10);
+    ctx.fillRect(w/2 - 2, h/2 - 2, 4, 4);
     ctx.globalAlpha = 1.0;
 
     // Label
