@@ -2318,14 +2318,14 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
     var bg=_co.createRadialGradient(cx,cy,0,cx,cy,R*1.4);
     bg.addColorStop(0,'#111122'); bg.addColorStop(1,'#06060a');
     _co.fillStyle=bg; _co.fillRect(0,0,w,h);
-    _co.fillStyle='rgba(255,255,255,0.45)'; _co.font='18px sans-serif'; _co.textAlign='center';
-    _co.fillText('Neural Orbit - 6 Identity Layers',cx,16);
+    _co.fillStyle='rgba(255,255,255,0.5)'; _co.font='20px sans-serif'; _co.textAlign='center';
+    _co.fillText('Neural Orbit - 6 Identity Layers',cx,18);
     var ringClr=diVal>0.8?'74,222,128':diVal>0.5?'251,191,36':'255,68,68';
     for(var li=0;li<L_.length;li++){
       var ri=R*(0.24+li*0.13); _co.beginPath(); _co.arc(cx,cy,ri,0,Math.PI*2);
       _co.strokeStyle='rgba('+ringClr+','+(0.035+li*0.025+diVal*0.04)+')'; _co.lineWidth=1.0; _co.stroke();
-      _co.fillStyle='rgba(255,255,255,'+(0.04+li*0.015)+')'; _co.font='10px sans-serif'; _co.textAlign='left';
-      _co.fillText(L_[li],cx+ri+6,cy+1);
+      _co.fillStyle='rgba(255,255,255,'+(0.04+li*0.015)+')'; _co.font='12px sans-serif'; _co.textAlign='left';
+      _co.fillText(L_[li],cx+ri+8,cy+1);
     }
     _co.beginPath();
     for(var a=0;a<=Math.PI*2;a+=0.05){
@@ -2357,7 +2357,7 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
     for(var i=0;i<P.length;i++){
       var aa=(i/P.length)*Math.PI*2-Math.PI/2+_brainOrbitAngle+Math.sin(to*0.2+i*0.7)*0.01;
       var ppx=cx+Math.cos(aa)*R,ppy=cy+Math.sin(aa)*R*0.75;
-      var ia=(i===act),pu=ia?(18+5*Math.sin(to*3))*(0.6+diVal*0.6):(12+4*Math.sin(to*1.5+i*1.1))*(0.6+diVal*0.4);
+      var ia=(i===act),pu=ia?(24+6*Math.sin(to*3))*(0.7+diVal*0.6):(16+5*Math.sin(to*1.5+i*1.1))*(0.7+diVal*0.4);
       _brainPhasePositions.push({x:ppx,y:ppy,name:P[i],color:C[i],index:i,active:ia,size:pu});
       if(ia){
         var ag=_co.createRadialGradient(ppx,ppy,0,ppx,ppy,pu*5);
@@ -2370,8 +2370,8 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       _co.fillStyle=C[i]; _co.beginPath(); _co.arc(ppx,ppy,pu,0,Math.PI*2); _co.fill();
       _co.fillStyle='rgba(255,255,255,0.12)';
       _co.beginPath(); _co.arc(ppx-pu*0.2,ppy-pu*0.2,pu*0.25,0,Math.PI*2); _co.fill();
-      _co.fillStyle=ia?'#fff':'#bbb'; _co.font=ia?'bold 12px sans-serif':'11px sans-serif';
-      _co.textAlign='center'; _co.fillText(P[i],ppx,ppy+pu+10);
+      _co.fillStyle=ia?'#fff':'#bbb'; _co.font=ia?'bold 14px sans-serif':'13px sans-serif';
+      _co.textAlign='center'; _co.fillText(P[i],ppx,ppy+pu+12);
     }
     // Draw hover tooltip on orbit phase
     if(_hoveredPhase>=0&&_hoveredPhase<P.length&&_brainPhasePositions[_hoveredPhase]){
@@ -2400,8 +2400,8 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
     bg=_ct.createRadialGradient(w/2,h,0,w/2,h,w*0.7);
     bg.addColorStop(0,'#0d0d1a'); bg.addColorStop(1,'#06060a');
     _ct.fillStyle=bg; _ct.fillRect(0,0,w,h);
-    _ct.fillStyle='rgba(255,255,255,0.45)'; _ct.font='18px sans-serif'; _ct.textAlign='center';
-    _ct.fillText('Root System - 9 Phase Canopy',w/2,16);
+    _ct.fillStyle='rgba(255,255,255,0.5)'; _ct.font='20px sans-serif'; _ct.textAlign='center';
+    _ct.fillText('Root System - 9 Phase Canopy',w/2,18);
     var rx=w/2,ry=h-28,trunkH=h*0.50;
     for(var li=0;li<L_.length;li++){
       var ang=-Math.PI/2+Math.PI*0.15+(li/(L_.length-1))*Math.PI*0.7;
@@ -2409,8 +2409,8 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       _ct.beginPath(); _ct.moveTo(rx,ry);
       _ct.quadraticCurveTo(rx+Math.cos(ang)*len*0.5,ry+Math.sin(ang)*len*0.5-8,ex,ey);
       _ct.strokeStyle='rgba(100,140,200,'+(0.18+li*0.07)+')'; _ct.lineWidth=1.8-li*0.15; _ct.stroke();
-      _ct.fillStyle='rgba(255,255,255,0.35)'; _ct.font='10px sans-serif'; _ct.textAlign='center';
-      _ct.fillText(L_[li],ex,ey+10);
+      _ct.fillStyle='rgba(255,255,255,0.35)'; _ct.font='12px sans-serif'; _ct.textAlign='center';
+      _ct.fillText(L_[li],ex,ey+12);
     }
     _ct.beginPath(); _ct.moveTo(rx-10,ry);
     _ct.quadraticCurveTo(rx-5,ry-trunkH*0.5,rx-14,ry-trunkH);
@@ -2423,7 +2423,7 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       _ct.beginPath(); _ct.moveTo(rx,ry-trunkH);
       _ct.quadraticCurveTo(rx+Math.cos(ang)*cpR*0.32,cpY+Math.sin(ang)*cpR*0.22-10,bx,by);
       _ct.strokeStyle='rgba(60,80,60,'+(0.18+0.1*Math.sin(tt+i))+')'; _ct.lineWidth=1.2; _ct.stroke();
-      var ia=(i===act), pu=ia?16+4*Math.sin(tt*2.5):10+3*Math.sin(tt*1.5+i*0.9);
+      var ia=(i===act), pu=ia?22+5*Math.sin(tt*2.5):14+4*Math.sin(tt*1.5+i*0.9);
       if(ia){
         var ag=_ct.createRadialGradient(bx,by,0,bx,by,pu*4);
         ag.addColorStop(0,C[i]+'55'); ag.addColorStop(1,'transparent');
@@ -2432,8 +2432,8 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       _ct.fillStyle=C[i]; _ct.beginPath(); _ct.arc(bx,by,pu,0,Math.PI*2); _ct.fill();
       _ct.fillStyle='rgba(255,255,255,0.1)';
       _ct.beginPath(); _ct.arc(bx-pu*0.15,by-pu*0.15,pu*0.25,0,Math.PI*2); _ct.fill();
-      _ct.fillStyle=ia?'#fff':'#bbb'; _ct.font=ia?'bold 11px sans-serif':'10px sans-serif';
-      _ct.textAlign='center'; _ct.fillText(P[i],bx,by+pu+9);
+      _ct.fillStyle=ia?'#fff':'#bbb'; _ct.font=ia?'bold 13px sans-serif':'12px sans-serif';
+      _ct.textAlign='center'; _ct.fillText(P[i],bx,by+pu+11);
     }
     for(var pi=0;pi<8;pi++){
       var ft=(tt*0.2+pi*0.125)%1;
@@ -2728,8 +2728,8 @@ setInterval(function() {
       var bg=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.6);
       bg.addColorStop(0,'#111122');bg.addColorStop(1,'#06060a');
       ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
-      ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='15px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
-      ctx.fillText((ki+1)+'. '+kgLabels[ki]+' ('+kgNodes.length+' nodes)',w/2,5);
+      ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='18px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillText((ki+1)+'. '+kgLabels[ki]+' ('+kgNodes.length+' nodes)',w/2,6);
       if(kgNodes.length===0){
         ctx.fillStyle='rgba(136,136,136,0.5)';ctx.font='16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
         ctx.fillText('No knowledge nodes yet',w/2,h/2);continue;
@@ -2781,8 +2781,8 @@ setInterval(function() {
         var n=dNodes[ni],pct=(ni+0.5)/dNodes.length;
         var lx=bx+Math.cos(dAngle+0.5)*pct*40,ly=by+Math.sin(dAngle+0.5)*pct*40-16;
         var col=DOMAIN_COLORS[n.domain]||'#888';
-        var r=4+Math.sin(kgt+ni+di)*2;
-        ctx.fillStyle=col;ctx.beginPath();ctx.arc(lx,ly,r*3,0,Math.PI*2);ctx.fill();
+        var r=6+Math.sin(kgt+ni+di)*3;
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(lx,ly,r*3.5,0,Math.PI*2);ctx.fill();
         if(n.label&&pct>0.4){
           ctx.fillStyle='rgba(200,200,200,0.4)';ctx.font='7px sans-serif';
           ctx.textAlign='center';ctx.fillText(n.label,lx,ly+10);
@@ -2820,16 +2820,16 @@ setInterval(function() {
       var col=DOMAIN_COLORS[dNames[di]]||'#888';
       ctx.beginPath();ctx.arc(cx,cy,orbitR,0,Math.PI*2);
       ctx.strokeStyle='rgba(80,80,120,'+(0.06+di*0.03)+')';ctx.lineWidth=0.7;ctx.stroke();
-      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,7,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(px-2,py-2,2.5,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
-      ctx.fillText(dNames[di].substring(0,5),px,py+8);
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,10,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(px-3,py-3,3.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillText(dNames[di].substring(0,5),px,py+12);
       var moons=domains[dNames[di]];
       for(var mi=0;mi<moons.length;mi++){
         var m=moons[mi],mAngle=angle+Math.PI/2+(mi/moons.length)*Math.PI*2+kgt*0.5;
-        var mR=10+mi*6;
+        var mR=14+mi*8;
         var mx=px+Math.cos(mAngle)*mR,my=py+Math.sin(mAngle)*mR;
-        ctx.fillStyle=col;ctx.beginPath();ctx.arc(mx,my,3.5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(mx,my,5,0,Math.PI*2);ctx.fill();
       }
     }
   }
@@ -2862,7 +2862,7 @@ setInterval(function() {
         var ia=(ni/innerNodes.length)*Math.PI*2+kgt*0.3+di;
         var ir=7+ni*5;
         var ix=bx+Math.cos(ia)*ir,iy=by+Math.sin(ia)*ir;
-        var r=3.5+Math.sin(kgt+ni+di)*1.5;
+        var r=5+Math.sin(kgt+ni+di)*2;
         ctx.fillStyle=col;ctx.beginPath();ctx.arc(ix,iy,r*(1+n.importance),0,Math.PI*2);ctx.fill();
         ctx.fillStyle='rgba(255,255,255,0.1)';
         ctx.beginPath();ctx.arc(ix-r*0.2,iy-r*0.2,r*0.3,0,Math.PI*2);ctx.fill();
@@ -3373,6 +3373,7 @@ _dbg('Starting demo mode...');
   _dbg('Demo mode active');
   document.getElementById('status-text').textContent = 'Demo Mode';
   generateDemoTraces();
+  if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
 })();
 
 loadCheckpoints();
