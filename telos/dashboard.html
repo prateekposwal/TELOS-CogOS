@@ -2265,16 +2265,17 @@ function drawKnowledgeGraph(canvas) {
   // Draw nodes (far to near) — with breathing animation
   const sorted = [...projected].sort((a, b) => a.depth - b.depth);
   const time = state.time || 0;
-  const floatX = Math.sin(time * 0.3 + (node.y || 0) * 2) * 1.5;
-  const floatY = Math.cos(time * 0.4 + (node.x || 0) * 2) * 1.5;
 
   for (const node of sorted) {
     const color = DOMAIN_COLORS[node.domain] || DOMAIN_COLORS['general'];
     const pulse = 0.75 + Math.sin(time * 2.5 + (node.x || 0) * 4 + (node.y || 0) * 3) * 0.25;
     const r = Math.max(2, node.size * pulse);
-    // Gentle floating
-    node.px += (floatX - (node.floatOffX || 0)) * 0.02;
-    node.py += (floatY - (node.floatOffY || 0)) * 0.02;
+    // Gentle floating — each node gets its own offset
+    const floatX = Math.sin(time * 0.3 + (node.y || 0) * 2) * 1.5;
+    const floatY = Math.cos(time * 0.4 + (node.x || 0) * 2) * 1.5;
+    if (!node.floatOffX) { node.floatOffX = floatX; node.floatOffY = floatY; }
+    node.px += (floatX - node.floatOffX) * 0.02;
+    node.py += (floatY - node.floatOffY) * 0.02;
     node.floatOffX = floatX;
     node.floatOffY = floatY;
 
