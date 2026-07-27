@@ -2201,19 +2201,12 @@ function drawKnowledgeGraph(canvas) {
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (kgNoData) {
-      ctx.fillText('📭 No knowledge data available', w/2, h/2 - 12);
-      ctx.fillStyle = '#555';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('API returned no nodes', w/2, h/2 + 10);
-    } else {
-      ctx.fillText('🌀 Waiting for knowledge data...', w/2, h/2 - 12);
-      ctx.fillStyle = '#555';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('fetch /api/knowledge', w/2, h/2 + 10);
-    }
+    ctx.fillText('🌀 No knowledge nodes yet', w/2, h/2);
     return;
   }
+  // Show KG is active
+  ctx.fillStyle = 'rgba(100,200,255,0.03)';
+  ctx.fillRect(0, 0, w, h);
 
   // Run gentle continuous forces
   simulateKnowledgeForces(false);
@@ -2261,6 +2254,15 @@ function drawKnowledgeGraph(canvas) {
     ctx.stroke();
     ctx.shadowBlur = 0;
   }
+
+  // Debug: show KG is rendering
+  ctx.fillStyle = 'rgba(100,200,255,0.05)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#555';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('KG: ' + kgNodes.length + ' nodes', 10, 10);
 
   // Draw nodes (far to near) — with breathing animation
   const sorted = [...projected].sort((a, b) => a.depth - b.depth);

@@ -39,6 +39,14 @@ function initBrain() {
 
   resizeBrain();
   window.addEventListener('resize', resizeBrain);
+  
+  // Show brain is active
+  ctx.fillStyle = '#0f0f18';
+  ctx.fillRect(0, 0, brainW, brainH);
+  ctx.fillStyle = '#555';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('🧠 Cognitive Pipeline', brainW/2, 20);
 
   const count = PHASE_NAMES_BRAIN.length;
   for (let i = 0; i < count; i++) {
