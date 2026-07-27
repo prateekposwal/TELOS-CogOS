@@ -2177,36 +2177,107 @@ const DOMAIN_COLORS = {
   'system': '#94a3b8',
 };
 
-// Brain canvas rendering (moved to top to avoid execution issues)
+// Brain canvas — animated neural flow (biological wave trajectories)
 (function(){
   var bc = document.getElementById('brain-canvas');
   if (!bc) return;
   var ctx = bc.getContext('2d');
   if (!ctx) return;
-  bc.width = bc.clientWidth || 260;
-  bc.height = bc.clientHeight || 300;
-  ctx.fillStyle = '#4ade80';
-  ctx.fillRect(0, 0, bc.width, bc.height);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 20px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('🧠 REDACTED Cognitive Pipeline', bc.width/2, 30);
   var phases = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
   var colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
-  var cx = bc.width/2, cy = bc.height/2 + 20, r = Math.min(bc.width, bc.height) * 0.25;
-  for (var i = 0; i < phases.length; i++) {
-    var a = (i / phases.length) * Math.PI * 2 - Math.PI/2;
-    var px = cx + Math.cos(a) * r;
-    var py = cy + Math.sin(a) * r * 0.7;
-    ctx.fillStyle = colors[i];
-    ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ddd';
-    ctx.font = 'bold 8px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(phases[i], px, py + 18);
+  var phaseColors = colors;
+  var t = 0;
+  function resize(){
+    bc.width = bc.clientWidth || 260;
+    bc.height = bc.clientHeight || 300;
   }
-  var bd = document.getElementById('brain-debug');
-  if (bd) bd.textContent = '✅ Brain: ' + phases.length + ' phases';
+  function draw(){
+    resize();
+    t += 0.018;
+    var cx = bc.width/2, cy = bc.height/2 + 24;
+    var R = Math.min(bc.width, bc.height) * 0.26;
+    // Dark organic background
+    var bg = ctx.createRadialGradient(cx, cy-20, 0, cx, cy, R*1.6);
+    bg.addColorStop(0, '#111122');
+    bg.addColorStop(1, '#06060a');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, bc.width, bc.height);
+    // Title
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🧠 REDACTED — Conscious Pipeline', cx, 22);
+    // Slow breathing wave on orbit path (two harmonics)
+    for (var w = 0; w < 2; w++){
+      ctx.beginPath();
+      for (var a = 0; a <= Math.PI*2; a += 0.04){
+        var wave = Math.sin(a*(4+w) + t*(2+w) + w*2)*3 + Math.sin(a*7 + t*3)*2;
+        var wx = cx + Math.cos(a)*(R + wave);
+        var wy = cy + Math.sin(a)*(R*0.68 + wave*0.68);
+        a === 0 ? ctx.moveTo(wx,wy) : ctx.lineTo(wx,wy);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = w === 0
+        ? 'rgba(74,222,128,'+(0.10+0.07*Math.sin(t))+')'
+        : 'rgba(96,165,250,'+(0.07+0.05*Math.sin(t+1))+')';
+      ctx.lineWidth = w === 0 ? 2 : 1.2;
+      ctx.stroke();
+    }
+    // Energy pulses traveling along connections (synaptic fire)
+    for (var i = 0; i < phases.length; i++){
+      var a1 = (i/phases.length)*Math.PI*2 - Math.PI/2;
+      var px1 = cx + Math.cos(a1)*R, py1 = cy + Math.sin(a1)*R*0.68;
+      var a2 = ((i+1)/phases.length)*Math.PI*2 - Math.PI/2;
+      var px2 = cx + Math.cos(a2)*R, py2 = cy + Math.sin(a2)*R*0.68;
+      // Connection line
+      ctx.beginPath(); ctx.moveTo(px1,py1); ctx.lineTo(px2,py2);
+      ctx.strokeStyle = 'rgba(80,130,220,'+(0.08+0.12*Math.sin(t*0.6+i))+')';
+      ctx.lineWidth = 1; ctx.stroke();
+      // Traveling pulse
+      var tr = (t*0.4 + i/phases.length) % 1;
+      var ex = px1 + (px2-px1)*tr, ey = py1 + (py2-py1)*tr;
+      ctx.beginPath(); ctx.arc(ex,ey,3*(1-Math.abs(tr-0.5)*2),0,Math.PI*2);
+      ctx.fillStyle = 'rgba(180,220,255,'+(0.7*(1-Math.abs(tr-0.5)*2))+')';
+      ctx.fill();
+    }
+    // Draw phase nodes with neural pulse
+    for (var i = 0; i < phases.length; i++){
+      var a = (i/phases.length)*Math.PI*2 - Math.PI/2 + Math.sin(t*0.25+i*0.8)*0.015;
+      var px = cx + Math.cos(a)*R, py = cy + Math.sin(a)*R*0.68;
+      var pulse = 7 + 4*Math.sin(t*1.8 + i*1.3);
+      // Outer glow (neural aura)
+      var g = ctx.createRadialGradient(px,py,0,px,py,pulse*4);
+      g.addColorStop(0, phaseColors[i]+'55');
+      g.addColorStop(1,'transparent');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(px,py,pulse*4,0,Math.PI*2); ctx.fill();
+      // Core
+      ctx.fillStyle = phaseColors[i];
+      ctx.beginPath(); ctx.arc(px,py,pulse,0,Math.PI*2); ctx.fill();
+      // Highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.beginPath(); ctx.arc(px-pulse*0.2,py-pulse*0.2,pulse*0.3,0,Math.PI*2); ctx.fill();
+      // Label
+      ctx.fillStyle = '#bbb';
+      ctx.font = 'bold 7px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(phases[i], px, py+13);
+    }
+    // Floating cellular particles
+    for (var i = 0; i < 20; i++){
+      var pa = (t*0.2 + i*0.35) % (Math.PI*2);
+      var pr = R*0.3 + R*0.5*Math.sin(t*0.4+i*1.7);
+      var px = cx + Math.cos(pa)*pr, py = cy + Math.sin(pa)*pr*0.68;
+      var sz = Math.max(0.5, Math.sin(t+i*1.3)*1.2);
+      ctx.beginPath(); ctx.arc(px,py,sz,0,Math.PI*2);
+      ctx.fillStyle = 'rgba(150,200,255,'+(0.06+0.06*Math.sin(t*1.5+i))+')';
+      ctx.fill();
+    }
+    var bd = document.getElementById('brain-debug');
+    if (bd) bd.textContent = '🧠 Neural pipeline — '+(t*10).toFixed(0)+' ticks';
+    requestAnimationFrame(draw);
+  }
+  draw();
 })();
 
 // Auto-refresh and learning ticker (moved here to avoid execution issue)
