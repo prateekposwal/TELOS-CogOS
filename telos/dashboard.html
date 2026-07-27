@@ -2271,12 +2271,6 @@ function drawKnowledgeGraph(canvas) {
   const sorted = [...projected].sort((a, b) => a.depth - b.depth);
   const time = state.time || 0;
 
-  // Draw a test dot at center to verify canvas works
-  ctx.fillStyle = '#ff0000';
-  ctx.beginPath();
-  ctx.arc(w/2, h/2, 20, 0, Math.PI * 2);
-  ctx.fill();
-
   for (const node of sorted) {
     // Skip invalid positions
     if (isNaN(node.px) || isNaN(node.py) || node.persp <= 0) continue;
@@ -2292,38 +2286,13 @@ function drawKnowledgeGraph(canvas) {
     node.floatOffX = floatX;
     node.floatOffY = floatY;
 
-    // Test dot — draw a visible red dot at each node position
-    ctx.fillStyle = '#ff4444';
+    // Draw solid node circle
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.8;
     ctx.beginPath();
-    ctx.arc(node.px, node.py, 3, 0, Math.PI * 2);
+    ctx.arc(node.px, node.py, Math.max(2, r * 0.8), 0, Math.PI * 2);
     ctx.fill();
-
-    // Outer glow
-    const grad = ctx.createRadialGradient(node.px, node.py, 0, node.px, node.py, r * 5);
-    grad.addColorStop(0, color + '55');
-    grad.addColorStop(0.4, color + '22');
-    grad.addColorStop(1, color + '00');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(node.px, node.py, r * 5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Body (sphere)
-    const bodyGrad = ctx.createRadialGradient(
-      node.px - r * 0.25, node.py - r * 0.25, 0,
-      node.px, node.py, r
-    );
-    bodyGrad.addColorStop(0, `rgba(255,255,255,${0.7 * pulse})`);
-    bodyGrad.addColorStop(0.25, color);
-    bodyGrad.addColorStop(0.7, color + 'aa');
-    bodyGrad.addColorStop(1, color + '66');
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath();
-    ctx.arc(node.px, node.py, r, 0, Math.PI * 2);
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 18 * pulse;
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1.0;
 
     // Label
     if (node.label && node.persp > 0.15) {

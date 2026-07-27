@@ -43,10 +43,13 @@ function initBrain() {
   // Show brain is active
   ctx.fillStyle = '#0f0f18';
   ctx.fillRect(0, 0, brainW, brainH);
-  ctx.fillStyle = '#555';
-  ctx.font = '12px monospace';
+  ctx.fillStyle = '#4ade80';
+  ctx.font = 'bold 14px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('🧠 Cognitive Pipeline', brainW/2, 20);
+  ctx.fillText('🧠 Aviku — Cognitive Pipeline', brainW/2, 20);
+  ctx.fillStyle = '#888';
+  ctx.font = '10px monospace';
+  ctx.fillText('Initialized • ' + brainW + 'x' + brainH, brainW/2, 36);
 
   const count = PHASE_NAMES_BRAIN.length;
   for (let i = 0; i < count; i++) {
