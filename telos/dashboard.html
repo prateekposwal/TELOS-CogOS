@@ -2643,8 +2643,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── Animation Loop ───
+var _animCounter = 0;
  function animate() {
    state.time += 0.016;
+   _animCounter++;
+   if (_animCounter === 1) _dbg('Animation started');
+   if (_animCounter === 60) _dbg('Animation running (' + kgNodes.length + ' KG nodes)');
    state.animT = Math.min(1, state.animT + 0.025);
    const e = 1 - Math.pow(1 - state.animT, 3);
    state.animPos[0] = state.prevPos[0] + (state.position[0] - state.prevPos[0]) * e;
@@ -2810,10 +2814,13 @@ function generateDemoTraces() {
 }
 
 
+// ─── Debug console logger ───
+var _dbg = function(msg) { console.log('[TELOS]', msg); try { var e = document.getElementById('debug-log'); if (e) e.textContent = msg; } catch(ex) {} };
+
 // ─── Boot ───
-// Start generating demo traces immediately so GridWorld moves right away
+_dbg('Starting demo mode...');
 (function bootDemo() {
-  console.log('[TELOS] Starting demo mode');
+  _dbg('Demo mode active');
   document.getElementById('status-text').textContent = 'Demo Mode';
   generateDemoTraces();
 })();
@@ -2843,6 +2850,7 @@ setInterval(() => {
 
 // Populate KG immediately with demo data so it's never blank
 try {
+  _dbg('Boot KG...');
   (function bootKG() {
     const demo = generateDemoKnowledge();
     if (demo && demo.nodes && demo.nodes.length > 0) {
@@ -2863,23 +2871,27 @@ try {
       }
       const nc = document.getElementById('node-count');
       if (nc) nc.textContent = `${kgNodes.length} nodes`;
-      console.log('[TELOS] KG boot: ' + kgNodes.length + ' nodes');
+      _dbg('KG boot: ' + kgNodes.length + ' nodes');
+    } else {
+      _dbg('KG boot: no demo data');
     }
   })();
 } catch (e) {
   console.warn('[TELOS] KG boot error:', e);
+  _dbg('KG ERROR: ' + e.message);
 }
 // Brain viz — force load and init
 (function loadBrain() {
+  _dbg('Loading brain viz...');
   const bs = document.createElement('script');
   bs.src = '/aviku-brain.js?v=' + Date.now();
   bs.onload = () => {
-    console.log('[TELOS] Brain viz loaded');
-    if (window.initBrain) setTimeout(window.initBrain, 50);
+    _dbg('Brain viz loaded, initializing...');
+    if (window.initBrain) { setTimeout(() => { window.initBrain(); _dbg('Brain init done'); }, 50); }
     const orig = applyTrace;
     applyTrace = function(t) { orig(t); if (window.visualizeTrace) setTimeout(() => window.visualizeTrace(t), 50); };
   };
-  bs.onerror = () => console.warn('[TELOS] Brain viz failed to load');
+  bs.onerror = () => { console.warn('[TELOS] Brain viz failed to load'); _dbg('Brain viz FAILED'); };
   document.head.appendChild(bs);
 })();
 
@@ -2923,5 +2935,8 @@ setInterval(() => {
   text-shadow:0 0 10px rgba(0,0,0,0.8);transition:opacity 0.5s;">
   🌀 System idle — waiting for data...
 </div>
+<div id="debug-log" style="position:fixed;bottom:35px;left:50%;transform:translateX(-50%);
+  color:#444;font-size:10px;z-index:500;text-align:center;pointer-events:none;
+  max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
 </body>
 </html>
