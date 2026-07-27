@@ -616,6 +616,16 @@ class TelosV14Pipeline:
                     self._telemetry.record_phase_failure(phase.name, str(e))
                 break
 
+            if phase.name == "simulate":
+                try:
+                    if hasattr(ctx, 'sim_options') and ctx.sim_options:
+                        tb = self._theory_builder
+                        for opt in ctx.sim_options[:5]:
+                            tb.observe_outcome(outcome=getattr(opt, 'score', 0.5),
+                                               context=str(getattr(opt, 'trajectory', ''))[:80])
+                except Exception:
+                    pass
+
             # ── Compute resource budgets after STREAMS phase (before Evaluate) ──
             if phase.name == "streams":
                 ctx.resource_budgets = self._compute_resource_budgets(ctx)
@@ -677,6 +687,19 @@ class TelosV14Pipeline:
                                 f"AutonomousExplorer: '{g.description[:40]}'"
                             )
 
+            if phase.name == "streams":
+                try:
+                    iu = self._identity_utility
+                    profile = iu.active_profile
+                    if profile is not None:
+                        iu.compute_utility(dimension_scores={
+                            "exploration": getattr(ctx, 'curiosity_bonus', 0.5),
+                            "correctness": 0.5, "safety": 0.5,
+                            "efficiency": 0.5, "coherence": 0.5,
+                        }, identity_markers=list(profile.identity_markers)[:3] if hasattr(profile, 'identity_markers') else None)
+                except Exception:
+                    pass
+
             # ── Law of Attention: Project attention after PERCEIVE phase ──
             if phase.name == "perceive":
                 alloc = getattr(ctx, 'attention_allocation', None)
@@ -706,6 +729,12 @@ class TelosV14Pipeline:
                 except Exception:
                     pass
 
+            if phase.name == "perceive":
+                try:
+                    self._assumption_auditor.auto_audit(ctx.cycle_count)
+                except Exception:
+                    pass
+
             # ── Bitcoin-inspired Decision Timelock: Apply penalties after EVALUATE ──
             if phase.name == "evaluate":
                 self._apply_timelock_penalties(ctx)
@@ -719,6 +748,19 @@ class TelosV14Pipeline:
                             confidence=ctx.selected_intent.confidence,
                             outcome=not (ctx.council_blocked or ctx.firewall_blocked),
                         )
+                except Exception:
+                    pass
+
+            if phase.name == "evaluate":
+                try:
+                    iu = self._identity_utility
+                    profile = iu.active_profile
+                    if profile is not None:
+                        conf = ctx.selected_intent.confidence if ctx.selected_intent else 0.5
+                        iu.compute_utility(dimension_scores={
+                            "exploration": 0.5, "correctness": conf,
+                            "safety": 0.6, "efficiency": 0.4, "coherence": 0.5,
+                        }, identity_markers=list(profile.identity_markers)[:3] if hasattr(profile, 'identity_markers') else None)
                 except Exception:
                     pass
 
@@ -797,6 +839,25 @@ class TelosV14Pipeline:
                     ctx._mempool_intent_id = intent_id
                     logger.debug(f"Mempool: submitted intent {intent_id} for council review")
 
+            if phase.name == "select":
+                try:
+                    if ctx.selected_intent:
+                        alts = [o.get("intent_type", "unknown") for o in getattr(ctx, 'sim_options', [])[:3]]
+                        rs = self._regret_memory.get_regret_scores(
+                            chosen_intent=ctx.selected_intent.intent_type, alternatives=alts)
+                        if rs: ctx.regret_scores = rs
+                except Exception:
+                    pass
+
+            if phase.name == "select":
+                try:
+                    if ctx.selected_intent:
+                        self._interpretation_engine.record_outcome(
+                            conflict_id=f"cycle_{ctx.cycle_count}",
+                            outcome_quality=ctx.selected_intent.confidence)
+                except Exception:
+                    pass
+
             # ── Confirm/reject from mempool after council phase ──
             if phase.name == "council":
                 intent_id = getattr(ctx, '_mempool_intent_id', None)
@@ -806,6 +867,20 @@ class TelosV14Pipeline:
                     else:
                         reason = getattr(ctx.verdict, 'blocking_reason', 'council_blocked') if ctx.verdict else 'council_blocked'
                         self._mempool.reject(intent_id, reason=reason)
+
+            if phase.name == "council":
+                try:
+                    signals = []
+                    if ctx.verdict:
+                        for s in ctx.verdict.signals:
+                            signals.append({"validator_name": s.validator_name, "passed": s.passed,
+                                            "confidence": s.confidence, "reason": s.reason,
+                                            "evidence_weight": getattr(s, 'evidence_weight', 0.5)})
+                    wb = getattr(ctx, 'council_blocked', False)
+                    self._council_reflector.record_decision(was_blocked=wb, predicted_block=wb,
+                                                            actual_block=wb, validator_signals=signals)
+                except Exception:
+                    pass
 
             # ── Law of Attention: Record trajectory after ACT phase ──
             if phase.name == "act":
@@ -841,6 +916,14 @@ class TelosV14Pipeline:
                             alternatives=[o.get("intent_type", "unknown") for o in getattr(ctx, 'sim_options', [])[:3]],
                             outcome=outcome_success,
                         )
+                except Exception:
+                    pass
+
+                try:
+                    wb = ctx.council_blocked or ctx.firewall_blocked
+                    if wb:
+                        self._error_attribution.attribute(ctx=ctx, trace=None,
+                            stream_activations=getattr(ctx, 'stream_activations', []))
                 except Exception:
                     pass
 
@@ -1214,6 +1297,21 @@ class TelosV14Pipeline:
                         f"self_intent={curiosity_report['self_intent_active']}"
                     )
 
+
+            if phase.name == "reflect":
+                try:
+                    due = self._introspection_scheduler.get_due_tiers(ctx.cycle_count)
+                    self._introspection_scheduler.introspect(ctx.cycle_count)
+                except Exception:
+                    pass
+                try:
+                    di = ctx.verdict.decision_integrity if ctx.verdict else 0.0
+                    md = ctx.verdict.mission_drift if ctx.verdict else 0.0
+                    wb = getattr(ctx, 'council_blocked', False) or getattr(ctx, 'firewall_blocked', False)
+                    self._axiom_evolution.observe(cycle=ctx.cycle_count, di=di, md=md,
+                        was_blocked=wb, council_signals=[], stream_activations={}, identity_state={})
+                except Exception:
+                    pass
 
             if getattr(ctx, 'governance_blocked', False) and phase.name not in ("act", "reflect"):
                 continue
