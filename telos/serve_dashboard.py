@@ -367,9 +367,13 @@ def broadcast_trace_sync(trace_dict: dict):
 
 # ─── Main ───
 def run_http():
-    server = HTTPServer(('0.0.0.0', HTTP_PORT), DashboardHandler)
-    logger.info(f"📊 TELOS Dashboard → http://localhost:{HTTP_PORT}")
-    server.serve_forever()
+    try:
+        server = HTTPServer(('0.0.0.0', HTTP_PORT), DashboardHandler)
+        logger.info(f"📊 TELOS Dashboard → http://localhost:{HTTP_PORT}")
+        server.serve_forever()
+    except OSError as e:
+        logger.warning(f"Port {HTTP_PORT} in use — dashboard may already be running")
+        logger.info(f"   Try: http://localhost:{HTTP_PORT}")
 
 async def main():
     global _ws_loop
@@ -377,9 +381,15 @@ async def main():
     http_thread = Thread(target=run_http, daemon=True)
     http_thread.start()
     
-    async with websockets.serve(ws_handler, '0.0.0.0', WS_PORT):
-        logger.info(f"   WebSocket → ws://localhost:{WS_PORT}")
-        await asyncio.Future()
+    try:
+        async with websockets.serve(ws_handler, '0.0.0.0', WS_PORT):
+            logger.info(f"   WebSocket → ws://localhost:{WS_PORT}")
+            await asyncio.Future()
+    except OSError as e:
+        logger.warning(f"Port {WS_PORT} in use — WebSocket may already be running")
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Dashboard server stopped")
