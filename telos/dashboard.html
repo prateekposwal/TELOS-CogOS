@@ -2810,6 +2810,13 @@ function generateDemoTraces() {
 
 
 // ─── Boot ───
+// Start generating demo traces immediately so GridWorld moves right away
+(function bootDemo() {
+  console.log('[TELOS] Starting demo mode');
+  document.getElementById('status-text').textContent = 'Demo Mode';
+  generateDemoTraces();
+})();
+
 loadCheckpoints();
 pollCheckpoints();
 connectWebSocket();
@@ -2817,21 +2824,21 @@ setInterval(pollCheckpoints, 5000);
 fetchKnowledge();
 setInterval(fetchKnowledge, 30000);
 
-// Load demo traces after 3s to show all features (Agent2, score, terrain changes, etc.)
-let _demoTimer = setTimeout(() => {
-  console.log('[TELOS] Loading demo traces with all features');
-  document.getElementById('status-text').textContent = 'Demo Mode';
-  state.traces = [];  // Clear any stale checkpoints without Agent2/score data
-  state.diHistory = [];
-  state.mdHistory = [];
-  state.cycleLabels = [];
-  state.visited = [];
-  state.position = [0, 0];
-  state.animPos = [0, 0];
-  state.prevPos = [0, 0];
-  state.animT = 0;
-  generateDemoTraces();
-}, 1500);
+// Refresh demo traces periodically to keep agents moving
+setInterval(() => {
+  if (state.traces.length > 0 && state.traces.length % 8 === 0) {
+    state.traces = [];
+    state.diHistory = [];
+    state.mdHistory = [];
+    state.cycleLabels = [];
+    state.visited = [];
+    state.position = [0, 0];
+    state.animPos = [0, 0];
+    state.prevPos = [0, 0];
+    state.agent2Pos = [4, 0];
+    generateDemoTraces();
+  }
+}, 12000);
 
 // Also show demo KG if real KG never arrives
 let _kgDemoTimer = setTimeout(() => {
