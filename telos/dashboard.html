@@ -128,6 +128,53 @@
   }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+
+  .resource-gauge { margin-top:4px; }
+  .resource-gauge .rg-row { display:flex; align-items:center; gap:6px; font-size:11px; color:#888; margin-bottom:4px; }
+  .resource-gauge .rg-row .rg-label { min-width:52px; font-weight:600; }
+  .resource-gauge .rg-row .rg-bar { flex:1; height:8px; background:#1e1e2e; border-radius:4px; overflow:hidden; }
+  .resource-gauge .rg-row .rg-bar .rg-fill { height:100%; border-radius:4px; transition:width 0.8s ease; }
+  .resource-gauge .rg-row .rg-val { min-width:32px; text-align:right; font-family:monospace; color:#555; }
+
+  .health-meter-wrap { display:flex; align-items:center; gap:10px; }
+  .health-meter-wrap canvas { flex-shrink:0; }
+  .health-meter-wrap .hm-info { flex:1; }
+  .health-meter-wrap .hm-info .hm-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#666; font-weight:700; }
+  .health-meter-wrap .hm-info .hm-val { font-size:22px; font-weight:800; color:#fff; }
+  .health-meter-wrap .hm-info .hm-sub { font-size:11px; color:#888; }
+
+  .minimap-wrap { position:relative; display:flex; justify-content:center; }
+  .minimap-wrap canvas { border-radius:6px; border:1px solid #1e1e2e; }
+
+  .fullscreen-btn { position:absolute; top:4px; right:4px; background:rgba(30,30,46,0.6); border:1px solid #1e1e2e; border-radius:4px; color:#888; font-size:10px; padding:2px 6px; cursor:pointer; z-index:10; }
+  .fullscreen-btn:hover { background:#2a2a3e; color:#fff; }
+
+  .phase-detail-panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#1a1a2e; border:1px solid #2a2a3e; border-radius:12px; padding:20px; z-index:999; min-width:320px; max-width:420px; display:none; box-shadow:0 0 40px rgba(0,0,0,0.8); }
+  .phase-detail-panel h3 { font-size:16px; margin-bottom:12px; }
+  .phase-detail-panel .pd-row { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; color:#aaa; border-bottom:1px solid #1e1e2e; }
+  .phase-detail-panel .pd-close { position:absolute; top:8px; right:12px; font-size:18px; color:#666; cursor:pointer; }
+  .phase-detail-panel .pd-close:hover { color:#fff; }
+
+  .theme-light { background: #f0f0f5 !important; color: #1a1a2e !important; }
+  .theme-light .sidebar { background: #e8e8f0 !important; border-color: #ccc !important; }
+  .theme-light .main { background: #f5f5fa !important; }
+  .theme-light .metric-card { background: #fff !important; border-color: #ddd !important; }
+  .theme-light .metric-card .value { color: #1a1a2e !important; }
+  .theme-light .stream-bar { color: #555 !important; }
+  .theme-light .council-item { background: #fff !important; color: #555 !important; }
+  .theme-light .grid-panel { background: #f0f0f5 !important; border-color: #ddd !important; }
+  .theme-light .pipeline-panel { background: #f0f0f5 !important; border-color: #ddd !important; }
+  .theme-light .chart-panel { background: #f0f0f5 !important; border-color: #ddd !important; }
+  .theme-light .brain-panel { background: #f0f0f5 !important; border-color: #ddd !important; }
+  .theme-light .knowledge-panel { background: #f0f0f5 !important; border-color: #ddd !important; }
+  .theme-light .memory-panel { background: #f0f0f5 !important; border-color: #ddd !important; }
+  .theme-light .chat-panel { background: #f0f0f5 !important; border-color: #ddd !important; }
+  .theme-light .log-panel { background: #f0f0f5 !important; border-color: #ddd !important; }
+  .theme-light .timeline-bar { background: #fff !important; border-color: #ddd !important; }
+  .theme-light .phase-detail-panel { background: #fff !important; border-color: #ccc !important; color: #1a1a2e !important; }
+  .theme-light .phase-detail-panel .pd-row { border-color: #ddd !important; color: #555 !important; }
+  .theme-light .chat-msg.telos { background: #e8e8f0 !important; border-color: #ddd !important; color: #555 !important; }
+  .theme-light .chat-msg.user { background: #d0d0e8 !important; color: #1a1a2e !important; }
 </style>
 <style>
 .health-toggle { position:fixed; top:10px; right:10px; z-index:10000; cursor:pointer;
@@ -227,6 +274,31 @@
     <div class="sub">Competitor status</div>
   </div>
 
+  <div class="metric-card">
+    <div class="label">Resource Gauge</div>
+    <div class="resource-gauge" id="resource-gauge">
+      <div class="rg-row"><span class="rg-label">C_comp</span><div class="rg-bar"><div class="rg-fill" id="rg-comp" style="width:50%;background:#4ade80;"></div></div><span class="rg-val" id="rg-comp-val">50%</span></div>
+      <div class="rg-row"><span class="rg-label">C_mem</span><div class="rg-bar"><div class="rg-fill" id="rg-mem" style="width:50%;background:#60a5fa;"></div></div><span class="rg-val" id="rg-mem-val">50%</span></div>
+      <div class="rg-row"><span class="rg-label">C_bw</span><div class="rg-bar"><div class="rg-fill" id="rg-bw" style="width:50%;background:#fbbf24;"></div></div><span class="rg-val" id="rg-bw-val">50%</span></div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Aesthetic Health κA</div>
+    <div class="health-meter-wrap">
+      <canvas id="health-meter-canvas" width="64" height="64"></canvas>
+      <div class="hm-info">
+        <div class="hm-label">κA Score</div>
+        <div class="hm-val" id="hm-val">—</div>
+        <div class="hm-sub" id="hm-sub">DI proxy</div>
+      </div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Mini-Map</div>
+    <div class="minimap-wrap">
+      <canvas id="minimap-canvas" width="150" height="150"></canvas>
+    </div>
+  </div>
   <div>
     <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;font-weight:700;margin-bottom:4px;">Cognitive Streams</div>
     <div id="streams-container"></div>
@@ -246,10 +318,22 @@
     <button id="btn-cost-view" onclick="toggleCostView()">📊 Costs</button>
     <button id="btn-heat-mode" onclick="toggleHeatMode()">🔥 Heat</button>
     <button id="btn-omega-heat" onclick="toggleOmegaHeatmap()">🌡️ Omega</button>
+    <button id="btn-theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
   </div>
 
-  <div class="brain-panel" style="margin-bottom:10px;">
-    <h3>Aviku - Conscious Pipeline - 2 Visualization Modes</h3>
+  <div id="pipeline-timeline-wrap" style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#12121a;border-radius:8px;border:1px solid #1e1e2e;">
+    <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;font-weight:700;">Pipeline Timeline</span>
+    <div id="pipeline-timeline" style="display:flex;gap:2px;flex:1;height:20px;align-items:center;"></div>
+  </div>
+
+  <div class="brain-panel" style="margin-bottom:10px;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3>Aviku - Conscious Pipeline - 2 Visualization Modes</h3>
+      <div style="display:flex;gap:4px;">
+        <button class="fullscreen-btn" style="position:static;" onclick="toggleBrainFullscreen()">⛶ Full</button>
+        <button class="fullscreen-btn" style="position:static;" id="btn-brain-pause" onclick="toggleBrainPause()">⏸ Pause</button>
+      </div>
+    </div>
     <div id="brain-mode-1" style="margin-bottom:10px;">
       <div style="font-size:12px;color:#888;margin-bottom:4px;">🌀 Neural Orbit - 6 Identity Layers</div>
       <canvas id="brain-orbit" style="display:block;border-radius:8px;width:100%;height:600px;background:#0f0f18;"></canvas>
@@ -299,10 +383,14 @@
   </div>
 
   <div class="bottom-row" style="flex-direction:column;gap:10px;">
-    <div class="knowledge-panel" style="width:100%;flex:none;">
+    <div class="knowledge-panel" style="width:100%;flex:none;position:relative;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <h3 style="margin-bottom:0;">Knowledge Graph - 3 Visualization Modes</h3>
-        <span id="node-count" class="node-count-label">0 nodes</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <span id="node-count" class="node-count-label">0 nodes</span>
+          <button class="fullscreen-btn" style="position:static;" onclick="toggleKGFullscreen()">⛶ Full</button>
+          <button class="fullscreen-btn" style="position:static;" id="btn-kg-pause" onclick="toggleKGPause()">⏸ Pause</button>
+        </div>
       </div>
       <div id="kg-mode-2" style="margin-bottom:10px;">
         <div style="font-size:12px;color:#888;margin-bottom:4px;">1. Knowledge Tree - Domain Branches</div>
@@ -1599,9 +1687,16 @@ function drawAgent2(ctx) {
         size: 1 + Math.random() * 2,
         hue: tt === 'forest' ? 120 : tt === 'desert' ? 40 : 80,
       });
+      }
+    }
+    // Solar ambient star particles
+    for(var sp=0;sp<8;sp++){
+      var sa=kgt*0.3+sp*0.785+state.time*0.002;
+      var sr=20+sp*18+Math.sin(kgt*0.5+sp)*8;
+      var sx2=cx+Math.cos(sa)*sr,sy2=cy+Math.sin(sa)*sr;
+      ctx.fillStyle='rgba(255,255,200,'+(0.04+0.03*Math.sin(kgt+sp))+')';ctx.beginPath();ctx.arc(sx2,sy2,1.2,0,Math.PI*2);ctx.fill();
     }
   }
-}
 
 function drawParticles(ctx) {
   const { hs } = ISO;
@@ -2253,10 +2348,12 @@ var _lastHealthData={di:0.5, compute:{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5
       _co.beginPath(); _co.arc(ex,ey,3*(1-Math.abs(tr-0.5)*2),0,Math.PI*2);
       _co.fillStyle='rgba('+ringClr+','+(0.45*(1-Math.abs(tr-0.5)*2))+')'; _co.fill();
     }
+    _brainPhasePositions=[];
     for(var i=0;i<P.length;i++){
-      var aa=(i/P.length)*Math.PI*2-Math.PI/2+Math.sin(to*0.2+i*0.7)*0.01;
+      var aa=(i/P.length)*Math.PI*2-Math.PI/2+_brainOrbitAngle+Math.sin(to*0.2+i*0.7)*0.01;
       var ppx=cx+Math.cos(aa)*R,ppy=cy+Math.sin(aa)*R*0.75;
       var ia=(i===act),pu=ia?(18+5*Math.sin(to*3))*(0.6+diVal*0.6):(12+4*Math.sin(to*1.5+i*1.1))*(0.6+diVal*0.4);
+      _brainPhasePositions.push({x:ppx,y:ppy,name:P[i],color:C[i],index:i,active:ia,size:pu});
       if(ia){
         var ag=_co.createRadialGradient(ppx,ppy,0,ppx,ppy,pu*5);
         ag.addColorStop(0,C[i]+'77'); ag.addColorStop(1,'transparent');
@@ -2270,6 +2367,24 @@ var _lastHealthData={di:0.5, compute:{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5
       _co.beginPath(); _co.arc(ppx-pu*0.2,ppy-pu*0.2,pu*0.25,0,Math.PI*2); _co.fill();
       _co.fillStyle=ia?'#fff':'#bbb'; _co.font=ia?'bold 12px sans-serif':'11px sans-serif';
       _co.textAlign='center'; _co.fillText(P[i],ppx,ppy+pu+10);
+    }
+    // Draw hover tooltip on orbit phase
+    if(_hoveredPhase>=0&&_hoveredPhase<P.length&&_brainPhasePositions[_hoveredPhase]){
+      var hp=_brainPhasePositions[_hoveredPhase];
+      var hpx=hp.x,hpy=hp.y-24;
+      var hw=140,hh=36;
+      var hx2=Math.max(2,Math.min(w-hw-2,hpx-hw/2));
+      var hy2=Math.max(2,hpy-hh-2);
+      _co.save();
+      _co.shadowColor='rgba(0,0,0,0.5)';_co.shadowBlur=10;
+      _co.fillStyle='rgba(10,10,22,0.92)';_co.strokeStyle='rgba(80,80,140,0.3)';_co.lineWidth=1;
+      roundRect(_co,hx2,hy2,hw,hh,6);_co.fill();_co.stroke();
+      _co.shadowBlur=0;
+      _co.fillStyle='#ddd';_co.font='bold 11px sans-serif';_co.textAlign='left';_co.textBaseline='top';
+      _co.fillText(P[_hoveredPhase],hx2+8,hy2+6);
+      _co.fillStyle='#888';_co.font='10px sans-serif';
+      _co.fillText('DI: '+diVal.toFixed(2)+' | '+P[_hoveredPhase].substring(0,4)+' phase',hx2+8,hy2+22);
+      _co.restore();
     }
 
     // ── Mode 2: Root System ──
@@ -2320,12 +2435,242 @@ var _lastHealthData={di:0.5, compute:{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5
       _ct.beginPath(); _ct.arc(rx+Math.sin(tt+pi*2)*6*ft,ry-ft*trunkH,0.8,0,Math.PI*2);
       _ct.fillStyle='rgba(150,200,255,'+(0.25*(1-ft))+')'; _ct.fill();
     }
+    // Root System ambient particles
+    for(var pi2=0;pi2<6;pi2++){
+      var ft2=(tt*0.15+pi2*0.167+state.time*0.01)%1;
+      var px2=rx+Math.sin(tt*0.3+pi2*2)*cpR*0.6*ft2;
+      var py2=ry-ft2*trunkH*0.7-Math.cos(tt*0.2+pi2)*12*ft2;
+      _ct.beginPath();_ct.arc(px2,py2,1.2+ft2*1.5,0,Math.PI*2);
+      _ct.fillStyle='rgba(150,200,255,'+(0.15*(1-ft2))+')';_ct.fill();
+    }
     var bd=document.getElementById('brain-debug');
     if(bd)bd.textContent='Neural Orbit / Root System - active: '+P[act];
     requestAnimationFrame(draw);
   }
   draw();
 })();
+
+// ─── Global interactive controls for brain orbit ───
+var _brainOrbitAngle=0;
+var _brainPhasePositions=[];
+var _hoveredPhase=-1;
+var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
+(function(){
+  var boc=document.getElementById('brain-orbit');
+  if(!boc)return;
+  boc.addEventListener('mousedown',function(e){
+    _brainDragState.active=true;
+    _brainDragState.startX=e.clientX;
+    _brainDragState.startY=e.clientY;
+    _brainDragState.startAngle=_brainOrbitAngle;
+  });
+  window.addEventListener('mousemove',function(e){
+    if(!_brainDragState.active)return;
+    var dx=e.clientX-_brainDragState.startX;
+    _brainOrbitAngle=_brainDragState.startAngle+dx*0.008;
+  });
+  window.addEventListener('mouseup',function(){_brainDragState.active=false;});
+  boc.addEventListener('mousemove',function(e){
+    var rect=boc.getBoundingClientRect();
+    var mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    var found=-1;
+    for(var i=0;i<_brainPhasePositions.length;i++){
+      var p=_brainPhasePositions[i];
+      var d2=(mx-p.x)*(mx-p.x)+(my-p.y)*(my-p.y);
+      if(d2<1600){found=i;break;}
+    }
+    _hoveredPhase=found;
+  });
+  boc.addEventListener('mouseleave',function(){_hoveredPhase=-1;});
+  boc.addEventListener('click',function(e){
+    var rect=boc.getBoundingClientRect();
+    var mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    for(var i=0;i<_brainPhasePositions.length;i++){
+      var p=_brainPhasePositions[i];
+      var d2=(mx-p.x)*(mx-p.x)+(my-p.y)*(my-p.y);
+      if(d2<1600){
+        showPhaseDetail(P[i],i,diVal);
+        return;
+      }
+    }
+  });
+})();
+
+// ─── Pause/Resume for brain ───
+function toggleBrainPause(){
+  _brainPaused=!_brainPaused;
+  var btn=document.getElementById('btn-brain-pause');
+  if(btn)btn.textContent=_brainPaused?'▶ Play':'⏸ Pause';
+}
+
+// ─── Pause/Resume for KG ───
+var _kgPaused=false;
+function toggleKGPause(){
+  _kgPaused=!_kgPaused;
+  var btn=document.getElementById('btn-kg-pause');
+  if(btn)btn.textContent=_kgPaused?'▶ Play':'⏸ Pause';
+}
+
+// ─── Fullscreen for brain ───
+var _brainFullscreen=false;
+function toggleBrainFullscreen(){
+  _brainFullscreen=!_brainFullscreen;
+  var bp=document.querySelector('.brain-panel');
+  if(!bp)return;
+  if(_brainFullscreen){
+    bp.style.position='fixed';bp.style.top='0';bp.style.left='0';
+    bp.style.width='100vw';bp.style.height='100vh';bp.style.zIndex='1000';
+    bp.style.margin='0';bp.style.borderRadius='0';
+  }else{
+    bp.style.position='';bp.style.top='';bp.style.left='';
+    bp.style.width='';bp.style.height='';bp.style.zIndex='';
+    bp.style.margin='';bp.style.borderRadius='';
+  }
+}
+
+// ─── Fullscreen for KG ───
+var _kgFullscreen=false;
+function toggleKGFullscreen(){
+  _kgFullscreen=!_kgFullscreen;
+  var kp=document.querySelector('.knowledge-panel');
+  if(!kp)return;
+  if(_kgFullscreen){
+    kp.style.position='fixed';kp.style.top='0';kp.style.left='0';
+    kp.style.width='100vw';kp.style.height='100vh';kp.style.zIndex='1000';
+    kp.style.margin='0';kp.style.borderRadius='0';
+  }else{
+    kp.style.position='';kp.style.top='';kp.style.left='';
+    kp.style.width='';kp.style.height='';kp.style.zIndex='';
+    kp.style.margin='';kp.style.borderRadius='';
+  }
+}
+
+// ─── Theme toggle ───
+var _themeDark=true;
+function toggleTheme(){
+  _themeDark=!_themeDark;
+  var body=document.body;
+  if(_themeDark){
+    body.classList.remove('theme-light');
+    document.getElementById('btn-theme-toggle').textContent='🌙 Dark';
+  }else{
+    body.classList.add('theme-light');
+    document.getElementById('btn-theme-toggle').textContent='☀️ Light';
+  }
+}
+
+// ─── Phase detail panel ───
+function showPhaseDetail(phaseName,phaseIndex,di){
+  var panel=document.getElementById('phase-detail-panel');
+  if(!panel)return;
+  document.getElementById('pd-title').textContent='🌀 '+phaseName+' Phase';
+  var trace=state.traces.length>0?state.traces[state.traces.length-1]:null;
+  var cost=trace&&trace.phase_durations_ms?trace.phase_durations_ms[phaseName.toLowerCase()]||'—':'—';
+  var streams=trace&&trace.stream_activations?trace.stream_activations.map(function(s){return s.name;}).join(', '):'—';
+  var mdVal=state.mdHistory.length>0?state.mdHistory[state.mdHistory.length-1].toFixed(2):'—';
+  document.getElementById('pd-body').innerHTML=
+    '<div class="pd-row"><span>DI</span><span>'+(di||'—')+'</span></div>'+
+    '<div class="pd-row"><span>MD</span><span>'+mdVal+'</span></div>'+
+    '<div class="pd-row"><span>Cost</span><span>'+cost+'ms</span></div>'+
+    '<div class="pd-row"><span>Streams</span><span>'+streams+'</span></div>'+
+    '<div class="pd-row"><span>Cycles</span><span>'+state.traces.length+'</span></div>';
+  panel.style.display='block';
+}
+
+// ─── Pipeline Timeline ───
+var PP=['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
+function renderPipelineTimeline(){
+  var container=document.getElementById('pipeline-timeline');
+  if(!container)return;
+  var phases=PP;
+  var doneCount=state.traces.length;
+  container.innerHTML=phases.map(function(p,i){
+    var status=i<doneCount?'done':i===doneCount?'active':'pending';
+    var color=status==='done'?'#4ade80':status==='active'?'#fbbf24':'#2a2a3a';
+    return '<div class="t-dot" style="background:'+color+';width:18px;height:18px;font-size:7px;" title="'+p+': '+status+'">'+
+      (status==='done'?'✓':status==='active'?'▶':'')+'</div>';
+  }).join('');
+}
+
+// ─── Resource Gauge ───
+function animateResourceGauge(){
+  var h=_lastHealthData||{di:0.5,compute:{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5}};
+  var c=h.compute||{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5};
+  var comp=Math.round((c.c_compute||0.5)*100);
+  var mem=Math.round((c.c_memory||0.5)*100);
+  var bw=Math.round((c.c_bandwidth||0.5)*100);
+  var elc=document.getElementById('rg-comp');
+  var elm=document.getElementById('rg-mem');
+  var elb=document.getElementById('rg-bw');
+  if(elc){elc.style.width=comp+'%';elc.style.background=comp>80?'#ff4444':comp>60?'#fbbf24':'#4ade80';}
+  if(elm){elm.style.width=mem+'%';elm.style.background=mem>80?'#ff4444':mem>60?'#fbbf24':'#60a5fa';}
+  if(elb){elb.style.width=bw+'%';elb.style.background=bw>80?'#ff4444':bw>60?'#fbbf24':'#fbbf24';}
+  var vc=document.getElementById('rg-comp-val');
+  var vm=document.getElementById('rg-mem-val');
+  var vb=document.getElementById('rg-bw-val');
+  if(vc)vc.textContent=comp+'%';
+  if(vm)vm.textContent=mem+'%';
+  if(vb)vb.textContent=bw+'%';
+}
+
+// ─── Aesthetic Health Meter ───
+function drawHealthMeter(){
+  var canvas=document.getElementById('health-meter-canvas');
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var w=64,h=64,cx=32,cy=32,r=26;
+  var diVal=state.diHistory.length>0?state.diHistory[state.diHistory.length-1]:0.5;
+  var pulse=Math.sin(state.time*2)*0.1+0.9;
+  var diFrac=diVal*pulse;
+  ctx.clearRect(0,0,w,h);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle='#1e1e2e';ctx.lineWidth=5;ctx.stroke();
+  var startA=-Math.PI/2,endA=startA+diFrac*Math.PI*2;
+  var grad=ctx.createConicGradient?ctx.createConicGradient(startA,cx,cy):null;
+  var clr=diVal>0.8?'#4ade80':diVal>0.5?'#fbbf24':'#ff4444';
+  ctx.beginPath();ctx.arc(cx,cy,r,startA,endA);
+  ctx.strokeStyle=clr;ctx.lineWidth=5;ctx.lineCap='round';ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('κA',cx,cy-3);
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='7px sans-serif';
+  ctx.fillText((diVal*100).toFixed(0)+'%',cx,cy+10);
+  var el=document.getElementById('hm-val');
+  if(el)el.textContent=(diVal*100).toFixed(0)+'%';
+  var sub=document.getElementById('hm-sub');
+  if(sub)sub.textContent=diVal>0.8?'Healthy':diVal>0.5?'Adequate':'Needs attention';
+}
+
+// ─── Mini-map ───
+function drawMinimap(){
+  var canvas=document.getElementById('minimap-canvas');
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var w=150,h=150;
+  ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,w,h);
+  var gs=state.gridSize||5;
+  var cs=Math.floor(w/gs)-2;
+  var ox=Math.floor((w-gs*cs)/2),oy=Math.floor((h-gs*cs)/2);
+  for(var y=0;y<gs;y++){
+    for(var x=0;x<gs;x++){
+      var tt=getTerrainAt(x,y)||'plains';
+      var col={plains:'#2d5a22',forest:'#0d3a18',water:'#0d3a6a',desert:'#a88e4a',mountain:'#5a5a6a',blocked:'#2a1a1a'};
+      ctx.fillStyle=col[tt]||'#2d5a22';
+      ctx.fillRect(ox+x*cs,oy+y*cs,cs,cs);
+      ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=0.5;
+      ctx.strokeRect(ox+x*cs,oy+y*cs,cs,cs);
+    }
+  }
+  // Goal
+  var gx=state.goal[0],gy=state.goal[1];
+  ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(ox+gx*cs+cs/2,oy+gy*cs+cs/2,3,0,Math.PI*2);ctx.fill();
+  // Agent
+  var ax=Math.round(state.animPos[0]),ay=Math.round(state.animPos[1]);
+  ctx.fillStyle='#ff6b6b';ctx.beginPath();ctx.arc(ox+ax*cs+cs/2,oy+ay*cs+cs/2,3,0,Math.PI*2);ctx.fill();
+  // Agent2
+  if(state.agent2Pos){
+    ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(ox+Math.round(state.agent2Pos[0])*cs+cs/2,oy+Math.round(state.agent2Pos[1])*cs+cs/2,2,0,Math.PI*2);ctx.fill();
+  }
+}
 
 // Auto-refresh and learning ticker (moved here to avoid execution issue)
 setTimeout(function() {
@@ -2372,9 +2717,9 @@ setInterval(function() {
     });
   }
   function kgDrawAll(){
-    kgt+=0.02;
+    if(!_kgPaused)kgt+=0.02;
     if(kgNodes.length>0)simulateKnowledgeForces(false);
-    kgRotation+=0.004;
+    if(!_kgPaused)kgRotation+=0.004;
     var proj=kgProject();
     for(var ki=0;ki<kgCanvases.length;ki++){
       kgResize(kgCanvases[ki]);
@@ -2445,6 +2790,12 @@ setInterval(function() {
     }
     ctx.fillStyle='rgba(255,255,255,0.12)';ctx.font='8px sans-serif';
     ctx.textAlign='center';ctx.fillText('Knowledge',rootX,rootY+10);
+    // Tree ambient particles
+    for(var tp=0;tp<5;tp++){
+      var tpct=(kgt*0.1+tp*0.2+state.time*0.005)%1;
+      var tx=rootX+Math.sin(kgt*0.5+tp*2)*60*tpct,tty=rootY+Math.sin(kgt*0.3+tp)*25*tpct-30*tpct;
+      ctx.fillStyle='rgba(74,222,128,'+(0.08*(1-tpct))+')';ctx.beginPath();ctx.arc(tx,tty,1.5+tpct*2,0,Math.PI*2);ctx.fill();
+    }
   }
   // ── 3. Solar System ──
   function kgSolar(ctx,w,h,nodes){
@@ -2932,6 +3283,10 @@ var _animCounter = 0;
    try { renderGrid(); } catch (er) { console.warn('Grid render error:', er); }
    try { renderChart(); } catch (er) { console.warn('Chart render error:', er); }
    // KG drawn by 5-mode rAF loop above
+   try { renderPipelineTimeline(); } catch (er) {}
+   try { animateResourceGauge(); } catch (er) {}
+   try { drawHealthMeter(); } catch (er) {}
+   try { drawMinimap(); } catch (er) {}
    try { spawnParticles(); } catch (er) {}
    requestAnimationFrame(animate);
  }
@@ -3052,5 +3407,10 @@ setInterval(() => {
 <div id="debug-log" style="position:fixed;bottom:35px;left:50%;transform:translateX(-50%);
   color:#444;font-size:10px;z-index:500;text-align:center;pointer-events:none;
   max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+<div class="phase-detail-panel" id="phase-detail-panel">
+  <span class="pd-close" onclick="document.getElementById('phase-detail-panel').style.display='none'">✕</span>
+  <h3 id="pd-title">Phase Detail</h3>
+  <div id="pd-body"></div>
+</div>
 </body>
 </html>
