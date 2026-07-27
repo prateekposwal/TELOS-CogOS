@@ -250,7 +250,7 @@
 
   <div class="brain-panel" style="margin-bottom:10px;">
     <h3>🧠 REDACTED — Cognitive Pipeline</h3>
-    <div id="brain-container"></div>
+    <canvas id="brain-canvas" style="display:block;border-radius:8px;width:100%;height:800px;background:#0f0f18;"></canvas>
     <div id="brain-debug" style="font-size:10px;color:#555;margin-top:4px;text-align:center;"></div>
   </div>
 
@@ -2893,79 +2893,52 @@ try {
 }
 // Test: did we get past bootKG?
 (function() { console.log('[TELOS] Past bootKG'); })();
-// Inline brain visualization — ULTRA simple test first
-(function() {
-  console.log('[TELOS_BRAIN] Test reached');
-  var testDiv = document.createElement('div');
-  testDiv.textContent = '🧠 BRAIN CODE EXECUTING';
-  testDiv.style.cssText = 'position:fixed;top:50%;left:50%;z-index:99999;background:red;color:white;padding:20px;font-size:24px;';
-  document.body.appendChild(testDiv);
-  setTimeout(function() { testDiv.remove(); }, 5000);
-})();
-(function initInlineBrain() {
-  _dbg('Initializing inline brain...');
-  var bc = document.getElementById('brain-container');
+// Inline brain visualization using hardcoded canvas (same approach as KG)
+(function initBrainViz() {
+  var c = document.getElementById('brain-canvas');
   var bdd = document.getElementById('brain-debug');
-  if (!bc) { _dbg('No brain-container found'); return; }
-  // Show debug even if canvas fails
-  if (bdd) bdd.textContent = '✅ Inline brain initializing...';
-  // Create canvas directly with fallback dimensions
-  var bw = Math.max(100, bc.clientWidth || bc.offsetWidth || 260);
-  var bh = Math.max(100, bc.clientHeight || bc.offsetHeight || 200);
-  var c = document.createElement('canvas');
-  c.width = bw; c.height = bh;
-  c.style.width = '100%'; c.style.height = '100%';
-  bc.innerHTML = '';
-  bc.appendChild(c);
+  if (!c) { if (bdd) bdd.textContent = '❌ No canvas'; return; }
+  if (bdd) bdd.textContent = '✅ Canvas found';
   var cx = c.getContext('2d');
-  if (!cx) return;
-  // Simple animated pipeline visualization
+  if (!cx) { if (bdd) bdd.textContent = '❌ No context'; return; }
+  if (bdd) bdd.textContent = '✅ Context OK';
   var phases = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
   var colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
-  function renderPipeline() {
-    requestAnimationFrame(renderPipeline);
+  function render() {
+    requestAnimationFrame(render);
     try {
-    var w = c.width, h = c.height, t = Date.now() / 1000;
-    cx.fillStyle = '#0f0f18';
-    cx.fillRect(0, 0, w, h);
-    // Draw phase nodes in a circle
-    var cx1 = w/2, cy1 = h/2, r = Math.min(w, h) * 0.3;
-    for (var i = 0; i < phases.length; i++) {
-      var a = (i / phases.length) * Math.PI * 2 - Math.PI/2;
-      var px = cx1 + Math.cos(a) * r;
-      var py = cy1 + Math.sin(a) * r * 0.7;
-      var pulse = 0.7 + Math.sin(t * 2 + i) * 0.3;
-      var sz = 8 + Math.sin(t * 3 + i) * 3;
-      // Draw glow
-      var g = cx.createRadialGradient(px, py, 0, px, py, sz * 3);
-      g.addColorStop(0, colors[i] + '44');
-      g.addColorStop(1, colors[i] + '00');
-      cx.fillStyle = g;
-      cx.beginPath(); cx.arc(px, py, sz * 3, 0, Math.PI * 2); cx.fill();
-      // Draw node
-      cx.fillStyle = colors[i];
-      cx.globalAlpha = 0.6 + 0.4 * pulse;
-      cx.beginPath(); cx.arc(px, py, sz, 0, Math.PI * 2); cx.fill();
-      cx.globalAlpha = 1;
-      // Label
-      cx.fillStyle = '#aaa';
-      cx.font = '7px sans-serif';
-      cx.textAlign = 'center';
-      cx.fillText(phases[i], px, py + sz + 10);
-    }
-    if (bdd) bdd.textContent = '🔄 ' + phases.length + ' phases';
-    } catch(e) { /* silent — don't break animation */ }
+      var w = c.width, h = c.height, t = Date.now() / 1000;
+      cx.fillStyle = '#0f0f18';
+      cx.fillRect(0, 0, w, h);
+      var cx1 = w/2, cy1 = h/2, r = Math.min(w, h) * 0.28;
+      for (var i = 0; i < phases.length; i++) {
+        var a = (i / phases.length) * Math.PI * 2 - Math.PI/2;
+        var px = cx1 + Math.cos(a) * r;
+        var py = cy1 + Math.sin(a) * r * 0.7;
+        var pulse = 0.7 + Math.sin(t * 2 + i) * 0.3;
+        var sz = 8 + Math.sin(t * 3 + i) * 3;
+        // Glow
+        var g = cx.createRadialGradient(px, py, 0, px, py, sz * 3);
+        g.addColorStop(0, colors[i] + '44');
+        g.addColorStop(1, colors[i] + '00');
+        cx.fillStyle = g;
+        cx.beginPath(); cx.arc(px, py, sz * 3, 0, Math.PI * 2); cx.fill();
+        // Node
+        cx.fillStyle = colors[i];
+        cx.globalAlpha = 0.6 + 0.4 * pulse;
+        cx.beginPath(); cx.arc(px, py, sz, 0, Math.PI * 2); cx.fill();
+        cx.globalAlpha = 1;
+        // Label
+        cx.fillStyle = '#aaa';
+        cx.font = '7px sans-serif';
+        cx.textAlign = 'center';
+        cx.fillText(phases[i], px, py + sz + 10);
+      }
+    } catch(e) {}
   }
-  renderPipeline();
-  _dbg('Inline brain active: ' + phases.length + ' phases');
-  // Also load REDACTED-brain.js for advanced viz
-  var bs = document.createElement('script');
-  bs.src = '/REDACTED-brain.js?v=' + Date.now();
-  bs.onload = function() {
-    _dbg('REDACTED-brain.js loaded for enhanced viz');
-    if (window.initBrain) window.initBrain();
-  };
-  document.head.appendChild(bs);
+  render();
+  _dbg('Brain viz running');
+  if (bdd) bdd.textContent = '🔄 ' + phases.length + ' phases';
 })();
 
 // — Auto-start auto-refresh after 2 seconds —
