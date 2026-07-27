@@ -130,11 +130,15 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def _load_health_summary(self):
         """Load health score summary from latest benchmark."""
         bm = self._load_benchmark()
-        if "error" in bm:
-            return {"health": "N/A", "system_score": 0, "mission_score": 0}
+        sys_score = bm.get("system_score", {})
+        if isinstance(sys_score, dict):
+            health = sys_score.get("current", 0.5)
+        else:
+            health = sys_score if isinstance(sys_score, (int, float)) else 0.5
         return {
-            "health": bm.get("system_score", 0),
-            "mission": bm.get("mission_score", 0),
+            "health": health,
+            "system_score": health,
+            "mission": bm.get("mission_score", 0.5),
             "cycles": bm.get("cycle", 0) if isinstance(bm, dict) else 0,
         }
 
