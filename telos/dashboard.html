@@ -184,6 +184,7 @@
       System: <span id="system-score">--</span> | 
       Mission: <span id="mission-score">--</span>
       <span class="health-toggle" onclick="toggleHealth()">📊 Health</span>
+      <div id="health-panel" class="health-panel"><div style="text-align:center;padding:20px;color:#666;">Loading health data...</div></div>
     </div>
 
 
@@ -2381,14 +2382,15 @@ async function pollCheckpoints() {
     if (sel) sel.textContent = h.system_score !== undefined ? (h.system_score * 100).toFixed(0) + '%' : '--';
     const mel = document.getElementById('mission-score');
     if (mel) mel.textContent = h.mission !== undefined ? (h.mission * 100).toFixed(0) + '%' : '--';
-    updateHealthPanel(h);
+    if (healthPanelVisible) fetchHealthDetail();
   } catch {}
 }
 
 var healthPanelVisible = false;
 function toggleHealth() {
   healthPanelVisible = !healthPanelVisible;
-  document.getElementById('health-panel').style.display = healthPanelVisible ? 'block' : 'none';
+  var hp = document.getElementById('health-panel');
+  if (hp) hp.style.display = healthPanelVisible ? 'block' : 'none';
   if (healthPanelVisible) fetchHealthDetail();
 }
 async function fetchHealthDetail() {
@@ -2425,10 +2427,7 @@ async function fetchHealthDetail() {
   } catch(e) {}
 }
 function updateHealthPanel() {
-  if (healthPanelVisible) {
-    var hp = document.getElementById('health-panel');
-    if (hp && hp.innerHTML === '') fetchHealthDetail();
-  }
+  if (healthPanelVisible) fetchHealthDetail();
 }
 
 function connectWebSocket() {
