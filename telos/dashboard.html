@@ -2891,21 +2891,38 @@ try {
   console.warn('[TELOS] KG boot error:', e);
   _dbg('KG ERROR: ' + e.message);
 }
-// Brain viz — force load and init
+// Brain viz — force load and init with direct container fallback
 (function loadBrain() {
   _dbg('Loading brain viz...');
+  var bc = document.getElementById('brain-container');
   var bdd = document.getElementById('brain-debug');
-  if (bdd) bdd.textContent = '⏳ Loading aviku-brain.js...';
+  function brainStatus(msg) {
+    if (bdd) bdd.textContent = msg;
+    if (bc) bc.setAttribute('data-status', msg);
+  }
+  brainStatus('⏳ Loading aviku-brain.js...');
   const bs = document.createElement('script');
   bs.src = '/aviku-brain.js?v=' + Date.now();
   bs.onload = () => {
     _dbg('Brain viz loaded, initializing...');
-    if (bdd) bdd.textContent = '✅ Script loaded, initBrain called...';
-    if (window.initBrain) { setTimeout(() => { window.initBrain(); _dbg('Brain init done'); if (bdd) bdd.textContent = '✅ InitBrain complete'; }, 50); }
+    brainStatus('✅ Script loaded');
+    if (window.initBrain) { 
+      try {
+        window.initBrain(); 
+        _dbg('Brain init done'); 
+        brainStatus('✅ Init called');
+      } catch(e) {
+        _dbg('Brain init error: ' + e.message);
+        brainStatus('❌ Init error: ' + e.message);
+      }
+    } else {
+      _dbg('window.initBrain not found');
+      brainStatus('❌ initBrain not found');
+    }
     const orig = applyTrace;
     applyTrace = function(t) { orig(t); if (window.visualizeTrace) setTimeout(() => window.visualizeTrace(t), 50); };
   };
-  bs.onerror = () => { console.warn('[TELOS] Brain viz failed to load'); _dbg('Brain viz FAILED'); if (bdd) bdd.textContent = '❌ Script load FAILED'; };
+  bs.onerror = () => { console.warn('[TELOS] Brain viz failed to load'); _dbg('Brain viz FAILED'); brainStatus('❌ Script load FAILED'); };
   document.head.appendChild(bs);
 })();
 
