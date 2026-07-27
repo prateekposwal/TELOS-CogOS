@@ -58,6 +58,7 @@ class StrategicOption:
     world: Any
     score: float
     rank: int
+    project_id: str = "default"
     horizon: int = 0
     metadata: Dict = field(default_factory=dict)
     probabilistic: Optional[ProbabilisticScore] = None

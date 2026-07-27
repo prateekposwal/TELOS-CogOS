@@ -32,6 +32,9 @@ from telos.core.decision.cognitive_momentum import CognitiveMomentum
 from telos.core.accounting.resource_accounting import ResourceAccountingLayer, ResourceCost
 from telos.core.pipeline_builder import build_components
 from telos.core.pipeline_finalize import run_axiom_prover, run_v2_module_hooks, record_resource_accounting
+from telos.core.project.substrate import ProjectPortfolio
+from telos.core.project.rational_abandonment import AbandonmentGate
+from telos.core.project.strategic_coherence import StrategicCoherence
 from telos.core.streams.implementations import TheoryStream
 from telos.core.resource.gradient import ResourceGradientTracker
 from telos.core.streams.base import CognitiveStream
@@ -215,6 +218,9 @@ class TelosV14Pipeline:
         self._identity_compression = comps['identity_compression']
         self._explanation_compression = comps['explanation_compression']
         self._resource_accounting = comps['resource_accounting']
+        self._project_portfolio = ProjectPortfolio()
+        self._abandonment_gate = AbandonmentGate()
+        self._strategic_coherence = StrategicCoherence()
 
         if self.config.checkpoint_path:
             self._checkpointer = CheckpointManager(
