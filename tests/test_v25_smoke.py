@@ -760,3 +760,57 @@ class TestIdentityCascadeSmoke:
         co = CommitmentOptimizer()
         assert co.is_trajectory_admissible("reflex", identity_core_values=None)
         assert co.is_trajectory_admissible("plan_trajectory")
+
+
+class TestMethodLayerSmoke:
+    def test_method_registration(self):
+        from telos.core.project.method import MethodRegistry
+        mr = MethodRegistry()
+        m = mr.register("Iwasawa", "proj_1", cycle=0)
+        assert m.name == "Iwasawa"
+        assert m.lifecycle.value == "active"
+        assert mr.active_methods()[0].id == m.id
+
+    def test_method_success_rate(self):
+        from telos.core.project.method import MethodRegistry
+        mr = MethodRegistry()
+        m = mr.register("Galois", "proj_1", cycle=0)
+        m.record_attempt(1, succeeded=True)
+        m.record_attempt(2, succeeded=True)
+        m.record_attempt(3, succeeded=True)
+        assert m.success_rate == 1.0
+        assert m.lifecycle.value == "successful"
+
+    def test_method_failure(self):
+        from telos.core.project.method import MethodRegistry
+        mr = MethodRegistry()
+        m = mr.register("BadApproach", "proj_1", cycle=0)
+        for i in range(5):
+            m.record_attempt(i, succeeded=False)
+        assert m.lifecycle.value == "failed"
+        assert mr.failed_methods()[0].id == m.id
+
+    def test_parsimony(self):
+        from telos.core.project.method import MethodRegistry
+        mr = MethodRegistry()
+        mr.register("short", "p1", cycle=0)
+        mr.register("a_very_long_method_name", "p1", cycle=0)
+        p = mr.parsimony_score()
+        assert 0.0 < p <= 1.0
+
+    def test_mission_spawns_project(self):
+        from telos.core.identity.mission import MissionPortfolio
+        from telos.core.project.substrate import ProjectPortfolio
+        mp = MissionPortfolio()
+        pp = ProjectPortfolio()
+        m = mp.create_mission("test", "testing", cycle=0)
+        project = mp.spawn_project(m.id, pp, "child_project", cycle=0)
+        assert project is not None
+        assert project.mission_id == m.id
+        assert m.id in [p.mission_id for p in [project]]
+
+    def test_aesthetic_value_in_formula(self):
+        from telos.core.decision.commitment_optimizer import CommitmentScore
+        s = CommitmentScore(aesthetic_value=0.2)
+        assert s.aesthetic_value == 0.2
+        assert s.commitment > 0.0

@@ -34,6 +34,7 @@ class Mission:
     urgency: float = 0.0
     identity_core_alignment: float = 1.0
     project_ids: List[str] = field(default_factory=list)
+    method_ids: List[str] = field(default_factory=list)
 
     @property
     def is_active(self) -> bool:
@@ -85,6 +86,20 @@ class MissionPortfolio:
 
     def all_missions(self) -> List[Mission]:
         return list(self._missions.values())
+
+    def spawn_project(self, mission_id: str, project_portfolio,
+                      name: str, cycle: int) -> Optional[object]:
+        """Mission -> spawns a Project. Connects Layer 3 to Layer 4."""
+        mission = self._missions.get(mission_id)
+        if not mission or not mission.is_active:
+            return None
+        project = project_portfolio.create_project(
+            project_id=f"proj_{mission_id}_{len(mission.project_ids)}",
+            name=name, mission_id=mission_id, cycle=cycle,
+        )
+        mission.project_ids.append(project.id)
+        logger.info(f"Mission '{mission.name}' spawned project '{name}'")
+        return project
 
     def generate_missions_from_narrative(self, narrative_role: str,
                                           cycle: int) -> List[Mission]:
