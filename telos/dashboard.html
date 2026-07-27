@@ -2897,11 +2897,13 @@ try {
   var bc = document.getElementById('brain-container');
   var bdd = document.getElementById('brain-debug');
   if (!bc) { _dbg('No brain-container found'); return; }
-  if (bdd) bdd.textContent = '✅ Inline brain active';
-  // Create canvas directly
+  // Show debug even if canvas fails
+  if (bdd) bdd.textContent = '✅ Inline brain initializing...';
+  // Create canvas directly with fallback dimensions
+  var bw = Math.max(100, bc.clientWidth || bc.offsetWidth || 260);
+  var bh = Math.max(100, bc.clientHeight || bc.offsetHeight || 200);
   var c = document.createElement('canvas');
-  c.width = bc.clientWidth || 260;
-  c.height = bc.clientHeight || 200;
+  c.width = bw; c.height = bh;
   c.style.width = '100%'; c.style.height = '100%';
   bc.innerHTML = '';
   bc.appendChild(c);
@@ -2909,9 +2911,10 @@ try {
   if (!cx) return;
   // Simple animated pipeline visualization
   var phases = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
-  var colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888'];
+  var colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
   function renderPipeline() {
     requestAnimationFrame(renderPipeline);
+    try {
     var w = c.width, h = c.height, t = Date.now() / 1000;
     cx.fillStyle = '#0f0f18';
     cx.fillRect(0, 0, w, h);
@@ -2940,7 +2943,8 @@ try {
       cx.textAlign = 'center';
       cx.fillText(phases[i], px, py + sz + 10);
     }
-    if (bdd) bdd.textContent = '🔄 ' + phases.length + ' phases running';
+    if (bdd) bdd.textContent = '🔄 ' + phases.length + ' phases';
+    } catch(e) { /* silent — don't break animation */ }
   }
   renderPipeline();
   _dbg('Inline brain active: ' + phases.length + ' phases');
