@@ -2891,10 +2891,28 @@ try {
   console.warn('[TELOS] KG boot error:', e);
   _dbg('KG ERROR: ' + e.message);
 }
-// FINAL TEST: if this doesn't show, nothing after bootKG works
 document.body.insertAdjacentHTML('beforeend', 
-  '<div style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:99999;background:yellow;color:black;padding:10px;font-size:18px;border-radius:8px;">✅ POST-KG CODE REACHED</div>'
+  '<div id="postkg-test" style="position:fixed;bottom:100px;left:50%;z-index:99999;background:lime;color:black;padding:10px;font-size:16px;border-radius:8px;">✅ POST-KG WORKS</div>'
 );
+
+// Inline brain canvas visualization
+(function(){
+  var bc = document.getElementById('brain-canvas');
+  var bd = document.getElementById('brain-debug');
+  if (bc) {
+    var ctx = bc.getContext('2d');
+    bc.width = bc.clientWidth || 260;
+    bc.height = bc.clientHeight || 300;
+    if (ctx) {
+      ctx.fillStyle = '#ff6600';
+      ctx.fillRect(10, 10, 50, 50);
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px monospace';
+      ctx.fillText('Brain active', 15, 80);
+      if (bd) bd.textContent = '✅ Brain rendered';
+    }
+  }
+})();
 
 // — Auto-start auto-refresh after 2 seconds —
 setTimeout(() => {
