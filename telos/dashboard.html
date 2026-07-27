@@ -158,6 +158,13 @@
   <div class="metric-card">
     <div class="label">Score</div>
     <div class="value" id="score-value">100</div>
+    <div style="margin-top:8px;font-size:11px;color:#888;">
+      Health: <span id="health-score">--</span> | 
+      System: <span id="system-score">--</span> | 
+      Mission: <span id="mission-score">--</span>
+    </div>
+
+
     <div class="sub">Time pressure (⬇1/cycle)</div>
   </div>
   <div class="metric-card">
@@ -2341,6 +2348,17 @@ async function pollCheckpoints() {
     for (const t of traces) {
       if (!state.traces.some(x => x.cycle_id === t.cycle_id)) applyTrace(t);
     }
+  } catch {}
+  // Also fetch health scores
+  try {
+    const hresp = await fetch('/api/health');
+    const h = await hresp.json();
+    const el = document.getElementById('health-score');
+    if (el) el.textContent = h.health !== undefined && h.health !== 'N/A' ? (h.health * 100).toFixed(0) + '%' : '--';
+    const sel = document.getElementById('system-score');
+    if (sel) sel.textContent = h.system_score !== undefined ? (h.system_score * 100).toFixed(0) + '%' : '--';
+    const mel = document.getElementById('mission-score');
+    if (mel) mel.textContent = h.mission !== undefined ? (h.mission * 100).toFixed(0) + '%' : '--';
   } catch {}
 }
 

@@ -60,6 +60,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             })
             return
         
+        if parsed.path == '/api/benchmark':
+            self.send_json(self._load_benchmark())
+            return
+        
+        if parsed.path == '/api/health':
+            self.send_json(self._load_health_summary())
+            return
+        
         return super().do_GET()
     
     def do_POST(self):
@@ -90,6 +98,29 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except: pass
         super().end_headers()
     
+    def _load_benchmark(self):
+        """Load latest benchmark snapshot if available."""
+        bm_dir = os.path.join(os.path.dirname(__file__), 'benchmarks', 'data')
+        snapshots = sorted(glob.glob(os.path.join(bm_dir, 'snapshot_*.json')))
+        if not snapshots:
+            return {"error": "no benchmark data"}
+        try:
+            with open(snapshots[-1]) as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return {"error": "benchmark read failed"}
+
+    def _load_health_summary(self):
+        """Load health score summary from latest benchmark."""
+        bm = self._load_benchmark()
+        if "error" in bm:
+            return {"health": "N/A", "system_score": 0, "mission_score": 0}
+        return {
+            "health": bm.get("system_score", 0),
+            "mission": bm.get("mission_score", 0),
+            "cycles": bm.get("cycle", 0) if isinstance(bm, dict) else 0,
+        }
+
     def _load_checkpoints(self):
         checkpoints = []
         for f in sorted(glob.glob(os.path.join(CHECKPOINT_DIR, 'checkpoint_*.json'))):
