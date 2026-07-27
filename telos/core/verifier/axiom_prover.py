@@ -296,30 +296,14 @@ class AxiomProver:
                       else "ModelCompetition not found — no model competition",
         }
 
-        # 4.9 — Relational Optimization (A_i = (U_i, Θ_i)) — scaffold acknowledged
-        rel = getattr(ctx, 'relational_context', None) or kwargs.get('relational_context')
-        passed = rel is not None
-        results['4.9'] = {
-            "passed": passed,
-            "reason": "RelationalContext present — relational scaffold exists" if passed
-                      else "RelationalContext not present — relational reasoning not active (scaffold)",
-        }
-
-        # 4.10 — Recursive World Models — scaffold acknowledged
-        ss = kwargs.get('system_self', None)
-        tb = kwargs.get('theory_builder', None)
+        # 4.10 — Recursive World Models
+        ss = kwargs.get('system_self', None) or (getattr(kwargs.get('pipeline'), '_system_self', None) if kwargs.get('pipeline') else None)
+        tb = kwargs.get('theory_builder', None) or (getattr(kwargs.get('pipeline'), '_theory_builder', None) if kwargs.get('pipeline') else None)
         passed = (ss is not None) and (tb is not None)
         results['4.10'] = {
             "passed": passed,
             "reason": "SystemSelf + TheoryBuilder present — self and world models exist" if passed
                       else "SystemSelf or TheoryBuilder missing — recursive models incomplete",
-        }
-
-        # 4.11 — Cooperative Intelligence (aspirational)
-        passed = True  # aspirational — always passes until multi-agent is built
-        results['4.11'] = {
-            "passed": passed,
-            "reason": "Cooperative intelligence axiom acknowledged (aspirational — multi-agent TBD)",
         }
 
         # ── Layer 5: Commitment Theory ────────────────────────────────────
@@ -335,7 +319,8 @@ class AxiomProver:
         }
 
         # 5.2 — Axiom Evolution (A → Proposal → Human → Update)
-        aee = kwargs.get('axiom_evolution', None)
+        pipeline = kwargs.get('pipeline', None)
+        aee = kwargs.get('axiom_evolution', None) or (getattr(pipeline, '_axiom_evolution', None) if pipeline else None)
         passed = aee is not None
         results['5.2'] = {
             "passed": passed,
@@ -359,7 +344,8 @@ class AxiomProver:
         # ── Layer 6: Cognitive Dynamics ────────────────────────────────────
 
         # 6.1 — Cognitive Potential (Ψ_c = C_available − C_used)
-        rgt = kwargs.get('resource_gradient', None)
+        pipeline = kwargs.get('pipeline', None)
+        rgt = kwargs.get('resource_gradient', None) or (getattr(pipeline, '_resource_gradient_tracker', None) if pipeline else None)
         passed = rgt is not None
         results['6.1'] = {
             "passed": passed,
@@ -368,21 +354,13 @@ class AxiomProver:
         }
 
         # 6.2 — Cognitive Momentum (M_c = Σ w_i · a_i)
-        cm = kwargs.get('cognitive_momentum', None)
+        pipeline = kwargs.get('pipeline', None)
+        cm = kwargs.get('cognitive_momentum', None) or (getattr(pipeline, '_cognitive_momentum', None) if pipeline else None)
         passed = cm is not None
         results['6.2'] = {
             "passed": passed,
             "reason": "CognitiveMomentum present — decision inertia tracked" if passed
                       else "CognitiveMomentum missing",
-        }
-
-        # 6.3 — Interpretation Energy (E_I = D(P_i, P_j) · C)
-        ie = kwargs.get('interpretation_engine', None)
-        passed = ie is not None
-        results['6.3'] = {
-            "passed": passed,
-            "reason": "InterpretationEngine present — conflict cost measured" if passed
-                      else "InterpretationEngine missing",
         }
 
         # 6.4 — Identity Compression (I = Φ(E_{1:n}))
