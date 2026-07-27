@@ -73,7 +73,18 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     except Exception:
         pass
 
-    # 3. UnknownUnknownDetector: wire into curiosity cycle
+    # 3. Performance baseline collection
+    try:
+        if hasattr(ctx, '_phase_timings'):
+            for phase_name, duration in ctx._phase_timings.items():
+                ctx._phase_durations = getattr(ctx, '_phase_durations', {})
+                if phase_name not in ctx._phase_durations:
+                    ctx._phase_durations[phase_name] = []
+                ctx._phase_durations[phase_name].append(duration)
+    except Exception:
+        pass
+
+    # 4. UnknownUnknownDetector: wire into curiosity cycle
     try:
         uud = getattr(pipeline, '_unknown_unknown_detector', None)
         if uud is not None and hasattr(ctx, 'state') and ctx.state is not None:
