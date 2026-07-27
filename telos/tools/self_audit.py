@@ -54,7 +54,7 @@ def run_audit(verbose=True) -> Dict:
 
     # ── Check 2: SCM has edges > 0 after domain facts ──
     try:
-        from telos.core.causal.scm import StructuralCausalModel
+        from telos.core.reasoning.causal.scm import StructuralCausalModel
         scm = StructuralCausalModel()
         # Simulate parsing domain facts with causal edges
         scm.add_edge("position", "distance")
@@ -100,7 +100,7 @@ def run_audit(verbose=True) -> Dict:
 
     # ── Check 6: ResourceGradientTracker exists ──
     try:
-        from telos.core.resource.gradient import ResourceGradientTracker
+        from telos.core.accounting.resource_gradient import ResourceGradientTracker
         rgt = ResourceGradientTracker()
         ok = hasattr(rgt, 'compute_gradients') and hasattr(rgt, 'reallocate')
         checks.append((ok, "ResourceGradientTracker exists",
