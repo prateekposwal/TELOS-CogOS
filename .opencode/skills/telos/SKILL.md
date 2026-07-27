@@ -54,4 +54,4 @@ Pipeline (7 phases): PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT �
 
 - `telos_task.py`: GridWorld navigation + local LLM explanations
 - `run_demo.py`: Original GridWorld demo
-- Tests: 78/78 passing across 12 files
+- Tests: 469/469 passing across 47 files
