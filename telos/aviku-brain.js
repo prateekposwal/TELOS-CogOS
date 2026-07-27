@@ -91,6 +91,10 @@ function renderBrain(timestamp) {
   const cy = brainH / 2;
   const radius = Math.min(brainW, brainH) * 0.38;
 
+  // ── Update debug div ──
+  var bd = document.getElementById('brain-debug');
+  if (bd) bd.textContent = '🌀 Rendering • ' + brainW + 'x' + brainH + ' • ' + phaseNodes2D.length + ' phases';
+
   // ── Clear ──
   ctx.clearRect(0, 0, brainW, brainH);
 
