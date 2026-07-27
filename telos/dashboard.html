@@ -394,15 +394,15 @@
       </div>
       <div id="kg-mode-2" style="margin-bottom:10px;">
         <div style="font-size:12px;color:#888;margin-bottom:4px;">1. Knowledge Tree - Domain Branches</div>
-        <canvas id="kg-tree" style="display:block;border-radius:8px;width:100%;height:650px;background:#0f0f18;"></canvas>
+        <canvas id="kg-tree" style="display:block;border-radius:8px;width:100%;height:900px;background:#0f0f18;"></canvas>
       </div>
       <div id="kg-mode-3" style="margin-bottom:10px;">
         <div style="font-size:12px;color:#888;margin-bottom:4px;">2. Solar System - Planet Orbits</div>
-        <canvas id="kg-solar" style="display:block;border-radius:8px;width:100%;height:650px;background:#0f0f18;"></canvas>
+        <canvas id="kg-solar" style="display:block;border-radius:8px;width:100%;height:900px;background:#0f0f18;"></canvas>
       </div>
       <div id="kg-mode-5" style="margin-bottom:10px;">
         <div style="font-size:12px;color:#888;margin-bottom:4px;">3. Bubble Map - Domain Clusters</div>
-        <canvas id="kg-bubble" style="display:block;border-radius:8px;width:100%;height:650px;background:#0f0f18;"></canvas>
+        <canvas id="kg-bubble" style="display:block;border-radius:8px;width:100%;height:900px;background:#0f0f18;"></canvas>
       </div>
       <div id="kg-debug" style="margin-top:4px;font-size:0;text-align:center;min-height:20px;line-height:1.8;"></div>
     </div>
@@ -2704,10 +2704,10 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
     kgCanvases.push(el); kgContexts.push(cx);
   }
   var kgt=0;
-  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||650;}
+  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||900;}
   function kgProject(){
     if(kgNodes.length===0)return[];
-    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||650;
+    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||900;
     var focal=4,scale=Math.min(w,h)*0.28;
     return kgNodes.map(function(n){
       var nx=n.x||0,ny=n.y||0,nz=n.z||0;
@@ -2775,26 +2775,26 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
     var dNames=Object.keys(domains),dCount=dNames.length;
     for(var di=0;di<dCount;di++){
       var dNodes=domains[dNames[di]],dAngle=-Math.PI/2+((di+0.5)/(dCount+1))*Math.PI;
-      var bx=rootX+Math.cos(dAngle)*120,by=rootY-trunkH+Math.sin(dAngle)*120;
+      var bx=rootX+Math.cos(dAngle)*160,by=rootY-trunkH+Math.sin(dAngle)*160;
       ctx.beginPath();ctx.moveTo(rootX,rootY-trunkH);
-      ctx.quadraticCurveTo(rootX+Math.cos(dAngle)*50,rootY-trunkH+Math.sin(dAngle)*35-12,bx,by);
-      ctx.strokeStyle='rgba(60,80,70,'+(0.18+0.07*Math.sin(kgt+di))+')';ctx.lineWidth=1.5;ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='12px sans-serif';
-      ctx.textAlign='center';ctx.fillText(dNames[di].substring(0,6),bx,by+6);
+      ctx.quadraticCurveTo(rootX+Math.cos(dAngle)*65,rootY-trunkH+Math.sin(dAngle)*45-16,bx,by);
+      ctx.strokeStyle='rgba(60,80,70,'+(0.18+0.07*Math.sin(kgt+di))+')';ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='15px sans-serif';
+      ctx.textAlign='center';ctx.fillText(dNames[di].substring(0,6),bx,by+8);
       for(var ni=0;ni<dNodes.length;ni++){
         var n=dNodes[ni],pct=(ni+0.5)/dNodes.length;
-        var lx=bx+Math.cos(dAngle+0.5)*pct*50,ly=by+Math.sin(dAngle+0.5)*pct*50-20;
+        var lx=bx+Math.cos(dAngle+0.5)*pct*65,ly=by+Math.sin(dAngle+0.5)*pct*65-26;
         var col=DOMAIN_COLORS[n.domain]||'#888';
-        var r=8+Math.sin(kgt+ni+di)*3;
+        var r=10+Math.sin(kgt+ni+di)*4;
         ctx.fillStyle=col;ctx.beginPath();ctx.arc(lx,ly,r*4,0,Math.PI*2);ctx.fill();
         if(n.label&&pct>0.4){
-          ctx.fillStyle='rgba(200,200,200,0.5)';ctx.font='10px sans-serif';
-          ctx.textAlign='center';ctx.fillText(n.label,lx,ly+14);
+          ctx.fillStyle='rgba(200,200,200,0.5)';ctx.font='13px sans-serif';
+          ctx.textAlign='center';ctx.fillText(n.label,lx,ly+18);
         }
       }
     }
-    ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font='12px sans-serif';
-    ctx.textAlign='center';ctx.fillText('Knowledge',rootX,rootY+14);
+    ctx.fillStyle='rgba(255,255,255,0.22)';ctx.font='15px sans-serif';
+    ctx.textAlign='center';ctx.fillText('Knowledge',rootX,rootY+18);
     // Tree ambient particles
     for(var tp=0;tp<5;tp++){
       var tpct=(kgt*0.1+tp*0.2+state.time*0.005)%1;
@@ -2811,29 +2811,29 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
       domains[d].push(nodes[i]);
     }
     var dNames=Object.keys(domains),dCount=dNames.length;
-    var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,50);
-    sg.addColorStop(0,'rgba(255,200,100,0.55)');sg.addColorStop(1,'transparent');
-    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,50,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(255,200,100,0.85)';ctx.beginPath();ctx.arc(cx,cy,12,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('TELOS',cx,cy+20);
+    var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,65);
+    sg.addColorStop(0,'rgba(255,200,100,0.6)');sg.addColorStop(1,'transparent');
+    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,65,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,200,100,0.9)';ctx.beginPath();ctx.arc(cx,cy,16,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('TELOS',cx,cy+26);
     for(var di=0;di<dCount;di++){
-      var orbitR=40+(di+1)*(Math.min(w,h)*0.20);
+      var orbitR=50+(di+1)*(Math.min(w,h)*0.20);
       var angle=kgt*(0.3+di*0.1)+di*1.2;
       var px=cx+Math.cos(angle)*orbitR,py=cy+Math.sin(angle)*orbitR;
       var col=DOMAIN_COLORS[dNames[di]]||'#888';
       ctx.beginPath();ctx.arc(cx,cy,orbitR,0,Math.PI*2);
-      ctx.strokeStyle='rgba(80,80,120,'+(0.06+di*0.03)+')';ctx.lineWidth=0.7;ctx.stroke();
-      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,13,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(px-4,py-4,4,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
-      ctx.fillText(dNames[di].substring(0,5),px,py+16);
+      ctx.strokeStyle='rgba(80,80,120,'+(0.07+di*0.035)+')';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(px,py,17,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(px-5,py-5,5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='17px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillText(dNames[di].substring(0,5),px,py+20);
       var moons=domains[dNames[di]];
       for(var mi=0;mi<moons.length;mi++){
         var m=moons[mi],mAngle=angle+Math.PI/2+(mi/moons.length)*Math.PI*2+kgt*0.5;
-        var mR=18+mi*10;
+        var mR=24+mi*13;
         var mx=px+Math.cos(mAngle)*mR,my=py+Math.sin(mAngle)*mR;
-        ctx.fillStyle=col;ctx.beginPath();ctx.arc(mx,my,7,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=col;ctx.beginPath();ctx.arc(mx,my,10,0,Math.PI*2);ctx.fill();
       }
     }
   }
@@ -2851,22 +2851,22 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
       var angle=(di/dCount)*Math.PI*2+centerAngle;
       var radius=Math.min(w,h)*0.28;
       var bx=w/2+Math.cos(angle)*radius,by=h/2+Math.sin(angle)*radius*0.7;
-      var bSize=50+Math.sin(kgt*0.5+di)*8;
+      var bSize=65+Math.sin(kgt*0.5+di)*10;
       var col=DOMAIN_COLORS[dNames[di]]||'#888';
       var bg2=ctx.createRadialGradient(bx,by,0,bx,by,bSize*1.5);
       bg2.addColorStop(0,col+'22');bg2.addColorStop(1,'transparent');
       ctx.fillStyle=bg2;ctx.beginPath();ctx.arc(bx,by,bSize*1.5,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle=col+'44';ctx.lineWidth=1.2;
+      ctx.strokeStyle=col+'44';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.arc(bx,by,bSize,0,Math.PI*2);ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='13px sans-serif';
-      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dNames[di].substring(0,5),bx,by-bSize-8);
+      ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='16px sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dNames[di].substring(0,5),bx,by-bSize-10);
       var innerNodes=domains[dNames[di]];
       for(var ni=0;ni<innerNodes.length;ni++){
         var n=innerNodes[ni];
         var ia=(ni/innerNodes.length)*Math.PI*2+kgt*0.3+di;
-        var ir=10+ni*7;
+        var ir=13+ni*9;
         var ix=bx+Math.cos(ia)*ir,iy=by+Math.sin(ia)*ir;
-        var r=7+Math.sin(kgt+ni+di)*2;
+        var r=9+Math.sin(kgt+ni+di)*3;
         ctx.fillStyle=col;ctx.beginPath();ctx.arc(ix,iy,r*(1+n.importance),0,Math.PI*2);ctx.fill();
         ctx.fillStyle='rgba(255,255,255,0.1)';
         ctx.beginPath();ctx.arc(ix-r*0.2,iy-r*0.2,r*0.3,0,Math.PI*2);ctx.fill();
