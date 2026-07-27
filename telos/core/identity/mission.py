@@ -101,6 +101,27 @@ class MissionPortfolio:
         logger.info(f"Mission '{mission.name}' spawned project '{name}'")
         return project
 
+    def get_project_discoveries(self, mission_id: str,
+                                 project_portfolio) -> List[Dict]:
+        """Mission Ecology: share discoveries across sibling projects."""
+        mission = self._missions.get(mission_id)
+        if not mission:
+            return []
+        results = []
+        for pid in mission.project_ids:
+            proj = getattr(project_portfolio, '_projects', {}).get(pid)
+            if proj:
+                for note in proj.notebooks:
+                    if note.entry_type in ("insight", "discovery", "finding"):
+                        results.append({
+                            "project_id": pid,
+                            "project_name": proj.name,
+                            "cycle": note.cycle,
+                            "content": note.content,
+                            "type": note.entry_type,
+                        })
+        return results
+
     def generate_missions_from_narrative(self, narrative_role: str,
                                           cycle: int) -> List[Mission]:
         """Identity Narrative -> generates candidate missions."""

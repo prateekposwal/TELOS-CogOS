@@ -32,6 +32,8 @@ from telos.core.decision.cognitive_momentum import CognitiveMomentum
 from telos.core.accounting.resource_accounting import ResourceAccountingLayer, ResourceCost
 from telos.core.pipeline_builder import build_components
 from telos.core.pipeline_finalize import run_axiom_prover, run_v2_module_hooks, record_resource_accounting
+from telos.core.reasoning.representation_search import RepresentationSearch, RepresentationType
+from telos.core.timing.meta_time import MetaTime, TimeScale
 from telos.core.session.agents_writer import write_handoff
 from telos.core.session.agents_reader import inject_into_context
 from telos.core.project.substrate import ProjectPortfolio
@@ -236,6 +238,8 @@ class TelosV14Pipeline:
         self._abandonment_gate = AbandonmentGate()
         self._strategic_coherence = StrategicCoherence()
         self._method_registry = MethodRegistry()
+        self._meta_time = MetaTime()
+        self._representation_search = RepresentationSearch()
         # Insights 1-20: Ecology, Research, Genealogy, Discovery OS
         self._ecosystem = Ecosystem()
         self._research_seasons = ResearchSeasons()
@@ -687,6 +691,22 @@ class TelosV14Pipeline:
                             confidence=ctx.selected_intent.confidence,
                             outcome=not (ctx.council_blocked or ctx.firewall_blocked),
                         )
+                except Exception:
+                    pass
+
+            # ── Project Context: wire cognitive processes into active project ──
+            if phase.name == "select":
+                try:
+                    pp = self._project_portfolio
+                    if pp:
+                        active_proj = pp.active_project
+                        if active_proj:
+                            active_proj.set_cognitive_context(self)
+                            ctx.project_context = {
+                                "project_id": active_proj.id,
+                                "name": active_proj.name,
+                                "stagnation": active_proj.stagnation_cycles,
+                            }
                 except Exception:
                     pass
 
