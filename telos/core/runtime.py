@@ -32,6 +32,8 @@ from telos.core.decision.cognitive_momentum import CognitiveMomentum
 from telos.core.accounting.resource_accounting import ResourceAccountingLayer, ResourceCost
 from telos.core.pipeline_builder import build_components
 from telos.core.pipeline_finalize import run_axiom_prover, run_v2_module_hooks, record_resource_accounting
+from telos.core.session.agents_writer import write_handoff
+from telos.core.session.agents_reader import inject_into_context
 from telos.core.project.substrate import ProjectPortfolio
 from telos.core.project.rational_abandonment import AbandonmentGate
 from telos.core.project.strategic_coherence import StrategicCoherence
@@ -287,6 +289,9 @@ class TelosV14Pipeline:
 
         if self.config.adapter and hasattr(self.config.adapter, 'initialize'):
             self.config.adapter.initialize()
+
+        # Cross-session learning: load previous session context
+        inject_into_context(self)
 
     def register_stream(self, stream: CognitiveStream) -> None:
         self.streams.append(stream)
@@ -1380,5 +1385,15 @@ class TelosV14Pipeline:
                 logger.info(f"Final checkpoint saved (cycle {self._cycle_count})")
             except Exception as e:
                 logger.warning(f"Final checkpoint save failed: {e}")
+        # Cross-session learning: write session handoff
+        try:
+            write_handoff(self, {
+                "di": getattr(self, '_last_trace', None).decision_integrity if hasattr(self, '_last_trace') else 1.0,
+                "md": getattr(self, '_last_trace', None).mission_drift if hasattr(self, '_last_trace') else 0.0,
+                "cycles": self._cycle_count,
+                "mood": getattr(getattr(self, '_system_self', None), '_state', None).mood if hasattr(getattr(self, '_system_self', None), '_state') else 'neutral',
+            })
+        except Exception as e:
+            logger.warning(f"AgentsWriter handoff failed: {e}")
         if self.config.adapter and hasattr(self.config.adapter, 'cleanup'):
             self.config.adapter.cleanup()

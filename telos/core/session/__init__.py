@@ -11,7 +11,8 @@ Provides:
 Axioms: 4.7 (System Memory), 5.1 (Self-Preservation), 2.4 (Path Dependency)
 """
 
-from telos.core.session.agents_writer import AgentsWriter, SessionSummary
+from telos.core.session.agents_writer import AgentsWriter, SessionSummary, write_handoff, build_handoff
+from telos.core.session.agents_reader import read_latest_handoff, inject_into_context
 from telos.core.session.checkpoint_cli import (
     SessionCheckpoint,
     CheckpointCLI,
@@ -25,6 +26,10 @@ from telos.core.session.checkpoint_cli import (
 __all__ = [
     "AgentsWriter",
     "SessionSummary",
+    "write_handoff",
+    "build_handoff",
+    "read_latest_handoff",
+    "inject_into_context",
     "SessionCheckpoint",
     "CheckpointCLI",
     "cmd_save",

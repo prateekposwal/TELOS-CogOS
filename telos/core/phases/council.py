@@ -39,12 +39,13 @@ class CouncilPhase(Phase):
         logger.debug(f"Council configured: criticality={criticality}, "
                       f"threshold={pipeline.council._config.voting_threshold}")
 
-        # ── InternalDebate: multi-perspective analysis feeds into council ──
-        debate_note = ""
+        # ── InternalDebate: multi-perspective deliberation loop ──
+        debate_result = None
+        deliberation_rounds = 0
         try:
             debate = getattr(pipeline, '_internal_debate', None)
             if debate is not None and ctx.selected_intent is not None:
-                result = debate.debate(
+                debate_result = debate.debate(
                     context={
                         "uncertainty": getattr(ctx, 'inquiry_omega_value', 0.5),
                         "options": [i.intent_type for i, _ in getattr(ctx, 'intents', [])[:3]],
@@ -53,13 +54,11 @@ class CouncilPhase(Phase):
                     },
                     context_description=f"Council review of {ctx.selected_intent.intent_type}",
                 )
-                if hasattr(result, 'consensus_level'):
-                    debate_note = f"debate_consensus={result.consensus_level:.2f}"
-                    if result.consensus_level < 0.5:
-                        logger.warning(
-                            f"Council: InternalDebate low consensus ({result.consensus_level:.2f}) "
-                            f"for {ctx.selected_intent.intent_type}"
-                        )
+                ctx.latest_debate = {
+                    "consensus": getattr(debate_result, 'consensus_level', 0.5) if debate_result else 0.5,
+                    "rounds": getattr(debate_result, 'rounds', 1) if debate_result else 1,
+                    "timestamp": __import__('time').time(),
+                }
         except Exception:
             pass
 
@@ -91,12 +90,21 @@ class CouncilPhase(Phase):
                 verdict="BLOCK" if not budget_ok else "PASS",
             ))
 
-        # ── PSDT: Finalize with council verdict ──
+        # ── PSDT: Finalize with council verdict + debate transcript ──
         psdt = getattr(ctx, 'psdt', None)
         if psdt is None:
             psdt = PSDT()
             ctx.psdt = psdt
-        verdict_summary = f"{'VALIDATED' if ctx.verdict.validated else 'BLOCKED'}:{ctx.verdict.decision_integrity:.3f}:{ctx.verdict.mission_drift:.3f}"
+        debate_summary = ""
+        if debate_result is not None and hasattr(debate_result, 'consensus_level'):
+            try:
+                cl = float(debate_result.consensus_level)
+                debate_summary = f"|debate_c={cl:.2f}_r={deliberation_rounds}"
+            except (TypeError, ValueError):
+                debate_summary = f"|debate_r={deliberation_rounds}"
+        verdict_summary = (f"{'VALIDATED' if ctx.verdict.validated else 'BLOCKED'}"
+                          f":{ctx.verdict.decision_integrity:.3f}"
+                          f":{ctx.verdict.mission_drift:.3f}{debate_summary}")
         psdt.finalize(verdict_summary)
 
         if ctx.verdict.escalation_requested:
@@ -120,6 +128,47 @@ class CouncilPhase(Phase):
             ctx.verdict.escalation_requested = True
             if not ctx.verdict.escalation_reason:
                 ctx.verdict.escalation_reason = "Irreconcilable stream intents — possible internal conflict"
+
+        # ── Deliberation Loop: if debate low consensus AND blocked, generate counter-proposal ──
+        dl_consensus = 0.5
+        if debate_result is not None and hasattr(debate_result, 'consensus_level'):
+            try:
+                dl_consensus = float(debate_result.consensus_level)
+            except (TypeError, ValueError):
+                dl_consensus = 0.5
+        if (not ctx.verdict.validated and debate_result is not None
+                and dl_consensus < 0.5
+                and ctx.cycle_count % 10 == 0):
+            try:
+                from telos.intent_ir import IntentIR
+                import numpy as np
+                logger.warning(
+                    f"Council: deliberation loop triggered — low consensus "
+                    f"({debate_result.consensus_level:.2f}), generating counter-proposal"
+                )
+                if hasattr(debate_result, 'perspectives_used') and debate_result.perspectives_used:
+                    counter_type = f"deliberated_{'_'.join(debate_result.perspectives_used[:2])}"
+                    counter_intent = IntentIR(
+                        intent_type=counter_type,
+                        confidence=max(0.3, dl_consensus),
+                        params={
+                            "deliberation": True,
+                            "source": "council_deliberation",
+                            "consensus": debate_result.consensus_level,
+                        },
+                        metadata={"stream": "council", "deliberation_round": deliberation_rounds},
+                    )
+                    alt_verdict = pipeline.council.evaluate(
+                        ctx.world, counter_intent, ctx.domain_facts,
+                        predicted_state=None, observed_state=None,
+                    )
+                    if alt_verdict.validated:
+                        ctx.selected_intent = counter_intent
+                        ctx.verdict = alt_verdict
+                        deliberation_rounds += 1
+                        logger.info(f"Council: counter-proposal '{counter_type}' accepted")
+            except Exception:
+                pass
 
         # Λ4.3 — Fall back to alternative intents if the primary is blocked
         if not ctx.verdict.validated and ctx.intents and len(ctx.intents) > 1:
