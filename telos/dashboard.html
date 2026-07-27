@@ -249,7 +249,7 @@
   </div>
 
   <div class="brain-panel" style="margin-bottom:10px;">
-    <h3>🧠 REDACTED — Conscious Pipeline · 3 Visualization Modes</h3>
+    <h3>REDACTED - Conscious Pipeline - 3 Visualization Modes</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <div style="flex:1;min-width:220px;">
         <div style="font-size:10px;color:#777;margin-bottom:3px;text-align:center;">🌀 Neural Orbit</div>
@@ -2190,219 +2190,177 @@ const DOMAIN_COLORS = {
   'system': '#94a3b8',
 };
 
-// ─── 3-Mode Brain Visualization ───
-
-// Mode 1: Neural Network Orbit (concentric identity layers + active pulse)
+// ─── 3-Mode Brain Visualization (single rAF loop) ───
 (function(){
-  var bc=document.getElementById('brain-orbit');
-  if(!bc||!bc.getContext)return; var ctx=bc.getContext('2d');
+  var bco=document.getElementById('brain-orbit');
+  var bcf=document.getElementById('brain-flow');
+  var bct=document.getElementById('brain-tree');
+  if(!bco||!bcf||!bct)return;
+  var co=bco.getContext('2d'), cf=bcf.getContext('2d'), ct=bct.getContext('2d');
+  if(!co||!cf||!ct)return;
   var P=['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
   var C=['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888'];
-  var L=['Core','Narrative','Mission','Project','Method','Action'];
-  var t=0;
-  function rs(){bc.width=bc.clientWidth||240; bc.height=bc.clientHeight||280;}
-  function dr(){
-    rs(); t+=0.02; var w=bc.width,h=bc.height,cx=w/2,cy=h/2,R=Math.min(w,h)*0.35;
-    var bg=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.4);
+  var L_=['Core','Narrative','Mission','Project','Method','Action'];
+  // ── Mode 1: Neural Orbit ──
+  var to=0; var _co=co, _bco=bco;
+  // ── Mode 2: Pipeline Flow ──
+  var tf=0; var _cf=cf, _bcf=bcf;
+  // ── Mode 3: Root System ──
+  var tt=0; var _ct=ct, _bct=bct;
+  var _snake=[0,1,2,5,8,7,6,3,4];
+
+  function draw(){
+    // ── Mode 1: Neural Orbit ──
+    to+=0.02;
+    var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||280;
+    var cx=w/2,cy=h/2,R=Math.min(w,h)*0.35;
+    var bg=_co.createRadialGradient(cx,cy,0,cx,cy,R*1.4);
     bg.addColorStop(0,'#111122'); bg.addColorStop(1,'#06060a');
-    ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
-    ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.font='9px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('🌀 Neural Orbit — 6 Identity Layers',cx,10);
-    for(var li=0;li<L.length;li++){
-      var ri=R*(0.2+li*0.1);
-      ctx.beginPath(); ctx.arc(cx,cy,ri,0,Math.PI*2);
-      ctx.strokeStyle='rgba(80,140,220,'+(0.02+li*0.02)+')'; ctx.lineWidth=0.5; ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,'+(0.03+li*0.01)+')'; ctx.font='5px sans-serif'; ctx.textAlign='left';
-      ctx.fillText(L[li],cx+ri+3,cy+1);
+    _co.fillStyle=bg; _co.fillRect(0,0,w,h);
+    _co.fillStyle='rgba(255,255,255,0.18)'; _co.font='9px sans-serif'; _co.textAlign='center';
+    _co.fillText('Neural Orbit - 6 Identity Layers',cx,10);
+    for(var li=0;li<L_.length;li++){
+      var ri=R*(0.2+li*0.1); _co.beginPath(); _co.arc(cx,cy,ri,0,Math.PI*2);
+      _co.strokeStyle='rgba(80,140,220,'+(0.02+li*0.02)+')'; _co.lineWidth=0.5; _co.stroke();
+      _co.fillStyle='rgba(255,255,255,'+(0.03+li*0.01)+')'; _co.font='5px sans-serif'; _co.textAlign='left';
+      _co.fillText(L_[li],cx+ri+3,cy+1);
     }
-    ctx.beginPath();
+    _co.beginPath();
     for(var a=0;a<=Math.PI*2;a+=0.05){
-      var wv=Math.sin(a*5+t*2)*3+Math.sin(a*8+t*3)*2;
+      var wv=Math.sin(a*5+to*2)*3+Math.sin(a*8+to*3)*2;
       var wx=cx+Math.cos(a)*(R+wv),wy=cy+Math.sin(a)*(R*0.68+wv*0.68);
-      a===0?ctx.moveTo(wx,wy):ctx.lineTo(wx,wy);
+      a===0?_co.moveTo(wx,wy):_co.lineTo(wx,wy);
     }
-    ctx.closePath();
-    ctx.strokeStyle='rgba(74,222,128,'+(0.06+0.04*Math.sin(t))+')'; ctx.lineWidth=0.8; ctx.stroke();
-    var act=Math.floor(t*0.45)%P.length;
+    _co.closePath();
+    _co.strokeStyle='rgba(74,222,128,'+(0.06+0.04*Math.sin(to))+')'; _co.lineWidth=0.8; _co.stroke();
+    var act=Math.floor(to*0.45)%P.length;
     for(var i=0;i<P.length;i++){
       var a1=(i/P.length)*Math.PI*2-Math.PI/2;
       var px1=cx+Math.cos(a1)*R,py1=cy+Math.sin(a1)*R*0.68;
       var a2=((i+1)/P.length)*Math.PI*2-Math.PI/2;
       var px2=cx+Math.cos(a2)*R,py2=cy+Math.sin(a2)*R*0.68;
-      ctx.beginPath(); ctx.moveTo(px1,py1); ctx.lineTo(px2,py2);
-      ctx.strokeStyle='rgba(80,140,220,'+(0.06+0.06*Math.sin(t*0.6+i))+')'; ctx.lineWidth=0.5; ctx.stroke();
+      _co.beginPath(); _co.moveTo(px1,py1); _co.lineTo(px2,py2);
+      _co.strokeStyle='rgba(80,140,220,'+(0.06+0.06*Math.sin(to*0.6+i))+')'; _co.lineWidth=0.5; _co.stroke();
       var da=Math.atan2(py2-py1,px2-px1);
       var ax=px2-Math.cos(da)*5,ay=py2-Math.sin(da)*5;
-      ctx.beginPath(); ctx.moveTo(px2,py2); ctx.lineTo(ax-Math.sin(da)*2.5,ay+Math.cos(da)*2.5);
-      ctx.lineTo(ax+Math.sin(da)*2.5,ay-Math.cos(da)*2.5); ctx.closePath();
-      ctx.fillStyle='rgba(100,180,255,0.2)'; ctx.fill();
-      var tr=(t*0.35+i/P.length)%1;
+      _co.beginPath(); _co.moveTo(px2,py2); _co.lineTo(ax-Math.sin(da)*2.5,ay+Math.cos(da)*2.5);
+      _co.lineTo(ax+Math.sin(da)*2.5,ay-Math.cos(da)*2.5); _co.closePath();
+      _co.fillStyle='rgba(100,180,255,0.2)'; _co.fill();
+      var tr=(to*0.35+i/P.length)%1;
       var ex=px1+(px2-px1)*tr,ey=py1+(py2-py1)*tr;
-      ctx.beginPath(); ctx.arc(ex,ey,1.8*(1-Math.abs(tr-0.5)*2),0,Math.PI*2);
-      ctx.fillStyle='rgba(180,220,255,'+(0.35*(1-Math.abs(tr-0.5)*2))+')'; ctx.fill();
+      _co.beginPath(); _co.arc(ex,ey,1.8*(1-Math.abs(tr-0.5)*2),0,Math.PI*2);
+      _co.fillStyle='rgba(180,220,255,'+(0.35*(1-Math.abs(tr-0.5)*2))+')'; _co.fill();
     }
     for(var i=0;i<P.length;i++){
-      var a=(i/P.length)*Math.PI*2-Math.PI/2+Math.sin(t*0.2+i*0.7)*0.01;
-      var px=cx+Math.cos(a)*R,py=cy+Math.sin(a)*R*0.68;
-      var ia=(i===act),pu=ia?9+3*Math.sin(t*3):5+2*Math.sin(t*1.5+i*1.1);
+      var aa=(i/P.length)*Math.PI*2-Math.PI/2+Math.sin(to*0.2+i*0.7)*0.01;
+      var ppx=cx+Math.cos(aa)*R,ppy=cy+Math.sin(aa)*R*0.68;
+      var ia=(i===act),pu=ia?9+3*Math.sin(to*3):5+2*Math.sin(to*1.5+i*1.1);
       if(ia){
-        var ag=ctx.createRadialGradient(px,py,0,px,py,pu*5);
+        var ag=_co.createRadialGradient(ppx,ppy,0,ppx,ppy,pu*5);
         ag.addColorStop(0,C[i]+'77'); ag.addColorStop(1,'transparent');
-        ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(px,py,pu*5,0,Math.PI*2); ctx.fill();
+        _co.fillStyle=ag; _co.beginPath(); _co.arc(ppx,ppy,pu*5,0,Math.PI*2); _co.fill();
       }
-      var g=ctx.createRadialGradient(px,py,0,px,py,pu*3);
+      var g=_co.createRadialGradient(ppx,ppy,0,ppx,ppy,pu*3);
       g.addColorStop(0,C[i]+'44'); g.addColorStop(1,'transparent');
-      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,pu*3,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle=C[i]; ctx.beginPath(); ctx.arc(px,py,pu,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.12)';
-      ctx.beginPath(); ctx.arc(px-pu*0.2,py-pu*0.2,pu*0.25,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle=ia?'#fff':'#999'; ctx.font=ia?'bold 7px sans-serif':'6px sans-serif';
-      ctx.textAlign='center'; ctx.fillText(P[i],px,py+pu+6);
+      _co.fillStyle=g; _co.beginPath(); _co.arc(ppx,ppy,pu*3,0,Math.PI*2); _co.fill();
+      _co.fillStyle=C[i]; _co.beginPath(); _co.arc(ppx,ppy,pu,0,Math.PI*2); _co.fill();
+      _co.fillStyle='rgba(255,255,255,0.12)';
+      _co.beginPath(); _co.arc(ppx-pu*0.2,ppy-pu*0.2,pu*0.25,0,Math.PI*2); _co.fill();
+      _co.fillStyle=ia?'#fff':'#999'; _co.font=ia?'bold 7px sans-serif':'6px sans-serif';
+      _co.textAlign='center'; _co.fillText(P[i],ppx,ppy+pu+6);
     }
-    var bd=document.getElementById('brain-debug');
-    if(bd)bd.textContent='🌀 Orbit · 🔀 Flow · 🌳 Tree — active: '+P[act];
-    requestAnimationFrame(dr);
-  }
-  dr();
-})();
 
-// Mode 2: Pipeline Flowchart (snake 3×3 with processing chambers)
-(function(){
-  var bc=document.getElementById('brain-flow');
-  if(!bc||!bc.getContext)return; var ctx=bc.getContext('2d');
-  var P=['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
-  var C=['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888'];
-  var t=0;
-  function rs(){bc.width=bc.clientWidth||240; bc.height=bc.clientHeight||280;}
-  function dr(){
-    rs(); t+=0.02; var w=bc.width,h=bc.height;
-    var bg=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.6);
+    // ── Mode 2: Pipeline Flow ──
+    tf+=0.02;
+    w=_bcf.width=_bcf.clientWidth||280; h=_bcf.height=_bcf.clientHeight||280;
+    bg=_cf.createRadialGradient(w/2,h/2,0,w/2,h/2,w*0.6);
     bg.addColorStop(0,'#111122'); bg.addColorStop(1,'#06060a');
-    ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
-    ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.font='9px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('🔀 Pipeline Flow — 3×3 Snake',w/2,10);
+    _cf.fillStyle=bg; _cf.fillRect(0,0,w,h);
+    _cf.fillStyle='rgba(255,255,255,0.18)'; _cf.font='9px sans-serif'; _cf.textAlign='center';
+    _cf.fillText('Pipeline Flow - Snake Layout',w/2,10);
     var cw=w/3.3,ch=h/3.3,nw=cw*0.5,nh=ch*0.28;
-    var snake=[0,1,2,5,8,7,6,3,4];
-    var act=Math.floor(t*0.4)%P.length;
     var pos=[];
-    for(var i=0;i<9;i++){
-      var si=snake[i],row=Math.floor(si/3),col=si%3;
-      pos.push({x:cw*(col+0.65),y:ch*(row+0.7)});
-    }
-    // Pipes
+    for(var i=0;i<9;i++){var si=_snake[i],row=Math.floor(si/3),col=si%3;pos.push({x:cw*(col+0.65),y:ch*(row+0.7)});}
     for(var i=1;i<P.length;i++){
       var p1=pos[i-1],p2=pos[i];
-      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
-      ctx.strokeStyle='rgba(80,140,220,'+(0.12+0.08*Math.sin(t*0.8+i))+')'; ctx.lineWidth=1.2; ctx.stroke();
-      var ft=(t*0.3+i*0.12)%1;
-      var fx=p1.x+(p2.x-p1.x)*ft,fy=p1.y+(p2.y-p1.y)*ft;
-      ctx.beginPath(); ctx.arc(fx,fy,1.5,0,Math.PI*2);
-      ctx.fillStyle='rgba(180,220,255,0.4)'; ctx.fill();
+      _cf.beginPath(); _cf.moveTo(p1.x,p1.y); _cf.lineTo(p2.x,p2.y);
+      _cf.strokeStyle='rgba(80,140,220,'+(0.12+0.08*Math.sin(tf*0.8+i))+')'; _cf.lineWidth=1.2; _cf.stroke();
+      var ft=(tf*0.3+i*0.12)%1;
+      _cf.beginPath(); _cf.arc(p1.x+(p2.x-p1.x)*ft,p1.y+(p2.y-p1.y)*ft,1.5,0,Math.PI*2);
+      _cf.fillStyle='rgba(180,220,255,0.4)'; _cf.fill();
     }
-    // Chambers
     for(var i=0;i<P.length;i++){
       var p=pos[i],ia=(i===act);
       var rx=p.x-nw/2,ry=p.y-nh/2;
-      ctx.fillStyle=ia?C[i]+'33':'rgba(25,25,50,0.5)';
-      ctx.strokeStyle=ia?C[i]:'rgba(70,70,110,0.35)'; ctx.lineWidth=ia?1.5:0.5;
+      _cf.fillStyle=ia?C[i]+'33':'rgba(25,25,50,0.5)';
+      _cf.strokeStyle=ia?C[i]:'rgba(70,70,110,0.35)'; _cf.lineWidth=ia?1.5:0.5;
       var cr=3;
-      ctx.beginPath();
-      ctx.moveTo(rx+cr,ry); ctx.lineTo(rx+nw-cr,ry);
-      ctx.arcTo(rx+nw,ry,rx+nw,ry+cr,cr);
-      ctx.lineTo(rx+nw,ry+nh-cr);
-      ctx.arcTo(rx+nw,ry+nh,rx+nw-cr,ry+nh,cr);
-      ctx.lineTo(rx+cr,ry+nh);
-      ctx.arcTo(rx,ry+nh,rx,ry+nh-cr,cr);
-      ctx.lineTo(rx,ry+cr);
-      ctx.arcTo(rx,ry,rx+cr,ry,cr);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
+      _cf.beginPath(); _cf.moveTo(rx+cr,ry); _cf.lineTo(rx+nw-cr,ry);
+      _cf.arcTo(rx+nw,ry,rx+nw,ry+cr,cr); _cf.lineTo(rx+nw,ry+nh-cr);
+      _cf.arcTo(rx+nw,ry+nh,rx+nw-cr,ry+nh,cr); _cf.lineTo(rx+cr,ry+nh);
+      _cf.arcTo(rx,ry+nh,rx,ry+nh-cr,cr); _cf.lineTo(rx,ry+cr);
+      _cf.arcTo(rx,ry,rx+cr,ry,cr); _cf.closePath(); _cf.fill(); _cf.stroke();
       if(ia){
-        var ag=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,nw*0.8);
+        var ag=_cf.createRadialGradient(p.x,p.y,0,p.x,p.y,nw*0.8);
         ag.addColorStop(0,C[i]+'44'); ag.addColorStop(1,'transparent');
-        ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(p.x,p.y,nw*0.8,0,Math.PI*2); ctx.fill();
+        _cf.fillStyle=ag; _cf.beginPath(); _cf.arc(p.x,p.y,nw*0.8,0,Math.PI*2); _cf.fill();
       }
-      ctx.fillStyle=ia?'#fff':'#999';
-      ctx.font=ia?'bold 7px sans-serif':'6px sans-serif';
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(P[i],p.x,p.y);
+      _cf.fillStyle=ia?'#fff':'#999'; _cf.font=ia?'bold 7px sans-serif':'6px sans-serif';
+      _cf.textAlign='center'; _cf.textBaseline='middle';
+      _cf.fillText(P[i],p.x,p.y);
     }
-    requestAnimationFrame(dr);
-  }
-  dr();
-})();
 
-// Mode 3: Tree / Root System (organic canopy with root tendrils)
-(function(){
-  var bc=document.getElementById('brain-tree');
-  if(!bc||!bc.getContext)return; var ctx=bc.getContext('2d');
-  var P=['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
-  var C=['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888'];
-  var L=['Core','Narrative','Mission','Project','Method','Action'];
-  var t=0;
-  function rs(){bc.width=bc.clientWidth||240; bc.height=bc.clientHeight||280;}
-  function dr(){
-    rs(); t+=0.02; var w=bc.width,h=bc.height;
-    var bg=ctx.createRadialGradient(w/2,h,0,w/2,h,w*0.7);
+    // ── Mode 3: Root System ──
+    tt+=0.02;
+    w=_bct.width=_bct.clientWidth||280; h=_bct.height=_bct.clientHeight||280;
+    bg=_ct.createRadialGradient(w/2,h,0,w/2,h,w*0.7);
     bg.addColorStop(0,'#0d0d1a'); bg.addColorStop(1,'#06060a');
-    ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
-    ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.font='9px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('🌳 Root System — 9 Phase Canopy',w/2,10);
+    _ct.fillStyle=bg; _ct.fillRect(0,0,w,h);
+    _ct.fillStyle='rgba(255,255,255,0.18)'; _ct.font='9px sans-serif'; _ct.textAlign='center';
+    _ct.fillText('Root System - 9 Phase Canopy',w/2,10);
     var rx=w/2,ry=h-18,trunkH=h*0.38;
-    var act=Math.floor(t*0.45)%P.length;
-    // Root tendrils (6 identity layers)
-    for(var li=0;li<L.length;li++){
-      var ang=-Math.PI/2+Math.PI*0.2+(li/(L.length-1))*Math.PI*0.6;
-      var len=12+li*5;
-      var ex=rx+Math.cos(ang)*len,ey=ry+Math.sin(ang)*len;
-      ctx.beginPath(); ctx.moveTo(rx,ry);
-      ctx.quadraticCurveTo(rx+Math.cos(ang)*len*0.5,ry+Math.sin(ang)*len*0.5-4,ex,ey);
-      ctx.strokeStyle='rgba(100,140,200,'+(0.15+li*0.05)+')'; ctx.lineWidth=1.2-li*0.1; ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='5px sans-serif'; ctx.textAlign='center';
-      ctx.fillText(L[li],ex,ey+6);
+    for(var li=0;li<L_.length;li++){
+      var ang=-Math.PI/2+Math.PI*0.2+(li/(L_.length-1))*Math.PI*0.6;
+      var len=12+li*5, ex=rx+Math.cos(ang)*len, ey=ry+Math.sin(ang)*len;
+      _ct.beginPath(); _ct.moveTo(rx,ry);
+      _ct.quadraticCurveTo(rx+Math.cos(ang)*len*0.5,ry+Math.sin(ang)*len*0.5-4,ex,ey);
+      _ct.strokeStyle='rgba(100,140,200,'+(0.15+li*0.05)+')'; _ct.lineWidth=1.2-li*0.1; _ct.stroke();
+      _ct.fillStyle='rgba(255,255,255,0.25)'; _ct.font='5px sans-serif'; _ct.textAlign='center';
+      _ct.fillText(L_[li],ex,ey+6);
     }
-    // Trunk
-    ctx.beginPath(); ctx.moveTo(rx-5,ry);
-    ctx.quadraticCurveTo(rx-3,ry-trunkH*0.5,rx-8,ry-trunkH);
-    ctx.lineTo(rx+8,ry-trunkH);
-    ctx.quadraticCurveTo(rx+3,ry-trunkH*0.5,rx+5,ry);
-    ctx.closePath();
-    ctx.fillStyle='rgba(50,35,25,0.35)'; ctx.fill();
-    // Canopy — phase nodes as fruit/leaves on semi-circle
+    _ct.beginPath(); _ct.moveTo(rx-5,ry);
+    _ct.quadraticCurveTo(rx-3,ry-trunkH*0.5,rx-8,ry-trunkH);
+    _ct.lineTo(rx+8,ry-trunkH); _ct.quadraticCurveTo(rx+3,ry-trunkH*0.5,rx+5,ry);
+    _ct.closePath(); _ct.fillStyle='rgba(50,35,25,0.35)'; _ct.fill();
     var cpY=ry-trunkH-5, cpR=Math.min(w,h)*0.3;
     for(var i=0;i<P.length;i++){
       var ang=-Math.PI+(i/(P.length-1))*Math.PI;
-      var bx=rx+Math.cos(ang)*cpR*0.75,by=cpY+Math.sin(ang)*cpR*0.55;
-      // Branch curve
-      ctx.beginPath(); ctx.moveTo(rx,ry-trunkH);
-      var cpx=rx+Math.cos(ang)*cpR*0.3;
-      var cpy=cpY+Math.sin(ang)*cpR*0.2-6;
-      ctx.quadraticCurveTo(cpx,cpy,bx,by);
-      ctx.strokeStyle='rgba(60,80,60,'+(0.12+0.06*Math.sin(t+i))+')'; ctx.lineWidth=0.6; ctx.stroke();
-      // Leaf node
-      var ia=(i===act),pu=ia?7+2*Math.sin(t*2.5):4+1.5*Math.sin(t*1.5+i*0.9);
+      var bx=rx+Math.cos(ang)*cpR*0.75, by=cpY+Math.sin(ang)*cpR*0.55;
+      _ct.beginPath(); _ct.moveTo(rx,ry-trunkH);
+      _ct.quadraticCurveTo(rx+Math.cos(ang)*cpR*0.3,cpY+Math.sin(ang)*cpR*0.2-6,bx,by);
+      _ct.strokeStyle='rgba(60,80,60,'+(0.12+0.06*Math.sin(tt+i))+')'; _ct.lineWidth=0.6; _ct.stroke();
+      var ia=(i===act), pu=ia?7+2*Math.sin(tt*2.5):4+1.5*Math.sin(tt*1.5+i*0.9);
       if(ia){
-        var ag=ctx.createRadialGradient(bx,by,0,bx,by,pu*4);
+        var ag=_ct.createRadialGradient(bx,by,0,bx,by,pu*4);
         ag.addColorStop(0,C[i]+'55'); ag.addColorStop(1,'transparent');
-        ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(bx,by,pu*4,0,Math.PI*2); ctx.fill();
+        _ct.fillStyle=ag; _ct.beginPath(); _ct.arc(bx,by,pu*4,0,Math.PI*2); _ct.fill();
       }
-      ctx.fillStyle=C[i]; ctx.beginPath(); ctx.arc(bx,by,pu,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.1)';
-      ctx.beginPath(); ctx.arc(bx-pu*0.15,by-pu*0.15,pu*0.25,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle=ia?'#fff':'#999';
-      ctx.font=ia?'bold 6px sans-serif':'5px sans-serif';
-      ctx.textAlign='center'; ctx.fillText(P[i],bx,by+pu+5);
+      _ct.fillStyle=C[i]; _ct.beginPath(); _ct.arc(bx,by,pu,0,Math.PI*2); _ct.fill();
+      _ct.fillStyle='rgba(255,255,255,0.1)';
+      _ct.beginPath(); _ct.arc(bx-pu*0.15,by-pu*0.15,pu*0.25,0,Math.PI*2); _ct.fill();
+      _ct.fillStyle=ia?'#fff':'#999'; _ct.font=ia?'bold 6px sans-serif':'5px sans-serif';
+      _ct.textAlign='center'; _ct.fillText(P[i],bx,by+pu+5);
     }
-    // Nutrient particles flowing up trunk
     for(var pi=0;pi<8;pi++){
-      var ft=(t*0.2+pi*0.125)%1;
-      var py=ry-ft*trunkH;
-      var px=rx+Math.sin(t+pi*2)*6*ft;
-      ctx.beginPath(); ctx.arc(px,py,0.8,0,Math.PI*2);
-      ctx.fillStyle='rgba(150,200,255,'+(0.25*(1-ft))+')'; ctx.fill();
+      var ft=(tt*0.2+pi*0.125)%1;
+      _ct.beginPath(); _ct.arc(rx+Math.sin(tt+pi*2)*6*ft,ry-ft*trunkH,0.8,0,Math.PI*2);
+      _ct.fillStyle='rgba(150,200,255,'+(0.25*(1-ft))+')'; _ct.fill();
     }
-    requestAnimationFrame(dr);
+    var bd=document.getElementById('brain-debug');
+    if(bd)bd.textContent='Orbit / Flow / Tree - active: '+P[act];
+    requestAnimationFrame(draw);
   }
-  dr();
+  draw();
 })();
 
 // Auto-refresh and learning ticker (moved here to avoid execution issue)
