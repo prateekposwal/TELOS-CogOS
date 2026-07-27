@@ -30,6 +30,8 @@ from telos.core.decision.commitment_optimizer import CommitmentOptimizer
 from telos.core.decision.omega_threshold import OmegaThresholdLearner
 from telos.core.decision.cognitive_momentum import CognitiveMomentum
 from telos.core.accounting.resource_accounting import ResourceAccountingLayer, ResourceCost
+from telos.core.pipeline_builder import build_components
+from telos.core.pipeline_finalize import run_axiom_prover, run_v2_module_hooks, record_resource_accounting
 from telos.core.streams.implementations import TheoryStream
 from telos.core.resource.gradient import ResourceGradientTracker
 from telos.core.streams.base import CognitiveStream
@@ -165,14 +167,6 @@ class TelosV14Pipeline:
                 max_skills=self.config.experience_max_skills,
             ),
         )
-        self._attention_engine = AttentionProjectionEngine(window_size=10)
-        self._identity_entropy = IdentityEntropyTracker(baseline_action_space=10, window_size=15)
-        self._tripartite_u = TripartiteUncertainty()
-        self._commitment_optimizer = CommitmentOptimizer()
-        self._resource_gradient_tracker = ResourceGradientTracker()
-        self._omega_threshold_learner = OmegaThresholdLearner()
-        # ── Curiosity Drive: intrinsic motivation to reduce uncertainty ──
-        self._curiosity_drive = CuriosityDrive()
         self._prev_uncertainty: float = 0.0
         self._last_sim_score: float = 0.0
         self._last_predicted_state = None
@@ -183,8 +177,44 @@ class TelosV14Pipeline:
 
         self._mempool = DecisionMempool(max_pending=100)
         self._prev_trace_id: Optional[str] = None
-        self._decision_timelocks: Dict[str, int] = {}  # Bitcoin-inspired: timelock intent_types
+        self._decision_timelocks: Dict[str, int] = {}
         self._phases = self._build_phases()
+
+        # ── Build all components via pipeline_builder ──
+        comps = build_components(self.config, self._infra_manager, self._skill_library)
+        self._attention_engine = comps['attention_engine']
+        self._identity_entropy = comps['identity_entropy']
+        self._tripartite_u = comps['tripartite_u']
+        self._commitment_optimizer = comps['commitment_optimizer']
+        self._resource_gradient_tracker = comps['resource_gradient_tracker']
+        self._omega_threshold_learner = comps['omega_threshold_learner']
+        self._curiosity_drive = comps['curiosity_drive']
+        self._axiom_prover = comps['axiom_prover']
+
+        # v2 modules
+        self._interpretation_engine = comps['interpretation_engine']
+        self._axiom_evolution = comps['axiom_evolution']
+        self._theory_builder = comps['theory_builder']
+        self._cognitive_momentum = comps['cognitive_momentum']
+        self._regret_memory = comps['regret_memory']
+        self._introspection_scheduler = comps['introspection_scheduler']
+        self._identity_utility = comps['identity_utility']
+        self._assumption_auditor = comps['assumption_auditor']
+        self._error_attribution = comps['error_attribution']
+        self._council_reflector = comps['council_reflector']
+        self._internal_debate = comps['internal_debate']
+
+        # v2.5 modules
+        self._unknown_unknown_detector = comps['unknown_unknown_detector']
+        self._model_competition = comps['model_competition']
+        self._time_horizon = comps['time_horizon']
+        self._surprise_budget = comps['surprise_budget']
+        self._active_forgetting = comps['active_forgetting']
+        self._cognitive_energy = comps['cognitive_energy']
+        self._dual_confidence = comps['dual_confidence']
+        self._identity_compression = comps['identity_compression']
+        self._explanation_compression = comps['explanation_compression']
+        self._resource_accounting = comps['resource_accounting']
 
         if self.config.checkpoint_path:
             self._checkpointer = CheckpointManager(
@@ -203,7 +233,6 @@ class TelosV14Pipeline:
             cp = self._checkpointer.load()
             if cp:
                 self._checkpointer.restore(self, cp)
-                # ── Gap 4: Restore omega_threshold_learner from checkpoint ──
                 if hasattr(cp, 'omega_threshold_learner_data') and cp.omega_threshold_learner_data:
                     try:
                         self._omega_threshold_learner = OmegaThresholdLearner.from_dict(
@@ -214,7 +243,6 @@ class TelosV14Pipeline:
                     except Exception as e:
                         logger.warning(f"OmegaThresholdLearner restore failed: {e}")
                 else:
-                    # Check if it's embedded in the raw dict (for backward compat)
                     raw_dict = getattr(cp, '_raw', None) or {}
                     otl_data = raw_dict.get('omega_threshold_learner')
                     if otl_data:
@@ -241,57 +269,6 @@ class TelosV14Pipeline:
                     except Exception as e:
                         logger.warning(f"PatternLibrary load failed: {e}")
 
-        self._interpretation_engine = InterpretationEngine()
-        # P2.9: Interpretation engine — principle conflict resolution (proposal)
-        self._axiom_evolution = AxiomEvolutionEngine()
-        # P2.8: Axiom evolution — system proposes, human approves (proposal)
-        self._theory_builder = TheoryBuilder()
-        # P2.7: Theory builder — experience → cluster → hypothesis → test → theory
-        self._cognitive_momentum = CognitiveMomentum()
-        # Cognitive momentum — M_c = Σ w_i · a_i, decision inertia tracking
-        self._regret_memory = RegretMemory()
-        # P2.6: Regret memory — counterfactual what-if archival
-        self._introspection_scheduler = IntrospectionScheduler()
-        # P2.5: Multi-timescale introspection — every cycle, 100, 1000
-        self._identity_utility = IdentityUtilityEngine()
-        # P2.4: Identity changes utility functions — not thresholds
-        self._assumption_auditor = AssumptionAuditor()
-        self._curiosity_drive.set_assumption_auditor(self._assumption_auditor)
-        # P2.3: Curiosity questions assumptions — not just 'what's out there?'
-        self._error_attribution = ErrorAttributionEngine()
-        # P2.2: Meta-error attribution — 'which subsystem caused it?'
-        self._council_reflector = CouncilReflector()
-        # P2.1: Council meta-learning — 'was that right?' hindsight evaluation
-        # ── Telos v2.5: Architectural upgrades (Prateek feedback — July 2026) ──
-        self._unknown_unknown_detector = UnknownUnknownDetector()
-        # U1: Unknown unknown detector — finds what the system should know but hasn't considered
-        self._model_competition = ModelCompetition()
-        # U2: Model competition — multiple competing hypotheses with probability weights
-        self._time_horizon = TimeHorizonSeparator()
-        # U3: Time horizon separation — immediate/short/long/irreversible utility
-        self._surprise_budget = SurpriseBudget(base_budget_ms=self.config.compute_budget_ms)
-        # U4: Surprise budget — prediction error drives computational budget
-        self._active_forgetting = ActiveForgetting()
-        # U5: Active forgetting — deliberately forget obsolete beliefs
-        self._internal_debate = InternalDebate()
-        # U6: Multi-agent internal debate — optimist/skeptic/economist/engineer perspectives
-        self._cognitive_energy = CognitiveEnergy()
-        # U7: Cognitive energy — mental fatigue, exploration decreases after hard decisions
-        self._dual_confidence = DualConfidence()
-        # U8: Dual confidence — separate 'what to do' from 'understand why'
-        self._identity_compression = IdentityCompression()
-        # U9: Identity compression — compress 100 conversations into one principle
-        self._explanation_compression = ExplanationCompression()
-        # U10: Explanation compression — one rule that covers 9,200/10,000 problems
-        self._resource_accounting = ResourceAccountingLayer()
-        # R(a,s): Resource accounting — per-action compute/memory/bandwidth/storage costing
-
-        # ── Axiom Compliance Prover: verifies 20 axioms post-cycle ─────────
-        self._axiom_prover = AxiomProver(
-            infra_manager=self._infra_manager,
-            skill_library=self._skill_library,
-        )
-        # ── Telos v2: Architectural upgrades (Prateek feedback — July 2026) ──
         if self.config.adapter and hasattr(self.config.adapter, 'initialize'):
             self.config.adapter.initialize()
 
@@ -1244,122 +1221,10 @@ class TelosV14Pipeline:
         )
         self._prev_trace_id = trace.produced_ctx_id
 
-        # ── Axiom Compliance Prover: verify all 20 axioms ─────────────────
-        try:
-            axiom_results = self._axiom_prover.verify(
-                trace, ctx, stream_results=ctx.stream_activations,
-            )
-            passed_count = sum(1 for r in axiom_results.values() if r["passed"])
-            failed_count = len(axiom_results) - passed_count
-            if failed_count > 0:
-                failed_axioms = [aid for aid, r in axiom_results.items() if not r["passed"]]
-                logger.warning(
-                    f"Axiom compliance: {passed_count}/{len(axiom_results)} passed, "
-                    f"{failed_count} failed: {', '.join(failed_axioms)}"
-                )
-            else:
-                logger.info(
-                    f"Axiom compliance: all {len(axiom_results)} axioms passed ✓"
-                )
-            ctx._axiom_results = axiom_results
-            trace.axiom_results = axiom_results  # store on trace for audit
-        except Exception as e:
-            logger.warning(f"Axiom verification skipped: {e}")
-
-        # ── v2 Module Wiring: Post-cycle hooks ────────────────────────────
-        try:
-            was_blocked = ctx.council_blocked or ctx.firewall_blocked
-            # CouncilReflector: meta-learn from block/pass outcomes
-            self._council_reflector.record_decision(
-                council_blocked=was_blocked,
-                di=trace.decision_integrity if trace else 0.0,
-                md=trace.mission_drift if trace else 0.0,
-            )
-            # IntrospectionScheduler: multi-timescale reflection
-            self._introspection_scheduler.get_due_tiers(self._cycle_count)
-            self._introspection_scheduler.introspect(self._cycle_count)
-            # STRATEGIC tier triggers theory formation
-            if self._cycle_count % 1000 == 0:
-                try:
-                    tb = self._theory_builder
-                    if tb.total_experiences > 0:
-                        tb.cluster()
-                        tb.hypothesize()
-                        tb.promote()
-                except Exception:
-                    pass
-            # CognitiveEnergy: deplete on hard decisions, recover on rest
-            self._cognitive_energy.deplete(1.0 if was_blocked else 0.3)
-            self._cognitive_energy.tick()
-            # SurpriseBudget: track prediction error for compute allocation
-            if hasattr(ctx, 'last_prediction') and hasattr(ctx, 'last_observation'):
-                self._surprise_budget.record_prediction(ctx.prediction, ctx.observation)
-            # DualConfidence: track decision vs explanation confidence
-            self._dual_confidence.record_decision(
-                decision_conf=1.0 - (trace.mission_drift if trace else 0.0),
-                explanation_conf=getattr(ctx, 'explanation_confidence', 0.0),
-            )
-            # ActiveForgetting: flag stale beliefs for review
-            self._active_forgetting.tick()
-            # CognitiveMomentum: detect policy lock-in
-            momentum_rec = self._cognitive_momentum.recommend_unstick()
-            if momentum_rec:
-                logger.info(f"CognitiveMomentum: {momentum_rec} "
-                           f"(M={self._cognitive_momentum.momentum:.2f})")
-            # TimeHorizonSeparator: compute multi-horizon utility if action taken
-            if ctx.selected_intent and ctx.selected_intent.params.get("action_vector") is not None:
-                self._time_horizon.evaluate_action(
-                    ctx.selected_intent.params["action_vector"],
-                    self._cycle_count,
-                )
-            # IdentityCompression: batch experiences into identity markers
-            self._identity_compression.observe_experience(ctx, trace)
-            # ExplanationCompression: find minimal rules
-            self._explanation_compression.observe_outcome(
-                problem_hash=str(hash(str(ctx.state)[:50])),
-                outcome_success=not was_blocked,
-            )
-            # ErrorAttribution: if blocked, trace which subsystem caused it
-            if was_blocked:
-                self._error_attribution.attribute(
-                    ctx=ctx, trace=trace,
-                    stream_activations=getattr(ctx, 'stream_activations', []),
-                )
-            # IdentityUtility: compute utility profile based on creator presence
-            self._identity_utility.compute_utility(is_creator=self._creator_present)
-            # AxiomEvolution: observe cycle + HumanGateway approval for proposals
-            self._axiom_evolution.observe(
-                cycle=self._cycle_count, di=trace.decision_integrity if trace else 0.0,
-                md=trace.mission_drift if trace else 0.0,
-                was_blocked=was_blocked,
-                council_signals=[], stream_activations={}, identity_state={})
-            pending = self._axiom_evolution.get_pending_proposals()
-            if pending and self._human_gateway is not None:
-                for prop in pending[:1]:  # one per cycle max
-                    gw = self._human_gateway
-                    if gw.should_review(council_validated=not was_blocked,
-                                        decision_integrity=trace.decision_integrity if trace else 1.0):
-                        verdict = gw.review(
-                            intent=f"axiom_proposal:{prop.name}",
-                            council_signals=[], decision_integrity=trace.decision_integrity if trace else 1.0,
-                        )
-                        if verdict.approved:
-                            self._axiom_evolution.review(prop.id, approved=True)
-                        else:
-                            self._axiom_evolution.review(prop.id, approved=False)
-            # InterpretationEngine: learn from cycle outcome
-            if ctx.verdict and ctx.verdict.validated:
-                try:
-                    self._interpretation_engine.record_outcome(
-                        conflict_id="auto",
-                        outcome_quality=trace.decision_integrity if trace else 0.5,
-                    )
-                except Exception:
-                    pass
-            # AssumptionAuditor: challenge assumptions periodically
-            self._assumption_auditor.auto_audit(self._cycle_count)
-        except Exception as e:
-            logger.warning(f"v2 module wiring error (non-blocking): {e}")
+        # ── pipeline_finalize: axiom verification + v2 module hooks + resource accounting ──
+        run_axiom_prover(self, trace, ctx)
+        run_v2_module_hooks(self, ctx, trace)
+        record_resource_accounting(self, ctx)
 
         status = "BLOCKED" if ctx.governance_blocked else "APPROVED"
         escalation_tag = f" [ESCALATED: {ctx.verdict.escalation_reason}]" if (ctx.verdict and ctx.verdict.escalation_requested) else ""
@@ -1397,44 +1262,6 @@ class TelosV14Pipeline:
         )
 
         self._telemetry.record_cycle(self._cycle_count, trace)
-
-        # Resource Accounting Layer: record action costs + set cycle boundary
-        try:
-            ra = self._resource_accounting
-            ra.set_cycle(self._cycle_count)
-            if ctx.selected_intent:
-                ra.record_action(
-                    f"intent:{ctx.selected_intent.intent_type}",
-                    ResourceCost(
-                        compute_ms=self.budget_manager.consumed_ms,
-                        memory_traces=len(getattr(ctx, 'stream_activations', []) or []),
-                        bandwidth_bytes=float(len(str(ctx.state))) if hasattr(ctx, 'state') else 0.0,
-                        storage_entries=1,
-                    ),
-                    metadata={"governance": status},
-                )
-            # Record each stream's activation cost
-            for sa in getattr(ctx, 'stream_activations', []) or []:
-                if getattr(sa, 'activated', False):
-                    ra.record_stream_activation(
-                        stream_name=getattr(sa, 'stream_name', 'unknown'),
-                        compute_ms=getattr(sa, 'cost_ms', 2.0),
-                    )
-            ctx.resource_accounting_summary = ra.cycle_summary()
-            # Enforce ΣR_i ≤ R_max: flag over-budget for Council
-            budget_ok = ra.check_budget(
-                max_compute_ms=self.budget_manager.total_budget_ms,
-                max_memory_traces=50,
-                max_bandwidth_bytes=10000,
-                max_storage_entries=20,
-            )
-            ctx.resource_accounting_budget_ok = budget_ok["within_budget"]
-            if not budget_ok["within_budget"]:
-                logger.warning(
-                    f"Resource budget exceeded: {budget_ok['exceeded_dimensions']}"
-                )
-        except Exception as e:
-            logger.warning(f"Resource Accounting failed: {e}")
 
         self._experience_manager.observe(result)
 
