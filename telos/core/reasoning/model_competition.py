@@ -50,6 +50,19 @@ class Model:
     times_updated: int = 0
     parsimony: float = 0.5  # Simplicity score (0=complex, 1=simple)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    predictions_correct: int = 0
+    predictions_total: int = 0
+    bridges_formed: int = 0
+
+    @property
+    def accuracy(self) -> float:
+        return self.predictions_correct / max(self.predictions_total, 1)
+
+    @property
+    def market_price(self) -> float:
+        """Theory Market price based on prediction accuracy, parsimony, bridging."""
+        return (self.accuracy * 0.4 + self.parsimony * 0.3 +
+                min(1.0, self.bridges_formed * 0.1) * 0.2 + self.probability * 0.1)
 
     @property
     def evidence_weight(self) -> float:
@@ -170,6 +183,34 @@ class ModelCompetition:
                    f"source={source}) — {len(self._models)} models active")
 
         return model_id
+
+    def record_prediction(self, model_id: str, correct: bool) -> None:
+        """Record a prediction outcome for Theory Market pricing."""
+        model = self._models.get(model_id)
+        if model:
+            model.predictions_total += 1
+            if correct:
+                model.predictions_correct += 1
+
+    def record_bridge(self, model_id: str) -> None:
+        """Record a bridge formation for Theory Market pricing."""
+        model = self._models.get(model_id)
+        if model:
+            model.bridges_formed += 1
+
+    def market_report(self) -> Dict:
+        """Report Theory Market prices for all models."""
+        return {
+            mid: {
+                "name": m.name,
+                "price": m.market_price,
+                "accuracy": m.accuracy,
+                "parsimony": m.parsimony,
+                "probability": m.probability,
+                "bridges": m.bridges_formed,
+            }
+            for mid, m in self._models.items()
+        }
 
     def submit_evidence(self, description: str,
                          likelihoods: Dict[str, float],

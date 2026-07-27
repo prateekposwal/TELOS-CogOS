@@ -114,7 +114,16 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     except Exception:
         pass
 
-    # 5. Research cycle: seasons, discovery rate, ecology update
+    # 5. Compression-seeking curiosity: feed compression rate
+    try:
+        cd = getattr(pipeline, '_curiosity_drive', None)
+        ic = getattr(pipeline, '_identity_compression', None)
+        if cd is not None and ic is not None and hasattr(ic, 'overall_compression_rate'):
+            cd.set_compression(ic.overall_compression_rate)
+    except Exception:
+        pass
+
+    # 6. Research cycle: seasons, discovery rate, ecology update
     try:
         season = pipeline._research_seasons.get_phase(ctx.cycle_count)
         bonus = pipeline._research_seasons.exploration_bonus(ctx.cycle_count)
@@ -125,6 +134,11 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
         ctx.discovery_rate = pipeline._discovery_rate.marginal_rate
 
         pipeline._ecosystem.update_discovery_rate("core", 1 if not was_blocked else 0, 1.0)
+
+        # Theory Market update: record prediction outcomes
+        mc = getattr(pipeline, '_model_competition', None)
+        if mc is not None and hasattr(mc, 'dominant_model') and mc.dominant_model:
+            mc.record_prediction(mc.dominant_model_id, correct=not was_blocked)
 
         discovery_step = pipeline._discovery_orchestrator.cycle(
             ctx.cycle_count,

@@ -50,6 +50,7 @@ class CuriosityDrive:
         self.state = CuriosityState(curiosity_level=base_curiosity)
         self._uncertainty_history: List[float] = []
         self._learning_history: List[float] = []
+        self._compression_history: List[float] = []
         self._max_history = 20
         self.learning_rate_weight = learning_rate_weight
 
@@ -62,6 +63,9 @@ class CuriosityDrive:
         self.curiosity_gain_on_boredom: float = 0.2  # spike when bored
         self.self_intent_threshold: float = 0.6      # generate self-intent above this
         self.min_curiosity: float = 0.1              # floor to prevent permanent apathy
+        # Insight 5: Compression-seeking curiosity
+        self.compression_reward: float = 0.15        # extra reward for compression
+        self.compression_threshold: float = 0.2      # minimum compression to reward
 
     # ── Public API ──────────────────────────────────────────────────────
 
@@ -132,7 +136,25 @@ class CuriosityDrive:
                 f"→ {self.state.curiosity_level:.3f}"
             )
 
-        # 6. Track exploration vs exploitation balance
+        # 6. Compression-seeking: reward compression rate changes
+        compression_input = getattr(self, '_current_compression', 0.0)
+        if compression_input > 0:
+            self._compression_history.append(compression_input)
+            if len(self._compression_history) > self._max_history:
+                self._compression_history = self._compression_history[-self._max_history:]
+            if len(self._compression_history) >= 2:
+                compression_delta = self._compression_history[-1] - self._compression_history[-2]
+                if compression_delta > self.compression_threshold:
+                    self.state.curiosity_level = min(
+                        1.0, self.state.curiosity_level + self.compression_reward
+                    )
+                    self.state.boredom_count = 0
+                    logger.debug(
+                        f"Curiosity COMPRESSION +{self.compression_reward} "
+                        f"(Δ={compression_delta:.3f}) → {self.state.curiosity_level:.3f}"
+                    )
+
+        # 7. Track exploration vs exploitation balance
         if self.state.curiosity_level > self.self_intent_threshold:
             self.state.exploration_cycles += 1
             self.state.self_intent_generated = True
@@ -149,6 +171,10 @@ class CuriosityDrive:
                 pass
 
         return self.get_report()
+
+    def set_compression(self, compression_rate: float) -> None:
+        """Inject current compression rate for compression-seeking curiosity."""
+        self._current_compression = compression_rate
 
     def set_assumption_auditor(self, auditor) -> None:
         """Inject AssumptionAuditor for curiosity-triggered audits."""
