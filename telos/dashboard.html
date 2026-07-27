@@ -2721,6 +2721,7 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
     });
   }
   function kgDrawAll(){
+    try{
     if(!_kgPaused)kgt+=0.02;
     if(kgNodes.length>0)simulateKnowledgeForces(false);
     if(!_kgPaused)kgRotation+=0.004;
@@ -2737,7 +2738,6 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
         ctx.fillStyle='rgba(136,136,136,0.5)';ctx.font='16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
         ctx.fillText('No knowledge nodes yet',w/2,h/2);continue;
       }
-      // Each mode draws using the projected nodes
       var modeNodes=proj.slice();
       modeNodes.sort(function(a,b){return a.depth-b.depth;});
       switch(ki){
@@ -2755,6 +2755,7 @@ if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
       }
       kd.innerHTML=html;
     }
+    }catch(e){}
     requestAnimationFrame(kgDrawAll);
   }
   // ── 1. Knowledge Tree ──
