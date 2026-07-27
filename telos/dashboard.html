@@ -2207,6 +2207,21 @@ const DOMAIN_COLORS = {
   }
 })();
 
+// Auto-refresh and learning ticker (moved here to avoid execution issue)
+setTimeout(function() {
+  if (typeof state !== 'undefined') {
+    state.autoRefresh = true;
+    var btn = document.getElementById('auto-btn');
+    if (btn) { btn.textContent = '⏹ Stop'; btn.className = 'active'; }
+  }
+}, 2000);
+setInterval(function() {
+  var ticker = document.getElementById('learning-ticker');
+  if (!ticker) return;
+  var msgs = ['🧠 Perceiving...','🔍 Analyzing...','📊 Evaluating...','⚖️ Council...','🎯 Selecting...','✅ Executing...','🔄 Reflecting...','📝 Updating...','🌱 Compressing...','🔗 Discovering...'];
+  ticker.textContent = msgs[Math.floor((Date.now() / 3000) % msgs.length)];
+}, 3000);
+
 function drawKnowledgeGraph(canvas) {
   if (!canvas || !canvas.getContext) return;
   const ctx = canvas.getContext('2d');
