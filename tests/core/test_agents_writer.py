@@ -14,7 +14,7 @@ import os
 import tempfile
 from typing import Dict, Optional
 
-from telos.core.session.agents_writer import AgentsWriter, SessionSummary
+from telos.core.session.agents_writer import AgentsWriter, SessionSummary, write_handoff, build_handoff
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ def _make_minimal_pipeline(
     budget_total: float = 100.0,
     checkpoint_path: Optional[str] = None,
 ) -> object:
-    """Build a minimal mock pipeline with the attributes AgentsWriter needs."""
+    """Minimal mock pipeline for testing."""
 
     class MockBudgetManager:
         consumed_ms = budget_consumed
@@ -36,40 +36,27 @@ def _make_minimal_pipeline(
     class MockTrace:
         decision_integrity = di
         mission_drift = md
-        escalation_requested = False
 
     class MockTelemetry:
-        def get_recent_cycles(self, n):
-            return []
-
         def get_stats(self):
             return {"total_cycles": cycle_count}
 
-    class MockCheckpointer:
-        latest_path = checkpoint_path
-
     class MockFailures:
-        def __len__(self):
-            return 0
-        def __iter__(self):
-            return iter([])
+        def __len__(self): return 0
+        def __iter__(self): return iter([])
 
     class MockInfraManager:
         failures = MockFailures()
 
-    class MockCouncil:
-        _validators = []
+    class MockSkillLib:
+        _skills = []
 
     pipeline = type('MockPipeline', (), {
         'budget_manager': MockBudgetManager(),
-        '_token_budget': type('TB', (), {'token_budget': 2048})(),
-        '_last_trace': MockTrace(),
-        '_checkpointer': MockCheckpointer() if checkpoint_path else None,
         '_telemetry': MockTelemetry(),
         '_infra_manager': MockInfraManager(),
-        'council': MockCouncil(),
+        '_experience_manager': type('EM', (), {'skill_library': MockSkillLib()}),
     })()
-
     return pipeline
 
 
