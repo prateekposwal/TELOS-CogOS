@@ -336,11 +336,11 @@
     </div>
     <div id="brain-mode-1" style="margin-bottom:10px;">
       <div style="font-size:12px;color:#888;margin-bottom:4px;">🌀 Neural Orbit - 6 Identity Layers</div>
-      <canvas id="brain-orbit" style="display:block;border-radius:8px;width:100%;height:600px;background:#0f0f18;"></canvas>
+      <canvas id="brain-orbit" style="display:block;border-radius:8px;width:100%;height:800px;background:#0f0f18;"></canvas>
     </div>
     <div id="brain-mode-3" style="margin-bottom:10px;">
       <div style="font-size:12px;color:#888;margin-bottom:4px;">🌳 Root System - 9 Phase Canopy</div>
-      <canvas id="brain-tree" style="display:block;border-radius:8px;width:100%;height:600px;background:#0f0f18;"></canvas>
+      <canvas id="brain-tree" style="display:block;border-radius:8px;width:100%;height:800px;background:#0f0f18;"></canvas>
     </div>
     <div id="brain-debug" style="font-size:10px;color:#555;margin-top:4px;text-align:center;"></div>
   </div>
@@ -394,15 +394,15 @@
       </div>
       <div id="kg-mode-2" style="margin-bottom:10px;">
         <div style="font-size:12px;color:#888;margin-bottom:4px;">1. Knowledge Tree - Domain Branches</div>
-        <canvas id="kg-tree" style="display:block;border-radius:8px;width:100%;height:500px;background:#0f0f18;"></canvas>
+        <canvas id="kg-tree" style="display:block;border-radius:8px;width:100%;height:650px;background:#0f0f18;"></canvas>
       </div>
       <div id="kg-mode-3" style="margin-bottom:10px;">
         <div style="font-size:12px;color:#888;margin-bottom:4px;">2. Solar System - Planet Orbits</div>
-        <canvas id="kg-solar" style="display:block;border-radius:8px;width:100%;height:500px;background:#0f0f18;"></canvas>
+        <canvas id="kg-solar" style="display:block;border-radius:8px;width:100%;height:650px;background:#0f0f18;"></canvas>
       </div>
       <div id="kg-mode-5" style="margin-bottom:10px;">
         <div style="font-size:12px;color:#888;margin-bottom:4px;">3. Bubble Map - Domain Clusters</div>
-        <canvas id="kg-bubble" style="display:block;border-radius:8px;width:100%;height:500px;background:#0f0f18;"></canvas>
+        <canvas id="kg-bubble" style="display:block;border-radius:8px;width:100%;height:650px;background:#0f0f18;"></canvas>
       </div>
       <div id="kg-debug" style="margin-top:4px;font-size:0;text-align:center;min-height:20px;line-height:1.8;"></div>
     </div>
@@ -2313,7 +2313,7 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
     // ── Mode 1: Neural Orbit ──
     if(!_brainPaused)to+=0.02;
     var diVal=state.diHistory.length>0?state.diHistory[state.diHistory.length-1]:0.5;
-    var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||600;
+    var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||800;
     var cx=w/2,cy=h/2,R=Math.min(w,h)*0.50;
     var bg=_co.createRadialGradient(cx,cy,0,cx,cy,R*1.4);
     bg.addColorStop(0,'#111122'); bg.addColorStop(1,'#06060a');
@@ -2396,7 +2396,7 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
     if(!_brainPaused)tt+=0.02;
     var diVal2=state.diHistory.length>0?state.diHistory[state.diHistory.length-1]:0.5;
     var ringClr2=diVal2>0.8?'74,222,128':diVal2>0.5?'251,191,36':'255,68,68';
-    w=_bct.width=_bct.clientWidth||280; h=_bct.height=_bct.clientHeight||280;
+    w=_bct.width=_bct.clientWidth||280; h=_bct.height=_bct.clientHeight||800;
     bg=_ct.createRadialGradient(w/2,h,0,w/2,h,w*0.7);
     bg.addColorStop(0,'#0d0d1a'); bg.addColorStop(1,'#06060a');
     _ct.fillStyle=bg; _ct.fillRect(0,0,w,h);
@@ -2688,6 +2688,9 @@ setInterval(function() {
   ticker.textContent = msgs[Math.floor((Date.now() / 3000) % msgs.length)];
 }, 3000);
 
+// Init KG with demo data so it's ready when the IIFE runs
+if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
+
 // ─── 5-Mode KG Visualization (single rAF loop) ───
 (function(){
   var kgIds=['kg-tree','kg-solar','kg-bubble'];
@@ -2701,10 +2704,10 @@ setInterval(function() {
     kgCanvases.push(el); kgContexts.push(cx);
   }
   var kgt=0;
-  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||500;}
+  function kgResize(c){c.width=c.clientWidth||200;c.height=c.clientHeight||650;}
   function kgProject(){
     if(kgNodes.length===0)return[];
-    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||500;
+    var ref=kgCanvases[0],w=ref.width||200,h=ref.height||650;
     var focal=4,scale=Math.min(w,h)*0.28;
     return kgNodes.map(function(n){
       var nx=n.x||0,ny=n.y||0,nz=n.z||0;
@@ -3373,7 +3376,6 @@ _dbg('Starting demo mode...');
   _dbg('Demo mode active');
   document.getElementById('status-text').textContent = 'Demo Mode';
   generateDemoTraces();
-  if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
 })();
 
 loadCheckpoints();
