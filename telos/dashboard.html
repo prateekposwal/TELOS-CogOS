@@ -315,9 +315,6 @@
     <div id="timeline-container" class="timeline-bar" style="flex:1;"></div>
     <button id="btn-auto-refresh" onclick="toggleAutoRefresh()">▶ Auto</button>
     <button onclick="exportTraces()">⬇ Export</button>
-    <button id="btn-cost-view" onclick="toggleCostView()">📊 Costs</button>
-    <button id="btn-heat-mode" onclick="toggleHeatMode()">🔥 Heat</button>
-    <button id="btn-omega-heat" onclick="toggleOmegaHeatmap()">🌡️ Omega</button>
     <button id="btn-theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
   </div>
 
@@ -351,6 +348,11 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <h3 style="margin-bottom:0;">🌐 GRIDWORLD — 3D ISOMETRIC</h3>
           <span style="font-size:11px;color:#555;font-family:monospace;" id="step-counter">Drag to orbit · Scroll to zoom · Click to set goal</span>
+          <div style="display:flex;gap:4px;">
+            <button id="btn-cost-view" onclick="toggleCostView()" style="background:#181825;border:1px solid #1e1e2e;border-radius:6px;padding:3px 8px;color:#aaa;font-size:11px;cursor:pointer;">📊 Costs</button>
+            <button id="btn-heat-mode" onclick="toggleHeatMode()" style="background:#181825;border:1px solid #1e1e2e;border-radius:6px;padding:3px 8px;color:#aaa;font-size:11px;cursor:pointer;">🔥 Heat</button>
+            <button id="btn-omega-heat" onclick="toggleOmegaHeatmap()" style="background:#181825;border:1px solid #1e1e2e;border-radius:6px;padding:3px 8px;color:#aaa;font-size:11px;cursor:pointer;">🌡️ Omega</button>
+          </div>
         </div>
         <canvas id="grid-canvas" width="1100" height="960" style="display:block;margin:0 auto;border-radius:10px;cursor:grab;"></canvas>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:14px;color:#ccc;line-height:1.8;">
