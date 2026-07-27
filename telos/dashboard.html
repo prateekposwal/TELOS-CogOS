@@ -2003,6 +2003,7 @@ function applyTrace(trace) {
     state.terrainChanges = trace.terrain_changes;
     // Trigger terrain flash animation
     trace.terrain_changes.forEach(function(c) {
+      if(!state.terrainFlash) state.terrainFlash={};
       var key = c.x + "," + c.y;
       state.terrainFlash[key] = { start: state.time, old: c.old, new: c.new };
     });
@@ -2292,6 +2293,10 @@ const DOMAIN_COLORS = {
 // ─── 3-Mode Brain Visualization (single rAF loop) ───
 var _brainPaused=false;
 var _lastHealthData={di:0.5, compute:{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5}};
+var _brainOrbitAngle=0;
+var _brainPhasePositions=[];
+var _hoveredPhase=-1;
+var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
 (function(){
   var bco=document.getElementById('brain-orbit');
   var bct=document.getElementById('brain-tree');
@@ -2450,11 +2455,7 @@ var _lastHealthData={di:0.5, compute:{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5
   draw();
 })();
 
-// ─── Global interactive controls for brain orbit ───
-var _brainOrbitAngle=0;
-var _brainPhasePositions=[];
-var _hoveredPhase=-1;
-var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
+// ─── Brain orbit mouse drag ───
 (function(){
   var boc=document.getElementById('brain-orbit');
   if(!boc)return;
