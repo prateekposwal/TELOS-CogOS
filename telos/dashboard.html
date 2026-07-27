@@ -2205,6 +2205,8 @@ const DOMAIN_COLORS = {
     ctx.textAlign = 'center';
     ctx.fillText(phases[i], px, py + 18);
   }
+  var bd = document.getElementById('brain-debug');
+  if (bd) bd.textContent = '✅ Brain: ' + phases.length + ' phases';
 })();
 
 // Auto-refresh and learning ticker (moved here to avoid execution issue)
