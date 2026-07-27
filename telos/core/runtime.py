@@ -35,6 +35,7 @@ from telos.core.pipeline_finalize import run_axiom_prover, run_v2_module_hooks, 
 from telos.core.project.substrate import ProjectPortfolio
 from telos.core.project.rational_abandonment import AbandonmentGate
 from telos.core.project.strategic_coherence import StrategicCoherence
+from telos.core.project.method import MethodRegistry
 from telos.core.identity.mission import MissionPortfolio
 from telos.core.identity.mission_arbitration import MissionArbiter
 from telos.core.identity.mission_lifecycle import MissionLifecycleEngine
@@ -225,6 +226,7 @@ class TelosV14Pipeline:
         self._project_portfolio = ProjectPortfolio()
         self._abandonment_gate = AbandonmentGate()
         self._strategic_coherence = StrategicCoherence()
+        self._method_registry = MethodRegistry()
         self._identity_core = IdentityCore()
         self._mission_portfolio = MissionPortfolio()
         self._mission_arbiter = MissionArbiter()

@@ -51,6 +51,7 @@ class CommitmentScore:
     interpretation_energy: float = 0.0   # θE_interpret — conflict resolution cost
     opportunity_cost: float = 0.0        # C_o — foregone best alternative
     project_coherence_gain: float = 0.0  # πG_project — ΔP(solve | action)
+    aesthetic_value: float = 0.0         # κA — elegance, parsimony, compression, symmetry
     gamma: float = 0.95
     horizon: int = 1
     discounted_reward: float = 0.0
@@ -67,7 +68,7 @@ class CommitmentScore:
                - self.opportunity_cost
                + self.future_option_value + self.counterfactual_diversity
                + self.information_gain + self.theory_gain + self.uncertainty_bonus
-               + self.project_coherence_gain
+               + self.project_coherence_gain + self.aesthetic_value
                - self.prediction_error - self.interpretation_energy)
         return float(np.clip(raw, 0.0, 1.0))
 
@@ -96,6 +97,7 @@ class CommitmentScore:
             "interpretation_energy": self.interpretation_energy,
             "opportunity_cost": self.opportunity_cost,
             "project_coherence_gain": self.project_coherence_gain,
+            "aesthetic_value": self.aesthetic_value,
             "gamma": self.gamma,
             "horizon": self.horizon,
             "commitment": self.commitment,
@@ -246,7 +248,8 @@ class CommitmentOptimizer:
                  alignment_cost: Optional[float] = None,
                  interpretation_energy: Optional[float] = None,
                  opportunity_cost: Optional[float] = None,
-                 project_coherence_gain: Optional[float] = None) -> CommitmentScore:
+                 project_coherence_gain: Optional[float] = None,
+                 aesthetic_value: Optional[float] = None) -> CommitmentScore:
         """Compute C* from all available signals.
 
         J(τ) = αU - βC_m - γC_r - δC_i - εC_align
@@ -274,6 +277,7 @@ class CommitmentOptimizer:
         IE = min(0.3, interpretation_energy) if interpretation_energy is not None else 0.0
         CO = min(0.5, opportunity_cost) if opportunity_cost is not None else 0.0
         PG = min(0.5, project_coherence_gain) if project_coherence_gain is not None else 0.0
+        AV = min(0.3, aesthetic_value) if aesthetic_value is not None else 0.0
 
         if identity_entropy is not None:
             I += abs(identity_entropy) * 0.1
@@ -306,6 +310,7 @@ class CommitmentOptimizer:
             identity_violation=IV,
             opportunity_cost=CO,
             project_coherence_gain=PG,
+            aesthetic_value=AV,
             gamma=self.gamma,
             horizon=horizon,
             discounted_reward=discounted_reward,
@@ -314,10 +319,10 @@ class CommitmentOptimizer:
         logger.debug(
             "Commitment: gamma={:.3f}, horizon={}, reward={:.3f}->discounted={:.3f}, "
             "terminal={:.3f}, CF={:.3f}, PE={:.3f}, IG={:.3f}, TG={:.3f}, "
-            "αU={:.3f}, AC={:.3f}, IE={:.3f}, IV={:.3f}, Co={:.3f}, PG={:.3f}, commitment={:.3f}".format(
+            "αU={:.3f}, AC={:.3f}, IE={:.3f}, Co={:.3f}, PG={:.3f}, AV={:.3f}, commitment={:.3f}".format(
                 self.gamma, horizon, expected_reward, discounted_reward,
                 terminal_value, CF, PE, IG, TG,
-                AU, AC, IE, IV, CO, PG, score.commitment
+                AU, AC, IE, CO, PG, AV, score.commitment
             )
         )
 

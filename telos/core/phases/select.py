@@ -486,6 +486,34 @@ class SelectPhase(Phase):
                     tu = getattr(pipeline, '_tripartite_u', None)
                     u_val = tu.composite if tu else 0.0
 
+                    # κA: aesthetic heuristic — parsimony, compression, symmetry
+                    av = 0.0
+                    try:
+                        mc = getattr(pipeline, '_model_competition', None)
+                        parsimony = 0.5
+                        if mc and hasattr(mc, 'dominant_model') and mc.dominant_model:
+                            parsimony = getattr(mc.dominant_model, 'parsimony', 0.5)
+                        ic = getattr(pipeline, '_identity_compression', None)
+                        compression = ic.overall_compression_rate if ic and hasattr(ic, 'overall_compression_rate') else 0.0
+                        av = min(0.3, parsimony * 0.5 + compression * 0.5)
+                    except Exception:
+                        av = 0.0
+
+                    # Mission -> Project connection: auto-spawn if no project
+                    try:
+                        mp = getattr(pipeline, '_mission_portfolio', None)
+                        pp = getattr(pipeline, '_project_portfolio', None)
+                        if mp and pp and pp.active_project is None:
+                            active_missions = mp.active_missions()
+                            if active_missions:
+                                mp.spawn_project(
+                                    active_missions[0].id, pp,
+                                    f"auto_{ctx.selected_intent.intent_type if ctx.selected_intent else 'task'}",
+                                    ctx.cycle_count,
+                                )
+                    except Exception:
+                        pass
+
                     # F(I) Projection Gate: is this trajectory admissible?
                     # Identity is no longer a penalty term — it constrains
                     # the admissible optimization space.
@@ -557,6 +585,7 @@ class SelectPhase(Phase):
                         interpretation_energy=ie_val,
                         opportunity_cost=co,
                         project_coherence_gain=pg,
+                        aesthetic_value=av,
                     )
                     commitment_mod = score.commitment
 
@@ -579,6 +608,7 @@ class SelectPhase(Phase):
                         "interpretation_energy": score.interpretation_energy,
                         "opportunity_cost": score.opportunity_cost,
                         "project_coherence_gain": score.project_coherence_gain,
+                        "aesthetic_value": score.aesthetic_value,
                         "commitment": score.commitment,
                     }
                 else:
