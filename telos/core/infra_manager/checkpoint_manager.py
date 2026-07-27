@@ -86,8 +86,8 @@ class CheckpointManager:
                 if stored_prev:
                     self._last_checkpoint_hash = stored_prev
                     logger.debug(f"CheckpointChain initialized with prev_hash={stored_prev[:16]}...")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Checkpoint chain init failed: {e}")
         CHECKPOINT_SCHEMA = {
             "type": "object",
             "properties": {

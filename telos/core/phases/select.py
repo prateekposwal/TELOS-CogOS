@@ -19,9 +19,12 @@ Changes for Continuous Omega Modulator:
 """
 
 import math
+import logging
 import numpy as np
 
 from telos.core.phases.base import Phase, PhaseContext
+
+logger = logging.getLogger('telos_pipeline')
 from telos.core.uncertainty.tripartite import TripartiteUncertainty
 
 
@@ -429,10 +432,12 @@ class SelectPhase(Phase):
                                 "type": conflict.value if hasattr(conflict, 'value') else str(conflict),
                                 "resolution": getattr(record, 'resolution', ''),
                             }
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Interpretation debate failed: {e}")
                 debate_winner_weight = 1.0
 
             # ── TELOS Commitment Theory (Axiom 5.1): compute C* from all signals ──
+            score = None
             try:
                 commitment_opt = getattr(pipeline, '_commitment_optimizer', None)
                 infra = getattr(pipeline, '_infra_manager', None)
@@ -564,10 +569,11 @@ class SelectPhase(Phase):
                     }
                 else:
                     commitment_mod = 1.0
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Commitment optimization failed: {e}")
                 commitment_mod = 1.0
 
-            ctx.commitment_score = commitment_mod if 'score' in dir() else None
+            ctx.commitment_score = score.commitment if score is not None else None
             
             # Apply blend to intent weighting
             blend = getattr(ctx, 'inquiry_blend', 0.0)
@@ -599,5 +605,5 @@ class SelectPhase(Phase):
                         counterfactual_options=cf_options[1:],
                         decision_type="selection",
                     )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"RegretMemory recording failed: {e}")
