@@ -48,7 +48,7 @@ class IdentityCore:
                                     "epistemic_humility")
     genesis_mood: str = "curious"
     birth_timestamp: float = field(default_factory=time.time)
-    axioms_count: int = 42
+    axioms_count: int = 42  # AXIOMS.md
 
     def recognizes(self, value: str) -> bool:
         return value in self.core_values

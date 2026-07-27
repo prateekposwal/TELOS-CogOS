@@ -5,114 +5,92 @@
 - **Dashboard:** http://localhost:8765
 - **Tests:** `PYTHONPATH=. python3 -m pytest tests/ --ignore=tests/test_knowledge.py -q`
 
-## Status (Session Handoff — 2026-07-25)
-- **469/469 tests passing**
+## Status (Session Handoff — 2026-07-27)
+- **469/469 tests passing** across 47 test files
 - **24/24 self-audit checks passing**
-- **Ω operator** with adaptive threshold + continuous sigmoid blend
-- **Tripartite uncertainty** U = (U_W, U_I, U_O)
-- **Relational Reasoning scaffold** (R_t slot reserved, interface defined)
-- **3D isometric GridWorld** dashboard with orbit/zoom/click controls
-- **12 Bitcoin-inspired upgrades** — UTXO traces, Merkle proofs, PSDT, timelocks, SegWit split, checkpoint chain, difficulty adjustment, voting thresholds, mempool, attention auction, halving, constraint opcodes
-- **Deterministic execution** — cycle-aware seeding for reproducible runs
-- **Curiosity Drive** — intrinsic motivation via learning progress + boredom detection
-- **5 GridWorld upgrades** — Dynamic terrain, Fog of war, Multiple goals, Time pressure, Second agent
-- **197 Python files, 35,000+ lines, 61 git commits**
+- **42 axioms** across 6 layers, verified by AxiomProver every cycle
+- **219 Python files**, ~35K+ lines, 72+ git commits
+- **2 discovery papers**: Identity Projection Theorem, Representational Ecology
+- **19 v2/v2.5 modules** all wired and smoke-tested
+- **9-phase pipeline**: Perceive → Streams → Simulate → Evaluate → Synthesis → Select → Council → Act → Reflect
+- **6 cognitive streams**: Reflex, Perception, Inquiry, Memory, Planning, Theory
+- **Identity architecture**: 6-layer hierarchy (Core → Narrative → Mission → Project → Method → Action)
+- **Unified Cognitive Functional**: 18-term J with aesthetic heuristic + project coherence
+- **Benchmark framework**: 24 metrics across 7 cognitive processes, health dashboard
+- **Resource Accounting**: R(a,s) = (C_compute, C_memory, C_bandwidth, C_storage)
 
-## All shipping blockers fixed
-- ✅ Firewall loop detection tuned (3→4 threshold, available_moves check)
-- ✅ ExperienceManager threshold lowered (0.5→0.1), warm-up on startup
-- ✅ Recovery mode timeout (20-cycle max auto-exit)
-- ✅ 5 failing tests fixed (KG domain allowlist + score clamping)
-- ✅ Ollama fallback (3 retries → graceful message)
-- ✅ Learning loop primed (prime_skill_library on startup)
+## All shipping blockers cleared
+- All 19 v2/v2.5 modules wired into pipeline
+- All VISION_v2 integration gaps closed
+- Identity as projection operator (F(I) gate)
+- Cross-session learning (agents_writer + agents_reader)
+- Council deliberation loop (InternalDebate as primary mechanism)
+- Resource Accounting Layer with enforcement
+- Representational Ecology paper published
+- BenchmarkCollector with 24 metrics + health dashboard
+- Axiom count reconciled (genesis=42, AXIOMS.md=42)
+- 7 large files split into packages (validators, simulation, theory, checkpoint, benchmarks, infrastructure, explanation)
 
 ## To run
 ```bash
 # Dashboard
-cd /Users/prateekposwal/Desktop/Vrooom-computation && python3 telos/serve_dashboard.py
+python3 telos/serve_dashboard.py
 
 # Pipeline
-cd /Users/prateekposwal/Desktop/Vrooom-computation && PYTHONPATH=. python3 telos_task.py
+PYTHONPATH=. python3 telos_task.py
 
 # Self-audit
-cd /Users/prateekposwal/Desktop/Vrooom-computation && PYTHONPATH=. python3 telos/tools/self_audit.py
+PYTHONPATH=. python3 telos/tools/self_audit.py
+
+# Benchmark demo
+PYTHONPATH=. python3 -m telos.benchmarks.demo --cycles 10 --markdown
+
+# Tests
+PYTHONPATH=. python3 -m pytest tests/ --ignore=tests/test_knowledge.py -q
 ```
 
-## Session Handoff — 2026-07-25
+## Session Handoff — 2026-07-27
 
-### Bitcoin / LinkedIn Content Project (NEW SESSION)
+### Current State
+- Session mood: reflective
+- Active papers: Identity Design Paper, Representational Ecology
+- Open question: Bitcoin Priority Oracle research or core architecture?
+- Axiom count: 42 (reconciled)
 
-We discussed creating a **Bitcoin Block Priority Oracle** — a sidecar protocol for mining pools to prioritize financial transactions over data inscriptions. The user wants to continue this in a **separate session** with a fresh context.
-
-**Key idea:** A lightweight oracle + Stratum v2 plugin that classifies transactions as "financial" vs "data" and creates a priority fee market without any consensus change.
-
-**Conversation reference:** The user asked about tech stack (Rust/Go + Stratum v2), resources needed (2-3 people, 8-10 weeks), and wants a LinkedIn post series starting with this architecture.
-
-**To start the new session, prompt with:**
-> "Continue Bitcoin Block Priority Oracle project from AGENTS.md handoff. Build the tech architecture doc and draft the first LinkedIn post."
+### Metrics
+- DI: 0.970 | MD: 0.030 | Cycles: 72+
 
 ---
 
-# TELOS — Future Roadmap (Post-Ship)
+# TELOS — Future Roadmap
 
-### ✅ Phase 1: Polish & Ship (Done)
-- ✅ Wire TelemetryCollector to actually record
-- ✅ Seed OmegaThresholdLearner with more buckets (11 buckets, weak synthetic priors)
-- ✅ Write production README and API docs (v2/v2.5 module table, 422 test count)
-- ✅ Add Dashboard WebSocket health check
-- ✅ Smoke tests for all 19 v2/v2.5 modules (62 tests, 422 total)
-- ✅ GENESIS.md deduplication + VISION_v2.md status update
+## Phase 1: Polish & Ship (Done)
+- TelemetryCollector, OmegaThresholdLearner seeded, README with v2/v2.5 table
+- Dashboard WebSocket, smoke tests for 19 modules
+- GENESIS.md deduplication, VISION_v2.md status update
+- AXIOMS.md reconciled (42 axioms), SKILL.md updated (469 tests)
 
-### Phase 2: Core Architecture
-- Rust migration — core pipeline rewrite
+## Phase 2: Core Architecture
+- Rust migration
 - macOS Voice Assistant ("Hey TELOS")
-- ✅ Activate ResourceGradientTracker reallocation loop
+- ✅ ResourceGradientTracker reallocation loop
 - ✅ Cross-session identity persistence via SystemSelf
-- ✅ Council human-in-the-loop escalation (HumanGateway wired in act.py)
-- ~~MealDrama adapter~~ (archived per architect's instruction)
+- ✅ Council human-in-the-loop (HumanGateway)
+- ~~MealDrama adapter~~ (archived)
 
-### Phase 3: Long-term Vision
-- Cross-session learning via ExperienceManager (longitudinal persistence)
+## Phase 3: Long-term Vision
+- Cross-session learning via ExperienceManager
 - Distributed Council (multi-agent validation)
-- Real-world tool integration (Calendar, Files, APIs)
+- Real-world tool integration
 - Autonomous curiosity-driven exploration
 
-## Session Handoff — 2026-07-25 03:26:27
+## Completed This Session
+- Axiom reconciliation: genesis.py=39→42, system_self.py=42→42 (confirmed), AXIOMS.md confirmed at 42
+- AGENTS.md: collapsed 15+ empty handoffs, added real status
+- SKILL.md: 78/78 → 469/469
+- GENESIS.md: 360→469 tests, 37→47 test files
 
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0 | Token budget: 0.0%
-
-### Checkpoint
-- /tmp/telos_checkpoints/checkpoint_0030.json
-
-## Session Handoff — 2026-07-26 15:11:51
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0 | Token budget: 0.0%
-
-### Checkpoint
-- /tmp/telos_checkpoints/checkpoint_0030.json
-
-
-## Session Handoff — 2026-07-27 19:34:56
+## Session Handoff — 2026-07-27 23:29:24
 
 ### Current State
 - Session mood: neutral
@@ -127,7 +105,7 @@ We discussed creating a **Bitcoin Block Priority Oracle** — a sidecar protocol
 - DI: 1.000 | MD: 0.000 | Cycles: 0
 
 
-## Session Handoff — 2026-07-27 19:34:56
+## Session Handoff — 2026-07-27 23:29:24
 
 ### Current State
 - Session mood: neutral
@@ -142,232 +120,7 @@ We discussed creating a **Bitcoin Block Priority Oracle** — a sidecar protocol
 - DI: 1.000 | MD: 0.000 | Cycles: 0
 
 
-## Session Handoff — 2026-07-27 19:34:56
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 19:42:24
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 19:42:24
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 19:42:24
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 20:08:56
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 20:08:56
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 20:08:56
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:05:43
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:05:43
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:05:43
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:47:41
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:47:41
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:47:41
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:49:34
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:49:34
-
-### Current State
-- Session mood: neutral
-
-### Decisions Made
-- *(No decisions recorded)*
-
-### Open Issues
-- *(No open issues)*
-
-### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: 0
-
-
-## Session Handoff — 2026-07-27 22:49:34
+## Session Handoff — 2026-07-27 23:29:24
 
 ### Current State
 - Session mood: neutral
