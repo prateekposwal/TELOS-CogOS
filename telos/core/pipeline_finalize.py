@@ -35,25 +35,6 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     di = trace.decision_integrity if trace else 0.0
     md = trace.mission_drift if trace else 0.0
 
-    # 1. CouncilReflector with REAL validator signals
-    try:
-        signals = []
-        if ctx.verdict:
-            for s in ctx.verdict.signals:
-                signals.append({
-                    "validator_name": s.validator_name,
-                    "passed": s.passed,
-                    "confidence": s.confidence,
-                    "reason": s.reason,
-                    "evidence_weight": getattr(s, 'evidence_weight', 0.5),
-                })
-        pipeline._council_reflector.record_decision(
-            was_blocked=was_blocked, predicted_block=was_blocked,
-            actual_block=was_blocked, validator_signals=signals,
-        )
-    except Exception:
-        pass
-
     # 2. IntrospectionScheduler: consume tier results for pipeline behavior
     try:
         due_tiers = pipeline._introspection_scheduler.get_due_tiers(ctx.cycle_count)
@@ -224,20 +205,6 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
         if hasattr(ctx, 'verdict') and ctx.verdict and ctx.verdict.validated:
             pipeline._interpretation_engine.record_outcome(
                 conflict_id="auto", outcome_quality=di,
-            )
-    except Exception:
-        pass
-
-    try:
-        pipeline._assumption_auditor.auto_audit(ctx.cycle_count)
-    except Exception:
-        pass
-
-    try:
-        if was_blocked and hasattr(pipeline, '_error_attribution'):
-            pipeline._error_attribution.attribute(
-                ctx=ctx, trace=trace,
-                stream_activations=getattr(ctx, 'stream_activations', []),
             )
     except Exception:
         pass
