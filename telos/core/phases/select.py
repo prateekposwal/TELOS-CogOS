@@ -522,18 +522,40 @@ class SelectPhase(Phase):
                     discovery_rate = getattr(ctx, 'discovery_rate', 0.0)
                     belief_capital_value = discovery_rate * 0.1
 
-                    # Mission -> Project connection: auto-spawn if no project
+                    # Project-centric cognition: project owns the decision context
                     try:
                         mp = getattr(pipeline, '_mission_portfolio', None)
                         pp = getattr(pipeline, '_project_portfolio', None)
-                        if mp and pp and pp.active_project is None:
-                            active_missions = mp.active_missions()
-                            if active_missions:
-                                mp.spawn_project(
-                                    active_missions[0].id, pp,
-                                    f"auto_{ctx.selected_intent.intent_type if ctx.selected_intent else 'task'}",
-                                    ctx.cycle_count,
-                                )
+                        if pp:
+                            active_proj = pp.active_project
+                            if mp and pp and active_proj is None:
+                                active_missions = mp.active_missions()
+                                if active_missions:
+                                    proj = mp.spawn_project(
+                                        active_missions[0].id, pp,
+                                        f"auto_{ctx.selected_intent.intent_type if ctx.selected_intent else 'task'}",
+                                        ctx.cycle_count,
+                                    )
+                                    if proj:
+                                        pp.activate(proj.id, ctx.cycle_count)
+                                        active_proj = pp.active_project
+                            if active_proj:
+                                active_proj.stagnation_cycles = active_proj.stagnation_cycles + 1
+                                ctx.project_context = {
+                                    "project_id": active_proj.id,
+                                    "project_name": active_proj.name,
+                                    "project_stagnation": active_proj.stagnation_cycles,
+                                }
+                    except Exception:
+                        pass
+
+                    # ROI computation for current representation (Insight 7)
+                    try:
+                        mc = getattr(pipeline, '_model_competition', None)
+                        if mc and hasattr(mc, 'dominant_model') and mc.dominant_model:
+                            dom = mc.dominant_model
+                            roi = dom.market_price / max(getattr(dom, 'age_cycles', 1), 1)
+                            ctx.representation_roi = roi
                     except Exception:
                         pass
 
