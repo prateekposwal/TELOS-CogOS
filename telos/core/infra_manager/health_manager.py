@@ -13,11 +13,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional, Dict, List, Callable, Any, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from telos.core.runtime import PipelineResult
-    from telos.core.infra_manager.failure_ledger import FailureRecord
+from typing import Optional, Dict, List, Callable, Any
 
 from telos.core.infra_manager.mission_policy import MissionPolicyManager, MissionPolicy
 

@@ -24,11 +24,8 @@ import time
 import numpy as np
 import logging
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Any, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
-
-if TYPE_CHECKING:
-    from telos.core.runtime import PipelineResult, DecisionTrace
 
 logger = logging.getLogger('telos_infra')
 

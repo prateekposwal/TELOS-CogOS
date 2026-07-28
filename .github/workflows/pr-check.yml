@@ -1,0 +1,27 @@
+name: PR Check
+
+on:
+  pull_request:
+    paths: ['telos/**', 'tests/**']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: pip install numpy pytest
+      - name: Syntax
+        run: |
+          find telos -name '*.py' -exec python3 -c "
+          import ast, sys
+          for f in sys.argv[1:]:
+              try: ast.parse(open(f).read())
+              except SyntaxError as e: print(f'FAIL {f}: {e}'); sys.exit(1)
+          print('All syntax OK')
+          " {} +
+      - name: Tests
+        run: PYTHONPATH=. python3 -m pytest tests/ -q --tb=no 2>&1 | tail -5

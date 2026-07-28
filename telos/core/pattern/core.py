@@ -314,7 +314,7 @@ class PatternLibrary:
         except (FileNotFoundError, json.JSONDecodeError):
             logger.debug(f"PatternLibrary: no checkpoint at {path}")
             return
-        from telos.core.pattern import Pattern, PatternSignature, PatternType
+
         for pid, pd in data.get("patterns", {}).items():
             sig = PatternSignature(
                 state_hash=pd["signature"]["state_hash"],

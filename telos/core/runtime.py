@@ -13,12 +13,18 @@ Governance Integration:
   the Decision Firewall performs a final reality audit before action.
 """
 
+from __future__ import annotations
+
 import time
 import numpy as np
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass, field
 from enum import Enum
+
+if TYPE_CHECKING:
+    from telos.core.infra_manager.infrastructure_manager import InfrastructureManager
+    from telos.core.infra_manager.checkpoint_manager import CheckpointManager
 
 logger = logging.getLogger('telos_pipeline')
 
@@ -30,7 +36,6 @@ from telos.core.decision.commitment_optimizer import CommitmentOptimizer
 from telos.core.decision.omega_threshold import OmegaThresholdLearner
 from telos.core.decision.cognitive_momentum import CognitiveMomentum
 from telos.core.accounting.resource_accounting import ResourceAccountingLayer, ResourceCost
-from telos.core.pipeline_builder import build_pipeline_components
 from telos.core.pipeline_finalize import run_axiom_prover, run_v2_module_hooks, record_resource_accounting
 from telos.core.council.distributed import DistributedCouncil, AgentRole
 from telos.core.curiosity.exploration import AutonomousExplorer
@@ -69,13 +74,11 @@ from telos.core.governance.trust_manager import TrustManager
 from telos.core.governance.timing import InformationReadinessEngine, ReadinessCondition
 from telos.core.governance.firewall import DecisionFirewall, FirewallConfig
 from telos.core.governance.human_gateway import HumanGateway
-from telos.core.infra_manager.infrastructure_manager import InfrastructureManager
 from telos.core.context.summarizer import ContextSummarizer
 from telos.core.context.tiered import TieredContext
 from telos.core.genesis import ANCHOR
 from telos.core.attention.token_budget import TokenBudgetManager
 from telos.core.ui.status import ThinkingDisplay
-from telos.core.infra_manager.checkpoint_manager import CheckpointManager
 from telos.core.observability.telemetry import TelemetryCollector
 from telos.core.ledger.skill_library import SkillLibrary
 from telos.core.ledger.experience_manager import ExperienceManager, ExperienceConfig
@@ -158,6 +161,7 @@ class TelosV14Pipeline:
         self._trust_manager = TrustManager()
         self._readiness = InformationReadinessEngine()
         self._firewall = DecisionFirewall()
+        from telos.core.infra_manager.infrastructure_manager import InfrastructureManager
         self._infra_manager = InfrastructureManager(domain=getattr(self.config.adapter, 'name', 'gridworld'))
         # B3: Register callbacks for council blocks and recovery events
         self._infra_manager.on_council_block(self._on_council_block)
@@ -176,7 +180,7 @@ class TelosV14Pipeline:
 
         self._sim_engine: Optional[CounterfactualEngine] = None
         self._planner: Optional[RepresentationPlanner] = None
-        self._checkpointer: Optional[CheckpointManager] = None
+        self._checkpointer = None
         self._telemetry = TelemetryCollector()
         self._skill_library = SkillLibrary(
             max_skills=self.config.experience_max_skills,
@@ -203,6 +207,7 @@ class TelosV14Pipeline:
         self._phases = self._build_phases()
 
         # ── Build all components via pipeline_builder ──
+        from telos.core.pipeline_builder import build_pipeline_components
         comps = build_pipeline_components(self.config, self._infra_manager, self._skill_library)
         self._attention_engine = comps['attention_engine']
         self._identity_entropy = comps['identity_entropy']
@@ -262,6 +267,7 @@ class TelosV14Pipeline:
         )
 
         if self.config.checkpoint_path:
+            from telos.core.infra_manager.checkpoint_manager import CheckpointManager
             self._checkpointer = CheckpointManager(
                 path=self.config.checkpoint_path,
                 max_checkpoints=self.config.checkpoint_max,
