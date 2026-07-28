@@ -217,6 +217,14 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
     except Exception as e:
         logger.warning(f"Benchmark collection failed: {e}")
 
+    # ── Ecology: cycle representations after all other hooks ──
+    try:
+        eco = pipeline._ecosystem
+        if eco is not None:
+            eco.cycle()
+    except Exception:
+        pass
+
 
 def record_resource_accounting(pipeline, ctx) -> None:
     """Record resource costs and enforce budget limits."""
