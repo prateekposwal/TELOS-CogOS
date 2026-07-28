@@ -34,3 +34,22 @@ jobs:
         with:
           name: scan-logs
           path: '*.log'
+
+  deploy:
+    needs: gap-scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: telos/
+      - id: deployment
+        uses: actions/deploy-pages@v4

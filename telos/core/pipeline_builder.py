@@ -38,6 +38,7 @@ from telos.core.memory.regret_memory import RegretMemory
 from telos.core.memory.active_forgetting import ActiveForgetting
 from telos.core.decision.time_horizon import TimeHorizonSeparator
 from telos.core.attention.surprise_budget import SurpriseBudget
+from telos.core.ecology.ecosystem import Ecosystem
 from telos.core.reasoning.energy.cognitive_energy import CognitiveEnergy
 from telos.core.reasoning.confidence.dual_confidence import DualConfidence
 from telos.core.knowledge.explanation_compression import ExplanationCompression
@@ -97,6 +98,7 @@ def build_pipeline_components(config, infra_manager=None, skill_library=None):
     components['explanation_compression'] = ExplanationCompression()
     components['cognitive_momentum'] = CognitiveMomentum()
     components['resource_accounting'] = ResourceAccountingLayer()
+    components['ecosystem'] = Ecosystem()
 
     # Wire curiosity drive to assumption auditor
     if 'assumption_auditor' in components:
