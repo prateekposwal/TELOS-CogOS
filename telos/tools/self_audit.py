@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-TELOS Self-Audit — Verifies all 28 architectural items at startup.
+TELOS Self-Audit — Verifies all 29 architectural items at startup.
 
-Checks list (28 items):
+Checks list (29 items):
    1. Pipeline has 9 phases (Perceive → Stream → Simulate → Evaluate → Synthesis → Select → Council → Act → Reflect)
    2. SCM has edges > 0 after domain facts parsing
    3. MetaCognitionModule exists and responds
@@ -379,6 +379,48 @@ def run_audit(verbose=True) -> Dict:
         checks.append((ok, "Core module test coverage", details))
     except Exception as e:
         checks.append((False, "Test coverage check", f"Error: {e}"))
+
+    # ── Check 29: Axiom short names have codebase references ──
+    try:
+        axioms_path = os.path.join(os.path.dirname(__file__), '..', 'AXIOMS.md')
+        with open(axioms_path) as f:
+            axioms_md = f.read()
+        short_names = []
+        in_table = False
+        for line in axioms_md.splitlines():
+            if '| # | Short Name | Layer |' in line:
+                in_table = True
+                continue
+            if in_table and re.match(r'^\| \d+\.\d+ \|', line):
+                m = re.match(r'^\| \d+\.\d+ \| (.+?) \|', line)
+                if m:
+                    short_names.append(m.group(1).strip())
+        py_contents = []
+        telos_dir = os.path.join(os.path.dirname(__file__), '..')
+        for root, dirs, files in os.walk(telos_dir):
+            for f in files:
+                if f.endswith('.py'):
+                    try:
+                        with open(os.path.join(root, f)) as pf:
+                            py_contents.append(pf.read().lower())
+                    except Exception:
+                        pass
+        found_count = 0
+        for name in short_names:
+            needle = name.lower()
+            if any(needle in c for c in py_contents):
+                found_count += 1
+                continue
+            words = [w for w in re.findall(r'[A-Za-z]\w+', name.lower()) if len(w) > 3]
+            if any(any(w in c for c in py_contents) for w in words):
+                found_count += 1
+        total = len(short_names)
+        match_rate = found_count / total
+        ok = match_rate >= 0.5
+        details = f"{found_count}/{total} axioms referenced in codebase ({match_rate:.0%})"
+        checks.append((ok, "Axiom short names have codebase references", details))
+    except Exception as e:
+        checks.append((False, "Axiom short name codebase references", f"Error: {e}"))
 
     # ── Check 28: No circular dependencies ──
     try:

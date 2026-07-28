@@ -20,11 +20,8 @@ from __future__ import annotations
 import time
 import numpy as np
 import logging
-from typing import Dict, List, Optional, Any, TYPE_CHECKING
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-
-if TYPE_CHECKING:
-    from telos.core.runtime import PipelineResult
 
 logger = logging.getLogger('telos_infra')
 

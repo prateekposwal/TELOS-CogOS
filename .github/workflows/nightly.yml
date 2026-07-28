@@ -1,0 +1,36 @@
+name: Nightly Gap Scan
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 06:00 UTC daily
+  workflow_dispatch:      # manual trigger
+
+jobs:
+  gap-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install numpy pytest
+      - name: Self-audit
+        run: |
+          PYTHONPATH=. python3 telos/tools/self_audit.py | tee audit.log
+          echo "EXIT=$?" >> $GITHUB_ENV
+      - name: Gap scanner
+        run: |
+          python3 telos/tools/gap_scanner.py | tee gap.log
+      - name: Dependency graph
+        run: |
+          python3 telos/tools/dependency_graph.py | tee deps.log
+      - name: Run tests
+        run: |
+          PYTHONPATH=. python3 -m pytest tests/ -q --tb=no 2>&1 | tee test.log
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-logs
+          path: '*.log'

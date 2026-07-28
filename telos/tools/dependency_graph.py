@@ -81,6 +81,18 @@ def module_to_filepath(mod_name):
     return None
 
 
+def _in_type_checking_block(node, tree):
+    """Check if an AST node is inside an `if TYPE_CHECKING:` block."""
+    for parent in ast.walk(tree):
+        if isinstance(parent, ast.If):
+            test = parent.test
+            if (isinstance(test, ast.Name) and test.id == 'TYPE_CHECKING'):
+                for child in ast.walk(parent):
+                    if child is node:
+                        return True
+    return False
+
+
 def extract_imports(filepath):
     imports = set()
     try:
@@ -91,9 +103,13 @@ def extract_imports(filepath):
         return imports
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
+            if _in_type_checking_block(node, tree):
+                continue
             for alias in node.names:
                 imports.add(alias.name)
         elif isinstance(node, ast.ImportFrom):
+            if _in_type_checking_block(node, tree):
+                continue
             if node.module and node.level == 0:
                 imports.add(node.module)
     return imports
