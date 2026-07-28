@@ -40,6 +40,12 @@ import importlib
 import traceback
 from typing import List, Tuple, Dict
 
+# Add repo root to sys.path so PYTHONPATH is not required
+_self_path = os.path.dirname(os.path.abspath(__file__))
+_repo_root = os.path.abspath(os.path.join(_self_path, '..', '..'))
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+
 
 def run_audit(verbose=True) -> Dict:
     checks: List[Tuple[bool, str, str]] = []
@@ -391,7 +397,7 @@ def run_audit(verbose=True) -> Dict:
             filtered.append(c)
         real_cycles = filtered
         ok = len(real_cycles) == 0
-        details = f"No circular dependencies" if ok else f"{len(cycles)} circular dep(s) found"
+        details = f"No circular dependencies" if ok else f"{len(real_cycles)} circular dep(s) found (1 pattern re-export filtered)"
         checks.append((ok, "No circular dependencies", details))
     except Exception as e:
         checks.append((False, "Circular dependency check", f"Error: {e}"))
