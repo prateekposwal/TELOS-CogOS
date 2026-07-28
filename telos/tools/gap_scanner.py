@@ -433,11 +433,11 @@ def check_agents_md():
 
     for line in lines:
         for m in re.finditer(r"telos/[\w./-]+\.py", line):
-            file_paths.add(m.group(0))
+            file_paths.add(m.group(0).rstrip('`').rstrip(')').rstrip('.'))
         for m in re.finditer(r"telos\.[\w.]+", line):
-            module_refs.add(m.group(0))
+            module_refs.add(m.group(0).rstrip('`').rstrip(')').rstrip('.'))
         for m in re.finditer(r"python3\s+(telos/\S+)", line):
-            file_paths.add(m.group(1))
+            file_paths.add(m.group(1).rstrip('`').rstrip(')'))
         if "telos_task.py" in line:
             file_paths.add("telos_task.py")
 
