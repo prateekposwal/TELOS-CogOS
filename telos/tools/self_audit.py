@@ -1,32 +1,36 @@
 #!/usr/bin/env python3
 """
-TELOS Self-Audit — Verifies all 24 architectural items at startup.
+TELOS Self-Audit — Verifies all 28 architectural items at startup.
 
-Checks list (24 items):
-  1. Pipeline has 9 phases (Perceive → Stream → Simulate → Evaluate → Synthesis → Select → Council → Act → Reflect)
-  2. SCM has edges > 0 after domain facts parsing
-  3. MetaCognitionModule exists and responds
-  4. MetaPolicy (MissionPolicy) exists and has risk_tolerance
-  5. TripartiteUncertainty exists and can update
-  6. ResourceGradientTracker wired in pipeline
-  7. IdentityEntropyTracker exists and can assess
-  8. AttentionProjectionEngine exists and has window_size
-  9. TokenBudgetManager exists and can optimize
-  10. WorldLedger exists and has known_users
-  11. SkillLibrary exists and has max_skills
-  12. ExperienceManager exists and can observe
-  13. CounterfactualEngine exists (if simulator configured)
-  14. RepresentationPlanner exists (if simulator configured)
-  15. InfrastructureManager exists with calibrator
-  16. Council has registered validators
-  17. DecisionFirewall exists with config
-  18. TrustManager exists with stream registry
-  19. InformationReadinessEngine exists
-  20. RepresentationSelector exists
-  21. PerceptionQuality exists and can assess
-  22. ResolutionGate exists with threshold
-  23. PlanLibrary or PatternLibraries accessible
-  24. CheckpointManager exists (if checkpoint_path configured)
+Checks list (28 items):
+   1. Pipeline has 9 phases (Perceive → Stream → Simulate → Evaluate → Synthesis → Select → Council → Act → Reflect)
+   2. SCM has edges > 0 after domain facts parsing
+   3. MetaCognitionModule exists and responds
+   4. MetaPolicy (MissionPolicy) exists and has risk_tolerance
+   5. TripartiteUncertainty exists and can update
+   6. ResourceGradientTracker wired in pipeline
+   7. IdentityEntropyTracker exists and can assess
+   8. AttentionProjectionEngine exists and has window_size
+   9. TokenBudgetManager exists and can optimize
+   10. WorldLedger exists and has known_users
+   11. SkillLibrary exists and has max_skills
+   12. ExperienceManager exists and can observe
+   13. CounterfactualEngine exists (if simulator configured)
+   14. RepresentationPlanner exists (if simulator configured)
+   15. InfrastructureManager exists with calibrator
+   16. Council has registered validators
+   17. DecisionFirewall exists with config
+   18. TrustManager exists with stream registry
+   19. InformationReadinessEngine exists
+   20. RepresentationSelector exists
+   21. PerceptionQuality exists and can assess
+   22. ResolutionGate exists with threshold
+   23. PlanLibrary or PatternLibraries accessible
+   24. CheckpointManager exists (if checkpoint_path configured)
+   25. Axiom count matches across AXIOMS.md, genesis.py, system_self.py
+   26. VISION_v2 per-phase hooks wired in runtime.py
+   27. Core modules have test coverage
+   28. No circular dependencies
 """
 
 import sys
@@ -323,6 +327,68 @@ def run_audit(verbose=True) -> Dict:
                        details))
     except Exception as e:
         checks.append((False, "Axiom count verified", f"Error: {e}"))
+
+    # ── Check 26: VISION_v2 per-phase hooks present in runtime.py ──
+    try:
+        runtime_path = os.path.join(os.path.dirname(__file__), '..', 'core', 'runtime.py')
+        with open(runtime_path) as f:
+            runtime_src = f.read()
+        expected_patterns = [
+            ('_assumption_auditor', 'auto_audit'),
+            ('_identity_utility', 'compute_utility'),
+            ('_theory_builder', 'observe_outcome'),
+            ('_regret_memory', 'get_regret_scores'),
+            ('_interpretation_engine', 'record_outcome'),
+            ('_council_reflector', 'record_decision'),
+            ('_error_attribution', 'attribute'),
+            ('_introspection_scheduler', 'introspect'),
+            ('_axiom_evolution', 'observe'),
+        ]
+        missing = [f'{a}.{m}' for a, m in expected_patterns
+                   if not (a in runtime_src and m in runtime_src)]
+        ok = len(missing) == 0
+        details = f"All {len(expected_patterns)} VISION_v2 hooks present" if ok else f"Missing: {', '.join(missing)}"
+        checks.append((ok, "VISION_v2 per-phase hooks wired in runtime.py", details))
+    except Exception as e:
+        checks.append((False, "VISION_v2 hooks check", f"Error: {e}"))
+
+    # ── Check 27: Key modules have test files ──
+    try:
+        tests_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'tests')
+        core_dir = os.path.join(os.path.dirname(__file__), '..', 'core')
+        test_map = {}
+        for f in os.listdir(tests_dir):
+            if f.startswith('test_') and f.endswith('.py'):
+                test_map[f[5:-3]] = f
+        untested = []
+        for root, dirs, files in os.walk(core_dir):
+            for f in files:
+                if f.endswith('.py') and f != '__init__.py':
+                    module_name = f[:-3]
+                    if module_name not in test_map:
+                        rel = os.path.relpath(os.path.join(root, f), core_dir)
+                        untested.append(rel)
+        ok = True  # informational only
+        details = f"{len(untested)} core modules without test files" if untested else "All core modules have tests"
+        checks.append((ok, "Core module test coverage", details))
+    except Exception as e:
+        checks.append((False, "Test coverage check", f"Error: {e}"))
+
+    # ── Check 28: No circular dependencies ──
+    try:
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, os.path.join(os.path.dirname(__file__), 'dependency_graph.py')],
+            capture_output=True, text=True, timeout=30,
+            cwd=os.path.join(os.path.dirname(__file__), '..', '..'))
+        cycles = [l for l in result.stdout.split('\n') if 'Cycle:' in l or 'cycle' in l.lower()]
+        # Known false-positive: pattern/__init__.py <-> pattern/core.py (re-export pattern)
+        real_cycles = [c for c in cycles if 'pattern/__init__' not in c and 'pattern/core' not in c]
+        ok = len(real_cycles) == 0
+        details = f"No circular dependencies" if ok else f"{len(cycles)} circular dep(s) found"
+        checks.append((ok, "No circular dependencies", details))
+    except Exception as e:
+        checks.append((False, "Circular dependency check", f"Error: {e}"))
 
     passed = sum(1 for c in checks if c[0])
     failed = len(checks) - passed

@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+#
+# TELOS Pre-Commit Hook
+# Runs syntax checks and gap scanner before each commit.
+
+set -e
+
+BASE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+
+echo "=== TELOS Pre-Commit Hook ==="
+
+STAGED_PY_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+
+if [ -z "$STAGED_PY_FILES" ]; then
+    echo "No Python files staged. Skipping checks."
+    exit 0
+fi
+
+echo "Checking Python file(s)..."
+
+# Check 1: Syntax errors
+has_errors=0
+for file in $STAGED_PY_FILES; do
+    full_path="$BASE_DIR/$file"
+    if [ ! -f "$full_path" ]; then
+        continue
+    fi
+    error=$(python3 -c "
+import ast, sys
+try:
+    with open('$full_path') as f:
+        ast.parse(f.read(), filename='$full_path')
+except SyntaxError as e:
+    print(f'SyntaxError at line {e.lineno}: {e.msg}')
+    sys.exit(1)
+" 2>&1) || true
+    if [ -n "$error" ]; then
+        echo "  FAIL: $file"
+        echo "    $error"
+        has_errors=1
+    fi
+done
+
+if [ "$has_errors" -eq 1 ]; then
+    echo ""
+    echo "Syntax errors found. Aborting commit."
+    exit 1
+fi
+
+echo "  Syntax check passed."
+
+# Check 2: Run gap scanner
+echo ""
+echo "Running gap scanner..."
+python3 "$BASE_DIR/telos/tools/gap_scanner.py" || {
+    echo ""
+    echo "Gap scanner reported issues. Aborting commit."
+    exit 1
+}
+
+echo ""
+echo "All checks passed. Proceeding with commit."
+exit 0
