@@ -381,9 +381,15 @@ def run_audit(verbose=True) -> Dict:
             [sys.executable, os.path.join(os.path.dirname(__file__), 'dependency_graph.py')],
             capture_output=True, text=True, timeout=30,
             cwd=os.path.join(os.path.dirname(__file__), '..', '..'))
-        cycles = [l for l in result.stdout.split('\n') if 'Cycle:' in l or 'cycle' in l.lower()]
+        cycles = [l for l in result.stdout.split('\n') if 'Cycle:' in l]
         # Known false-positive: pattern/__init__.py <-> pattern/core.py (re-export pattern)
-        real_cycles = [c for c in cycles if 'pattern/__init__' not in c and 'pattern/core' not in c]
+        filtered = []
+        for c in cycles:
+            files_in_cycle = re.findall(r'telos/\S+\.py', c)
+            if all('pattern/' in f for f in files_in_cycle):
+                continue  # known pattern re-export cycle
+            filtered.append(c)
+        real_cycles = filtered
         ok = len(real_cycles) == 0
         details = f"No circular dependencies" if ok else f"{len(cycles)} circular dep(s) found"
         checks.append((ok, "No circular dependencies", details))
