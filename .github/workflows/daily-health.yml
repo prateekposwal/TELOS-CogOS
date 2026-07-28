@@ -1,0 +1,31 @@
+name: TELOS Daily Health Check
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install numpy
+      - name: Self-audit
+        run: PYTHONPATH=. python3 telos/tools/self_audit.py 2>&1 | tee audit.log
+      - name: Gap scanner
+        run: PYTHONPATH=. python3 telos/tools/gap_scanner.py 2>&1 | tee gap.log
+      - name: Tests
+        run: PYTHONPATH=. python3 -m pytest tests/ -q --tb=no 2>&1 | tee tests.log
+      - name: Check for failures
+        run: |
+          if grep -q "FAILED\|failed\|❌" audit.log gap.log tests.log 2>/dev/null; then
+            echo "ISSUES DETECTED"
+            grep -E "FAILED|failed|❌" audit.log gap.log tests.log 2>/dev/null | head -10
+          else
+            echo "ALL SYSTEMS NOMINAL"
+          fi
