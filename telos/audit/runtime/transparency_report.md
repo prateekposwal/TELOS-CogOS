@@ -1,5 +1,5 @@
 # TELOS Transparency Report
-**Generated:** 2026-07-28 06:18:54
+**Generated:** 2026-07-28 16:06:29
 **Total Decision Cycles:** 5
 
 ## Principle of Latent Cognition
@@ -27,10 +27,10 @@ decision traces that produced each visible action.
 | Cycles | 5 |
 | Stream Activations | 12/16 |
 | Activation Rate | 75.0% |
-| Total Budget Consumed | -123.9ms |
+| Total Budget Consumed | -123.8ms |
 | Average Health | 1.248 |
 | Average Decision Integrity (DI) | 1.000 |
-| Average Mission Drift (MD) | 0.213 |
+| Average Mission Drift (MD) | 0.197 |
 | Council-Blocked Cycles | 0 |
 
 ### Decision Integrity (DI)
@@ -43,21 +43,21 @@ Average DI of 1.000 means the system is strongly evidence-led across all cycles.
 
 MD = ||PredictedState - ObservedState||
 
-Average MD of 0.213 means the system's world model is well-calibrated.
+Average MD of 0.197 means the system's world model is well-calibrated.
 
 ---
 
 ## Decision Cycle Details
 
 ### Cycle 1
-- **Duration:** 3.34ms
-- **Budget:** 16.0/100.0ms
-- **Health:** 0.840
+- **Duration:** 4.32ms
+- **Budget:** 16.1/100.0ms
+- **Health:** 0.839
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.215
+- **MD:** 0.122
 
 **Stream Activations (Latent Processes):**
 
@@ -66,7 +66,7 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 | ReflexStream | 1.0 | yes | reflex | 0.01ms |
 | PerceptionStream | 0.9 | yes | perceive | 0.04ms |
 | MemoryStream | 0.7 | yes | memory_miss | 0.01ms |
-| PlanningStream | 0.5 | yes | plan_trajectory | 0.98ms |
+| PlanningStream | 0.5 | yes | plan_trajectory | 1.04ms |
 
 **Governance (Cognitive Confidentiality):**
 
@@ -82,7 +82,7 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.3178, horizon=5
+  - Rank #1: score=0.3101, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`
@@ -92,14 +92,14 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 ---
 
 ### Cycle 2
-- **Duration:** 3.35ms
+- **Duration:** 3.56ms
 - **Budget:** -35.0/100.0ms
 - **Health:** 1.350
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.165
+- **MD:** 0.285
 
 **Stream Activations (Latent Processes):**
 
@@ -117,7 +117,7 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.3400, horizon=5
+  - Rank #1: score=0.3202, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`
@@ -127,14 +127,14 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 ---
 
 ### Cycle 3
-- **Duration:** 2.64ms
+- **Duration:** 2.03ms
 - **Budget:** -35.0/100.0ms
 - **Health:** 1.350
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.263
+- **MD:** 0.243
 
 **Stream Activations (Latent Processes):**
 
@@ -142,7 +142,7 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 |--------|----------|-----------|--------|------|
 | PerceptionStream | 0.9 | SKIPPED | - | 0.00ms |
 | ReflexStream | 1.0 | yes | reflex | 0.01ms |
-| MemoryStream | 0.7 | yes | memory_recall | 0.02ms |
+| MemoryStream | 0.7 | yes | memory_recall | 0.01ms |
 
 **Governance (Cognitive Confidentiality):**
 
@@ -152,7 +152,7 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.3369, horizon=5
+  - Rank #1: score=0.2984, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`
@@ -162,14 +162,14 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 ---
 
 ### Cycle 4
-- **Duration:** 2.23ms
+- **Duration:** 3.10ms
 - **Budget:** -35.0/100.0ms
 - **Health:** 1.350
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.195
+- **MD:** 0.192
 
   🔒 **Firewall Blocked:** `action_loop`
 
@@ -189,7 +189,7 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.3405, horizon=5
+  - Rank #1: score=0.3143, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`
@@ -199,14 +199,14 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 ---
 
 ### Cycle 5
-- **Duration:** 2.22ms
+- **Duration:** 2.43ms
 - **Budget:** -35.0/100.0ms
 - **Health:** 1.350
 - **Representation:** spatial
 - **Worlds Simulated:** 1
 - **Council: ✅ APPROVED**
 - **DI:** 1.000
-- **MD:** 0.228
+- **MD:** 0.144
 
   🔒 **Firewall Blocked:** `action_loop`
 
@@ -226,7 +226,7 @@ Average MD of 0.213 means the system's world model is well-calibrated.
 
 **Strategic Options (Alternative Futures):**
 
-  - Rank #1: score=0.3279, horizon=5
+  - Rank #1: score=0.3095, horizon=5
 
 **Decision Trace:**
 - Intent: `perceive`
