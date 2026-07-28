@@ -3,7 +3,9 @@
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q`
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (529 tests)
+- **Gap scanner:** `PYTHONPATH=. python3 telos/tools/gap_scanner.py`
+- **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
 ## Status (Session Handoff — 2026-07-27)
 - **482/482 tests passing** across 46 test files
@@ -860,6 +862,96 @@ All Bitcoin block space research tools exist. Check before saying "can't."
 
 
 ## Session Handoff — 2026-07-28 05:34:05
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-28 05:41:23
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-28 05:41:23
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-28 05:41:23
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-28 05:45:45
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-28 05:45:45
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-07-28 05:45:45
 
 ### Current State
 - Session mood: neutral
