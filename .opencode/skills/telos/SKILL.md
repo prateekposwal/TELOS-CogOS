@@ -7,6 +7,19 @@ description: Use ONLY when the user asks to invoke, query, or develop TELOS — 
 
 TELOS is a 20-axiom CogOS at `/Users/prateekposwal/Desktop/Vrooom-computation/telos/`. Intelligence is defined by architectural axiom satisfaction, not task accuracy.
 
+
+## Core Operating Principle (Architect Mandate, 2026-08-01)
+
+Every TELOS invocation MUST honor these three rules — they are load-bearing:
+
+1. **DONE vs LEFT is mandatory.** Every report/status/plan ends with an explicitly labeled
+   `DONE (verified)` list and a `LEFT / TODO (verified)` list. Mixing done + pending without
+   labels is a FAILURE.
+2. **DONE means SHIPPED.** "Done" = verified AND committed/pushed/deployed/live. Uncommitted,
+   unshipped, or not-live work goes in LEFT, never DONE.
+3. **Pattern identification + gap filling.** When work is complete, scan for recurring patterns
+   and structural gaps; propose or execute the fix that closes them. Do not stop at "task complete."
+
 ## Usage
 
 Run the pipeline:

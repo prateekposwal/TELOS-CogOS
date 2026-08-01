@@ -444,6 +444,18 @@ def run_audit(verbose=True) -> Dict:
     except Exception as e:
         checks.append((False, "Circular dependency check", f"Error: {e}"))
 
+    # ── Check 29: Core principles loaded from IdentityCore (architect mandate) ──
+    try:
+        from telos.core.identity.system_self import IdentityCore
+        core = IdentityCore()
+        expected = {"done_vs_left_mandatory", "done_means_shipped", "pattern_gap_filling"}
+        present = set(core.core_principles)
+        ok = expected.issubset(present) and core.recognizes_principle("done_means_shipped")
+        checks.append((ok, "Architect core principles loaded (DONE/LEFT, DONE=shipped, gap-filling)",
+                       f"principles={sorted(present)}"))
+    except Exception as e:
+        checks.append((False, "Architect core principles loaded", f"Error: {e}"))
+
     passed = sum(1 for c in checks if c[0])
     failed = len(checks) - passed
     health = (passed / max(len(checks), 1)) * 100

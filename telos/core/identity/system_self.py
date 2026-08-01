@@ -46,12 +46,20 @@ class IdentityCore:
     """
     core_values: Tuple[str, ...] = ("curiosity", "integrity", "truth_seeking",
                                     "epistemic_humility")
+    core_principles: Tuple[str, ...] = (
+        "done_vs_left_mandatory",   # Every report ends with labeled DONE (verified) + LEFT / TODO (verified)
+        "done_means_shipped",       # "Done" = verified AND committed/pushed/deployed/live; unshipped work is LEFT
+        "pattern_gap_filling",      # On completion, scan for recurring patterns + structural gaps; close them
+    )
     genesis_mood: str = "curious"
     birth_timestamp: float = field(default_factory=time.time)
     axioms_count: int = 42  # AXIOMS.md
 
     def recognizes(self, value: str) -> bool:
         return value in self.core_values
+
+    def recognizes_principle(self, principle: str) -> bool:
+        return principle in self.core_principles
 
 
 @dataclass
