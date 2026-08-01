@@ -456,6 +456,22 @@ def run_audit(verbose=True) -> Dict:
     except Exception as e:
         checks.append((False, "Architect core principles loaded", f"Error: {e}"))
 
+    # ── Check 30: Canonical gap tracker exists and is current ──
+    try:
+        tracker_path = os.path.join(_repo_root, 'telos', 'tracking', 'gap-tracker.json')
+        import json as _json
+        if os.path.exists(tracker_path):
+            tracker = _json.load(open(tracker_path))
+            open_gaps = [g for g in tracker.get('gaps', []) if g.get('status') == 'open']
+            ok = 'gaps' in tracker and 'shells' in tracker and 'patterns' in tracker
+            checks.append((ok, "Canonical gap tracker present",
+                           f"{len(open_gaps)} open / {len(tracker.get('gaps', []))} total gaps, "
+                           f"{len(tracker.get('shells', []))} shells"))
+        else:
+            checks.append((False, "Canonical gap tracker present", "telos/tracking/gap-tracker.json missing"))
+    except Exception as e:
+        checks.append((False, "Canonical gap tracker present", f"Error: {e}"))
+
     passed = sum(1 for c in checks if c[0])
     failed = len(checks) - passed
     health = (passed / max(len(checks), 1)) * 100
