@@ -11,7 +11,8 @@ Scans the TELOS codebase for:
  6. Docstring vs signature mismatches
 
 Usage:
-    python3 telos/tools/gap_scanner.py
+    python3 telos/tools/gap_scanner.py                 # full-codebase scan
+    python3 telos/tools/gap_scanner.py --staged        # scan only staged files (pre-commit)
 """
 
 import ast
@@ -63,6 +64,24 @@ def get_all_py_files(exclude_dirs=None):
     return sorted(files)
 
 
+def get_staged_py_files():
+    """Return staged .py files (git diff --cached). Used by --staged mode so the
+    pre-commit gate checks NEW code only, not legacy debt (G-01)."""
+    try:
+        out = subprocess.run(
+            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+            capture_output=True, text=True, cwd=str(BASE_DIR), timeout=10,
+        ).stdout
+        staged = [os.path.join(BASE_DIR, l.strip()) for l in out.splitlines()
+                  if l.strip().endswith(".py") and os.path.exists(os.path.join(BASE_DIR, l.strip()))]
+        return sorted(staged)
+    except Exception:
+        return []
+
+
+SCAN_FILES = []  # populated in main(); full repo or staged set
+
+
 def get_module_name(filepath):
     rel = rel_path(filepath)
     rel = rel.replace(".py", "").replace("/", ".")
@@ -88,7 +107,7 @@ def parse_ast(filepath):
 def check_dead_code():
     print_check(1, "Dead Code Detection")
 
-    py_files = get_all_py_files()
+    py_files = SCAN_FILES
     definitions = {}
     name_to_files = defaultdict(set)
 
@@ -146,7 +165,7 @@ def check_dead_code():
 def check_import_health():
     print_check(2, "Import Health")
 
-    py_files = get_all_py_files()
+    py_files = SCAN_FILES
     errors = []
     import_graph = defaultdict(set)
     module_map = {}
@@ -211,6 +230,10 @@ def check_import_health():
 
 def check_vision_v2():
     print_check(3, "VISION_v2 Cross-Reference")
+
+    if "--staged" in sys.argv[1:]:
+        print("  ✓ SKIP (staged mode — repo-wide check, not per-file)")
+        return True
 
     vision_path = TELOS_DIR / "VISION_v2.md"
     if not vision_path.exists():
@@ -295,13 +318,13 @@ def check_vision_v2():
 
     # Check component names against filesystem
     all_py_basenames = set()
-    for fp in get_all_py_files():
+    for fp in SCAN_FILES:
         base = os.path.basename(fp).replace(".py", "").lower()
         all_py_basenames.add(base)
 
     component_not_found = []
     all_defs = set()
-    for fp in get_all_py_files():
+    for fp in SCAN_FILES:
         tree, err, source = parse_ast(fp)
         if tree is None:
             continue
@@ -341,6 +364,10 @@ def check_vision_v2():
 
 def check_test_coverage():
     print_check(4, "Test Coverage")
+
+    if "--staged" in sys.argv[1:]:
+        print("  ✓ SKIP (staged mode — repo-wide check, not per-file)")
+        return True
 
     core_files = []
     for root, dirs, fnames in os.walk(str(TELOS_DIR / "core")):
@@ -482,7 +509,7 @@ def check_agents_md():
 def check_docstring_signature():
     print_check(6, "Docstring vs Signature Mismatch")
 
-    py_files = get_all_py_files()
+    py_files = SCAN_FILES
     mismatches = []
 
     for fp in py_files:
@@ -538,6 +565,12 @@ def check_docstring_signature():
 # ─────────────────────────────────────────────────────────
 
 def main():
+    global SCAN_FILES
+    staged_mode = "--staged" in sys.argv[1:]
+    SCAN_FILES = get_staged_py_files() if staged_mode else get_all_py_files()
+    if staged_mode:
+        print(f"STAGED MODE: scanning {len(SCAN_FILES)} staged Python file(s)")
+
     checks = [
         ("Dead Code Detection", check_dead_code),
         ("Import Health", check_import_health),

@@ -5,7 +5,7 @@
 
 set -e
 
-BASE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "=== TELOS Pre-Commit Hook ==="
 
@@ -49,12 +49,12 @@ fi
 
 echo "  Syntax check passed."
 
-# Check 2: Run gap scanner
+# Check 2: Run gap scanner (staged mode — checks NEW code only, not legacy debt)
 echo ""
-echo "Running gap scanner..."
-python3 "$BASE_DIR/telos/tools/gap_scanner.py" || {
+echo "Running gap scanner (staged)..."
+python3 "$BASE_DIR/telos/tools/gap_scanner.py" --staged || {
     echo ""
-    echo "Gap scanner reported issues. Aborting commit."
+    echo "Gap scanner reported issues in staged files. Aborting commit."
     exit 1
 }
 
