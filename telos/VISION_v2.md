@@ -9,7 +9,7 @@
 Prateek gave 9 architectural insights that form the blueprint for TELOS v2.
 These are NOT feature requests — they are **architectural invariants** for the
 next generation of the system. Every one is implementable. Every one fills
-a gap in the current 20 axioms.
+a gap in the current 42 axioms.
 
 > *"An intelligent system is defined not by the number of visible capabilities it possesses,
 > but by the invisible coordination of latent cognitive processes working toward a unified mission."*

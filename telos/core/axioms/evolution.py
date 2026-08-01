@@ -68,7 +68,7 @@ class AxiomEvolutionEngine:
     Detection triggers:
       1. Repeated pattern of council blocks with no clear resolution
       2. Decision Integrity consistently affected by unhandled edge cases
-      3. Recurring states where the 20 axioms don't provide guidance
+      3. Recurring states where the 42 axioms don't provide guidance
       4. User requests for capabilities that current axioms don't cover
 
     This engine is OBSERVATIONAL only. It never modifies axioms.
