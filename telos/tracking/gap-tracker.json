@@ -114,7 +114,7 @@
       "title": "brief-52 (v2.0.0) still pending \u2014 not published",
       "category": "publishing",
       "pattern": "P-03",
-      "status": "open",
+      "status": "closed",
       "effort": "S",
       "impact": "medium",
       "dependency": "shipped correction (done) \u2014 queue verified clean",
