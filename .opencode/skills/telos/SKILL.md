@@ -5,7 +5,7 @@ description: Use ONLY when the user asks to invoke, query, or develop TELOS — 
 
 # TELOS — Cognitive Operating System
 
-TELOS is a 20-axiom CogOS at `/Users/prateekposwal/Desktop/Vrooom-computation/telos/`. Intelligence is defined by architectural axiom satisfaction, not task accuracy.
+TELOS is a 42-axiom CogOS at `/Users/prateekposwal/Desktop/Vrooom-computation/telos/`. Intelligence is defined by architectural axiom satisfaction, not task accuracy.
 
 
 ## Core Operating Principle (Architect Mandate, 2026-08-01)
