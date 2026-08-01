@@ -53,3 +53,6 @@ household-demo-screenshots/
 
 # OS
 Thumbs.db
+
+# Session benchmark traces (regenerable runtime data)
+telos/benchmarks/data/session_*.json

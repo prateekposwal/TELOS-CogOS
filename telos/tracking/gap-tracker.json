@@ -1,0 +1,265 @@
+{
+  "schema_version": "1.0",
+  "last_verified": "2026-08-02T02:05:00Z",
+  "verified_by": "TELOS",
+  "note": "Canonical gap tracker. Every gap across BSAHI + TELOS + process. Shells close gaps; DONE means shipped (committed+pushed+live). Update this file when a gap is closed.",
+  "gaps": [
+    {
+      "id": "G-01",
+      "system": "TELOS",
+      "title": "Gap-scanner pre-commit gate RED on clean tree (750 fails across 4/6 checks)",
+      "category": "gates",
+      "pattern": "P-01",
+      "status": "open",
+      "effort": "L",
+      "impact": "critical",
+      "dependency": null,
+      "evidence": "PYTHONPATH=. python3 telos/tools/gap_scanner.py → 4/6 FAILED, 750 FAIL lines (dead code: meal_library, dev_domain_adapter, dual_confidence, omega_threshold; docstring-param mismatches across benchmarks/, adapters/). Blocks ALL commits without --no-verify.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-02",
+      "system": "BSAHI",
+      "title": "Working paper (v2.0.0 methodology doc) not written",
+      "category": "paper",
+      "pattern": "P-03",
+      "status": "open",
+      "effort": "L",
+      "impact": "high",
+      "dependency": "G-11 (shipped correction) — already done",
+      "evidence": "No research/working-paper.md exists; 6 component docs + auto-generated index.html only. Roadmap: 'single most valuable move'.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-03",
+      "system": "BSAHI",
+      "title": "M4 gate not flipped (3/7 clean cycles)",
+      "category": "gates",
+      "pattern": "P-01",
+      "status": "open",
+      "effort": "S",
+      "impact": "medium",
+      "dependency": null,
+      "evidence": "captured-data/de-agent-state.json: cleanCycles 3, bridgeFlipped false. Needs 7 consecutive clean hourly cycles; resets on any unclean cycle.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-04",
+      "system": "BSAHI",
+      "title": "backtest.py lacks provenance/version markers",
+      "category": "consistency",
+      "pattern": "P-02",
+      "status": "open",
+      "effort": "XS",
+      "impact": "low",
+      "dependency": null,
+      "evidence": "research/backtest.py uses 2023 historical params (hardware $400, 350 bytes, 50K/mo) not in model-spec.json consumers table.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-05",
+      "system": "BSAHI",
+      "title": "Spool staleness: btc-rpc source stale 3+ days",
+      "category": "reliability",
+      "pattern": "P-01",
+      "status": "open",
+      "effort": "S",
+      "impact": "medium",
+      "dependency": null,
+      "evidence": "captured-data/spool/index/btc-rpc/ last file 2026-07-30.jsonl (Jul 31 23:34); should be daily.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-06",
+      "system": "BSAHI",
+      "title": "Resource legs deferred: UTXO, bandwidth, validation, node_geo",
+      "category": "research",
+      "pattern": "P-03",
+      "status": "open",
+      "effort": "L",
+      "impact": "high",
+      "dependency": "G-02 (paper scopes them as future work)",
+      "evidence": "utxo_size_inc comment-only in storage-ratio.js L211; bandwidth only incremental $0.02/yr; no validation lit review; node_geo 224 rows.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-07",
+      "system": "process",
+      "title": "No canonical gap tracker existed (created this file)",
+      "category": "process",
+      "pattern": "P-04",
+      "status": "closed",
+      "effort": "S",
+      "impact": "critical",
+      "dependency": null,
+      "evidence": "This file: telos/tracking/gap-tracker.json.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-08",
+      "system": "TELOS",
+      "title": "Uncommitted TELOS work (AGENTS.md, decision_log, benchmarks data, knowledge_library, reports)",
+      "category": "shipping",
+      "pattern": "P-04",
+      "status": "open",
+      "effort": "S",
+      "impact": "high",
+      "dependency": "G-01 (gap scanner blocks clean commit — may need --no-verify + tracked exception)",
+      "evidence": "git status: 29 dirty in TELOS repo (AGENTS.md M, decision_log M, transparency_report M, knowledge_library/ ??, reports/ ??, benchmarks data ??).",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-09",
+      "system": "BSAHI",
+      "title": "brief-52 (v2.0.0) still pending — not published",
+      "category": "publishing",
+      "pattern": "P-03",
+      "status": "open",
+      "effort": "S",
+      "impact": "medium",
+      "dependency": "shipped correction (done) — queue verified clean",
+      "evidence": "captured-data/publishing-queue.json brief-52 status=pending.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-10",
+      "system": "BSAHI",
+      "title": "DNS registrar parking nameservers (cosmetic)",
+      "category": "consistency",
+      "pattern": "P-02",
+      "status": "open",
+      "effort": "XS",
+      "impact": "low",
+      "dependency": null,
+      "evidence": "NS = lunar/solar.dns-parking.com, A-record overridden to GH Pages (185.199.108.153). Serves correctly today.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-11",
+      "system": "BSAHI",
+      "title": "SCCR v2.0.0 correction — 10x bug + reconciliation (COMPLETED)",
+      "category": "correction",
+      "pattern": null,
+      "status": "closed",
+      "effort": "L",
+      "impact": "critical",
+      "dependency": null,
+      "evidence": "Shipped: commits d8fe694/b8d5c2d/c4726e9/b177160; live site learn.html shows 0.1719; model-spec.json 200.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-12",
+      "system": "process",
+      "title": "Bot/skill usefulness audit — remove unused, redesign better (ARCHITECT MANDATE)",
+      "category": "process",
+      "pattern": "P-05",
+      "status": "open",
+      "effort": "M",
+      "impact": "high",
+      "dependency": null,
+      "evidence": "Architect directive: 'if bots-skills are not useful for now remove them and design them in better way to achieve the goal. First if something is not right remove it and design it after correction.'",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-13",
+      "system": "TELOS",
+      "title": "AXIOMS.md consistency — 42 axioms confirmed, but latent_cognition.md referenced 20 (file gone)",
+      "category": "consistency",
+      "pattern": "P-02",
+      "status": "open",
+      "effort": "XS",
+      "impact": "low",
+      "dependency": null,
+      "evidence": "AXIOMS.md = authoritative 42-axiom table (6 layers); system_self.py axioms_count=42; latent_cognition.md no longer exists (stale reference in earlier audit). THEOREMS.md references 42.",
+      "created": "2026-08-02"
+    },
+    {
+      "id": "G-14",
+      "system": "process",
+      "title": "DONE=SHIPPED enforcement not yet automatic (principle persisted, gate manual)",
+      "category": "process",
+      "pattern": "P-04",
+      "status": "open",
+      "effort": "S",
+      "impact": "medium",
+      "dependency": "G-08",
+      "evidence": "Core principle in IdentityCore/system_self.py + self_audit check #30, but no pre-commit hook verifies 'no unshipped work' in BSAHI.",
+      "created": "2026-08-02"
+    }
+  ],
+  "patterns": [
+    {
+      "name": "P-01",
+      "title": "Gates red on clean tree / health not self-certifying",
+      "root_cause": "Gate definitions are strict but pre-existing debt makes them permanently red; no staged-scope or threshold",
+      "structural_fix": "Make gap-scanner staged-scope or thresholded; fix or archive legacy dead code (meal_library, dev_domain_adapter); let M4 run naturally; reconnect stale spool source",
+      "gaps": ["G-01", "G-03", "G-05"]
+    },
+    {
+      "name": "P-02",
+      "title": "Derived artifacts / docs out of sync",
+      "root_cause": "No single source of truth for every number; docs drift from code",
+      "structural_fix": "model-spec.json single source (done); extend provenance to backtest.py; reconcile axiom-count references; DNS cleanup",
+      "gaps": ["G-04", "G-10", "G-13"]
+    },
+    {
+      "name": "P-03",
+      "title": "Research written but not consolidated/published",
+      "root_cause": "Components exist but no narrative entity; publish pipeline gated on manual steps",
+      "structural_fix": "Write the working paper; publish brief-52; then resource legs extend the same paper",
+      "gaps": ["G-02", "G-06", "G-09"]
+    },
+    {
+      "name": "P-04",
+      "title": "Work accumulates unshipped / no canonical tracking",
+      "root_cause": "No single place lists gaps; commits gated or forgotten",
+      "structural_fix": "This tracker (done); commit TELOS work; auto-check tracker in self-audit; DONE=SHIPPED gate",
+      "gaps": ["G-07", "G-08", "G-14"]
+    },
+    {
+      "name": "P-05",
+      "title": "Bots/skills kept alive past usefulness",
+      "root_cause": "No lifecycle review; removal feels like loss",
+      "structural_fix": "Audit every bot/skill: if not useful now → remove, then redesign better to the goal (architect mandate). Retire, don't accumulate.",
+      "gaps": ["G-12"]
+    }
+  ],
+  "shells": [
+    {
+      "id": "S0",
+      "name": "SHIP & FREEZE",
+      "gaps": ["G-08", "G-09"],
+      "exit_criteria": "TELOS repo committed+pushed; brief-52 published; no unshipped work in either repo"
+    },
+    {
+      "id": "S1",
+      "name": "GATES GREEN",
+      "gaps": ["G-01", "G-03", "G-05"],
+      "exit_criteria": "Gap scanner green (or staged-scope/thresholded + exception documented); M4 7/7 flipped; spool fresh"
+    },
+    {
+      "id": "S2",
+      "name": "CORRECTNESS & CONSISTENCY",
+      "gaps": ["G-04", "G-10", "G-13"],
+      "exit_criteria": "backtest.py provenance added; DNS cleaned; axiom references reconciled"
+    },
+    {
+      "id": "S3",
+      "name": "THE PAPER",
+      "gaps": ["G-02", "G-06"],
+      "exit_criteria": "research/working-paper.md written + regenerated HTML + resource legs scoped with v1 measurements"
+    },
+    {
+      "id": "S4",
+      "name": "BOT/SKILL LIFECYCLE",
+      "gaps": ["G-12"],
+      "exit_criteria": "Every bot/skill audited; unused removed; redesigned ones serve the goal"
+    },
+    {
+      "id": "S5",
+      "name": "ENFORCEMENT",
+      "gaps": ["G-14"],
+      "exit_criteria": "Self-audit reads tracker; DONE=SHIPPED enforced by hook; tracker auto-updated"
+    }
+  ]
+}
