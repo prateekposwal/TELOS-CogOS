@@ -4,7 +4,7 @@
   "traces": [
     {
       "cycle_id": 1,
-      "timestamp": 1785617092.5109382,
+      "timestamp": 1785617931.857435,
       "world_state": [
         2.0,
         1.0,
@@ -30,32 +30,32 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.010967254638671875,
-          "budget_remaining_ms": 99.98903274536133
+          "cost_ms": 0.014066696166992188,
+          "budget_remaining_ms": 99.98593330383301
         },
         {
           "name": "PerceptionStream",
           "priority": 0.9,
           "activated": true,
           "intent_type": "perceive",
-          "cost_ms": 0.04410743713378906,
-          "budget_remaining_ms": 99.94492530822754
+          "cost_ms": 0.15115737915039062,
+          "budget_remaining_ms": 99.83477592468262
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_miss",
-          "cost_ms": 0.008106231689453125,
-          "budget_remaining_ms": 99.93681907653809
+          "cost_ms": 0.010013580322265625,
+          "budget_remaining_ms": 99.82476234436035
         },
         {
           "name": "PlanningStream",
           "priority": 0.5,
           "activated": true,
           "intent_type": "plan_trajectory",
-          "cost_ms": 1.2388229370117188,
-          "budget_remaining_ms": 98.69799613952637
+          "cost_ms": 1.049041748046875,
+          "budget_remaining_ms": 98.77572059631348
         }
       ],
       "selected_intent": {
@@ -64,13 +64,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": 16.302003860473633,
+      "budget_consumed_ms": 16.224279403686523,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 4.0740966796875,
+      "cycle_duration_ms": 4.505157470703125,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.2304660183474441,
+      "mission_drift": 0.16812123737375204,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -103,20 +103,14 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.3255944540254894,
+          "score": 0.3175200803262188,
           "horizon": 5,
           "metadata": {
-            "index": 32,
-            "state_norm": 2.137208538173869
+            "index": 29,
+            "state_norm": 2.14940711457557
           },
-          "variance": 0.0001489965657715003,
-          "probabilistic": {
-            "mean": 0.3255944540254894,
-            "std": 0.012206414943442661,
-            "ci_lower": 0.31534287276811684,
-            "ci_upper": 0.341529806872311,
-            "n_samples": 3
-          }
+          "variance": 0.0,
+          "probabilistic": null
         }
       ],
       "perception_quality": {
@@ -196,7 +190,7 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 7.582226794515964e-05,
+        "counterfactual_diversity": 2.6324550025026048e-05,
         "attention_momentum": 0.0,
         "mean_threat_ratio": 0.25836862038478137,
         "mean_opportunity_ratio": 0.3356235475819907,
@@ -204,7 +198,7 @@
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.2304660183474441
+          0.16812123737375204
         ],
         "allocation_count": 1,
         "default_action_space": 10,
@@ -299,9 +293,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": 16.302003860473633,
+            "consumed_ms": 16.224279403686523,
             "total_ms": 100.0,
-            "utilization": 0.16302003860473632,
+            "utilization": 0.16224279403686523,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -329,9 +323,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": 16.302003860473633,
+          "consumed_ms": 16.224279403686523,
           "total_ms": 100.0,
-          "utilization": 0.16302003860473632,
+          "utilization": 0.16224279403686523,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -359,13 +353,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.11523300917372205,
+          "U_W": 0.08406061868687602,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "none"
         },
-        "U_W": 0.11523300917372205,
+        "U_W": 0.08406061868687602,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -408,11 +402,11 @@
       "j_term_breakdown": {
         "expected_reward": 0.765,
         "discounted_reward": 0.765,
-        "maintenance_cost": 0.0039060115814208984,
+        "maintenance_cost": 0.0036728382110595703,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
         "alignment_cost": 0.0,
-        "future_option_value": 0.19739599227905275,
+        "future_option_value": 0.19755144119262696,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "information_gain": 0.0,
@@ -424,7 +418,7 @@
         "aesthetic_value": 0.0,
         "gamma": 0.95,
         "horizon": 1,
-        "commitment": 0.9584899806976319,
+        "commitment": 0.9588786029815675,
         "is_suppressed": false,
         "is_full": true
       },
@@ -435,8 +429,8 @@
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
       "spent_ctx_id": null,
-      "produced_ctx_id": "ctx_1_1785617092510",
-      "merkle_root": "5a73eb20df611ab7c2411c2d36c0c62a46dbe99c70e8c94d03da9c2de63d1abf",
+      "produced_ctx_id": "ctx_1_1785617931857",
+      "merkle_root": "d8a5d5034456a4ec46e96fa2adedf657847a9ce4aecc6772e8f0fcbffe541a96",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -456,11 +450,11 @@
           },
           "PlanningStream": {
             "intent": "plan_trajectory",
-            "confidence": 0.31428092470546665,
-            "signature": "dcee0015d2aac527"
+            "confidence": 0.31352582406554846,
+            "signature": "e5b539a4957d0aa9"
           }
         },
-        "council_signature": "476748050fc7deeb"
+        "council_signature": "1af32ce4b1111e5f"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -475,20 +469,14 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.3255944540254894,
+            "score": 0.3175200803262188,
             "horizon": 5,
             "metadata": {
-              "index": 32,
-              "state_norm": 2.137208538173869
+              "index": 29,
+              "state_norm": 2.14940711457557
             },
-            "variance": 0.0001489965657715003,
-            "probabilistic": {
-              "mean": 0.3255944540254894,
-              "std": 0.012206414943442661,
-              "ci_lower": 0.31534287276811684,
-              "ci_upper": 0.341529806872311,
-              "n_samples": 3
-            }
+            "variance": 0.0,
+            "probabilistic": null
           }
         ],
         "stream_activations": [
@@ -497,28 +485,28 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.010967254638671875
+            "cost_ms": 0.014066696166992188
           },
           {
             "name": "PerceptionStream",
             "priority": 0.9,
             "activated": true,
             "intent_type": "perceive",
-            "cost_ms": 0.04410743713378906
+            "cost_ms": 0.15115737915039062
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_miss",
-            "cost_ms": 0.008106231689453125
+            "cost_ms": 0.010013580322265625
           },
           {
             "name": "PlanningStream",
             "priority": 0.5,
             "activated": true,
             "intent_type": "plan_trajectory",
-            "cost_ms": 1.2388229370117188
+            "cost_ms": 1.049041748046875
           }
         ],
         "causal_graph": {
@@ -531,9 +519,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": 16.302003860473633,
+            "consumed_ms": 16.224279403686523,
             "total_ms": 100.0,
-            "utilization": 0.16302003860473632,
+            "utilization": 0.16224279403686523,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -561,13 +549,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.11523300917372205,
+            "U_W": 0.08406061868687602,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "none"
           },
-          "U_W": 0.11523300917372205,
+          "U_W": 0.08406061868687602,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -590,20 +578,20 @@
             },
             "PlanningStream": {
               "intent": "plan_trajectory",
-              "confidence": 0.31428092470546665,
-              "signature": "dcee0015d2aac527"
+              "confidence": 0.31352582406554846,
+              "signature": "e5b539a4957d0aa9"
             }
           },
-          "council_signature": "476748050fc7deeb"
+          "council_signature": "1af32ce4b1111e5f"
         },
         "j_term_breakdown": {
           "expected_reward": 0.765,
           "discounted_reward": 0.765,
-          "maintenance_cost": 0.0039060115814208984,
+          "maintenance_cost": 0.0036728382110595703,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
           "alignment_cost": 0.0,
-          "future_option_value": 0.19739599227905275,
+          "future_option_value": 0.19755144119262696,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "information_gain": 0.0,
@@ -615,7 +603,7 @@
           "aesthetic_value": 0.0,
           "gamma": 0.95,
           "horizon": 1,
-          "commitment": 0.9584899806976319,
+          "commitment": 0.9588786029815675,
           "is_suppressed": false,
           "is_full": true
         },
@@ -648,7 +636,7 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 7.582226794515964e-05,
+          "counterfactual_diversity": 2.6324550025026048e-05,
           "attention_momentum": 0.0,
           "mean_threat_ratio": 0.25836862038478137,
           "mean_opportunity_ratio": 0.3356235475819907,
@@ -656,7 +644,7 @@
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.2304660183474441
+            0.16812123737375204
           ],
           "allocation_count": 1,
           "default_action_space": 10,
@@ -703,7 +691,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.2304660183474441,
+        "mission_drift": 0.16812123737375204,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -770,9 +758,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": 16.302003860473633,
+              "consumed_ms": 16.224279403686523,
               "total_ms": 100.0,
-              "utilization": 0.16302003860473632,
+              "utilization": 0.16224279403686523,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -798,7 +786,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "5a73eb20df611ab7c2411c2d36c0c62a46dbe99c70e8c94d03da9c2de63d1abf",
+        "merkle_root": "d8a5d5034456a4ec46e96fa2adedf657847a9ce4aecc6772e8f0fcbffe541a96",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -818,7 +806,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.25,
-        "learning_rate": 0.0384,
+        "learning_rate": 0.028,
         "boredom_count": 1,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -842,7 +830,7 @@
         },
         "1.4": {
           "passed": true,
-          "reason": "compute 16.3ms <= 100.0ms \u2014 budget conserved"
+          "reason": "compute 16.2ms <= 100.0ms \u2014 budget conserved"
         },
         "2.1": {
           "passed": true,
@@ -858,7 +846,7 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=None, produced=ctx_1_1785617092510) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=None, produced=ctx_1_1785617931857) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
@@ -988,24 +976,24 @@
     },
     {
       "cycle_id": 2,
-      "timestamp": 1785617092.517857,
+      "timestamp": 1785617931.863294,
       "world_state": [
-        1.7930279277631183,
-        1.0530408827911906,
-        0.16794351707047772,
-        0.14268399476506097,
-        -0.008145869745841377,
-        -0.0042101749229436726
+        1.8763239880222407,
+        1.0312200915522625,
+        -0.1270162413023894,
+        -0.06276041205594356,
+        0.03502592295940001,
+        0.2289438008354436
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.0910504725192713
+          "energy": 2.1581753078341195
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.0910504725192713,
-          "uncertainty": 0.6738792483664068
+          "distance_from_origin": 2.1581753078341195,
+          "uncertainty": 0.7275447203573274
         }
       },
       "stream_activations": [
@@ -1022,16 +1010,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.014781951904296875,
-          "budget_remaining_ms": 149.9852180480957
+          "cost_ms": 0.008821487426757812,
+          "budget_remaining_ms": 149.99117851257324
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.02193450927734375,
-          "budget_remaining_ms": 149.96328353881836
+          "cost_ms": 0.010013580322265625,
+          "budget_remaining_ms": 149.98116493225098
         }
       ],
       "selected_intent": {
@@ -1040,13 +1028,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.96328353881836,
+      "budget_consumed_ms": -34.98116493225098,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 4.081249237060547,
+      "cycle_duration_ms": 3.710031509399414,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.24678684011403065,
+      "mission_drift": 0.15668316934166232,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -1064,20 +1052,14 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.3334594023049375,
+          "score": 0.3255014713036917,
           "horizon": 5,
           "metadata": {
-            "index": 40,
-            "state_norm": 1.9619110824257648
+            "index": 35,
+            "state_norm": 2.0721827339053824
           },
-          "variance": 0.00010725312062326487,
-          "probabilistic": {
-            "mean": 0.3334594023049375,
-            "std": 0.010356308252619023,
-            "ci_lower": 0.3222690131195317,
-            "ci_upper": 0.3461844790944732,
-            "n_samples": 3
-          }
+          "variance": 0.0,
+          "probabilistic": null
         }
       ],
       "perception_quality": {
@@ -1158,16 +1140,16 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 7.18740086485071e-05,
+        "counterfactual_diversity": 2.8881483072844726e-05,
         "attention_momentum": 0.0,
-        "mean_threat_ratio": 0.2505458317868676,
-        "mean_opportunity_ratio": 0.35573928969091173,
-        "mean_maintenance_ratio": 0.39371487852222065,
+        "mean_threat_ratio": 0.255333804418015,
+        "mean_opportunity_ratio": 0.34342736006796126,
+        "mean_maintenance_ratio": 0.4012388355140236,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.2304660183474441,
-          0.24678684011403065
+          0.16812123737375204,
+          0.15668316934166232
         ],
         "allocation_count": 2,
         "default_action_space": 10,
@@ -1178,9 +1160,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.2427230431889539,
-          "opportunity_ratio": 0.37585503179983276,
-          "maintenance_ratio": 0.38142192501121336
+          "threat_ratio": 0.2522989884512487,
+          "opportunity_ratio": 0.3512311725539319,
+          "maintenance_ratio": 0.3964698389948194
         },
         "cost_tracker": {
           "total_maintenance": 0.1,
@@ -1264,9 +1246,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.96328353881836,
+            "consumed_ms": -34.98116493225098,
             "total_ms": 100.0,
-            "utilization": -0.34963283538818357,
+            "utilization": -0.34981164932250974,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -1294,9 +1276,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.96328353881836,
+          "consumed_ms": -34.98116493225098,
           "total_ms": 100.0,
-          "utilization": -0.34963283538818357,
+          "utilization": -0.34981164932250974,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -1327,13 +1309,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.3193132146153687,
+          "U_W": 0.2812011016788536,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
-          "dominant": "environmental"
+          "dominant": "none"
         },
-        "U_W": 0.3193132146153687,
+        "U_W": 0.2812011016788536,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -1376,11 +1358,11 @@
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.14988985061645507,
+        "maintenance_cost": -0.14994349479675292,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
         "alignment_cost": 0.0,
-        "future_option_value": 0.2999265670776367,
+        "future_option_value": 0.29996232986450194,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "information_gain": 0.0,
@@ -1402,9 +1384,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_1_1785617092510",
-      "produced_ctx_id": "ctx_2_1785617092517",
-      "merkle_root": "430681871c3d718c526d810f46180b148f2df00428603cc7734646877ae5eca8",
+      "spent_ctx_id": "ctx_1_1785617931857",
+      "produced_ctx_id": "ctx_2_1785617931863",
+      "merkle_root": "606ba4d9aaa319b45b4bc491a050ca746326c85c7bcab29042102cfcd7744041",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -1414,11 +1396,11 @@
           },
           "MemoryStream": {
             "intent": "memory_recall",
-            "confidence": 0.8369799613952636,
-            "signature": "f3a14e1cfa251c81"
+            "confidence": 0.8377572059631347,
+            "signature": "0e622a61446e1cb7"
           }
         },
-        "council_signature": "6d46eec0c796b02c"
+        "council_signature": "e788b616c3c1aafc"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -1433,20 +1415,14 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.3334594023049375,
+            "score": 0.3255014713036917,
             "horizon": 5,
             "metadata": {
-              "index": 40,
-              "state_norm": 1.9619110824257648
+              "index": 35,
+              "state_norm": 2.0721827339053824
             },
-            "variance": 0.00010725312062326487,
-            "probabilistic": {
-              "mean": 0.3334594023049375,
-              "std": 0.010356308252619023,
-              "ci_lower": 0.3222690131195317,
-              "ci_upper": 0.3461844790944732,
-              "n_samples": 3
-            }
+            "variance": 0.0,
+            "probabilistic": null
           }
         ],
         "stream_activations": [
@@ -1462,14 +1438,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.014781951904296875
+            "cost_ms": 0.008821487426757812
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.02193450927734375
+            "cost_ms": 0.010013580322265625
           }
         ],
         "causal_graph": {
@@ -1482,9 +1458,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.96328353881836,
+            "consumed_ms": -34.98116493225098,
             "total_ms": 100.0,
-            "utilization": -0.34963283538818357,
+            "utilization": -0.34981164932250974,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -1515,13 +1491,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.3193132146153687,
+            "U_W": 0.2812011016788536,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
-            "dominant": "environmental"
+            "dominant": "none"
           },
-          "U_W": 0.3193132146153687,
+          "U_W": 0.2812011016788536,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -1534,20 +1510,20 @@
             },
             "MemoryStream": {
               "intent": "memory_recall",
-              "confidence": 0.8369799613952636,
-              "signature": "f3a14e1cfa251c81"
+              "confidence": 0.8377572059631347,
+              "signature": "0e622a61446e1cb7"
             }
           },
-          "council_signature": "6d46eec0c796b02c"
+          "council_signature": "e788b616c3c1aafc"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.14988985061645507,
+          "maintenance_cost": -0.14994349479675292,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
           "alignment_cost": 0.0,
-          "future_option_value": 0.2999265670776367,
+          "future_option_value": 0.29996232986450194,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "information_gain": 0.0,
@@ -1592,16 +1568,16 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 7.18740086485071e-05,
+          "counterfactual_diversity": 2.8881483072844726e-05,
           "attention_momentum": 0.0,
-          "mean_threat_ratio": 0.2505458317868676,
-          "mean_opportunity_ratio": 0.35573928969091173,
-          "mean_maintenance_ratio": 0.39371487852222065,
+          "mean_threat_ratio": 0.255333804418015,
+          "mean_opportunity_ratio": 0.34342736006796126,
+          "mean_maintenance_ratio": 0.4012388355140236,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.2304660183474441,
-            0.24678684011403065
+            0.16812123737375204,
+            0.15668316934166232
           ],
           "allocation_count": 2,
           "default_action_space": 10,
@@ -1612,9 +1588,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.2427230431889539,
-            "opportunity_ratio": 0.37585503179983276,
-            "maintenance_ratio": 0.38142192501121336
+            "threat_ratio": 0.2522989884512487,
+            "opportunity_ratio": 0.3512311725539319,
+            "maintenance_ratio": 0.3964698389948194
           },
           "cost_tracker": {
             "total_maintenance": 0.1,
@@ -1650,7 +1626,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.24678684011403065,
+        "mission_drift": 0.15668316934166232,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -1717,9 +1693,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.96328353881836,
+              "consumed_ms": -34.98116493225098,
               "total_ms": 100.0,
-              "utilization": -0.34963283538818357,
+              "utilization": -0.34981164932250974,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -1745,7 +1721,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "430681871c3d718c526d810f46180b148f2df00428603cc7734646877ae5eca8",
+        "merkle_root": "606ba4d9aaa319b45b4bc491a050ca746326c85c7bcab29042102cfcd7744041",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -1765,7 +1741,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.2,
-        "learning_rate": 0.068,
+        "learning_rate": 0.0657,
         "boredom_count": 2,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -1805,7 +1781,7 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=ctx_1_1785617092510, produced=ctx_2_1785617092517) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=ctx_1_1785617931857, produced=ctx_2_1785617931863) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
@@ -1935,24 +1911,24 @@
     },
     {
       "cycle_id": 3,
-      "timestamp": 1785617092.523034,
+      "timestamp": 1785617931.867936,
       "world_state": [
-        1.963229214363528,
-        1.0157260761009066,
-        0.1963839262040347,
-        0.03326863382341466,
-        -0.07152042560698683,
-        0.028330181561615115
+        1.8238195753284727,
+        1.163045209963025,
+        -0.10188153572400746,
+        0.16434069984466132,
+        0.2773404636133877,
+        0.14426476666644494
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.2207115140728853
+          "energy": 2.1941079673468202
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.2207115140728853,
-          "uncertainty": 0.7372902554703222
+          "distance_from_origin": 2.1941079673468202,
+          "uncertainty": 0.6838881744158727
         }
       },
       "stream_activations": [
@@ -1969,16 +1945,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.010013580322265625,
-          "budget_remaining_ms": 149.98998641967773
+          "cost_ms": 0.006198883056640625,
+          "budget_remaining_ms": 149.99380111694336
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.012874603271484375,
-          "budget_remaining_ms": 149.97711181640625
+          "cost_ms": 0.007867813110351562,
+          "budget_remaining_ms": 149.985933303833
         }
       ],
       "selected_intent": {
@@ -1987,13 +1963,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.97711181640625,
+      "budget_consumed_ms": -34.98593330383301,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 2.3250579833984375,
+      "cycle_duration_ms": 1.9989013671875,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.27986870328057917,
+      "mission_drift": 0.40987655640501053,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -2011,11 +1987,11 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.32861811703612914,
+          "score": 0.33588649208821264,
           "horizon": 5,
           "metadata": {
-            "index": 9,
-            "state_norm": 2.0430458582721944
+            "index": 6,
+            "state_norm": 1.9771962360944653
           },
           "variance": 0.0,
           "probabilistic": null
@@ -2099,17 +2075,17 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 6.867148512425454e-05,
-        "attention_momentum": 0.6169371188856037,
-        "mean_threat_ratio": 0.2516845525276634,
-        "mean_opportunity_ratio": 0.3528111506431511,
-        "mean_maintenance_ratio": 0.3955042968291855,
+        "counterfactual_diversity": 3.4547010233181164e-05,
+        "attention_momentum": 0.0032158172517158176,
+        "mean_threat_ratio": 0.2517441290674636,
+        "mean_opportunity_ratio": 0.35265795382652215,
+        "mean_maintenance_ratio": 0.3955979171060142,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.2304660183474441,
-          0.24678684011403065,
-          0.27986870328057917
+          0.16812123737375204,
+          0.15668316934166232,
+          0.40987655640501053
         ],
         "allocation_count": 3,
         "default_action_space": 10,
@@ -2120,9 +2096,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.253961994009255,
-          "opportunity_ratio": 0.3469548725476299,
-          "maintenance_ratio": 0.399083133443115
+          "threat_ratio": 0.24456477836636073,
+          "opportunity_ratio": 0.3711191413436439,
+          "maintenance_ratio": 0.3843160802899954
         },
         "cost_tracker": {
           "total_maintenance": 0.19,
@@ -2207,9 +2183,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.97711181640625,
+            "consumed_ms": -34.98593330383301,
             "total_ms": 100.0,
-            "utilization": -0.3497711181640625,
+            "utilization": -0.34985933303833006,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -2237,9 +2213,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.97711181640625,
+          "consumed_ms": -34.98593330383301,
           "total_ms": 100.0,
-          "utilization": -0.3497711181640625,
+          "utilization": -0.34985933303833006,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -2270,13 +2246,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.326186926957009,
+          "U_W": 0.3224468271867375,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "environmental"
         },
-        "U_W": 0.326186926957009,
+        "U_W": 0.3224468271867375,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -2319,11 +2295,11 @@
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.14993133544921874,
+        "maintenance_cost": -0.14995779991149902,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
         "alignment_cost": 0.0,
-        "future_option_value": 0.2999542236328125,
+        "future_option_value": 0.299971866607666,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "information_gain": 0.0,
@@ -2345,9 +2321,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_2_1785617092517",
-      "produced_ctx_id": "ctx_3_1785617092523",
-      "merkle_root": "f555e50001d9d06127a76e1ea77df8638b9693feb1e5f3309cc25537039499a9",
+      "spent_ctx_id": "ctx_2_1785617931863",
+      "produced_ctx_id": "ctx_3_1785617931867",
+      "merkle_root": "505318cf9fd3b5570e6b6b17a33e935b0ebf0475b4906841edcbfa2744adeb48",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -2361,7 +2337,7 @@
             "signature": "d5e7bbac3bb12804"
           }
         },
-        "council_signature": "1b110727e88c632d"
+        "council_signature": "f0602a4fe4408d32"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -2376,11 +2352,11 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.32861811703612914,
+            "score": 0.33588649208821264,
             "horizon": 5,
             "metadata": {
-              "index": 9,
-              "state_norm": 2.0430458582721944
+              "index": 6,
+              "state_norm": 1.9771962360944653
             },
             "variance": 0.0,
             "probabilistic": null
@@ -2399,14 +2375,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.010013580322265625
+            "cost_ms": 0.006198883056640625
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.012874603271484375
+            "cost_ms": 0.007867813110351562
           }
         ],
         "causal_graph": {
@@ -2419,9 +2395,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.97711181640625,
+            "consumed_ms": -34.98593330383301,
             "total_ms": 100.0,
-            "utilization": -0.3497711181640625,
+            "utilization": -0.34985933303833006,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -2452,13 +2428,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.326186926957009,
+            "U_W": 0.3224468271867375,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "environmental"
           },
-          "U_W": 0.326186926957009,
+          "U_W": 0.3224468271867375,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -2475,16 +2451,16 @@
               "signature": "d5e7bbac3bb12804"
             }
           },
-          "council_signature": "1b110727e88c632d"
+          "council_signature": "f0602a4fe4408d32"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.14993133544921874,
+          "maintenance_cost": -0.14995779991149902,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
           "alignment_cost": 0.0,
-          "future_option_value": 0.2999542236328125,
+          "future_option_value": 0.299971866607666,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "information_gain": 0.0,
@@ -2529,17 +2505,17 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 6.867148512425454e-05,
-          "attention_momentum": 0.6169371188856037,
-          "mean_threat_ratio": 0.2516845525276634,
-          "mean_opportunity_ratio": 0.3528111506431511,
-          "mean_maintenance_ratio": 0.3955042968291855,
+          "counterfactual_diversity": 3.4547010233181164e-05,
+          "attention_momentum": 0.0032158172517158176,
+          "mean_threat_ratio": 0.2517441290674636,
+          "mean_opportunity_ratio": 0.35265795382652215,
+          "mean_maintenance_ratio": 0.3955979171060142,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.2304660183474441,
-            0.24678684011403065,
-            0.27986870328057917
+            0.16812123737375204,
+            0.15668316934166232,
+            0.40987655640501053
           ],
           "allocation_count": 3,
           "default_action_space": 10,
@@ -2550,9 +2526,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.253961994009255,
-            "opportunity_ratio": 0.3469548725476299,
-            "maintenance_ratio": 0.399083133443115
+            "threat_ratio": 0.24456477836636073,
+            "opportunity_ratio": 0.3711191413436439,
+            "maintenance_ratio": 0.3843160802899954
           },
           "cost_tracker": {
             "total_maintenance": 0.19,
@@ -2589,7 +2565,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.27986870328057917,
+        "mission_drift": 0.40987655640501053,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -2656,9 +2632,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.97711181640625,
+              "consumed_ms": -34.98593330383301,
               "total_ms": 100.0,
-              "utilization": -0.3497711181640625,
+              "utilization": -0.34985933303833006,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -2684,7 +2660,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "f555e50001d9d06127a76e1ea77df8638b9693feb1e5f3309cc25537039499a9",
+        "merkle_root": "505318cf9fd3b5570e6b6b17a33e935b0ebf0475b4906841edcbfa2744adeb48",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -2704,7 +2680,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.15,
-        "learning_rate": 0.0023,
+        "learning_rate": 0.0137,
         "boredom_count": 3,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -2744,7 +2720,7 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=ctx_2_1785617092517, produced=ctx_3_1785617092523) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=ctx_2_1785617931863, produced=ctx_3_1785617931867) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
@@ -2874,24 +2850,24 @@
     },
     {
       "cycle_id": 4,
-      "timestamp": 1785617092.5320032,
+      "timestamp": 1785617931.874707,
       "world_state": [
-        1.9092059810445254,
-        1.1760234198913402,
-        0.29478508590950714,
-        0.20704295720920807,
-        -0.10081800651768837,
-        -0.09516504162985447
+        1.85308241186802,
+        1.3941699078146845,
+        -0.031811171776179856,
+        0.09637993927144035,
+        0.1286478236390902,
+        0.06280361790491819
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.2753206918543007
+          "energy": 2.325600945416768
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.2753206918543007,
-          "uncertainty": 0.7371702642557801
+          "distance_from_origin": 2.325600945416768,
+          "uncertainty": 0.7486580611972432
         }
       },
       "stream_activations": [
@@ -2908,16 +2884,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.02288818359375,
-          "budget_remaining_ms": 149.97711181640625
+          "cost_ms": 0.0059604644775390625,
+          "budget_remaining_ms": 149.99403953552246
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.03528594970703125,
-          "budget_remaining_ms": 149.94182586669922
+          "cost_ms": 0.007867813110351562,
+          "budget_remaining_ms": 149.9861717224121
         }
       ],
       "selected_intent": {
@@ -2926,13 +2902,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.94182586669922,
+      "budget_consumed_ms": -34.98617172241211,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 3.2167434692382812,
+      "cycle_duration_ms": 3.237009048461914,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.10922041229638275,
+      "mission_drift": 0.2597513832219062,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -2951,20 +2927,14 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.31606063030195686,
+          "score": 0.3019986232050804,
           "horizon": 5,
           "metadata": {
-            "index": 0,
-            "state_norm": 2.1799869758303227
+            "index": 12,
+            "state_norm": 2.3112733739879423
           },
-          "variance": 3.080276224195646e-05,
-          "probabilistic": {
-            "mean": 0.31606063030195686,
-            "std": 0.005550023625351198,
-            "ci_lower": 0.3116451243838577,
-            "ci_upper": 0.32332418206993024,
-            "n_samples": 3
-          }
+          "variance": 0.0,
+          "probabilistic": null
         }
       ],
       "perception_quality": {
@@ -2991,9 +2961,9 @@
       "knowledge_report": {
         "domain": "unknown",
         "approach": "perceive",
-        "outcome": 0.7201312967194209,
+        "outcome": 0.8433168306583376,
         "avoid": [],
-        "summary": "Knowledge: perceive scored 0.72 \u2014 moderate confidence, maintaining policy",
+        "summary": "Knowledge: perceive scored 0.84 \u2014 moderate confidence, maintaining policy",
         "adjust_risk": 0.0,
         "adjust_exploration": 0.0,
         "quality_adjustment": 0.0
@@ -3044,18 +3014,18 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 6.788114575657884e-05,
-        "attention_momentum": 0.5352102822524472,
-        "mean_threat_ratio": 0.2522488279351691,
-        "mean_opportunity_ratio": 0.3513601567381366,
-        "mean_maintenance_ratio": 0.39639101532669435,
+        "counterfactual_diversity": 3.539803667403421e-05,
+        "attention_momentum": 0.22283062437832962,
+        "mean_threat_ratio": 0.2527765549313699,
+        "mean_opportunity_ratio": 0.3500031444621916,
+        "mean_maintenance_ratio": 0.3972203006064384,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.2304660183474441,
-          0.24678684011403065,
-          0.27986870328057917,
-          0.10922041229638275
+          0.16812123737375204,
+          0.15668316934166232,
+          0.40987655640501053,
+          0.2597513832219062
         ],
         "allocation_count": 4,
         "default_action_space": 10,
@@ -3066,9 +3036,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.2539416541576861,
-          "opportunity_ratio": 0.34700717502309286,
-          "maintenance_ratio": 0.39905117081922103
+          "threat_ratio": 0.2558738325230889,
+          "opportunity_ratio": 0.3420387163692001,
+          "maintenance_ratio": 0.40208745110771116
         },
         "cost_tracker": {
           "total_maintenance": 0.271,
@@ -3154,9 +3124,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.94182586669922,
+            "consumed_ms": -34.98617172241211,
             "total_ms": 100.0,
-            "utilization": -0.34941825866699217,
+            "utilization": -0.34986171722412107,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -3184,9 +3154,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.94182586669922,
+          "consumed_ms": -34.98617172241211,
           "total_ms": 100.0,
-          "utilization": -0.34941825866699217,
+          "utilization": -0.34986171722412107,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -3217,13 +3187,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.3059793259484988,
+          "U_W": 0.33771851816142984,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
           "dominant": "environmental"
         },
-        "U_W": 0.3059793259484988,
+        "U_W": 0.33771851816142984,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -3266,11 +3236,11 @@
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.14982547760009765,
+        "maintenance_cost": -0.14995851516723632,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
         "alignment_cost": 0.0,
-        "future_option_value": 0.2998836517333984,
+        "future_option_value": 0.2999723434448242,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "information_gain": 0.0,
@@ -3292,9 +3262,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_3_1785617092523",
-      "produced_ctx_id": "ctx_4_1785617092532",
-      "merkle_root": "d8c6d4368cbdea321845c5d379b8bb01c183f0ad72f7bf539b8186b2b2b94190",
+      "spent_ctx_id": "ctx_3_1785617931867",
+      "produced_ctx_id": "ctx_4_1785617931874",
+      "merkle_root": "f29f68900bcde428024010cbf1ed06ba78cef9c1c29e890d01036d03952fbc1e",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -3308,7 +3278,7 @@
             "signature": "89caa37b85ee269a"
           }
         },
-        "council_signature": "096ba05556ebe851"
+        "council_signature": "ce10314157ae3c53"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -3323,20 +3293,14 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.31606063030195686,
+            "score": 0.3019986232050804,
             "horizon": 5,
             "metadata": {
-              "index": 0,
-              "state_norm": 2.1799869758303227
+              "index": 12,
+              "state_norm": 2.3112733739879423
             },
-            "variance": 3.080276224195646e-05,
-            "probabilistic": {
-              "mean": 0.31606063030195686,
-              "std": 0.005550023625351198,
-              "ci_lower": 0.3116451243838577,
-              "ci_upper": 0.32332418206993024,
-              "n_samples": 3
-            }
+            "variance": 0.0,
+            "probabilistic": null
           }
         ],
         "stream_activations": [
@@ -3352,14 +3316,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.02288818359375
+            "cost_ms": 0.0059604644775390625
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.03528594970703125
+            "cost_ms": 0.007867813110351562
           }
         ],
         "causal_graph": {
@@ -3372,9 +3336,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.94182586669922,
+            "consumed_ms": -34.98617172241211,
             "total_ms": 100.0,
-            "utilization": -0.34941825866699217,
+            "utilization": -0.34986171722412107,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -3405,13 +3369,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.3059793259484988,
+            "U_W": 0.33771851816142984,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
             "dominant": "environmental"
           },
-          "U_W": 0.3059793259484988,
+          "U_W": 0.33771851816142984,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -3428,16 +3392,16 @@
               "signature": "89caa37b85ee269a"
             }
           },
-          "council_signature": "096ba05556ebe851"
+          "council_signature": "ce10314157ae3c53"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.14982547760009765,
+          "maintenance_cost": -0.14995851516723632,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
           "alignment_cost": 0.0,
-          "future_option_value": 0.2998836517333984,
+          "future_option_value": 0.2999723434448242,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "information_gain": 0.0,
@@ -3482,18 +3446,18 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 6.788114575657884e-05,
-          "attention_momentum": 0.5352102822524472,
-          "mean_threat_ratio": 0.2522488279351691,
-          "mean_opportunity_ratio": 0.3513601567381366,
-          "mean_maintenance_ratio": 0.39639101532669435,
+          "counterfactual_diversity": 3.539803667403421e-05,
+          "attention_momentum": 0.22283062437832962,
+          "mean_threat_ratio": 0.2527765549313699,
+          "mean_opportunity_ratio": 0.3500031444621916,
+          "mean_maintenance_ratio": 0.3972203006064384,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.2304660183474441,
-            0.24678684011403065,
-            0.27986870328057917,
-            0.10922041229638275
+            0.16812123737375204,
+            0.15668316934166232,
+            0.40987655640501053,
+            0.2597513832219062
           ],
           "allocation_count": 4,
           "default_action_space": 10,
@@ -3504,9 +3468,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.2539416541576861,
-            "opportunity_ratio": 0.34700717502309286,
-            "maintenance_ratio": 0.39905117081922103
+            "threat_ratio": 0.2558738325230889,
+            "opportunity_ratio": 0.3420387163692001,
+            "maintenance_ratio": 0.40208745110771116
           },
           "cost_tracker": {
             "total_maintenance": 0.271,
@@ -3544,7 +3508,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.10922041229638275,
+        "mission_drift": 0.2597513832219062,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -3611,9 +3575,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.94182586669922,
+              "consumed_ms": -34.98617172241211,
               "total_ms": 100.0,
-              "utilization": -0.34941825866699217,
+              "utilization": -0.34986171722412107,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -3639,7 +3603,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "d8c6d4368cbdea321845c5d379b8bb01c183f0ad72f7bf539b8186b2b2b94190",
+        "merkle_root": "f29f68900bcde428024010cbf1ed06ba78cef9c1c29e890d01036d03952fbc1e",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -3659,7 +3623,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.1,
-        "learning_rate": 0.0067,
+        "learning_rate": 0.0051,
         "boredom_count": 4,
         "novelty_seeking": false,
         "self_intent_active": false,
@@ -3683,7 +3647,7 @@
         },
         "1.4": {
           "passed": true,
-          "reason": "compute -34.9ms <= 100.0ms \u2014 budget conserved"
+          "reason": "compute -35.0ms <= 100.0ms \u2014 budget conserved"
         },
         "2.1": {
           "passed": true,
@@ -3699,7 +3663,7 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=ctx_3_1785617092523, produced=ctx_4_1785617092532) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=ctx_3_1785617931867, produced=ctx_4_1785617931874) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
@@ -3829,24 +3793,24 @@
     },
     {
       "cycle_id": 5,
-      "timestamp": 1785617092.539571,
+      "timestamp": 1785617931.881841,
       "world_state": [
-        2.010647870232373,
-        1.0836051831020803,
-        0.2536682859468665,
-        0.2555008328064727,
-        -0.06479383664675051,
-        -0.22134732966564646
+        1.794446715188542,
+        1.376247170858539,
+        0.07928319271518988,
+        -0.0033545863791771824,
+        0.1959852090237225,
+        -0.07428545652973527
       ],
       "domain_facts": {
         "resources": {
-          "energy": 2.3237310961884576
+          "energy": 2.2725142239492966
         },
         "constraints": [],
         "events": [],
         "metrics": {
-          "distance_from_origin": 2.3237310961884576,
-          "uncertainty": 0.7708942133270557
+          "distance_from_origin": 2.2725142239492966,
+          "uncertainty": 0.7386235442244631
         }
       },
       "stream_activations": [
@@ -3863,16 +3827,16 @@
           "priority": 1.0,
           "activated": true,
           "intent_type": "reflex",
-          "cost_ms": 0.010013580322265625,
-          "budget_remaining_ms": 149.98998641967773
+          "cost_ms": 0.008106231689453125,
+          "budget_remaining_ms": 149.99189376831055
         },
         {
           "name": "MemoryStream",
           "priority": 0.7,
           "activated": true,
           "intent_type": "memory_recall",
-          "cost_ms": 0.01621246337890625,
-          "budget_remaining_ms": 149.97377395629883
+          "cost_ms": 0.014066696166992188,
+          "budget_remaining_ms": 149.97782707214355
         }
       ],
       "selected_intent": {
@@ -3881,13 +3845,13 @@
       },
       "selected_action": null,
       "representation": "spatial",
-      "budget_consumed_ms": -34.97377395629883,
+      "budget_consumed_ms": -34.977827072143555,
       "budget_total_ms": 100.0,
       "worlds_simulated": 1,
-      "cycle_duration_ms": 2.702951431274414,
+      "cycle_duration_ms": 2.376079559326172,
       "council_validated": true,
       "decision_integrity": 1.0,
-      "mission_drift": 0.12879168353485315,
+      "mission_drift": 0.22887873471106807,
       "blocking_validator": null,
       "council_signals": [],
       "escalation_requested": false,
@@ -3906,18 +3870,18 @@
       "strategic_options": [
         {
           "rank": 1,
-          "score": 0.3037282090782288,
+          "score": 0.3149233725081051,
           "horizon": 5,
           "metadata": {
-            "index": 10,
-            "state_norm": 2.2800097651702385
+            "index": 16,
+            "state_norm": 2.1933605402841185
           },
-          "variance": 2.1478780120866733e-05,
+          "variance": 2.8475167629436733e-06,
           "probabilistic": {
-            "mean": 0.3037282090782288,
-            "std": 0.004634520484458639,
-            "ci_lower": 0.29783230177892445,
-            "ci_upper": 0.3083148550688363,
+            "mean": 0.3149233725081051,
+            "std": 0.001687458669995705,
+            "ci_lower": 0.3127144128108014,
+            "ci_upper": 0.3161502324055493,
             "n_samples": 3
           }
         }
@@ -4000,19 +3964,19 @@
       "attention_metrics": {
         "identity_entropy": 1.0,
         "entropy_collapse_rate": 0.0,
-        "counterfactual_diversity": 6.674481086965215e-05,
-        "attention_momentum": 0.2982000824506512,
-        "mean_threat_ratio": 0.2537048415062314,
-        "mean_opportunity_ratio": 0.34761612184111934,
-        "mean_maintenance_ratio": 0.3986790366526493,
+        "counterfactual_diversity": 3.664631365505739e-05,
+        "attention_momentum": 0.1663047102372124,
+        "mean_threat_ratio": 0.2530587990021717,
+        "mean_opportunity_ratio": 0.34927737399441555,
+        "mean_maintenance_ratio": 0.3976638270034127,
         "is_attention_locked": false,
         "is_identity_collapse": false,
         "trajectory_divergences": [
-          0.2304660183474441,
-          0.24678684011403065,
-          0.27986870328057917,
-          0.10922041229638275,
-          0.12879168353485315
+          0.16812123737375204,
+          0.15668316934166232,
+          0.40987655640501053,
+          0.2597513832219062,
+          0.22887873471106807
         ],
         "allocation_count": 5,
         "default_action_space": 10,
@@ -4023,9 +3987,9 @@
           "projected_size": 1.0
         },
         "current_allocation": {
-          "threat_ratio": 0.25952889579048044,
-          "opportunity_ratio": 0.33263998225305036,
-          "maintenance_ratio": 0.40783112195646926
+          "threat_ratio": 0.25418777528537895,
+          "opportunity_ratio": 0.3463742921233112,
+          "maintenance_ratio": 0.39943793259130983
         },
         "cost_tracker": {
           "total_maintenance": 0.3439000000000001,
@@ -4113,9 +4077,9 @@
         },
         "Res_t": {
           "energy": {
-            "consumed_ms": -34.97377395629883,
+            "consumed_ms": -34.977827072143555,
             "total_ms": 100.0,
-            "utilization": -0.34973773956298826,
+            "utilization": -0.3497782707214355,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -4143,9 +4107,9 @@
       },
       "resource_budgets": {
         "energy": {
-          "consumed_ms": -34.97377395629883,
+          "consumed_ms": -34.977827072143555,
           "total_ms": 100.0,
-          "utilization": -0.34973773956298826,
+          "utilization": -0.3497782707214355,
           "description": "compute_budget_ms consumed this cycle"
         },
         "memory": {
@@ -4176,13 +4140,13 @@
         "consecutive_council_blocks": 0,
         "mode": "PLAN",
         "tripartite_u": {
-          "U_W": 0.2863134665186359,
+          "U_W": 0.34975111238966416,
           "U_I": 0.0,
           "U_O": 0.0,
           "answered_questions": 0,
-          "dominant": "none"
+          "dominant": "environmental"
         },
-        "U_W": 0.2863134665186359,
+        "U_W": 0.34975111238966416,
         "U_I": 0.0,
         "U_O": 0.0
       },
@@ -4225,11 +4189,11 @@
       "j_term_breakdown": {
         "expected_reward": 1.0,
         "discounted_reward": 1.0,
-        "maintenance_cost": -0.14992132186889648,
+        "maintenance_cost": -0.14993348121643066,
         "recovery_cost": 0.0,
         "identity_cost": 0.0,
         "alignment_cost": 0.0,
-        "future_option_value": 0.29994754791259765,
+        "future_option_value": 0.2999556541442871,
         "counterfactual_diversity": 0.0,
         "prediction_error": 0.0,
         "information_gain": 0.0,
@@ -4251,9 +4215,9 @@
       "inquiry_omega_vector": null,
       "inquiry_blend": 0.0,
       "relational_coherence": 1.0,
-      "spent_ctx_id": "ctx_4_1785617092532",
-      "produced_ctx_id": "ctx_5_1785617092539",
-      "merkle_root": "1159a01a5b39061641df955683819093b19b7a117ce47fb705a13b8b3d1b93d7",
+      "spent_ctx_id": "ctx_4_1785617931874",
+      "produced_ctx_id": "ctx_5_1785617931881",
+      "merkle_root": "7eed11a665ca6fa9d3bdf6ddca3968c4054b8d9153aa2a90b9aa745b67c427d6",
       "psdt": {
         "partials": {
           "ReflexStream": {
@@ -4267,7 +4231,7 @@
             "signature": "2dfd36a0eaa0add0"
           }
         },
-        "council_signature": "c0e4c101d8fa20ea"
+        "council_signature": "6c92cf372789a94b"
       },
       "intent_timelock": {
         "intent_type": "perceive",
@@ -4282,18 +4246,18 @@
         "strategic_options": [
           {
             "rank": 1,
-            "score": 0.3037282090782288,
+            "score": 0.3149233725081051,
             "horizon": 5,
             "metadata": {
-              "index": 10,
-              "state_norm": 2.2800097651702385
+              "index": 16,
+              "state_norm": 2.1933605402841185
             },
-            "variance": 2.1478780120866733e-05,
+            "variance": 2.8475167629436733e-06,
             "probabilistic": {
-              "mean": 0.3037282090782288,
-              "std": 0.004634520484458639,
-              "ci_lower": 0.29783230177892445,
-              "ci_upper": 0.3083148550688363,
+              "mean": 0.3149233725081051,
+              "std": 0.001687458669995705,
+              "ci_lower": 0.3127144128108014,
+              "ci_upper": 0.3161502324055493,
               "n_samples": 3
             }
           }
@@ -4311,14 +4275,14 @@
             "priority": 1.0,
             "activated": true,
             "intent_type": "reflex",
-            "cost_ms": 0.010013580322265625
+            "cost_ms": 0.008106231689453125
           },
           {
             "name": "MemoryStream",
             "priority": 0.7,
             "activated": true,
             "intent_type": "memory_recall",
-            "cost_ms": 0.01621246337890625
+            "cost_ms": 0.014066696166992188
           }
         ],
         "causal_graph": {
@@ -4331,9 +4295,9 @@
         },
         "resource_budgets": {
           "energy": {
-            "consumed_ms": -34.97377395629883,
+            "consumed_ms": -34.977827072143555,
             "total_ms": 100.0,
-            "utilization": -0.34973773956298826,
+            "utilization": -0.3497782707214355,
             "description": "compute_budget_ms consumed this cycle"
           },
           "memory": {
@@ -4364,13 +4328,13 @@
           "consecutive_council_blocks": 0,
           "mode": "PLAN",
           "tripartite_u": {
-            "U_W": 0.2863134665186359,
+            "U_W": 0.34975111238966416,
             "U_I": 0.0,
             "U_O": 0.0,
             "answered_questions": 0,
-            "dominant": "none"
+            "dominant": "environmental"
           },
-          "U_W": 0.2863134665186359,
+          "U_W": 0.34975111238966416,
           "U_I": 0.0,
           "U_O": 0.0
         },
@@ -4387,16 +4351,16 @@
               "signature": "2dfd36a0eaa0add0"
             }
           },
-          "council_signature": "c0e4c101d8fa20ea"
+          "council_signature": "6c92cf372789a94b"
         },
         "j_term_breakdown": {
           "expected_reward": 1.0,
           "discounted_reward": 1.0,
-          "maintenance_cost": -0.14992132186889648,
+          "maintenance_cost": -0.14993348121643066,
           "recovery_cost": 0.0,
           "identity_cost": 0.0,
           "alignment_cost": 0.0,
-          "future_option_value": 0.29994754791259765,
+          "future_option_value": 0.2999556541442871,
           "counterfactual_diversity": 0.0,
           "prediction_error": 0.0,
           "information_gain": 0.0,
@@ -4441,19 +4405,19 @@
         "attention_metrics": {
           "identity_entropy": 1.0,
           "entropy_collapse_rate": 0.0,
-          "counterfactual_diversity": 6.674481086965215e-05,
-          "attention_momentum": 0.2982000824506512,
-          "mean_threat_ratio": 0.2537048415062314,
-          "mean_opportunity_ratio": 0.34761612184111934,
-          "mean_maintenance_ratio": 0.3986790366526493,
+          "counterfactual_diversity": 3.664631365505739e-05,
+          "attention_momentum": 0.1663047102372124,
+          "mean_threat_ratio": 0.2530587990021717,
+          "mean_opportunity_ratio": 0.34927737399441555,
+          "mean_maintenance_ratio": 0.3976638270034127,
           "is_attention_locked": false,
           "is_identity_collapse": false,
           "trajectory_divergences": [
-            0.2304660183474441,
-            0.24678684011403065,
-            0.27986870328057917,
-            0.10922041229638275,
-            0.12879168353485315
+            0.16812123737375204,
+            0.15668316934166232,
+            0.40987655640501053,
+            0.2597513832219062,
+            0.22887873471106807
           ],
           "allocation_count": 5,
           "default_action_space": 10,
@@ -4464,9 +4428,9 @@
             "projected_size": 1.0
           },
           "current_allocation": {
-            "threat_ratio": 0.25952889579048044,
-            "opportunity_ratio": 0.33263998225305036,
-            "maintenance_ratio": 0.40783112195646926
+            "threat_ratio": 0.25418777528537895,
+            "opportunity_ratio": 0.3463742921233112,
+            "maintenance_ratio": 0.39943793259130983
           },
           "cost_tracker": {
             "total_maintenance": 0.3439000000000001,
@@ -4505,7 +4469,7 @@
         },
         "selected_action": null,
         "decision_integrity": 1.0,
-        "mission_drift": 0.12879168353485315,
+        "mission_drift": 0.22887873471106807,
         "council_validated": true,
         "identity_state": {
           "G_t": {
@@ -4573,9 +4537,9 @@
           },
           "Res_t": {
             "energy": {
-              "consumed_ms": -34.97377395629883,
+              "consumed_ms": -34.977827072143555,
               "total_ms": 100.0,
-              "utilization": -0.34973773956298826,
+              "utilization": -0.3497782707214355,
               "description": "compute_budget_ms consumed this cycle"
             },
             "memory": {
@@ -4601,7 +4565,7 @@
             "responsibility": 0.5
           }
         },
-        "merkle_root": "1159a01a5b39061641df955683819093b19b7a117ce47fb705a13b8b3d1b93d7",
+        "merkle_root": "7eed11a665ca6fa9d3bdf6ddca3968c4054b8d9153aa2a90b9aa745b67c427d6",
         "inquiry_summary": {
           "selected_question": null,
           "omega_value": 0.0,
@@ -4621,7 +4585,7 @@
       },
       "curiosity_state": {
         "curiosity_level": 0.25,
-        "learning_rate": 0.0066,
+        "learning_rate": 0.004,
         "boredom_count": 5,
         "novelty_seeking": true,
         "self_intent_active": false,
@@ -4661,7 +4625,7 @@
         },
         "2.4": {
           "passed": true,
-          "reason": "trace has UTXO chain (spent=ctx_4_1785617092532, produced=ctx_5_1785617092539) \u2014 path dependency tracked"
+          "reason": "trace has UTXO chain (spent=ctx_4_1785617931874, produced=ctx_5_1785617931881) \u2014 path dependency tracked"
         },
         "2.5": {
           "passed": true,
