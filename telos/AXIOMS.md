@@ -133,3 +133,47 @@
 | ModelCompetition | 4.8 | Bayesian hypothesis competition | ✅ | `core/reasoning/model_competition.py` |
 | RelationalContext | 4.9, 4.10 | Multi-agent reasoning scaffold | 📄 Scaffold | `core/reasoning/relational.py` |
 | HumanGateway | 5.2 | Human-in-the-loop for axiom proposals + escalation | ✅ | `core/governance/human_gateway.py` |
+| ScaleInvariance (scale/) | 1.1 | Deliberate recursion — same deliberation law at every granularity | ✅ | `core/scale/` (principle, ledger, verifier, factory) |
+
+---
+
+## Deliberate Recursion — The Scale-Invariance Principle (P1.0)
+
+**Short name:** Scale Invariance (Deliberate Recursion) — *Layer 1 extension of Axiom 1.1*
+
+**Formal statement:**
+
+```
+∀ s ∈ Scales:  Law(P_s) = Law(P_meta)
+
+Law(P) = ⟨ phase_sequence(P), axiom_set(P) ⟩
+```
+
+**Meaning:** TELOS applies the same deliberation law at every granularity.
+A sub-task decision (micro — "what fee to bid"), a project decision
+(meso), and the meta-cognitive decision (macro — "which project next")
+are all produced by the identical engine: the same pipeline phases
+(Perceive → Streams → Simulate → Evaluate → Synthesize → Select →
+Council → Act → Reflect) governed by the same axiom constitution.
+
+**Why it matters:** recursion is made *deliberate and observable*, not
+accidental. The `PipelineCoordinator`'s supervisor and sub-pipelines are
+recognized as the same engine at different scales; every nested
+invocation is recorded in the `RecursionLedger` (self-similarity ledger),
+and the `ScaleVerifier` asserts structural identity (phase sequence +
+verified axiom set) across macro/meso/micro runs.
+
+**Implementation:**
+| File | Role |
+|------|------|
+| `core/scale/principle.py` | The invariant `ScaleInvariancePrinciple` (P1.0) + canonical phase law |
+| `core/scale/factory.py` | `build_standard_pipeline` — canonical shape of the deliberation engine at any scale |
+| `core/scale/ledger.py` | `RecursionLedger` — records every recursive invocation, reports self-similarity |
+| `core/scale/verifier.py` | `ScaleVerifier` — runs the pipeline at macro/meso/micro, asserts same structure |
+| `core/coordination/coordinator.py` | Deliberate embodiment: spawn/orchestrate/chain record recursion in the ledger |
+
+**Verification:** `ScaleVerifier.run([macro, meso, micro])` executes one
+full deliberation cycle at each scale and asserts `phase_sequence` is
+identical to the canonical law and `axiom_set` is identical across
+scales. The coordinator's `verify_scale_invariance()` audits all recorded
+recursive invocations.

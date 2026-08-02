@@ -64,6 +64,19 @@ def get_all_py_files(exclude_dirs=None):
     return sorted(files)
 
 
+def _all_test_py_files():
+    """Return all .py files under the tests/ tree (for reference scans)."""
+    tests_root = os.path.join(BASE_DIR, "tests")
+    files = []
+    if not os.path.isdir(tests_root):
+        return files
+    for root, dirs, fnames in os.walk(tests_root):
+        for fname in fnames:
+            if fname.endswith(".py"):
+                files.append(os.path.join(root, fname))
+    return sorted(files)
+
+
 def get_staged_py_files():
     """Return staged .py files (git diff --cached). Used by --staged mode so the
     pre-commit gate checks NEW code only, not legacy debt (G-01)."""
@@ -108,28 +121,43 @@ def check_dead_code():
     print_check(1, "Dead Code Detection")
 
     py_files = SCAN_FILES
-    definitions = {}
+    definitions = {}      # fp -> {name: (kind, def_count)}
     name_to_files = defaultdict(set)
 
     for fp in py_files:
         tree, err, source = parse_ast(fp)
         if err or tree is None:
             continue
-        defs = set()
+        defs = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 if node.name.startswith("__") and node.name.endswith("__"):
                     continue
-                defs.add((node.name, "class"))
+                # Test classes are pytest-discovered by name, not called in source.
+                if node.name.startswith("Test") and "test_" in fp:
+                    continue
+                kind, cnt = defs.get(node.name, ("class", 0))
+                defs[node.name] = (kind, cnt + 1)
             elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 if node.name.startswith("__") and node.name.endswith("__"):
                     continue
-                defs.add((node.name, "function"))
+                # Test functions are pytest-discovered by name, never called in
+                # source — flagging them as dead code is a false positive.
+                if node.name.startswith("test_") and "test_" in fp:
+                    continue
+                kind, cnt = defs.get(node.name, ("function", 0))
+                defs[node.name] = (kind, cnt + 1)
         definitions[fp] = defs
-        for name, _ in defs:
+        for name in defs:
             name_to_files[name].add(fp)
 
-    for fp in py_files:
+    # Reference scan: evaluate against the WHOLE repo (not just staged files) so
+    # a name used in a non-staged file (a test, a base class, an external caller)
+    # is not misreported as dead code in staged mode. Staged mode only limits
+    # which definitions are REPORTED, never which references count.
+    all_py = sorted(get_all_py_files() + [os.path.join(p) for p in _all_test_py_files()])
+    occ = defaultdict(int)   # name -> total occurrences across the repo
+    for fp in all_py:
         try:
             with open(fp, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -137,17 +165,31 @@ def check_dead_code():
             continue
         for name in list(name_to_files.keys()):
             pattern = re.compile(r'\b' + re.escape(name) + r'\b')
-            if pattern.search(content):
+            n = len(pattern.findall(content))
+            if n:
                 name_to_files[name].add(fp)
+                occ[name] += n
 
     dead = []
     for fp, defs in definitions.items():
         rp = rel_path(fp)
         if any(rp.startswith(e) for e in EXCLUDE_FROM_DEAD_CODE):
             continue
-        for name, kind in defs:
-            if name_to_files.get(name, {fp}) == {fp}:
+        for name, (kind, def_count) in defs.items():
+            # Used if it appears in more than one file, or in its own file more
+            # times than it is defined there (i.e. real call sites exist).
+            in_other_file = len(name_to_files.get(name, {fp}) - {fp}) > 0
+            used_in_own_file = occ.get(name, 0) > def_count
+            if not in_other_file and not used_in_own_file:
                 dead.append(f"{kind} '{name}' in {rp}")
+
+    if dead:
+        for item in dead:
+            print(f"  \u2717 FAIL: {item}")
+        return False
+    else:
+        print(f"  \u2713 PASS: no dead code detected")
+        return True
 
     if dead:
         for item in dead:
@@ -518,6 +560,23 @@ def check_docstring_signature():
             continue
 
         rp = rel_path(fp)
+        # Collect pytest fixture names in this file so fixture params (which are
+        # injected by pytest, not documented arguments) are not flagged.
+        fixture_names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.decorator_list:
+                for dec in node.decorator_list:
+                    dname = None
+                    if isinstance(dec, ast.Name):
+                        dname = dec.id
+                    elif isinstance(dec, ast.Call):
+                        f = dec.func
+                        if isinstance(f, ast.Name):
+                            dname = f.id
+                        elif isinstance(f, ast.Attribute):
+                            dname = f.attr
+                    if dname in ("fixture",):
+                        fixture_names.add(node.name)
         for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
@@ -532,11 +591,17 @@ def check_docstring_signature():
             for arg in node.args.args:
                 if arg.arg in ("self", "cls"):
                     continue
+                if arg.arg in fixture_names:
+                    continue
                 sig_params.append(arg.arg)
             for arg in node.args.kwonlyargs:
+                if arg.arg in fixture_names:
+                    continue
                 sig_params.append(arg.arg)
             for arg in node.args.posonlyargs:
                 if arg.arg in ("self", "cls"):
+                    continue
+                if arg.arg in fixture_names:
                     continue
                 sig_params.append(arg.arg)
 
