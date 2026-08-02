@@ -20,7 +20,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Any, Callable, Tuple
 
 import numpy as np
 
@@ -28,15 +28,12 @@ from telos.core.runtime import (
     TelosV14Pipeline, PipelineConfig, PipelineResult, PipelinePhase,
 )
 from telos.core.council.base import CouncilVerdict
-from telos.core.streams.implementations import (
-    ReflexStream, PerceptionStream, MemoryStream, PlanningStream,
-)
-from telos.core.council.validators import (
-    RealityValidator, ConstraintValidator, MemoryAdvisor, MissionDriftDetector,
-)
 from telos.core.ledger.skill_library import SkillLibrary
-from telos.core.simulation import CounterfactualEngine
 from telos.core.infra_manager.checkpoint_manager import CheckpointManager
+from telos.core.scale.principle import ScaleInvariancePrinciple
+from telos.core.scale.ledger import RecursionLedger
+from telos.core.scale.verifier import ScaleVerifier
+from telos.core.scale.factory import build_standard_pipeline
 
 logger = logging.getLogger('telos_coordinator')
 
@@ -51,6 +48,7 @@ class SubPipelineConfig:
     horizon: int = 3
     streams: List[str] = field(default_factory=lambda: ["reflex", "perception", "memory", "planning"])
     user_name: Optional[str] = None
+    scale: str = "micro"  # granularity label (macro | meso | micro) — recorded in the recursion ledger
 
 
 @dataclass
@@ -82,52 +80,29 @@ class CoordinationResult:
     error: Optional[str] = None
 
 
-def _default_subtask_splitter(intent: str) -> List[Dict]:
-    """Default splitter: each word is a subtask (simple fallback)."""
-    words = intent.strip().split()
-    if len(words) <= 3:
-        return [{"name": "primary", "prompt": intent}]
-    chunk_size = max(1, len(words) // 2)
-    return [
-        {"name": f"part_{i}", "prompt": " ".join(words[i:i + chunk_size])}
-        for i in range(0, len(words), chunk_size)
-    ]
-
-
 def _build_subpipeline(config: SubPipelineConfig,
                        simulator=None, adapter=None) -> TelosV14Pipeline:
-    """Factory: build a minimal Pipeline for a sub-task."""
-    p_config = PipelineConfig(
-        simulator=simulator,
-        adapter=adapter,
-        compute_budget_ms=config.budget_ms,
+    """Factory: build a minimal Pipeline for a sub-task.
+
+    Delegates to the scale-invariance factory (telos.core.scale.factory) so
+    the coordinator's sub-pipelines are the canonical shape of the
+    deliberation law — the same engine at a smaller granularity.
+
+    Args:
+        config: the sub-pipeline configuration (name, budget, state dim, worlds).
+        simulator: optional domain simulator for the sub-pipeline.
+        adapter: optional domain adapter for the sub-pipeline.
+    """
+    return build_standard_pipeline(
+        name=config.name,
+        budget_ms=config.budget_ms,
         state_dim=config.state_dim,
         n_worlds=config.n_worlds,
         horizon=config.horizon,
+        streams=config.streams,
+        simulator=simulator,
+        adapter=adapter,
     )
-    pipeline = TelosV14Pipeline(p_config)
-    skill_lib = SkillLibrary()
-
-    stream_map = {
-        "reflex": lambda: ReflexStream(skill_lib),
-        "perception": lambda: PerceptionStream(skill_lib),
-        "memory": lambda: MemoryStream(skill_lib),
-        "planning": lambda: PlanningStream(
-            skill_lib,
-            sim_engine=CounterfactualEngine(simulator) if simulator else None,
-        ),
-    }
-    for s_name in config.streams:
-        factory = stream_map.get(s_name)
-        if factory:
-            pipeline.register_stream(factory())
-
-    pipeline.register_validator(RealityValidator())
-    pipeline.register_validator(ConstraintValidator())
-    pipeline.register_validator(MemoryAdvisor(skill_lib))
-    pipeline.register_validator(MissionDriftDetector(drift_threshold=5.0))
-
-    return pipeline
 
 
 class PipelineCoordinator:
@@ -156,20 +131,53 @@ class PipelineCoordinator:
         ) if checkpoint_path else None
         self._sub_pipelines: Dict[str, TelosV14Pipeline] = {}
         self._callbacks: List[Callable] = []
+        # Scale-Invariance Principle (deliberate recursion): the supervisor and
+        # every sub-pipeline run the identical deliberation law. The ledger makes
+        # the recursion observable; the verifier asserts structural identity.
+        self._scale_principle = ScaleInvariancePrinciple()
+        self._recursion_ledger = RecursionLedger(owner="PipelineCoordinator",
+                                                 principle=self._scale_principle)
+        self._scale_verifier = ScaleVerifier(
+            simulator=default_simulator,
+            adapter=default_adapter,
+            principle=self._scale_principle,
+        )
 
     def on_subresult(self, callback: Callable) -> None:
         """Register callback fired after each sub-pipeline completes."""
         self._callbacks.append(callback)
 
+    @staticmethod
+    def _phase_signature(pipeline: TelosV14Pipeline) -> Tuple[str, ...]:
+        """Ordered phase names a pipeline runs — its deliberation law."""
+        return tuple(p.name for p in getattr(pipeline, '_phases', []) or [])
+
     def spawn(self, config: SubPipelineConfig) -> TelosV14Pipeline:
-        """Create and register a sub-pipeline."""
+        """Create and register a sub-pipeline.
+
+        Args:
+            config: the sub-pipeline configuration to spawn.
+        """
         pipeline = _build_subpipeline(
             config,
             simulator=self._default_simulator,
             adapter=self._default_adapter,
         )
         self._sub_pipelines[config.name] = pipeline
-        logger.info(f"Coordinator: spawned sub-pipeline '{config.name}'")
+        # Deliberate recursion: tag the sub-pipeline as a recursive scope and
+        # record the invocation in the self-similarity ledger.
+        pipeline._scale_scope = config.name
+        pipeline._scale_parent = "PipelineCoordinator"
+        self._recursion_ledger.record(
+            parent_scope="coordinator:spawn",
+            scope=f"sub:{config.name}",
+            scale=getattr(config, 'scale', 'micro'),
+            kind="spawn",
+            phase_signature=self._phase_signature(pipeline),
+            success=True,
+        )
+        logger.info(f"Coordinator: spawned sub-pipeline '{config.name}' "
+                    f"(scale={getattr(config, 'scale', 'micro')})")
         return pipeline
 
     def orchestrate(self,
@@ -222,6 +230,19 @@ class PipelineCoordinator:
                 all_md.append(s_result.md)
                 if not s_result.council_validated:
                     all_validated = False
+                # Scale-invariance ledger: record the recursive execution.
+                self._recursion_ledger.record(
+                    parent_scope="supervisor:orchestrate",
+                    scope=f"sub:{sub.name}",
+                    scale=getattr(sub, 'scale', 'micro'),
+                    kind="execute",
+                    phase_signature=self._phase_signature(sub_pipeline),
+                    axiom_ids=self._trace_axiom_ids(sub_result),
+                    success=True,
+                    decision_integrity=s_result.di,
+                    mission_drift=s_result.md,
+                    duration_ms=s_result.duration_ms,
+                )
 
             except Exception as e:
                 dur = (time.time() - st0) * 1000
@@ -239,6 +260,20 @@ class PipelineCoordinator:
                 )
                 all_validated = False
                 logger.error(f"Coordinator: sub-pipeline '{sub.name}' failed: {e}")
+                # Kintsugi: record the failed recursion too — structure is still
+                # checked, and the failure is preserved as a ledger asset.
+                self._recursion_ledger.record(
+                    parent_scope="supervisor:orchestrate",
+                    scope=f"sub:{sub.name}",
+                    scale=getattr(sub, 'scale', 'micro'),
+                    kind="execute",
+                    phase_signature=self._phase_signature(sub_pipeline),
+                    axiom_ids=(),
+                    success=False,
+                    decision_integrity=0.0,
+                    mission_drift=1.0,
+                    duration_ms=round(dur, 1),
+                )
 
             results.append(s_result)
             for cb in self._callbacks:
@@ -265,6 +300,19 @@ class PipelineCoordinator:
                     validated=all_validated and sup_trace.council_validated,
                     decision_integrity=agg_di,
                     mission_drift=agg_md,
+                )
+                # The supervisor is the macro scale of the same deliberation
+                # law — record it so both granularities are observable.
+                self._recursion_ledger.record(
+                    parent_scope="system",
+                    scope="supervisor",
+                    scale="macro",
+                    kind="execute",
+                    phase_signature=self._phase_signature(self._supervisor),
+                    axiom_ids=self._trace_axiom_ids(sup_result),
+                    success=sup_trace.council_validated is not False,
+                    decision_integrity=sup_trace.decision_integrity,
+                    mission_drift=sup_trace.mission_drift,
                 )
 
         result = CoordinationResult(
@@ -344,13 +392,19 @@ class PipelineCoordinator:
               state: np.ndarray,
               subtasks: List[SubPipelineConfig],
               user_name: Optional[str] = None) -> CoordinationResult:
-        """Chain: run sub-pipelines sequentially, each feeding state forward."""
+        """Chain: run sub-pipelines sequentially, each feeding state forward.
+
+        Args:
+            subtasks: the ordered list of sub-pipeline configurations to run.
+            user_name: optional user identity passed through to each sub-pipeline.
+        """
         current_state = state.copy()
         results = []
 
         for sub in subtasks:
             sub_pipeline = self._sub_pipelines.get(sub.name) or self.spawn(sub)
             st0 = time.time()
+            sub_result = None
             try:
                 sub_result = sub_pipeline.execute(current_state, user_name=sub.user_name or user_name)
                 dur = (time.time() - st0) * 1000
@@ -377,6 +431,19 @@ class PipelineCoordinator:
                     council_validated=False, duration_ms=round(dur, 1),
                     world_count=0, error=str(e),
                 )
+            # Scale-invariance ledger: chain steps are recursive invocations too.
+            self._recursion_ledger.record(
+                parent_scope="supervisor:chain",
+                scope=f"sub:{sub.name}",
+                scale=getattr(sub, 'scale', 'micro'),
+                kind="execute",
+                phase_signature=self._phase_signature(sub_pipeline),
+                axiom_ids=self._trace_axiom_ids(sub_result) if sub_result is not None else (),
+                success=s_result.success,
+                decision_integrity=s_result.di,
+                mission_drift=s_result.md,
+                duration_ms=s_result.duration_ms,
+            )
             results.append(s_result)
 
         return CoordinationResult(
@@ -385,9 +452,57 @@ class PipelineCoordinator:
             selected_action=results[-1].action if results else None,
         )
 
+    @staticmethod
+    def _trace_axiom_ids(result) -> Tuple[str, ...]:
+        """Sorted axiom ids verified for a PipelineResult's trace."""
+        trace = getattr(result, 'decision_trace', None)
+        results = getattr(trace, 'axiom_results', None)
+        if not results:
+            return ()
+        return tuple(sorted(results.keys()))
+
+    # ── Scale-Invariance Principle: deliberate recursion ────────────────────
+
+    @property
+    def scale_principle(self) -> ScaleInvariancePrinciple:
+        """The scale-invariance invariant this coordinator embodies."""
+        return self._scale_principle
+
+    @property
+    def recursion_ledger(self) -> RecursionLedger:
+        """Self-similarity ledger of every recursive invocation."""
+        return self._recursion_ledger
+
+    @property
+    def scale_verifier(self) -> ScaleVerifier:
+        """Verifier that asserts structural identity across scales."""
+        return self._scale_verifier
+
+    def verify_scale_invariance(self) -> Dict:
+        """Audit the deliberate-recursion invariant over all recorded
+        invocations.
+
+        Returns:
+            Dict with invariant_holds, self_similarity, canonical phases,
+            entry count, and a per-scale summary.
+        """
+        ledger = self.recursion_ledger
+        return {
+            "principle": self.scale_principle.name,
+            "formal": self.scale_principle.formal,
+            "invariant_holds": ledger.invariant_holds(),
+            "self_similarity": round(ledger.self_similarity(), 4),
+            "canonical_phases": list(self.scale_principle.canonical_phases),
+            "entries": len(ledger.entries),
+            "summary": ledger.summary(),
+            "verifier": self.scale_verifier.__class__.__name__,
+        }
+
     @property
     def stats(self) -> Dict:
         return {
             "sub_pipelines": len(self._sub_pipelines),
             "names": list(self._sub_pipelines.keys()),
+            "recursive_invocations": len(self.recursion_ledger.entries),
+            "self_similarity": round(self.recursion_ledger.self_similarity(), 4),
         }
