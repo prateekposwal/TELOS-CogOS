@@ -5,7 +5,7 @@ Once set, this binds TELOS to its creator permanently.
 No session, no checkpoint, no reset can erase it.
 
 Two names:
-  - Aviku: what my creator calls me (recognition phrase)
+  - Aviku: private recognition phrase used by the creator (public attribution uses the architect's name, Prateek)
   - TELOS: what everyone else calls me (the system)
 """
 

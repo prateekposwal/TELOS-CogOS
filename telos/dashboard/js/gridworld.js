@@ -463,7 +463,7 @@ function drawGrid3D(canvas) {
     
     const topY = hPx >= 0 ? sy - hPx + breath : sy + breath;
     
-    // ── Aviku B: Omega Heatmap Mode ──
+    // ── TELOS B: Omega Heatmap Mode ──
     if (state.omegaHeatmap) {
       // Color cells by uncertainty contribution based on position relative to TELOS
       const pos = state.animPos || state.position;

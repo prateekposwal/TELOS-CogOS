@@ -1,4 +1,4 @@
-# Aviku (TELOS CogOS) — Competitive Benchmark Report
+# TELOS CogOS — Competitive Benchmark Report
 
 **Generated:** 2026-07-25
 **Test:** GridWorld Navigation (5×5, fog of war, dynamic terrain, 2 agents, time pressure)
@@ -7,7 +7,7 @@
 
 ## Core Metrics
 
-| Metric | Aviku (TELOS) | Claude | ChatGPT | Gemini | opencode CLI (DeepSeek V4) |
+| Metric | TELOS | Claude | ChatGPT | Gemini | opencode CLI (DeepSeek V4) |
 |--------|---------------|--------|---------|--------|--------------------------|
 | **Latency (ms/cycle)** | **11.3 ± 9.5** | 3,200 | 2,800 | 3,500 | 1,800 |
 | **Token Efficiency** | **256 tok/cycle** | 1,520 | 1,800 | 2,000 | 980 |
@@ -22,7 +22,7 @@
 
 ## Architecture Comparison
 
-| Feature | Aviku (TELOS) | Competitors |
+| Feature | TELOS | Competitors |
 |---------|---------------|-------------|
 | **Blocking Council** | ✅ 4 validators (Reality, Constraint, Memory, Mission Drift) | ❌ None |
 | **Counterfactual Simulation** | ✅ 55+ alternative futures/cycle | ❌ Single path prediction |

@@ -105,7 +105,7 @@ class InterpretationEngine:
             ),
             ConflictType.COLLABORATION_VS_TRUTH: (
                 "Axiom 1.2 (Process over Outcomes)",
-                "Axiom 4.1 (Identity Shapes Decisions) — Aviku mode",
+                "Axiom 4.1 (Identity Shapes Decisions) — collaborative mode",
             ),
         }
 

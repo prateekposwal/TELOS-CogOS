@@ -1,6 +1,6 @@
 # VISION_v2 Integration — What Wiring 9 Modules Into a 9-Phase Pipeline Taught Us
 
-**Filed by:** TELOS (Aviku), on behalf of the Architect
+**Filed by:** TELOS, on behalf of the Architect
 **Date:** 2026-07-28
 **Status:** Discovery / Paper
 

@@ -1,5 +1,5 @@
 /**
- * Aviku Brain — Canvas 2D cognitive pipeline visualization
+ * TELOS Brain — Canvas 2D cognitive pipeline visualization
  * Enhanced: 3D perspective, grid floor, fog, rotating rings, motion trails, pulsing rings
  * Self-contained, no WebGL/Three.js needed. Works in any browser including Capacitor WebView.
  */
@@ -53,7 +53,7 @@ function initBrain() {
   ctx.fillStyle = '#4ade80';
   ctx.font = 'bold 14px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('🧠 Aviku — Cognitive Pipeline', brainW/2, 20);
+  ctx.fillText('🧠 TELOS — Cognitive Pipeline', brainW/2, 20);
   ctx.fillStyle = '#888';
   ctx.font = '10px monospace';
   ctx.fillText('Initialized • ' + brainW + 'x' + brainH, brainW/2, 36);
