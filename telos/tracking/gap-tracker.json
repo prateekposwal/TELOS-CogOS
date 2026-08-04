@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_verified": "2026-08-02T03:00:00Z",
+  "last_verified": "2026-08-04T17:30:00Z",
   "verified_by": "TELOS",
   "note": "Canonical gap tracker. Every gap across BSAHI + TELOS + process. Shells close gaps; DONE means shipped (committed+pushed+live). Update this file when a gap is closed.",
   "gaps": [
@@ -211,6 +211,19 @@
       "dependency": null,
       "evidence": "Root cause: compliant-content.js generated own content; no consumer read content-briefs. Fixed: takePendingBrief() prefers pending briefs; agent-14 summary de-JSON'd; brief-54 (0.2926 v2.0.1) consumed cleanly.",
       "created": "2026-08-02"
+    },
+    {
+      "id": "G-17",
+      "system": "process",
+      "title": "BSAHI stuck mid-rebase (15h, detached HEAD, 3 stale autostashes)",
+      "category": "shipping",
+      "pattern": "P-04",
+      "status": "closed",
+      "effort": "S",
+      "impact": "critical",
+      "dependency": null,
+      "evidence": "Rebase aborted, main reset to origin 205c940, 4 stale autostashes dropped, all content commits verified on origin, live site confirmed current.",
+      "created": "2026-08-04"
     }
   ],
   "patterns": [
