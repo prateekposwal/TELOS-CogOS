@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_verified": "2026-08-04T17:45:00Z",
+  "last_verified": "2026-08-04T18:10:00Z",
   "verified_by": "TELOS",
   "note": "Canonical gap tracker. Every gap across BSAHI + TELOS + process. Shells close gaps; DONE means shipped (committed+pushed+live). Update this file when a gap is closed.",
   "gaps": [
@@ -75,12 +75,13 @@
       "title": "Resource legs deferred: UTXO, bandwidth, validation, node_geo",
       "category": "research",
       "pattern": "P-03",
-      "status": "open",
+      "status": "closed",
       "effort": "L",
       "impact": "high",
       "dependency": "G-02 (paper scopes them as future work)",
-      "evidence": "utxo_size_inc comment-only in storage-ratio.js L211; bandwidth only incremental $0.02/yr; no validation lit review; node_geo 224 rows.",
-      "created": "2026-08-02"
+      "evidence": "v1 implementations shipped 2026-08-04 (commit 03a5f21): UTXO measured (utxo_size_inc wired, 165 blocks avg 29.9KB/block), Bandwidth bound (model-spec v2.1, $3.94/yr/node), Validation OOM survey (validation-cost.md, falsifiable claim <$100/yr/node). Remaining: UTXO $ pricing, bandwidth measurement, Core bench run \u2014 tracked as future-work, not blockers.",
+      "created": "2026-08-02",
+      "closed": "2026-08-04"
     },
     {
       "id": "G-07",
@@ -224,6 +225,19 @@
       "dependency": null,
       "evidence": "Rebase aborted, main reset to origin 205c940, 4 stale autostashes dropped, all content commits verified on origin, live site confirmed current.",
       "created": "2026-08-04"
+    },
+    {
+      "id": "G-18",
+      "system": "BSAHI",
+      "title": "node_geo per-region cost distributions not expanded (G-06 remainder)",
+      "category": "research",
+      "pattern": "P-03",
+      "status": "open",
+      "effort": "M",
+      "impact": "low",
+      "dependency": null,
+      "evidence": "node_geo has 224 rows (agent-11); per-region cost heterogeneity would refine the C decomposition (working-paper 7.2 row 3 leans Type M on the bundle). G-06 closed for UTXO/BW/VAL v1 (2026-08-04); this is the remaining resource-distribution leg.",
+      "created": "2026-08-04"
     }
   ],
   "patterns": [
@@ -316,7 +330,7 @@
       "name": "THE PAPER",
       "gaps": [
         "G-02",
-        "G-06"
+        "G-18"
       ],
       "exit_criteria": "research/working-paper.md written + regenerated HTML + resource legs scoped with v1 measurements"
     },
