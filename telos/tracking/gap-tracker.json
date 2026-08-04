@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_verified": "2026-08-04T17:30:00Z",
+  "last_verified": "2026-08-04T17:45:00Z",
   "verified_by": "TELOS",
   "note": "Canonical gap tracker. Every gap across BSAHI + TELOS + process. Shells close gaps; DONE means shipped (committed+pushed+live). Update this file when a gap is closed.",
   "gaps": [
@@ -36,11 +36,11 @@
       "title": "M4 gate not flipped (3/7 clean cycles)",
       "category": "gates",
       "pattern": "P-01",
-      "status": "open",
+      "status": "closed",
       "effort": "S",
       "impact": "medium",
       "dependency": null,
-      "evidence": "captured-data/de-agent-state.json: cleanCycles 3, bridgeFlipped false. Needs 7 consecutive clean hourly cycles; resets on any unclean cycle.",
+      "evidence": "VERIFIED COMPLETE 2026-08-04: m4Event M4_COMPLETE, bridge flipped 2026-08-01T23:31Z after 7 clean cycles, cycleCount 115. Tracker had stale 3/7.",
       "created": "2026-08-02"
     },
     {
