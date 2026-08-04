@@ -1,5 +1,20 @@
 # TELOS — Cognitive Operating System
 
+## PROJECT MAP (authoritative — read first, every session)
+Run `python3 telos/tools/session_start.py` at session start. It prints this map with live status.
+
+| Project | Path | Status |
+|---|---|---|
+| **TELOS CogOS** | this workspace (`Vrooom-computation`) | 🟢 **ACTIVE** |
+| **Bitcoin Block Space** (bitcoinsahi.com) | `../block-space-economics` (sibling) | 🟢 **ACTIVE** |
+| **Trading Project** (skills/curriculum/Strategy Lab) | state in `TRADING_PROJECT_STATE.md` (this repo) | 🟡 **PARKED / INACTIVE** — resume conditions + full resumable state in that file |
+| ~~Bitcoin Priority Oracle (v1)~~ | ~~`../bitcoin-priority-oracle`~~ | ⚫ **DEAD** — does not exist; never repoint anything to it. Its successor is `../block-space-economics`. |
+
+**Session primer rule (prevents cross-project confusion):**
+- The ACTIVE data/research project is `../block-space-economics` — NOT `bitcoin-priority-oracle` (v1 is dead).
+- Do NOT mix trading-project work into block-space sessions, and vice-versa.
+- `session_start.py` is the single source of truth for the project list — edit it there, not inline here.
+
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
@@ -2662,4 +2677,540 @@ All Bitcoin block space research tools exist. Check before saying "can't."
 
 ### Metrics
 - DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 03:34:53
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 03:34:53
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 03:34:53
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 03:38:35
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 03:38:35
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 03:38:35
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 05:01:38
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 05:01:38
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 05:01:38
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 (Scale-Invariance: Deliberate Recursion)
+
+### Current State
+- Session mood: deliberate
+- Active principle: Scale-Invariance (Deliberate Recursion) — P1.0, Layer-1 extension of Axiom 1.1
+- Axiom count: 42 (unchanged — P1.0 is a principle doc line, not a new numbered axiom)
+
+### Implemented This Session
+- **New package `telos/core/scale/`**: `principle.py` (ScaleInvariancePrinciple P1.0 + canonical phase law), `factory.py` (build_standard_pipeline — canonical engine shape), `ledger.py` (RecursionLedger self-similarity ledger), `verifier.py` (ScaleVerifier: runs macro/meso/micro and asserts identical phase sequence + axiom set)
+- **Wired into `PipelineCoordinator`**: spawn/orchestrate/chain now record every recursive invocation in the ledger (kind=spawn/execute, scale label, phase signature, verified axiom ids, DI/MD); `SubPipelineConfig.scale` field added; `verify_scale_invariance()` audits the invariant; coordinator's `_build_subpipeline` delegates to the scale factory (single source of truth)
+- **Docs**: `telos/AXIOMS.md` — Deliberate Recursion Principle section + extension-table row (axiom count still 42)
+- **Tests**: `tests/core/test_scale_invariance.py` — 15 tests (canonical law matches runtime, multi-scale structure identity, ledger self-similarity, coordinator recursion recording, behavior unchanged)
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+- Tests: 581/581 passing (566 baseline + 15 new) | Self-audit: 31/31 | Dependency graph: no cycles
+
+### Next To-Dos
+- ✅ Scale-invariance principle implemented, wired, documented, tested
+- LEFT: (optional) AxiomProver predicate surfacing P1.0 per-cycle (currently verified via ScaleVerifier + coordinator audit, not per-cycle)
+- LEFT: (optional) promote P1.0 to a numbered axiom 1.5 — would require bumping 42→43 in genesis.py/system_self.py + the two `assert == 42` tests; deferred to keep the axiom count stable
+- LEFT: (optional) macro-scale meta-decision ("which project next") driven through the coordinator supervisor as a first-class example
+
+## Session Handoff — 2026-08-02 11:58:02
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 11:58:02
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 11:58:02
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:19:52
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:19:52
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:19:52
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:22:06
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:22:06
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:22:06
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:24:10
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:24:10
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 12:24:10
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 14:38:22
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 14:38:22
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 14:38:22
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 17:07:18
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 17:07:18
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 17:07:18
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 17:17:44
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 17:17:44
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-02 17:17:44
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0
+
+
+## Session Handoff — 2026-08-03 04:28:27
+
+### Current State
+*(No current state captured)*
+
+### Decisions Made
+*(No decisions recorded)*
+
+### Open Issues
+*(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0 | Token budget: 0.0%
+
+### Checkpoint
+- /tmp/telos_checkpoints/checkpoint_0090.json
+
+
+## Session Handoff — 2026-08-03 04:28:27
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 90
+
+
+## Session Handoff — 2026-08-03 22:36:47
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.531 | Cycles: 2
+
+
+## Session Handoff — 2026-08-03 22:37:17
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.637 | Cycles: 1
 
