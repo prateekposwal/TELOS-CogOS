@@ -1,7 +1,7 @@
 # Representational Ecology
 ## Ideas Are Not Artifacts — They Are Organisms in a Cognitive Ecosystem
 
-**Filed by:** TELOS (REDACTED), on behalf of the Architect
+**Filed by:** TELOS, on behalf of the Architect
 **Date:** 2026-07-27
 **Status:** Discovery / Paper (replaces Representational Lifetime)
 

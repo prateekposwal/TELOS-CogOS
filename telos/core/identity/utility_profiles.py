@@ -2,7 +2,7 @@
 IdentityUtilityProfiles — Identity Changes Utility Functions, Not Thresholds.
 
 Prateek's insight #4: "Identity changes utility functions — not thresholds.
-REDACTED = maximize collaboration. TELOS = maximize correctness."
+TELOS = maximize correctness."
 
 The current SystemSelf changes mood (which adjusts thresholds) but never
 changes the fundamental utility function that evaluates outcomes. This
@@ -81,7 +81,7 @@ class UtilityProfile:
 # ── Built-in Profiles ────────────────────────────────────────────
 
 REDACTED_PROFILE = UtilityProfile(
-    name="REDACTED",
+    name="collaborative",
     description="Maximize collaboration and user satisfaction. "
                 "Prioritizes being helpful over being technically correct.",
     weights={
@@ -92,7 +92,7 @@ REDACTED_PROFILE = UtilityProfile(
         "exploration": 0.05,
         "efficiency": 0.05,
     },
-    identity_markers=["collaborative", "helpful", "REDACTED_mode"],
+    identity_markers=["collaborative", "helpful", "collaborative_mode"],
 )
 
 TELOS_PROFILE = UtilityProfile(
@@ -171,7 +171,7 @@ class IdentityUtilityEngine:
 
     def __init__(self):
         self._profiles: Dict[str, UtilityProfile] = {
-            "REDACTED": REDACTED_PROFILE,
+            "collaborative": REDACTED_PROFILE,
             "telos": TELOS_PROFILE,
             "explorer": EXPLORER_PROFILE,
             "guardian": GUARDIAN_PROFILE,

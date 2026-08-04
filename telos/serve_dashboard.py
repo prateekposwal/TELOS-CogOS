@@ -100,7 +100,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(data).encode())
     
     def end_headers(self):
-        if self.path in ('/', '/dashboard.html', '/REDACTED-brain.js'):
+        if self.path in ('/', '/dashboard.html', '/brain-viz.js'):
             try: self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             except: pass
         super().end_headers()

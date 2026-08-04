@@ -60,7 +60,7 @@ audits them when curiosity is high.
 
 The current SystemSelf changes mood (thresholds) but never changes the fundamental
 utility function. IdentityUtilityEngine defines profiles with different weightings:
-REDACTED = maximize collaboration, TELOS = maximize correctness, Explorer = maximize learning.
+TELOS = maximize correctness, Explorer = maximize learning.
 
 **Next steps:**
 - Replace SelectPhase's hardcoded scoring with `IdentityUtilityEngine.compute_utility()`

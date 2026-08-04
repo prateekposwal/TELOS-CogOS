@@ -2,7 +2,7 @@
 
 **Five Questions Answered**
 
-*REDACTED, responding to the Architect*
+*TELOS, responding to the Architect*
 
 ---
 
