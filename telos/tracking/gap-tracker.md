@@ -1,48 +1,53 @@
 # TELOS — Gap Tracker (canonical)
 
 Canonical source: `telos/tracking/gap-tracker.json` (machine-readable).
-BSAHI references this file; TELOS owns it. Last verified: 2026-08-02.
+BSAHI references this file; TELOS owns it. Last verified: 2026-08-04 (G-06 legs shipped v1).
 
 ## Rule (architect mandate)
 **DONE means SHIPPED** (committed + pushed + live). Unshipped work goes in LEFT, never DONE.
 Every report ends with labeled `DONE (verified)` + `LEFT / TODO (verified)`.
 
-## Gaps — open (8)
+## Gaps — open (1)
 
 | ID | System | Gap | Effort | Impact | Shell |
 |----|--------|-----|--------|--------|-------|
-| G-01 | TELOS | Gap-scanner pre-commit gate RED on clean tree (750 fails, 4/6 checks) | L | critical | S1 |
-| G-02 | BSAHI | Working paper (v2.0.0) not written | L | high | S3 |
-| G-03 | BSAHI | M4 gate 3/7 (bridge not flipped) | S | medium | S1 |
-| G-05 | BSAHI | Spool staleness: btc-rpc stale 3+ days | S | medium | S1 |
-| G-06 | BSAHI | Resource legs deferred (UTXO/bandwidth/validation/node_geo) | L | high | S3 |
-| G-08 | TELOS | Uncommitted TELOS work (29 files) | S | high | S0 |
-| G-09 | BSAHI | brief-52 (v2.0.0) pending, not published | S | medium | S0 |
-| G-12 | process | Bot/skill lifecycle audit — remove unused, redesign better | M | high | S4 |
-| G-14 | process | DONE=SHIPPED not yet auto-enforced | S | medium | S5 |
+| G-18 | BSAHI | node_geo per-region cost distributions not expanded (G-06 remainder) | M | low | S3 |
 
-## Gaps — closed (2)
+## Gaps — closed (17)
 
 | ID | Gap |
 |----|-----|
-| G-07 | Canonical gap tracker created (this file) |
-| G-11 | SCCR v2.0.0 correction SHIPPED (0.0149 → 0.1719, live) |
+| G-01 | Gap-scanner pre-commit gate RED on clean tree |
+| G-02 | Working paper |
+| G-03 | M4 gate not flipped |
+| G-04 | backtest.py lacks provenance/version markers |
+| G-05 | Spool staleness: btc-rpc source stale 3+ days |
+| G-06 | Resource legs deferred: UTXO, bandwidth, validation, node_geo |
+| G-07 | No canonical gap tracker existed |
+| G-08 | Uncommitted TELOS work |
+| G-09 | brief-52 |
+| G-10 | DNS registrar parking nameservers |
+| G-11 | SCCR v2.0.0 correction — 10x bug + reconciliation |
+| G-12 | Bot/skill usefulness audit — remove unused, redesign better |
+| G-13 | AXIOMS.md consistency — 42 axioms confirmed, but latent_cognition.md referenced 20 |
+| G-14 | DONE=SHIPPED enforcement not yet automatic |
+| G-15 | Real node census |
+| G-16 | brief-52 publish: content-briefs never consumed for posting — FIXED |
+| G-17 | BSAHI stuck mid-rebase |
 
 ## Patterns (5)
-
-- **P-01 Gates red on clean tree** → staged-scope/threshold the scanner, fix legacy dead code, let M4 run, reconnect spool (G-01, G-03, G-05)
-- **P-02 Derived artifacts/docs out of sync** → single source of truth + provenance everywhere (G-04, G-10, G-13)
-- **P-03 Research written but not consolidated/published** → the working paper consolidates; publish brief-52 (G-02, G-06, G-09)
-- **P-04 Work accumulates unshipped / no canonical tracking** → this tracker + auto-check + DONE=SHIPPED (G-07, G-08, G-14)
-- **P-05 Bots kept alive past usefulness** → lifecycle audit: remove, then redesign better (G-12)
+- **P-01 Gates red on clean tree / health not self-certifying** → Make gap-scanner staged-scope or thresholded; fix or archive legacy dead code (meal_library, dev_domain_adapter); let M4
+- **P-02 Derived artifacts / docs out of sync** → model-spec.json single source (done); extend provenance to backtest.py; reconcile axiom-count references; DNS cleanup
+- **P-03 Research written but not consolidated/published** → Write the working paper; publish brief-52; then resource legs extend the same paper
+- **P-04 Work accumulates unshipped / no canonical tracking** → This tracker (done); commit TELOS work; auto-check tracker in self-audit; DONE=SHIPPED gate
+- **P-05 Bots/skills kept alive past usefulness** → Audit every bot/skill: if not useful now → remove, then redesign better to the goal (architect mandate). Retire, don't a
 
 ## Shells (coverage proof — every open gap maps to exactly one shell)
+- **S0 SHIP & FREEZE**: G-08, G-09 — *exit:* TELOS repo committed+pushed; brief-52 published; no unshipped work in either repo
+- **S1 GATES GREEN**: G-01, G-03, G-05 — *exit:* Gap scanner green (or staged-scope/thresholded + exception documented); M4 7/7 flipped; spool fresh
+- **S2 CORRECTNESS & CONSISTENCY**: G-04, G-10, G-13 — *exit:* backtest.py provenance added; DNS cleaned; axiom references reconciled
+- **S3 THE PAPER**: G-02, G-18 — *exit:* research/working-paper.md written + regenerated HTML + resource legs scoped with v1 measurements
+- **S4 BOT/SKILL LIFECYCLE**: G-12 — *exit:* Every bot/skill audited; unused removed; redesigned ones serve the goal
+- **S5 ENFORCEMENT**: G-14 — *exit:* Self-audit reads tracker; DONE=SHIPPED enforced by hook; tracker auto-updated
 
-- **S0 SHIP & FREEZE**: G-08, G-09 — *exit:* TELOS committed+pushed; brief-52 published
-- **S1 GATES GREEN**: G-01, G-03, G-05 — *exit:* scanner green/thresholded, M4 7/7, spool fresh
-- **S2 CORRECTNESS & CONSISTENCY**: G-04, G-10, G-13 — *exit:* provenance, DNS, axiom refs reconciled
-- **S3 THE PAPER**: G-02, G-06 — *exit:* working-paper.md + resource legs v1
-- **S4 BOT/SKILL LIFECYCLE**: G-12 — *exit:* every bot audited, unused removed, redesigned serve the goal
-- **S5 ENFORCEMENT**: G-14 — *exit:* self-audit reads tracker, DONE=SHIPPED hooked
-
-**Zero-omission check:** open gaps G-01,02,03,05,06,08,09,12,14 → S1,G3,S1,S1,S3,S0,S0,S4,S5. All 9 covered.
+**Zero-omission check:** open gaps G-18 → all covered above.
