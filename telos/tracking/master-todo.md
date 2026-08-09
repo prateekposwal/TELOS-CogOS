@@ -20,16 +20,16 @@ Unshipped work goes in LEFT, never DONE. Every action updates this file.
       committed (`bf93f89`, on origin) but NOT posted anywhere. **WHY:** the
       hostile comment becomes the program's next deliverable; reply verified.
       **Effort:** 5 min (Prateek posts, or approves Nostr key use). **Dep:** none.
-- [ ] **A3. Commit + push TELOS uncommitted work.** AGENTS.md handoffs,
+- [x] **A3. Commit + push TELOS uncommitted work **DONE 2026-08-10**.** AGENTS.md handoffs,
       `TRADING_PROJECT_STATE.md` (new, parked-trading state), regenerated
       decision_log.json / transparency_report.md / gap-tracker.md.
       **WHY:** DONE=SHIPPED; uncommitted work is the confusion pattern itself.
       **Effort:** S. **Dep:** none.
-- [ ] **A4. Update gap-tracker.json (stale since 2026-08-04).** It does not
+- [x] **A4. Update gap-tracker.json **DONE 2026-08-10** (stale since 2026-08-04).** It does not
       reflect D3-D7, cost-to-flood, governance-boundary, or reply items; point it
       at this file. **WHY:** the canonical tracker went stale — the root cause.
       **Effort:** S. **Dep:** none.
-- [ ] **A5. Resolve the 1 queued marketing post** (BSAHI-MSMFC5QX-UH8K,
+- [x] **A5. Resolve the 1 queued marketing post **DONE 2026-08-10** (LinkedIn item marked superseded — retired by policy)** (BSAHI-MSMFC5QX-UH8K,
       linkedin/fee, scheduled 2026-08-09, never posted). **WHY:** pending
       scheduled work. **Effort:** XS. **Dep:** none.
 - [ ] **A6. Commit or deliberately gitignore BSAHI untracked reports**
@@ -79,7 +79,7 @@ stranger-verified ✅ | moderator pitch ✅ (§2a).
       verified; formal proof sketch partial). **Effort:** S–M.
 - [ ] **C2. Build the budget scenario table** (step 5: state budgets → node
       impact). **Effort:** S.
-- [ ] **C3. Draft `research/cost-to-flood.md` + HTML** (step 6 — the v1 note).
+- [x] **C3. Draft **DONE 2026-08-10** (cost-to-flood.md + HTML live) `research/cost-to-flood.md` + HTML** (step 6 — the v1 note).
       **Effort:** M.
 - [ ] **C4. Consistency review vs SCCR §7 knife-edge** (step 7). **Effort:** S.
 - [ ] **C5. Dust-RAM/validation leg** (0.9× is storage-only; dust's real threat
@@ -93,7 +93,7 @@ stranger-verified ✅ | moderator pitch ✅ (§2a).
 - [x] **G1. Window capture — DONE + LIVE** (verified 2026-08-10: spool healthy,
       missedCycles 0, seq 323, height 961792, inWindow=true, 1856 blocks to
       lock-in ≤ 963648 ≈ Aug 23).
-- [ ] **G2. GBI note — NOT STARTED** (no artifact in either repo). The window is
+- [x] **G2. GBI note **DONE 2026-08-10** (governance-boundary.md + HTML live) — NOT STARTED** (no artifact in either repo). The window is
       the experiment; the note is the framing deliverable. **Effort:** M.
 - [ ] **G3. Calibration — NOT STARTED** (no calibration doc found in either repo).
       **Effort:** S–M.
