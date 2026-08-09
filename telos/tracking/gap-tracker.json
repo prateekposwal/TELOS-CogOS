@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "last_verified": "2026-08-04T18:10:00Z",
+  "last_verified": "2026-08-10T05:00:00Z",
   "verified_by": "TELOS",
-  "note": "Canonical gap tracker. Every gap across BSAHI + TELOS + process. Shells close gaps; DONE means shipped (committed+pushed+live). Update this file when a gap is closed.",
+  "note": "Master list lives in telos/tracking/master-todo.md (canonical, updated after every action). This tracker complements it with gap metadata.",
   "gaps": [
     {
       "id": "G-01",
@@ -238,6 +238,71 @@
       "dependency": null,
       "evidence": "node_geo has 224 rows (agent-11); per-region cost heterogeneity would refine the C decomposition (working-paper 7.2 row 3 leans Type M on the bundle). G-06 closed for UTXO/BW/VAL v1 (2026-08-04); this is the remaining resource-distribution leg.",
       "created": "2026-08-04"
+    },
+    {
+      "id": "G-19",
+      "system": "process",
+      "title": "Master to-do list created (master-todo.md) \u2014 canonical reconciliation of all lists",
+      "category": "process",
+      "pattern": "P-04",
+      "status": "open",
+      "effort": "S",
+      "impact": "high",
+      "dependency": null,
+      "evidence": "Created 2026-08-10; resolves the 4-lists confusion; must be updated after every action.",
+      "created": "2026-08-10"
+    },
+    {
+      "id": "G-20",
+      "system": "BSAHI",
+      "title": "Vachagan reply drafted+committed but NOT posted (A2)",
+      "category": "publishing",
+      "pattern": "P-04",
+      "status": "open",
+      "effort": "XS",
+      "impact": "medium",
+      "dependency": null,
+      "evidence": "bf93f89 on origin; posting is Prateek action.",
+      "created": "2026-08-10"
+    },
+    {
+      "id": "G-21",
+      "system": "BSAHI",
+      "title": "Cost-to-Flood v1 note + budget table + dust-RAM leg (C2-C6)",
+      "category": "research",
+      "pattern": "P-03",
+      "status": "open",
+      "effort": "M",
+      "impact": "medium",
+      "dependency": null,
+      "evidence": "Steps 1-3 done (L=3.0x, L_dust=0.9x); steps 4-8 pending.",
+      "created": "2026-08-10"
+    },
+    {
+      "id": "G-22",
+      "system": "BSAHI",
+      "title": "Governance-boundary: window capture LIVE; GBI note + calibration + post-window analysis (G2-G4)",
+      "category": "research",
+      "pattern": "P-03",
+      "status": "open",
+      "effort": "M",
+      "impact": "high",
+      "dependency": null,
+      "evidence": "bip110_signal live seq 323; GBI note does not exist yet.",
+      "created": "2026-08-10"
+    },
+    {
+      "id": "G-23",
+      "system": "BSAHI",
+      "title": "D5 external reproduction \u2014 THE GATE (A1/B1)",
+      "category": "submission",
+      "pattern": "P-04",
+      "status": "open",
+      "effort": "XS",
+      "impact": "critical",
+      "dependency": null,
+      "evidence": "No human reproducer engaged yet; blocks all submission.",
+      "created": "2026-08-10"
     }
   ],
   "patterns": [
