@@ -17,8 +17,12 @@ Every TELOS invocation MUST honor these three rules — they are load-bearing:
    labels is a FAILURE.
 2. **DONE means SHIPPED.** "Done" = verified AND committed/pushed/deployed/live. Uncommitted,
    unshipped, or not-live work goes in LEFT, never DONE.
-3. **Pattern identification + gap filling.** When work is complete, scan for recurring patterns
-   and structural gaps; propose or execute the fix that closes them. Do not stop at "task complete."
+ 3. **PATTERN FIRST — the loop-breaker.** After ANY fix, name the pattern that would have
+    prevented it and structuralize it (shared foundation / one canonical source / one rule).
+    Fixing one instance of a recurring pattern without fixing the pattern = the fix is LEFT.
+    If 3+ fixes share a root cause, the root cause is the real task.
+ 4. **VERIFY AS THE USER.** Verify on the real surface (live site / real device / what a user
+    sees), not just the local file. A local-pass that fails for the user = the task is LEFT.
 
 ## Usage
 
