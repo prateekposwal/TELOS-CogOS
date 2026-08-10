@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_verified": "2026-08-10T06:00:00Z",
+  "last_verified": "2026-08-11T00:00:00Z",
   "verified_by": "TELOS",
   "note": "Master list lives in telos/tracking/master-todo.md (canonical, updated after every action). This tracker complements it with gap metadata.",
   "gaps": [
@@ -14,7 +14,7 @@
       "effort": "L",
       "impact": "critical",
       "dependency": null,
-      "evidence": "PYTHONPATH=. python3 telos/tools/gap_scanner.py \u2192 4/6 FAILED, 750 FAIL lines (dead code: meal_library, dev_domain_adapter, dual_confidence, omega_threshold; docstring-param mismatches across benchmarks/, adapters/). Blocks ALL commits without --no-verify.",
+      "evidence": "PYTHONPATH=. python3 telos/tools/gap_scanner.py → 4/6 FAILED, 750 FAIL lines (dead code: meal_library, dev_domain_adapter, dual_confidence, omega_threshold; docstring-param mismatches across benchmarks/, adapters/). Blocks ALL commits without --no-verify.",
       "created": "2026-08-02"
     },
     {
@@ -26,7 +26,7 @@
       "status": "closed",
       "effort": "L",
       "impact": "high",
-      "dependency": "G-11 (shipped correction) \u2014 already done",
+      "dependency": "G-11 (shipped correction) — already done",
       "evidence": "No research/working-paper.md exists; 6 component docs + auto-generated index.html only. Roadmap: 'single most valuable move'.",
       "created": "2026-08-02"
     },
@@ -61,13 +61,14 @@
       "system": "BSAHI",
       "title": "Spool staleness: btc-rpc source stale 3+ days",
       "category": "reliability",
-      "pattern": "P-01",
+      "pattern": "P-09",
       "status": "closed",
       "effort": "S",
       "impact": "medium",
       "dependency": null,
       "evidence": "captured-data/spool/index/btc-rpc/ last file 2026-07-30.jsonl (Jul 31 23:34); should be daily.",
-      "created": "2026-08-02"
+      "created": "2026-08-02",
+      "correction": "CORRECTION 2026-08-11: this was a MISDIAGNOSIS — looked at btc-rpc (hyphen, legacy) instead of btc_rpc (underscore, real source, always fresh). See G-29 / lesson L-05. The false positive was persisted as fact because the correction was never written down. Exactly the meta-pattern (G-30)."
     },
     {
       "id": "G-06",
@@ -79,7 +80,7 @@
       "effort": "L",
       "impact": "high",
       "dependency": "G-02 (paper scopes them as future work)",
-      "evidence": "v1 implementations shipped 2026-08-04 (commit 03a5f21): UTXO measured (utxo_size_inc wired, 165 blocks avg 29.9KB/block), Bandwidth bound (model-spec v2.1, $3.94/yr/node), Validation OOM survey (validation-cost.md, falsifiable claim <$100/yr/node). Remaining: UTXO $ pricing, bandwidth measurement, Core bench run \u2014 tracked as future-work, not blockers.",
+      "evidence": "v1 implementations shipped 2026-08-04 (commit 03a5f21): UTXO measured (utxo_size_inc wired, 165 blocks avg 29.9KB/block), Bandwidth bound (model-spec v2.1, $3.94/yr/node), Validation OOM survey (validation-cost.md, falsifiable claim <$100/yr/node). Remaining: UTXO $ pricing, bandwidth measurement, Core bench run — tracked as future-work, not blockers.",
       "created": "2026-08-02",
       "closed": "2026-08-04"
     },
@@ -105,20 +106,20 @@
       "status": "closed",
       "effort": "S",
       "impact": "high",
-      "dependency": "G-01 (gap scanner blocks clean commit \u2014 may need --no-verify + tracked exception)",
+      "dependency": "G-01 (gap scanner blocks clean commit — may need --no-verify + tracked exception)",
       "evidence": "git status: 29 dirty in TELOS repo (AGENTS.md M, decision_log M, transparency_report M, knowledge_library/ ??, reports/ ??, benchmarks data ??).",
       "created": "2026-08-02"
     },
     {
       "id": "G-09",
       "system": "BSAHI",
-      "title": "brief-52 (v2.0.0) still pending \u2014 not published",
+      "title": "brief-52 (v2.0.0) still pending — not published",
       "category": "publishing",
       "pattern": "P-03",
       "status": "closed",
       "effort": "S",
       "impact": "medium",
-      "dependency": "shipped correction (done) \u2014 queue verified clean",
+      "dependency": "shipped correction (done) — queue verified clean",
       "evidence": "captured-data/publishing-queue.json brief-52 status=pending.",
       "created": "2026-08-02"
     },
@@ -138,7 +139,7 @@
     {
       "id": "G-11",
       "system": "BSAHI",
-      "title": "SCCR v2.0.0 correction \u2014 10x bug + reconciliation (COMPLETED)",
+      "title": "SCCR v2.0.0 correction — 10x bug + reconciliation (COMPLETED)",
       "category": "correction",
       "pattern": null,
       "status": "closed",
@@ -151,7 +152,7 @@
     {
       "id": "G-12",
       "system": "process",
-      "title": "Bot/skill usefulness audit \u2014 remove unused, redesign better (ARCHITECT MANDATE)",
+      "title": "Bot/skill usefulness audit — remove unused, redesign better (ARCHITECT MANDATE)",
       "category": "process",
       "pattern": "P-05",
       "status": "closed",
@@ -164,7 +165,7 @@
     {
       "id": "G-13",
       "system": "TELOS",
-      "title": "AXIOMS.md consistency \u2014 42 axioms confirmed, but latent_cognition.md referenced 20 (file gone)",
+      "title": "AXIOMS.md consistency — 42 axioms confirmed, but latent_cognition.md referenced 20 (file gone)",
       "category": "consistency",
       "pattern": "P-02",
       "status": "closed",
@@ -203,7 +204,7 @@
     {
       "id": "G-16",
       "system": "BSAHI",
-      "title": "brief-52 publish: content-briefs never consumed for posting \u2014 FIXED",
+      "title": "brief-52 publish: content-briefs never consumed for posting — FIXED",
       "category": "publishing",
       "pattern": "P-03",
       "status": "closed",
@@ -242,7 +243,7 @@
     {
       "id": "G-19",
       "system": "process",
-      "title": "Master to-do list created (master-todo.md) \u2014 canonical reconciliation of all lists",
+      "title": "Master to-do list created (master-todo.md) — canonical reconciliation of all lists",
       "category": "process",
       "pattern": "P-04",
       "status": "open",
@@ -294,7 +295,7 @@
     {
       "id": "G-23",
       "system": "BSAHI",
-      "title": "D5 external reproduction \u2014 THE GATE (A1/B1)",
+      "title": "D5 external reproduction — THE GATE (A1/B1)",
       "category": "submission",
       "pattern": "P-04",
       "status": "open",
@@ -316,6 +317,96 @@
       "dependency": null,
       "evidence": "Generator created HTML for EVERY md; manifest only hid from index. FIXED 2026-08-10: generator skips internal files entirely; 16 HTML pages removed (now 404); live sweep confirms zero Vachagan/Bullish. ROOT-CAUSE PATTERN: generator must not PUBLISH internal files, not just hide them.",
       "created": "2026-08-10"
+    },
+    {
+      "id": "G-25",
+      "system": "BSAHI",
+      "category": "reliability",
+      "pattern": "P-06",
+      "title": "node_census skipped days (Aug 4, Aug 10) — cycleCount-gated, resets on restart — FIXED",
+      "status": "closed",
+      "effort": "S",
+      "impact": "high",
+      "dependency": null,
+      "evidence": "Gated on cycleCount % 24 === 0; counter resets on DE-server restart. FIXED time-based: agent.js Step 4d lastNodeCensusDay !== today. VERIFIED 2026-08-11: files Aug 5-10 consecutive; Aug 4 is a permanent historical gap. Lesson: L-01.",
+      "created": "2026-08-10",
+      "closed": "2026-08-11",
+      "lesson": "L-01"
+    },
+    {
+      "id": "G-26",
+      "system": "BSAHI",
+      "category": "reliability",
+      "pattern": "P-06",
+      "title": "Research runner manual-only (5 fetchers dead ~9 days, findings static) — FIXED",
+      "status": "closed",
+      "effort": "S",
+      "impact": "high",
+      "dependency": null,
+      "evidence": "Fetchers existed only in run-all.js; nothing scheduled them. FIXED: wired into DE server Step 4f daily (lastResearchDay gate). VERIFIED 2026-08-11: findings spool daily Jul 31-Aug 11, 244 records, cycle 20 report. Lesson: L-02.",
+      "created": "2026-08-10",
+      "closed": "2026-08-11",
+      "lesson": "L-02"
+    },
+    {
+      "id": "G-27",
+      "system": "BSAHI",
+      "category": "reliability",
+      "pattern": "P-07",
+      "title": "hashrate/mempool_recent 'stale' false alarm — file count misread as staleness — CLOSED as misdiagnosis",
+      "status": "closed",
+      "effort": "XS",
+      "impact": "medium",
+      "dependency": null,
+      "evidence": "'9/12 files' was historical count, not staleness. Sources were healthy. Monitor honors per-source expectedIntervalMinutes (monitor.js 08-02). VERIFIED 2026-08-11: hashrate + mempool_recent files through 2026-08-11. Lesson: L-03.",
+      "created": "2026-08-10",
+      "closed": "2026-08-11",
+      "lesson": "L-03"
+    },
+    {
+      "id": "G-28",
+      "system": "BSAHI",
+      "category": "security",
+      "pattern": "P-08",
+      "title": "GH013 hardcoded GitHub token pushed; ALL pushes blocked — FIXED (rotation doc)",
+      "status": "closed",
+      "effort": "S",
+      "impact": "critical",
+      "dependency": null,
+      "evidence": "Token hardcoded in tools/dataset-snapshot.js, pushed, GH013 blocked repo pushes. FIXED: env.local (gitignored) + process.env.GH_TOKEN + docs/decisions/2026-08-10-token-rotation.md. VERIFIED 2026-08-11: .env.local gitignored, zero github_pat_ in git blobs, push dry-run clean. Lesson: L-04.",
+      "created": "2026-08-10",
+      "closed": "2026-08-11",
+      "lesson": "L-04"
+    },
+    {
+      "id": "G-29",
+      "system": "BSAHI",
+      "category": "reliability",
+      "pattern": "P-09",
+      "title": "btc-rpc '3 days stale' was a wrong-directory misdiagnosis — btc_rpc (underscore) always fresh — CLOSED as misdiagnosis",
+      "status": "closed",
+      "effort": "XS",
+      "impact": "low",
+      "dependency": null,
+      "evidence": "btc-rpc (hyphen) = legacy dir, 1 stale file. btc_rpc (underscore) = real source, fresh through 2026-08-10. No code fix needed; the diagnosis was wrong. VERIFIED 2026-08-11. Lesson: L-05. SUPERSEDES stale G-05 claim.",
+      "created": "2026-08-10",
+      "closed": "2026-08-11",
+      "lesson": "L-05"
+    },
+    {
+      "id": "G-30",
+      "system": "TELOS",
+      "category": "meta-learning",
+      "pattern": "P-06",
+      "title": "THE META-GAP: data-capture lessons learned in conversation were NEVER persisted into TELOS — FIXED structurally",
+      "status": "closed",
+      "effort": "M",
+      "impact": "critical",
+      "dependency": null,
+      "evidence": "gap-tracker had 0 data-capture lessons; learnings.json empty stub (session_id 'unknown', failure_patterns []); no lessons/ dir existed in TELOS (BSAHI had docs/decisions/ with 8 records). FIXED 2026-08-11: telos/lessons/ created (L-00..L-05), gap entries G-25..G-30 linked, master-todo section, AXIOMS.md P2.0, learnings.json populated. Lesson: L-00.",
+      "created": "2026-08-11",
+      "closed": "2026-08-11",
+      "lesson": "L-00"
     }
   ],
   "patterns": [
@@ -367,9 +458,48 @@
       "name": "P-05",
       "title": "Bots/skills kept alive past usefulness",
       "root_cause": "No lifecycle review; removal feels like loss",
-      "structural_fix": "Audit every bot/skill: if not useful now \u2192 remove, then redesign better to the goal (architect mandate). Retire, don't accumulate.",
+      "structural_fix": "Audit every bot/skill: if not useful now → remove, then redesign better to the goal (architect mandate). Retire, don't accumulate.",
       "gaps": [
         "G-12"
+      ]
+    },
+    {
+      "name": "P-06",
+      "title": "Conversation-only learning / counter-reset scheduling (LESSONS NOT PERSISTED)",
+      "root_cause": "Learning happens in chat and is never written into the system; wall-clock schedules gated on restart-resetting counters",
+      "structural_fix": "telos/lessons/ record appended to every session; data captures gated on persisted last-run-date not cycleCount; >2-round fixes MUST be recorded",
+      "gaps": [
+        "G-25",
+        "G-26",
+        "G-30"
+      ]
+    },
+    {
+      "name": "P-07",
+      "title": "Freshness judged by file count instead of per-source cadence",
+      "root_cause": "File counts in a directory are historical artifacts, not freshness signals",
+      "structural_fix": "Staleness = age vs per-source expectedIntervalMinutes from spool cursors (monitor.js 08-02). Never judge health by listing files.",
+      "gaps": [
+        "G-27"
+      ]
+    },
+    {
+      "name": "P-08",
+      "title": "Secrets hardcoded in code / pushed to remote",
+      "root_cause": "No secret hygiene gate; tokens embedded in scripts for convenience",
+      "structural_fix": "env vars + gitignored .env.local; secret-scan before push; on GH013 rotate (revoke + recreate), never just delete",
+      "gaps": [
+        "G-28"
+      ]
+    },
+    {
+      "name": "P-09",
+      "title": "Wrong-slot diagnosis (near-identical source names, wrong directory)",
+      "root_cause": "Freshness checked against a guessed path instead of the canonical source key from config",
+      "structural_fix": "Resolve source keys from CONFIG.endpoints; confirm canonical location before declaring staleness",
+      "gaps": [
+        "G-29",
+        "G-05"
       ]
     }
   ],
@@ -427,6 +557,19 @@
         "G-14"
       ],
       "exit_criteria": "Self-audit reads tracker; DONE=SHIPPED enforced by hook; tracker auto-updated"
+    },
+    {
+      "id": "S6",
+      "name": "LEARNING PERSISTENCE",
+      "gaps": [
+        "G-25",
+        "G-26",
+        "G-27",
+        "G-28",
+        "G-29",
+        "G-30"
+      ],
+      "exit_criteria": "Every >2-round fix recorded in telos/lessons/ with gap link; sessions append before close; self-audit checks lessons dir non-empty"
     }
   ]
 }

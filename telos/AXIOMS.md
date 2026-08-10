@@ -177,3 +177,48 @@ full deliberation cycle at each scale and asserts `phase_sequence` is
 identical to the canonical law and `axiom_set` is identical across
 scales. The coordinator's `verify_scale_invariance()` audits all recorded
 recursive invocations.
+
+## Conversation Is Not Memory — The Learning-Persistence Principle (P2.0)
+
+**Short name:** Learning Persistence — *Layer-2 extension of Axiom 2.3 (Kintsugi) + Axiom 4.1 (Identity Shapes Decisions)*
+
+**Formal statement:**
+
+```
+∀ lesson ℓ learned in conversation:
+  Persist(ℓ) ⟺ ℓ ∈ LessonsLedger  (date, symptom, root_cause, fix, pattern, prevention)
+```
+
+**Meaning:** A lesson that exists only in conversation must be re-taught;
+a lesson written into `telos/lessons/` is an asset (Kintsugi: failures
+stored as assets). Intelligence includes the discipline of persisting what
+the session learned — otherwise the architect re-teaches, and the system
+stays at the same capability level while appearing to learn.
+
+**Why it matters:** On 2026-08-10 five data-capture lessons (node_census
+gating, research-runner scheduling, file-count freshness misjudgment, GH013
+token leak, btc-rpc wrong-directory diagnosis) were learned and fixed in
+BSAHI but never recorded in TELOS. The gap-tracker had zero data-capture
+entries; `learnings.json` was an empty stub; no `lessons/` directory
+existed. The architect had to ask "did you record that?" — the failure to
+persist is itself the failure mode.
+
+**Operational rule (mandatory):**
+> After any bug / fix / misdiagnosis that took **> 2 rounds** of
+> back-and-forth, write the lesson to `telos/lessons/` before the session
+> closes — structured (`date, symptom, root cause, fix, pattern,
+> prevention`), linked to a gap-tracker entry (`G-NN`), appended never
+> overwritten. Conversation is not memory.
+
+**Implementation:**
+| File | Role |
+|------|------|
+| `lessons/README.md` | The lessons system spec + operational rule |
+| `lessons/2026-08-11-data-capture-reliability.json` | Structured record L-00..L-05 (queryable) |
+| `tracking/gap-tracker.json` | G-25..G-30 data-reliability gaps, patterns P-06..P-09, shell S6 |
+| `tracking/master-todo.md` | Wave E — Data-capture reliability |
+| `learnings.json` | `failure_patterns` populated from lessons (cross-session channel) |
+
+**Verification:** Every session with a >2-round fix ends with a lessons
+append (self-audit check planned, E4). Lessons are JSON — queryable by
+`jq`/`grep`; gap-tracker entries carry `lesson` links.
