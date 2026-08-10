@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_verified": "2026-08-10T05:00:00Z",
+  "last_verified": "2026-08-10T06:00:00Z",
   "verified_by": "TELOS",
   "note": "Master list lives in telos/tracking/master-todo.md (canonical, updated after every action). This tracker complements it with gap metadata.",
   "gaps": [
@@ -302,6 +302,19 @@
       "impact": "critical",
       "dependency": null,
       "evidence": "No human reproducer engaged yet; blocks all submission.",
+      "created": "2026-08-10"
+    },
+    {
+      "id": "G-24",
+      "system": "BSAHI",
+      "title": "Internal working docs leaked to public web (16 pages: plans, reply drafts, personal names)",
+      "category": "privacy",
+      "pattern": "P-02",
+      "status": "closed",
+      "effort": "S",
+      "impact": "critical",
+      "dependency": null,
+      "evidence": "Generator created HTML for EVERY md; manifest only hid from index. FIXED 2026-08-10: generator skips internal files entirely; 16 HTML pages removed (now 404); live sweep confirms zero Vachagan/Bullish. ROOT-CAUSE PATTERN: generator must not PUBLISH internal files, not just hide them.",
       "created": "2026-08-10"
     }
   ],
