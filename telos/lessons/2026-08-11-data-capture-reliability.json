@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "created": "2026-08-11",
+  "recorded_by": "TELOS (session 2026-08-11)",
+  "purpose": "Failure lessons that were learned in conversation but NOT persisted at the time. This record is the structural fix: conversation is not memory; a lesson that is not written down must be re-taught.",
+  "operational_rule": "After any bug/fix that took >2 rounds of back-and-forth, write the lesson here (date, symptom, root cause, fix, pattern, prevention). Append, never overwrite. Link the gap-tracker entry.",
+  "lessons": [
+    {
+      "id": "L-01",
+      "date": "2026-08-10",
+      "system": "BSAHI",
+      "domain": "data-capture",
+      "symptom": "node_census skipped days (Aug 4, Aug 10) — no census captured on those days",
+      "root_cause": "Capture gated on `cycleCount % 24 === 0`; cycleCount resets on DE-server restart, so a restart silently shifted the cadence and starved daily captures",
+      "fix": "Time-based gating in tools/data-engineering/agent.js Step 4d: `if (STATE.lastNodeCensusDay !== today)` — once per calendar day, robust to restarts",
+      "verified": "2026-08-11: files Aug 5→10 consecutive in captured-data/spool/index/node_census/; state key lastNodeCensusDay=2026-08-10 persisted in de-agent-state.json. Aug 4 remains a permanent historical gap (cannot be backfilled)",
+      "pattern": "P-06 counter-reset: any wall-clock cadence gated on a monotonic counter breaks when the counter resets. Use wall-clock state for wall-clock schedules.",
+      "prevention": "Never gate a daily capture on a counter. Persist last-run-date in state; gate on date inequality.",
+      "gap_id": "G-25",
+      "rounds": 2
+    },
+    {
+      "id": "L-02",
+      "date": "2026-08-10",
+      "system": "BSAHI",
+      "domain": "data-capture",
+      "symptom": "Research runner (5 fetcher agents) was manual-only — present only in tools/agents/run-all.js, not scheduled; findings effectively static (baseline 43, no growth) for ~9 days",
+      "root_cause": "The runner existed but nothing scheduled it on a cadence; it only fired when a human ran run-all.js",
+      "fix": "Wired into DE server daily cycle (agent.js Step 4f): `if (STATE.lastResearchDay !== today) researchRunner.runCycle()`; state key lastResearchDay persisted",
+      "verified": "2026-08-11: research_findings spool has daily files Jul 31→Aug 11 (12 days); 244 total records; daily report cycle 20 generated 2026-08-10T20:07Z",
+      "pattern": "P-04 unshipped/unscheduled work: a capability that is not wired into the scheduler is dead, regardless of how good it is",
+      "prevention": "Every agent/runner must be wired into the DE server cycle or explicitly declared manual; audit agents for scheduler membership",
+      "gap_id": "G-26",
+      "rounds": 3
+    },
+    {
+      "id": "L-03",
+      "date": "2026-08-10",
+      "system": "BSAHI",
+      "domain": "data-capture",
+      "symptom": "hashrate / mempool_recent reported as stale — '9/12 files' looked old; flagged as a data problem",
+      "root_cause": "Judged freshness by file count in a directory, not by per-source capture cadence. The 9/12 was a historical file count, not a staleness measure",
+      "fix": "Monitor now honors per-source expectedIntervalMinutes from spool cursors (monitor.js 2026-08-02 change): a daily source (census) gets a daily bound; a fresh source with few files is not 'stale'",
+      "verified": "2026-08-11: hashrate and mempool_recent both have files through 2026-08-11 (today); sources healthy",
+      "pattern": "P-07 freshness-by-cadence: file count in a dir is not a freshness metric. Age vs the source's own expected interval is.",
+      "prevention": "When evaluating data health, compare last capture age against per-source expectedIntervalMinutes, never against file counts or directory listings",
+      "gap_id": "G-27",
+      "rounds": 2
+    },
+    {
+      "id": "L-04",
+      "date": "2026-08-10",
+      "system": "BSAHI",
+      "domain": "security",
+      "symptom": "GH013 — a hardcoded GitHub token got pushed; GitHub secret-scanning push protection flagged it and blocked ALL pushes to the repo",
+      "root_cause": "Hardcoded token in tools/dataset-snapshot.js; no push-protection verification before push",
+      "fix": "Token moved to gitignored .env.local; code reads process.env.GH_TOKEN; wrapper (dataset-snapshot.sh) sources .env.local for launchd; decision record docs/decisions/2026-08-10-token-rotation.md written; token value NOT present in any git blob (verified 2026-08-11)",
+      "verified": "2026-08-11: .env.local gitignored (git check-ignore PASS); git grep + blob scan find zero github_pat_ in history; dataset-snapshot.js reads env only",
+      "pattern": "P-08 secret hygiene: secrets belong in gitignored env files, never in code. Assume any pushed secret is compromised; rotate, don't just delete.",
+      "prevention": "Never hardcode secrets; run `git diff --check`-style secret scans before push; use environment variables + gitignored .env.local; on GH013: revoke token, create new, update .env.local",
+      "gap_id": "G-28",
+      "rounds": 4
+    },
+    {
+      "id": "L-05",
+      "date": "2026-08-10",
+      "system": "BSAHI",
+      "domain": "data-capture",
+      "symptom": "Spool 'staleness' misdiagnosis: btc-rpc flagged as '3 days stale' by looking at captured-data/spool/index/btc-rpc/",
+      "root_cause": "Two near-identical source dirs exist: btc-rpc (hyphen, legacy, one stale file) vs btc_rpc (underscore, the real active source). Diagnosed from the wrong directory",
+      "fix": "Correct diagnosis: btc_rpc (underscore) is fresh through 2026-08-10 (written 2026-08-11T01:58). No code fix needed — the source was always healthy; the diagnosis was wrong",
+      "verified": "2026-08-11: btc-rpc (hyphen) has 1 file from 2026-08-01; btc_rpc (underscore) has daily files through 2026-08-10",
+      "pattern": "P-09 wrong-slot diagnosis: before declaring a source stale, confirm you are looking at the source's actual canonical location and name",
+      "prevention": "When checking freshness, resolve the canonical source key from config (CONFIG.endpoints), not from a directory listing guess",
+      "gap_id": "G-29",
+      "rounds": 3
+    },
+    {
+      "id": "L-00",
+      "date": "2026-08-11",
+      "system": "TELOS",
+      "domain": "meta-learning",
+      "symptom": "All 5 lessons above (L-01..L-05) were learned in conversation on 2026-08-10 and fixed in BSAHI — but NONE were persisted into TELOS. The architect had to ask 'did you record that?'. This is why the architect keeps re-teaching",
+      "root_cause": "Learning happened in the chat session only. TELOS had: gap-tracker.json with zero data-capture entries (0 hits), an empty learnings.json stub (session_id 'unknown', failure_patterns []), and NO lessons/ or decisions/ directory. BSAHI has docs/decisions/ (8 records); TELOS — the brain — had none",
+      "fix": "THIS FILE. Create telos/lessons/ as the structured lessons record; link lessons to gap-tracker entries (G-25..G-30); add operational rule (write after any >2-round fix); add P2.0 principle to AXIOMS.md",
+      "verified": "2026-08-11: lessons dir created; gap-tracker updated; master-todo section added; AXIOMS.md P2.0 added; committed + pushed",
+      "pattern": "P-06 THE META-PATTERN: 'I learn in conversation but don't persist the learning into the system.' Structural fix = a lessons record every session appends to + a rule making it mandatory after costly fixes",
+      "prevention": "Every session: if the session contained a bug/fix/misdiagnosis that took >2 rounds, write it to telos/lessons/ before closing. Conversation is not memory.",
+      "gap_id": "G-30",
+      "rounds": 99
+    }
+  ]
+}

@@ -115,6 +115,17 @@ stranger-verified ✅ | moderator pitch ✅ (§2a).
 - [ ] **D6. Archive/ignore the 214 untracked marketing queue files**
       (183 skipped / 30 posted / 1 queued). **Effort:** S.
 
+## WAVE E — Data-capture reliability (lessons persisted 2026-08-11)
+
+**Origin:** 5 data-gap lessons from 2026-08-10 were learned in conversation and fixed in BSAHI but NEVER persisted into TELOS — the architect caught the meta-gap. Now structurally recorded: `telos/lessons/2026-08-11-data-capture-reliability.json` (L-00..L-05), gap-tracker G-25..G-30, AXIOMS.md P2.0.
+
+- [x] **E1. Lessons record created** — `telos/lessons/` with L-01..L-05 (node_census gating, research runner wiring, file-count freshness misjudgment, GH013 token, btc-rpc wrong-dir) + L-00 (the meta-gap) **DONE 2026-08-11**
+- [x] **E2. Gap-tracker entries** — G-25..G-30 added (closed), G-05 corrected as misdiagnosis, patterns P-06..P-09, shell S6 **DONE 2026-08-11**
+- [x] **E3. Operational rule** — "after any >2-round fix, write the lesson" added to lessons README + AXIOMS.md P2.0 **DONE 2026-08-11**
+- [ ] **E4. Self-audit integration** — add a self-audit check: lessons/ dir must be non-empty and latest lesson within N days of last session (future work)
+- [ ] **E5. BSAHI side** — node_census Aug 4 historical gap is permanent; monitor for no new gaps (cadence: files daily through Aug 12+)
+
+
 ---
 
 ## Coverage table (zero-omission proof)
