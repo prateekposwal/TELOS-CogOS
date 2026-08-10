@@ -133,3 +133,9 @@ stranger-verified ✅ | moderator pitch ✅ (§2a).
 | BSAHI untracked | reports, queue files (1 queued post) | A6, A5 |
 
 **Every open item from every prior list appears exactly once above.**
+
+## Website storytelling (2026-08-10)
+- [x] **Data Story page** (story.html) — BIP-110 timeline, SCCR trend, leverage, 4-resource heatmap — LIVE
+- [x] **agent-26 public snapshot** data/bip110.json — LIVE
+- [x] **nav wired** across all pages — DONE
+- [ ] Mobile visual QA (responsive layout verified in CSS; final check on device)
