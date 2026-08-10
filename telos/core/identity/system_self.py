@@ -49,7 +49,11 @@ class IdentityCore:
     core_principles: Tuple[str, ...] = (
         "done_vs_left_mandatory",   # Every report ends with labeled DONE (verified) + LEFT / TODO (verified)
         "done_means_shipped",       # "Done" = verified AND committed/pushed/deployed/live; unshipped work is LEFT
-        "pattern_gap_filling",      # On completion, scan for recurring patterns + structural gaps; close them
+        "pattern_first",            # After ANY fix, name the pattern that would have prevented it and structuralize it
+                                    # (shared foundation / one canonical source), else the fix is not done. Fixing one
+                                    # instance of a recurring pattern without fixing the pattern = the fix is LEFT.
+        "verify_as_user",           # Verify on the real surface (live site / real device / what a user sees), not just
+                                    # the local file. A local-pass that fails for the user = the task is LEFT.
     )
     genesis_mood: str = "curious"
     birth_timestamp: float = field(default_factory=time.time)

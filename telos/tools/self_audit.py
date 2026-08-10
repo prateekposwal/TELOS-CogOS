@@ -448,7 +448,7 @@ def run_audit(verbose=True) -> Dict:
     try:
         from telos.core.identity.system_self import IdentityCore
         core = IdentityCore()
-        expected = {"done_vs_left_mandatory", "done_means_shipped", "pattern_gap_filling"}
+        expected = {"done_vs_left_mandatory", "done_means_shipped", "pattern_first", "verify_as_user"}
         present = set(core.core_principles)
         ok = expected.issubset(present) and core.recognizes_principle("done_means_shipped")
         checks.append((ok, "Architect core principles loaded (DONE/LEFT, DONE=shipped, gap-filling)",
