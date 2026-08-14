@@ -56,7 +56,7 @@ Pipeline (7 phases): PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT �
 | Ledger | `telos/core/ledger/` | WorldLedger, SkillLibrary, ExperienceManager |
 | Transparency | `telos/audit/monitor.py` | decision_log.json + report |
 
-### Key Axioms (20 total)
+### Key Axioms (42 total — subset shown)
 
 1.1 Architecture Produces Outcomes (Pipeline is pure structural engine)
 1.2 Process over Outcomes (DecisionTrace captures DI)
@@ -71,4 +71,4 @@ Pipeline (7 phases): PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT �
 
 - `telos_task.py`: GridWorld navigation + local LLM explanations
 - `run_demo.py`: Original GridWorld demo
-- Tests: 469/469 passing across 47 files
+- Tests: 629/629 passing across 55 files

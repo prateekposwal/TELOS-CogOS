@@ -17,7 +17,7 @@ and eventually operates a live Strategy Lab (sizing, execution, kill-switches) �
 
 ### 1. The 4 skill scaffolds — BUILT, on disk, tested ✅
 Location: `telos/core/ledger/skill_seeds.py` (builder functions) · registry wiring in `telos/core/ledger/__init__.py`
-Tests: `tests/core/test_skill_seeds.py` — 12/12 passing (was part of 566/566 suite; suite has since grown to 581/581)
+Tests: `tests/core/test_skill_seeds.py` — 12/12 passing (was part of 566/566 suite; suite has since grown to 629/629)
 
 | Scaffold | Skill ID | Consumes (books) | Notes |
 |---|---|---|---|

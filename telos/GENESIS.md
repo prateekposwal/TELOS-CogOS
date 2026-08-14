@@ -4,13 +4,13 @@
 **prateekposwal**
 
 ## Foundation
-This system is anchored in the **20 Laws of Systemic Intelligence** (see [AXIOMS.md](./AXIOMS.md)). It is an axiomatized cognitive engine designed to evolve through structural accretion rather than heuristic training.
+This system is anchored in the **42 Axioms of Systemic Intelligence** (see [AXIOMS.md](./AXIOMS.md)). It is an axiomatized cognitive engine designed to evolve through structural accretion rather than heuristic training.
 
 ## Provenance
 Initialized and hardened through iterative cycles of formal axiomatization, pipeline orchestration, and empirical validation within the `/Users/prateekposwal/Desktop/Vrooom-computation` environment.
 
 ## Current State (July 2026)
-- **Tests**: 482 passing across 46 test files
+- **Tests**: 629 passing across 55 test files
 - **Pipeline**: 7-phase reasoning engine (PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT → COUNCIL → ACT) + REFLECT (meta-cognitive post-action reflection)
 - **Phases**: 9 total — Perceive, Streams, Simulate, Evaluate, Synthesis, Select, Council, Act, Reflect
 - **Self-audits completed**: 6 (47+ total gaps closed across all audit cycles)
