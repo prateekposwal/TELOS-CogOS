@@ -101,8 +101,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     
     def end_headers(self):
         if self.path in ('/', '/dashboard.html', '/brain-viz.js'):
-            try: self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            except: pass
+            try:
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            except (BrokenPipeError, ConnectionResetError, OSError) as e:
+                # Kintsugi (Λ2.3): a dropped client is a recorded event, not
+                # a silent swallow — log it and let the server move on.
+                logger.warning(f"end_headers: client dropped before Cache-Control sent: {e}")
         super().end_headers()
     
     def _load_benchmark(self):
@@ -164,12 +168,18 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return checkpoints
     
     def _load_knowledge(self):
+        """Serve the REAL knowledge graph: serialized nodes AND edges.
+
+        Edges come from the graph's own edge store (typed/weighted), never
+        invented. If the graph has no edges yet, the dashboard shows an
+        honest empty-set state instead of fabricated links.
+        """
         try:
             with open(KNOWLEDGE_PATH) as fp:
                 raw = json.load(fp)
-            # Normalize: if nodes is an object (keyed by UUID), convert to array
             if isinstance(raw, dict):
                 nodes_raw = raw.get('nodes', {})
+                edges_raw = raw.get('edges', {})
                 if isinstance(nodes_raw, dict) and len(nodes_raw) > 0:
                     nodes = []
                     for nid, ndata in nodes_raw.items():
@@ -189,104 +199,26 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                             "importance": importance,
                         })
                     edges = []
-                    # Infer edges from co-occurring domains
-                    domains_seen = {}
-                    for n in nodes:
-                        d = n['domain']
-                        if d not in domains_seen:
-                            domains_seen[d] = []
-                        domains_seen[d].append(n['id'])
-                    domain_list = list(domains_seen.keys())
-                    for i in range(len(domain_list)):
-                        for j in range(i + 1, len(domain_list)):
-                            for sid in domains_seen[domain_list[i]][:2]:
-                                for tid in domains_seen[domain_list[j]][:2]:
-                                    edges.append({"source": sid, "target": tid, "weight": 0.4})
+                    if isinstance(edges_raw, dict):
+                        for eid, edata in edges_raw.items():
+                            if not isinstance(edata, dict):
+                                continue
+                            src = edata.get('src')
+                            dst = edata.get('dst')
+                            if not src or not dst:
+                                continue
+                            edges.append({
+                                "source": src,
+                                "target": dst,
+                                "weight": edata.get('weight', 0.5),
+                                "edge_type": edata.get('edge_type', 'related'),
+                            })
                     return {"nodes": nodes, "edges": edges}
                 elif isinstance(nodes_raw, list) and len(nodes_raw) > 0:
                     return raw
         except (FileNotFoundError, OSError, json.JSONDecodeError):
             pass
-        
-        # Fallback: generate synthetic knowledge from checkpoint traces
-        synthetic = self._generate_knowledge_from_traces()
-        if synthetic.get('nodes') and len(synthetic['nodes']) >= 4:
-            logger.info(f"Generated synthetic knowledge: {len(synthetic['nodes'])} nodes, {len(synthetic['edges'])} edges")
-            return synthetic
         return {"nodes": [], "edges": []}
-    
-    def _generate_knowledge_from_traces(self):
-        """Build a knowledge graph from the traces found in checkpoints."""
-        checkpoints = self._load_checkpoints()
-        if not checkpoints:
-            return {"nodes": [], "edges": []}
-        
-        # Collect metrics from traces
-        terrains = set()
-        intents = set()
-        di_ranges = {"high": 0, "medium": 0, "low": 0}
-        terrain_intent_pairs = {}
-        
-        for trace in checkpoints:
-            meta = trace.get('domain_facts', {}).get('metadata', {})
-            terrain = meta.get('current_terrain')
-            if terrain:
-                terrains.add(terrain)
-            
-            intent = trace.get('selected_intent') or trace.get('intent_type') or ''
-            if intent:
-                intents.add(intent)
-            
-            di = trace.get('decision_integrity', 0)
-            if di >= 0.8:
-                di_ranges["high"] += 1
-            elif di >= 0.5:
-                di_ranges["medium"] += 1
-            else:
-                di_ranges["low"] += 1
-            
-            if terrain and intent:
-                key = f"{terrain}::{intent}"
-                terrain_intent_pairs[key] = terrain_intent_pairs.get(key, 0) + 1
-        
-        nodes = []
-        edges = []
-        
-        # Terrain nodes
-        for t in sorted(terrains):
-            nodes.append({"id": f"terrain_{t}", "label": t.capitalize(), "domain": "terrain", "importance": 0.7})
-        
-        # Intent / action nodes
-        for intent in sorted(intents):
-            label = intent.replace('_', ' ').title()
-            nodes.append({"id": f"intent_{intent}", "label": label, "domain": "navigation", "importance": 0.8})
-        
-        # DI range nodes
-        if di_ranges["high"] > 0:
-            nodes.append({"id": "di_high", "label": "High DI", "domain": "outcome", "importance": 0.7})
-        if di_ranges["medium"] > 0:
-            nodes.append({"id": "di_medium", "label": "Med DI", "domain": "outcome", "importance": 0.5})
-        if di_ranges["low"] > 0:
-            nodes.append({"id": "di_low", "label": "Low DI", "domain": "outcome", "importance": 0.6})
-        
-        # Edges from terrain-intent co-occurrence
-        for key, count in terrain_intent_pairs.items():
-            terrain, intent = key.split("::")
-            weight = min(1.0, count * 0.3)
-            edges.append({"source": f"terrain_{terrain}", "target": f"intent_{intent}", "weight": weight})
-        
-        # Terrain-DI edges based on patterns
-        if terrains and di_ranges["high"] > 0:
-            for t in list(sorted(terrains))[:3]:
-                edges.append({"source": f"terrain_{t}", "target": "di_high", "weight": 0.5})
-        if terrains and di_ranges["low"] > 0:
-            for t in list(sorted(terrains))[-3:]:
-                edges.append({"source": f"terrain_{t}", "target": "di_low", "weight": 0.5})
-        
-        if len(nodes) < 3:
-            return {"nodes": [], "edges": []}
-        
-        return {"nodes": nodes, "edges": edges}
     
     def _run_telos(self, message: str) -> dict:
         """Run TELOS with the user's message and return the response."""
