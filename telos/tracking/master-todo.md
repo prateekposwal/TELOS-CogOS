@@ -1,7 +1,7 @@
 # TELOS — THE ONE CANONICAL MASTER LIST (both repos)
 
 **Owner:** TELOS | **Created:** 2026-08-10 | **Status:** LIVE — updated after every action
-**Scope:** BSAHI (`../block-space-economics`) + TELOS (this repo) + process.
+**Scope:** TELOS tracks BSAHI on its behalf; canonical project state lives in `../block-space-economics/AGENTS.md` + `research/roadmap.md`.
 **Rule (architect mandate):** DONE means SHIPPED (committed + pushed + live).
 Unshipped work goes in LEFT, never DONE. Every action updates this file.
 
