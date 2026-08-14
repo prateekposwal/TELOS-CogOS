@@ -162,9 +162,18 @@ def build_handoff(pipeline, metrics: Dict) -> str:
 
 
 def write_handoff(pipeline, metrics: Dict) -> bool:
-    """Append session handoff to AGENTS.md."""
+    """Append session handoff to AGENTS.md from the given pipeline + metrics.
+
+    Skips the write when the session has nothing to record (no learnings
+    AND zero cycles) — e.g. test-harness pipelines. Empty duplicate
+    handoffs are the documented AGENTS.md bloat source; they must not
+    regenerate.
+    """
     try:
         handoff = build_handoff(pipeline, metrics)
+        if "(No decisions recorded)" in handoff and metrics.get('cycles', 0) == 0:
+            logger.debug("AgentsWriter: skipping empty handoff (no decisions, 0 cycles)")
+            return False
         with open(AGENTS_PATH, 'a') as f:
             f.write("\n" + handoff + "\n")
         logger.info(f"AgentsWriter: handoff written to {AGENTS_PATH}")
