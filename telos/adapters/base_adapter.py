@@ -13,7 +13,16 @@ from telos.representations.transform import (
 from telos.core.contracts.domain_model import DomainAdapter
 
 class BaseAdapter(RepresentationTransform, DomainAdapter):
-    """Interface all domain adapters must satisfy."""
+    """Interface all domain adapters must satisfy.
+
+    Pattern: one RNG authority per engine — every adapter owns a private
+    RandomState and NEVER reads global np.random. Action sampling lives in
+    the production ACT phase; a shared global stream makes sampled actions
+    order-dependent across the suite (RNG-isolation flake pattern).
+    """
+
+    def __init__(self, seed: Optional[int] = None):
+        self._rng = np.random.RandomState(seed)
 
     @property
     @abstractmethod
@@ -45,7 +54,7 @@ class MarketAdapter(BaseAdapter):
     def name(self) -> str: return "market_adapter"
 
     def sample_action(self, state: np.ndarray, mission_dir: np.ndarray) -> np.ndarray:
-        return np.random.randn(self.action_dim) * 0.1 + mission_dir * 0.3
+        return self._rng.randn(self.action_dim) * 0.1 + mission_dir * 0.3
 
     def intent_to_action(self, intent: IntentIR, state: np.ndarray, mission_dir: np.ndarray) -> np.ndarray:
         return np.asarray(intent.params.get("vector", np.zeros(self.action_dim)))
@@ -66,7 +75,7 @@ class ChessAdapter(BaseAdapter):
     def name(self) -> str: return "chess_adapter"
 
     def sample_action(self, state: np.ndarray, mission_dir: np.ndarray) -> np.ndarray:
-        return np.array([np.random.randint(0, 64), np.random.randint(0, 64)], dtype=float)
+        return np.array([self._rng.randint(0, 64), self._rng.randint(0, 64)], dtype=float)
 
     def intent_to_action(self, intent: IntentIR, state: np.ndarray, mission_dir: np.ndarray) -> np.ndarray:
         return np.array([float(intent.source or 0), float(intent.target or 0)])

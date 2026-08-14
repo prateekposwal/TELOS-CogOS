@@ -25,7 +25,12 @@ class CounterfactualEngine:
     def __init__(self, simulator: DomainSimulator, n_repetitions: int = 3, seed: Optional[int] = None):
         self.simulator = simulator
         self._seed = seed
-        self._rng = None  # Per-cycle: initialized in generate_options
+        # Pattern: one RNG authority per engine — the engine NEVER falls back
+        # to global np.random. When seeded, a per-cycle stream is derived
+        # (seed + cycle) for reproducibility; otherwise a fresh private
+        # RandomState is used. Global np.random is shared mutable state —
+        # reading it makes trajectories order-dependent across the suite.
+        self._rng = np.random.RandomState(seed)
         self._last_options: List[StrategicOption] = []
         self._last_state: Optional[np.ndarray] = None
         self._last_horizon: int = 0
@@ -90,7 +95,7 @@ class CounterfactualEngine:
 
             # Generate opportunity-focused worlds (diverse, exploratory)
             for _ in range(opp_worlds):
-                rng = self._rng if self._rng is not None else np.random
+                rng = self._rng  # always private — never global np.random
                 noise = rng.randn(*state.shape) * 0.2 * opp_r
                 perturbed_state = state + noise
                 simulated = self.simulator.simulate(perturbed_state, horizon)
@@ -128,6 +133,9 @@ class CounterfactualEngine:
         generating similar futures regardless of starting conditions —
         a sign of attention lock-in.
 
+        Args:
+            options: list of StrategicOption to measure.
+
         Returns:
             Variance of all option scores. Higher = more diverse futures.
         """
@@ -154,6 +162,12 @@ class CounterfactualEngine:
 
         Delegates the definition of 'success' to the domain-specific
         simulator's evaluate() method (guaranteed by DomainSimulator ABC).
+
+        Args:
+            worlds: list of simulated World states.
+
+        Returns:
+            List of evaluation scores, one per world.
         """
         scores = []
         for world in worlds:
@@ -164,7 +178,16 @@ class CounterfactualEngine:
 
     def best_path(self, state: np.ndarray, horizon: int,
                   n_worlds: int) -> Any:
-        """Select the optimal future reality."""
+        """Select the optimal future reality.
+
+        Args:
+            state: current world state.
+            horizon: simulation horizon in steps.
+            n_worlds: number of world branches to generate.
+
+        Returns:
+            The best simulated World, or None if none generated.
+        """
         worlds = self.generate_worlds(state, horizon, n_worlds)
         if not worlds:
             return None
@@ -190,13 +213,21 @@ class CounterfactualEngine:
         Law of Attention: attention_allocation weights the simulation budget
         toward threat or opportunity-focused worlds.
 
-        Returns options sorted by mean score descending.
+        Args:
+            state: current world state.
+            horizon: simulation horizon in steps.
+            n_worlds: number of world branches to generate.
+            attention_allocation: optional threat/opportunity/maintenance mix.
+            cycle: current pipeline cycle (per-cycle seed derivation).
+
+        Returns:
+            Options sorted by mean score descending.
         """
-        # Per-cycle seed: different each cycle, but same cycle + same base seed = reproducible
+        # Per-cycle seed: different each cycle, but same cycle + same base seed = reproducible.
+        # When no seed is configured the engine keeps its construction-time private
+        # RandomState (OS-entropy seeded) — never None, never the global stream.
         if self._seed is not None:
             self._rng = np.random.RandomState(self._seed + cycle)
-        else:
-            self._rng = None
         worlds = self.generate_worlds(state, horizon, n_worlds, attention_allocation)
         if not worlds:
             self._last_options = []

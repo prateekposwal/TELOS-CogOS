@@ -8,8 +8,11 @@ class SyntheticWorld(DomainSimulator):
     A neutral domain with tunable noise and mission dynamics.
     It does not know about representations or missions.
     """
-    def __init__(self, noise_std=0.0):
+    def __init__(self, noise_std=0.0, seed=None):
         self.noise_std = noise_std
+        # Pattern: one RNG authority per engine — private RandomState,
+        # never global np.random in the simulation hot path.
+        self._rng = np.random.RandomState(seed)
 
     def initialize(self) -> None: pass
     def cleanup(self) -> None: pass
@@ -22,7 +25,7 @@ class SyntheticWorld(DomainSimulator):
                 np.array([0.0, 0.1]), np.array([0.0, -0.1])]
 
     def transition(self, state: np.ndarray, action: np.ndarray) -> np.ndarray:
-        noise = np.random.normal(0, self.noise_std, 2)
+        noise = self._rng.normal(0, self.noise_std, 2)
         return state + action + noise
 
     def simulate(self, state: np.ndarray, horizon: int) -> List[World]:

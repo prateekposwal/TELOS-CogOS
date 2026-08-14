@@ -60,7 +60,15 @@ class KnowledgeManager:
         return self.DOMAIN_ADJUSTMENTS.get(self.domain, self.DOMAIN_ADJUSTMENTS["default"]).get(key, 0.05)
 
     def search_knowledge(self, domain: str, top_k: int = 5) -> List[Any]:
-        """Search the knowledge graph for proven solutions in a domain."""
+        """Search the knowledge graph for proven solutions in a domain.
+
+        Args:
+            domain: knowledge domain to search.
+            top_k: maximum number of results to return.
+
+        Returns:
+            List of proven ProjectNode results.
+        """
         return self.knowledge.search(domain, top_k=top_k, min_outcome=0.51)
 
     def consult_knowledge(self, domain: str, cycle: int = 0) -> Dict:
@@ -271,4 +279,5 @@ class KnowledgeManager:
             "last_consultations": len(self._last_consultation),
             "linked_theories": len(self.linker._theory_to_node) if hasattr(self.linker, '_theory_to_node') else 0,
             "linked_scm_structures": len(self.linker._scm_structures) if hasattr(self.linker, '_scm_structures') else 0,
+            "identity_nodes": len(self.linker.identity_nodes()) if hasattr(self.linker, 'identity_nodes') else 0,
         }

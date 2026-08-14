@@ -82,21 +82,15 @@ class CodebaseSnapshot:
             min(self.missing_peer_deps / 10, 1.0),
         ], dtype=float)
 
-    @staticmethod
-    def from_diff(before: 'CodebaseSnapshot', after: 'CodebaseSnapshot') -> List[str]:
-        """Generate human-readable findings from a diff."""
-        findings = []
-        if after.ts_error_count < before.ts_error_count:
-            findings.append(f"📉 TS errors: {before.ts_error_count} → {after.ts_error_count}")
-        if after.dep_outdated_count < before.dep_outdated_count:
-            findings.append(f"📦 Updated {before.dep_outdated_count - after.dep_outdated_count} dependencies")
-        if after.test_count > before.test_count:
-            findings.append(f"🧪 Added {after.test_count - before.test_count} tests")
-        return findings
-
-
 def _scan_package_json(project_path: str) -> Tuple[int, int, int, List[str]]:
-    """Scan package.json for dependency issues."""
+    """Scan package.json for dependency issues.
+
+    Args:
+        project_path: absolute path to the scanned project root.
+
+    Returns:
+        (dep_count, outdated_count, peer_mismatch_count, findings)
+    """
     pkg_path = os.path.join(project_path, 'package.json')
     if not os.path.exists(pkg_path):
         return 0, 0, 0, []
@@ -126,7 +120,14 @@ def _scan_package_json(project_path: str) -> Tuple[int, int, int, List[str]]:
 
 
 def _scan_ts_config(project_path: str) -> Tuple[int, List[str]]:
-    """Scan tsconfig for strict mode and errors."""
+    """Scan tsconfig for strict mode and errors.
+
+    Args:
+        project_path: absolute path to the scanned project root.
+
+    Returns:
+        (ts_error_count, findings)
+    """
     ts_path = os.path.join(project_path, 'tsconfig.json')
     findings = []
     if not os.path.exists(ts_path):
@@ -143,7 +144,14 @@ def _scan_ts_config(project_path: str) -> Tuple[int, List[str]]:
 
 
 def _scan_file_tree(project_path: str) -> Tuple[int, bool, bool, List[str]]:
-    """Count files and check for README/CI config."""
+    """Count files and check for README/CI config.
+
+    Args:
+        project_path: absolute path to the scanned project root.
+
+    Returns:
+        (file_count, has_docs, has_tests, findings)
+    """
     file_count = 0
     has_readme = False
     has_ci = False
@@ -172,7 +180,14 @@ def _scan_file_tree(project_path: str) -> Tuple[int, bool, bool, List[str]]:
 
 
 def _check_lint_errors(project_path: str) -> int:
-    """Try running linter to count errors (non-blocking)."""
+    """Try running linter to count errors (non-blocking).
+
+    Args:
+        project_path: absolute path to the scanned project root.
+
+    Returns:
+        Lint error count.
+    """
     try:
         result = subprocess.run(
             ['npx', 'eslint', '--format', 'json', 'src/', '--max-warnings', '0'],
@@ -198,8 +213,11 @@ class DevDomainSim(DomainSimulator):
       - evaluate: score the quality of the codebase
     """
 
-    def __init__(self, project_path: str):
+    def __init__(self, project_path: str, seed=None):
         self.project_path = project_path
+        # Pattern: one RNG authority per engine — private RandomState,
+        # never global np.random in the simulation hot path.
+        self._rng = np.random.RandomState(seed)
         self._last_snapshot: Optional[CodebaseSnapshot] = None
 
     def initialize(self) -> None:
@@ -244,7 +262,14 @@ class DevDomainSim(DomainSimulator):
         return self._last_snapshot.to_vector()
 
     def legal_transitions(self, state: np.ndarray) -> List[np.ndarray]:
-        """Possible actions TELOS can suggest for a codebase."""
+        """Possible actions TELOS can suggest for a codebase.
+
+        Args:
+            state: current dev-domain state vector.
+
+        Returns:
+            List of candidate action vectors.
+        """
         return [
             np.array([0, 0, 0.1, 0, 0, 0, 0, 0, 0, 0, 0]),  # add tests
             np.array([0, -0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0]),  # fix deps
@@ -263,7 +288,7 @@ class DevDomainSim(DomainSimulator):
         s = state.copy()
         for _ in range(horizon):
             actions = self.legal_transitions(s)
-            chosen = actions[int(np.random.randint(len(actions)))]
+            chosen = actions[int(self._rng.randint(len(actions)))]
             s = self.transition(s, chosen)
             futures.append(World(state=s.copy(), metadata={"simulated": True}))
         return futures
@@ -316,7 +341,8 @@ class DevDomainAdpt(DomainAdapter):
         if "action_vector" in intent.params:
             return np.asarray(intent.params["action_vector"], dtype=float)
         diff = GOAL_STATE[:len(state)] - state
-        return np.sign(diff + np.random.randn(len(state)) * 0.1).astype(float) * 0.1
+        rng = getattr(self, '_rng', None) or np.random.RandomState()
+        return np.sign(diff + rng.randn(len(state)) * 0.1).astype(float) * 0.1
 
     @property
     def name(self) -> str:

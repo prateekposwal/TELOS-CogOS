@@ -59,6 +59,7 @@ from telos.core.identity.mission import MissionPortfolio
 from telos.core.identity.mission_arbitration import MissionArbiter
 from telos.core.identity.mission_lifecycle import MissionLifecycleEngine
 from telos.core.identity.system_self import IdentityCore
+from telos.core.identity.identity_bridge import IdentityBridge
 from telos.core.streams.implementations import TheoryStream
 from telos.core.accounting.resource_gradient import ResourceGradientTracker
 from telos.core.streams.base import CognitiveStream
@@ -167,6 +168,10 @@ class TelosV14Pipeline:
         self._infra_manager.on_council_block(self._on_council_block)
         self._infra_manager.on_recovery_event(self._on_recovery_event)
         self._cycle_count: int = 0
+        # Pattern: one RNG authority per engine — the pipeline owns a private
+        # RandomState so phases (e.g. SelectPhase random-walk angles) never
+        # read the shared global np.random stream.
+        self._rng = np.random.RandomState(self.config.deterministic_seed)
         self._creator_present: bool = False
         self._perception_quality = PerceptionQuality()
         self._resolution_gate = ResolutionGate(threshold=self.config.quality_threshold)
@@ -264,10 +269,22 @@ class TelosV14Pipeline:
             self._theory_builder.set_promotion_hook(km.link_promoted_theory)
         self._discovery_orchestrator = DiscoveryOrchestrator()
         self._identity_core = IdentityCore()
+        # Identity↔Knowledge wiring (Gap 1): the IdentityBridge connects the
+        # MUTABLE identity layers (IdentityNarrative/IdentityState) to the
+        # KnowledgeGraph + KnowledgeLinker. IdentityCore stays frozen — the
+        # bridge only reads it as a provenance anchor (system_self.py:44-45).
+        _km = getattr(self._infra_manager, 'knowledge_mgr', None)
+        self._identity_bridge = IdentityBridge(
+            system_self=getattr(self._infra_manager, 'system_self', None),
+            knowledge=getattr(_km, 'knowledge', None) if _km is not None else None,
+            linker=getattr(_km, 'linker', None) if _km is not None else None,
+            identity_core=self._identity_core,
+        )
         self._mission_portfolio = MissionPortfolio()
         self._mission_arbiter = MissionArbiter()
         self._mission_lifecycle = MissionLifecycleEngine()
         self._distributed_council = DistributedCouncil()
+        self._distributed_council.register_default_crew()
         self._autonomous_explorer = AutonomousExplorer(
             curiosity=self._curiosity_drive,
             unknown_unknown=self._unknown_unknown_detector,
@@ -312,6 +329,14 @@ class TelosV14Pipeline:
         if self.config.knowledge_path:
             self._infra_manager.knowledge.load(self.config.knowledge_path)
 
+        # Rebind identity nodes into the linker registry after any graph
+        # reconstruction (checkpoint restore / knowledge load) — Λ4.10.
+        try:
+            if getattr(self, '_identity_bridge', None) is not None:
+                self._identity_bridge.rebind_from_graph()
+        except Exception as e:
+            logger.warning("runtime.py: swallowed error: %r", e)
+
         if self.config.identity_path:
             self._infra_manager.system_self.load(self.config.identity_path)
 
@@ -348,19 +373,12 @@ class TelosV14Pipeline:
         )
 
     def register_validator(self, validator) -> None:
-        """Register a Council advisor."""
-        self.council.register(validator)
+        """Register a Council advisor.
 
-    def configure_governance(self, trust_manager: Optional[TrustManager] = None,
-                              readiness: Optional[InformationReadinessEngine] = None,
-                              firewall: Optional[DecisionFirewall] = None) -> None:
-        """Inject governance components. If None, defaults are used."""
-        if trust_manager is not None:
-            self._trust_manager = trust_manager
-        if readiness is not None:
-            self._readiness = readiness
-        if firewall is not None:
-            self._firewall = firewall
+        Args:
+            validator: a Validator instance to add to the blocking council.
+        """
+        self.council.register(validator)
 
     def _build_phases(self) -> List[Phase]:
         from telos.core.phases.reflect import ReflectPhase
@@ -409,10 +427,6 @@ class TelosV14Pipeline:
                 return phase.pattern_library
         return None
 
-    @property
-    def checkpointer(self) -> Optional[CheckpointManager]:
-        return self._checkpointer
-
     def query_options(self, min_score: Optional[float] = None,
                       top_k: Optional[int] = None) -> List[StrategicOption]:
         """Query alternative future trajectories (Axiom 4.3: Possibility Preservation).
@@ -429,16 +443,26 @@ class TelosV14Pipeline:
         return self._sim_engine.query_options(min_score=min_score, top_k=top_k)
 
     def _default_ollama_chat(self, messages) -> str:
-        """Default no-op chat function when no LLM is configured."""
+        """Default no-op chat function when no LLM is configured.
+
+        Args:
+            messages: the prompt messages (ignored).
+
+        Returns:
+            An empty JSON object string.
+        """
         return '{}'
 
 
     # ── Bitcoin-inspired Decision Timelocks ──────────────────────────────────
     def _apply_timelock_penalties(self, ctx) -> None:
-        """Deprioritize intent types that were selected within the timelock window.
-        
-        Prevents flip-flopping between competing intents.
-        Called during pipeline execution, after EVALUATE and before SELECT phase.
+        """Deprioritize intent types selected within the timelock window.
+
+        Prevents flip-flopping between competing intents. Called during
+        pipeline execution, after EVALUATE and before SELECT phase.
+
+        Args:
+            ctx: the phase context (reads ctx.intents, writes ctx.intents).
         """
         timelock_window = getattr(self.config, 'timelock_window_cycles', 3)
         now = ctx.cycle_count
@@ -462,7 +486,12 @@ class TelosV14Pipeline:
         ctx.intents = new_intents
     
     def _record_timelock(self, ctx, selected_intent) -> None:
-        """Record the selected intent type for future timelock checks."""
+        """Record the selected intent type for future timelock checks.
+
+        Args:
+            ctx: the phase context (reads ctx.cycle_count).
+            selected_intent: the IntentIR that was selected this cycle.
+        """
         intent_type = selected_intent.intent_type
         self._decision_timelocks[intent_type] = ctx.cycle_count
         # Store timelock state for DecisionTrace
@@ -474,10 +503,17 @@ class TelosV14Pipeline:
         }
 
     def _compute_resource_budgets(self, ctx) -> dict:
-        """Compute resource budgets from available data (called before Evaluate phase).
-        
-        Returns a dict with energy, memory, identity (partial), and recovery budgets.
-        Fallback data is available early; full identity/recovery data is enriched later.
+        """Compute resource budgets from available data (before Evaluate phase).
+
+        Returns a dict with energy, memory, identity (partial), and recovery
+        budgets. Fallback data is available early; full identity/recovery
+        data is enriched later.
+
+        Args:
+            ctx: the phase context (for entropy/state data).
+
+        Returns:
+            Dict with energy/memory/identity/recovery budget sections.
         """
         identity_stability = 1.0 - getattr(self._identity_entropy, 'collapse_rate', 0.0)
         budgets = {
@@ -796,15 +832,27 @@ class TelosV14Pipeline:
             # ── Identity Modeling (parallel track): update identity before select ──
             if phase.name == "select":
                 try:
-                    ss = self._system_self
+                    # Root-cause fix: `self._system_self` was never assigned, so
+                    # this whole block was dead code (AttributeError swallowed
+                    # every cycle). The real SystemSelf lives on infra_manager;
+                    # it has no update()/get_state() — use its actual API.
+                    ss = getattr(self._infra_manager, 'system_self', None)
                     if ss is not None:
-                        outcome_success = not (getattr(ctx, 'council_blocked', False)
-                                               or getattr(ctx, 'firewall_blocked', False))
-                        ss.update(ctx.state if hasattr(ctx, 'state') else None,
-                                  ctx.selected_intent.intent_type if ctx.selected_intent else "none",
-                                  outcome_success,
-                                  {"cycle": ctx.cycle_count})
-                        ctx.identity_state = ss.get_state()
+                        ctx.identity_state = ss.to_dict()
+                    # IdentityBridge: record this cycle's self-state into the
+                    # connected knowledge web (Λ4.1 × Λ4.10 × Λ6.7)
+                    ib = getattr(self, '_identity_bridge', None)
+                    if ib is not None and ss is not None:
+                        di_v = getattr(ctx.verdict, 'decision_integrity', 1.0) if ctx.verdict else 1.0
+                        md_v = getattr(ctx.verdict, 'mission_drift', 0.0) if ctx.verdict else 0.0
+                        node_id = ib.sync(
+                            cycle=ctx.cycle_count, di=di_v, md=md_v,
+                            selected_intent=ctx.selected_intent.intent_type
+                            if ctx.selected_intent else "none",
+                        )
+                        ib.link_markers_to_knowledge()
+                        if node_id:
+                            ctx._identity_knowledge_node = node_id
                     # Identity entropy refresh
                     ie = self._identity_entropy
                     if ie is not None:
@@ -892,6 +940,14 @@ class TelosV14Pipeline:
                     wb = getattr(ctx, 'council_blocked', False)
                     self._council_reflector.record_decision(was_blocked=wb, predicted_block=wb,
                                                             actual_block=wb, validator_signals=signals)
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
+
+            # ── Distributed Council: advisory crew review after the council
+            #    phase settles (mempool confirm/reject already done) ──
+            if phase.name == "council":
+                try:
+                    self._run_distributed_council(ctx)
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
@@ -1453,6 +1509,7 @@ class TelosV14Pipeline:
             firewall_blocked=ctx.firewall_blocked,
             governance_blocked_by=ctx.firewall_verdict.blocked_by if ctx.firewall_verdict else None,
             decision_trace=trace,
+            distributed_verdict=getattr(ctx, 'distributed_verdict', None),
             alternatives_available=self._sim_engine.alternative_count if self._sim_engine else 0,
         )
 
@@ -1510,6 +1567,78 @@ class TelosV14Pipeline:
         self._display.freeze()
         return result
 
+
+    @property
+    def identity_bridge(self) -> Optional[IdentityBridge]:
+        """The identity↔knowledge bridge (None only if wiring failed)."""
+        return getattr(self, '_identity_bridge', None)
+
+    def get_identity_knowledge(self) -> Dict:
+        """'What do I know about my own state?' — the identity↔knowledge
+        connected web: self-snapshot node, its neighborhood, and hot
+        identity-relevant knowledge (Λ4.1 Identity Shapes Decisions)."""
+        ib = getattr(self, '_identity_bridge', None)
+        if ib is None:
+            return {"error": "identity bridge not wired"}
+        return ib.self_knowledge()
+
+    def _run_distributed_council(self, ctx) -> None:
+        """Run the advisory DistributedCouncil crew for this cycle.
+
+        Advisory only — the primary council's verdict stays binding (Λ1.2).
+        Cadence-controlled (every `distributed_council_interval` cycles) and
+        fully disable-able via `distributed_council_enabled=False`.
+
+        Args:
+            ctx: the phase context (reads ctx.verdict / selected_intent;
+                writes ctx.distributed_verdict).
+        """
+        if not getattr(self.config, 'distributed_council_enabled', True):
+            return
+        interval = max(1, getattr(self.config, 'distributed_council_interval', 1))
+        if ctx.cycle_count % interval != 0:
+            return
+        if ctx.verdict is None or ctx.selected_intent is None:
+            return
+        context = {
+            "intent_type": ctx.selected_intent.intent_type,
+            "confidence": ctx.selected_intent.confidence,
+            "alternatives": [i.intent_type for i, _ in getattr(ctx, 'intents', [])][:5],
+            "uncertainty": getattr(ctx, 'inquiry_omega_value', 0.0),
+            "curiosity_bonus": getattr(ctx, 'curiosity_bonus', 1.0),
+            "criticality": getattr(ctx, 'decision_criticality', 'medium'),
+            "n_sim_options": len(getattr(ctx, 'sim_options', []) or []),
+        }
+        result = self._distributed_council.run_perspectives(ctx.verdict, context)
+        ctx.distributed_verdict = {
+            "enabled": True,
+            "cycle": ctx.cycle_count,
+            "aggregate": {
+                "validated": result["validated"],
+                "decision_integrity": round(result["decision_integrity"], 4),
+                "mission_drift": round(result["mission_drift"], 4),
+                "consensus": result["consensus"],
+                "n_agents": result["n_agents"],
+            },
+            "agents": [a["agent_id"] + ":" + a["role"] for a in result["agents"]],
+            "registered_agents": self._distributed_council.to_dict()["registered_agents"],
+            "voting_agents": self._distributed_council.to_dict()["voting_agents"],
+        }
+        # Advisory disagreement escalation: only on low-confidence decisions,
+        # and it NEVER blocks — the primary council remains binding.
+        if ctx.verdict.validated != result["validated"] and ctx.verdict.decision_integrity < 0.7:
+            ctx.distributed_verdict["escalated"] = True
+            ctx.distributed_verdict["escalation_reason"] = (
+                f"distributed crew disagrees with primary council "
+                f"(primary DI={ctx.verdict.decision_integrity:.2f}, "
+                f"crew validated={result['validated']})"
+            )
+            logger.warning(
+                f"DistributedCouncil: crew disagrees with primary on low-confidence "
+                f"decision (primary DI={ctx.verdict.decision_integrity:.2f}, "
+                f"crew validated={result['validated']}) — advisory escalation"
+            )
+
     def observe_conversation_outcome(self, message: str, reply: str,
                                      outcome: float,
                                      domain: str = "conversation") -> str:
@@ -1518,7 +1647,16 @@ class TelosV14Pipeline:
         The chat loop's user message / assistant reply never reaches
         TheoryBuilder through execute(); this is the explicit bridge so
         the conversation path contributes experiences, patterns, and
-        theories like every other stream. Returns the experience id.
+        theories like every other stream.
+
+        Args:
+            message: the user's message text.
+            reply: the assistant's reply text.
+            outcome: quality score in [0, 1].
+            domain: knowledge domain to attribute the experience to.
+
+        Returns:
+            The experience id (or "" if TheoryBuilder is unavailable).
         """
         if getattr(self, '_theory_builder', None) is None:
             return ""
