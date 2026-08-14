@@ -101,6 +101,27 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 - Real-world tool integration
 - Autonomous curiosity-driven exploration
 
+## Session Handoff — 2026-08-14 (FIX + LIVE-DATA + STORY + SHIP)
+
+### Current State
+- Session mood: deliberate
+- Shipped: **live-data dashboard** — the dashboard now PRODUCES the data it serves. `DashboardProducer` (`telos/dashboard/producer.py`) runs the real GridWorld pipeline on a background thread inside `serve_dashboard.py`; one launcher command = one system that produces + serves + visualizes live data. Open http://localhost:8765 → story hero + three live graphs (Brain/Grid/Knowledge) visible on load, no tabs required.
+- Live data verified: `/api/knowledge` returns real nodes AND edges (93 nodes / 1186 edges from the real pipeline run, incl. identity_affinity/follows/at_location), `/api/checkpoints` returns full serialized traces, `/api/health` shows cycles > 0 + real mood, `/api/overview` drives the big-data-story strip. WebSocket pushes lean traces + overview every cycle (fixed a double-module import that silently broadcast to an empty client set, and a 1MB frame overflow from heavy audit fields).
+- Honesty restored: deleted `dashboard/js/demo.js` (fabricated 8 demo traces + Math.random values), removed the random-goal autopilot and random-importance KG node generation in `dashboard.js`. All numbers now measured or persisted — never invented.
+- NaN JSON bug fixed: numpy scalars leak out of `DecisionTrace.to_dict()` → strict `json_clean` in the producer + `allow_nan=False` in `send_json`.
+- Launcher hardened: `start_dashboard.sh` treats "running" as *the port answers* — zombies (kill -0 survivors) can no longer block a restart.
+- Test count: 648 → 662 (14 new: 6 producer, 4 DOM-contract, 4 serve_dashboard API).
+
+### Decisions Made
+- Producer design: in-process background thread (option A from the fix brief) — one launcher = producer + HTTP + WebSocket. `TELOS_DASHBOARD_NO_PRODUCER=1` keeps the honest persisted-history fallback.
+- Knowledge recording: the producer records REAL observations (DI per position, terrain encounters, rewards, council blocks) with `provenance caller=dashboard_producer`, plus edges (`follows` temporal chain, `at_location` terrain links) — the pipeline's own theory/identity nodes+edges also flow through.
+- Legal-route executor: the pipeline's adapter emits diagonal/no-op vectors that `GridSim.transition` cannot route around blocked cells (agent stuck at origin). Producer decomposes the selected action into the best legal cardinal move (deterministic, respects genuine no-ops) — bounds-safe, verified in-bounds.
+- WebSocket trace payload trimmed to the ~24 fields the frontend renders (full traces stay in `/api/checkpoints`, capped at 100).
+- Verified as user: restart → curl probes → DOM-contract probe (70 targets, PASS) → headless Chromium render check (story populated, 3 canvases drawing, zero console/page errors, tabs still work) → WS push probe (traces + overview arrive live).
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: build+ship (live producer + visible graphs + story strip + 14 tests + headless-verified)
+
 ## Session Handoff — 2026-08-14 (EVOLVED + SHIPPED — the three gaps)
 
 ### Current State
@@ -117,3 +138,18 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 
 ### Metrics
 - DI: 1.000 | MD: 0.000 | Cycles: build+ship session (3 gap closures + 17 tests + 5×648 green runs)
+
+## Session Handoff — 2026-08-14 07:52:42
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 5
+

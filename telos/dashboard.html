@@ -7,6 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>TELOS — Cognitive Dashboard</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="dashboard/css/dashboard.css">
 </head>
 <body>
@@ -148,39 +149,94 @@
     <span class="tab" onclick="switchTab('chat')" data-tab="chat">Chat</span>
   </nav>
 
-  <section class="panel brain-panel" data-section="brain">
-    <header class="panel-header">
-      <h3 class="panel-title">🧠 Cognitive Visualization</h3>
-      <div class="panel-controls">
-        <button class="zoom-btn" onclick="zoomBrain(-0.2)" aria-label="Zoom out">−</button>
-        <span class="zoom-level" id="brain-zoom-lvl">1.0×</span>
-        <button class="zoom-btn" onclick="zoomBrain(0.2)" aria-label="Zoom in">+</button>
-        <button class="zoom-btn" onclick="toggleBrainPause()" id="btn-brain-pause">⏸</button>
-        <span id="brain-debug" class="viz-debug"></span>
-        <button class="fullscreen-btn" onclick="toggleBrainFullscreen()" title="Fullscreen">⛶</button>
-      </div>
-    </header>
-    <div class="zoom-wrap brain-grid">
-      <canvas id="brain-orbit" width="900" height="600"></canvas>
-      <canvas id="brain-tree" width="900" height="600"></canvas>
+  <!-- ═══════════ BIG DATA STORY (hero — always visible, no tab needed) ═══════════ -->
+  <section class="story-strip" id="story-strip" aria-label="TELOS data story">
+    <div class="story-headline-row">
+      <h2 class="story-headline" id="story-headline">🌀 TELOS is live…</h2>
+      <span class="story-live" id="story-live">producer starting</span>
     </div>
+    <div class="story-stats" id="story-stats">
+      <div class="story-stat"><div class="ss-val" id="story-decisions">0</div><div class="ss-label">decisions</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-domains-count">0</div><div class="ss-label">domains</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-worlds">0</div><div class="ss-label">world states</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">worlds simulated</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-di">—</div><div class="ss-label">DI</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-md">—</div><div class="ss-label">MD</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-graph">0/0</div><div class="ss-label">graph nodes/edges</div></div>
+    </div>
+    <div class="story-row">
+      <span class="story-row-label">Knowledge domains</span>
+      <div class="story-chips" id="story-domain-chips"><span class="story-chip dim">waiting for data…</span></div>
+    </div>
+    <div class="story-row">
+      <span class="story-row-label">Edge types</span>
+      <div class="story-chips" id="story-edge-chips"><span class="story-chip dim">waiting for data…</span></div>
+    </div>
+    <div class="story-row">
+      <span class="story-row-label">Recent decisions</span>
+      <div class="story-recent" id="story-recent"><span class="story-chip dim">waiting for data…</span></div>
+    </div>
+    <div class="story-mood" id="story-mood">🌀 TELOS is warming up…</div>
   </section>
 
   <div class="section-spacer"></div>
 
-  <section class="panel grid-panel" id="grid-panel" data-section="grid">
-    <header class="panel-header">
-      <h3 class="panel-title">🗺️ GridWorld — 3D Isometric</h3>
-      <div class="panel-controls">
-        <button class="zoom-btn" onclick="toggleCostView()" id="btn-cost-view">$</button>
-        <button class="zoom-btn" onclick="toggleHeatMode()" id="btn-heat-mode">🔥</button>
-        <button class="zoom-btn" onclick="toggleOmegaHeatmap()" id="btn-omega-heat">Ω</button>
-        <button class="fullscreen-btn" onclick="toggleGridFullscreen()" title="Fullscreen">⛶</button>
+  <!-- ═══════════ GRAPH WALL — the three live graphs, visible on load ═══════════ -->
+  <div class="graph-wall" id="graph-wall">
+
+    <section class="panel brain-panel" data-section="brain">
+      <header class="panel-header">
+        <h3 class="panel-title">🧠 Cognitive Visualization</h3>
+        <div class="panel-controls">
+          <button class="zoom-btn" onclick="zoomBrain(-0.2)" aria-label="Zoom out">−</button>
+          <span class="zoom-level" id="brain-zoom-lvl">1.0×</span>
+          <button class="zoom-btn" onclick="zoomBrain(0.2)" aria-label="Zoom in">+</button>
+          <button class="zoom-btn" onclick="toggleBrainPause()" id="btn-brain-pause">⏸</button>
+          <span id="brain-debug" class="viz-debug"></span>
+          <button class="fullscreen-btn" onclick="toggleBrainFullscreen()" title="Fullscreen">⛶</button>
+        </div>
+      </header>
+      <div class="zoom-wrap brain-grid">
+        <canvas id="brain-orbit" width="900" height="600"></canvas>
+        <canvas id="brain-tree" width="900" height="600"></canvas>
       </div>
-    </header>
-    <canvas id="grid-canvas" width="800" height="600"></canvas>
-    <div id="hover-tooltip" class="hover-tooltip"></div>
-  </section>
+    </section>
+
+    <section class="panel grid-panel" id="grid-panel" data-section="grid">
+      <header class="panel-header">
+        <h3 class="panel-title">🗺️ GridWorld — 3D Isometric</h3>
+        <div class="panel-controls">
+          <button class="zoom-btn" onclick="toggleCostView()" id="btn-cost-view">$</button>
+          <button class="zoom-btn" onclick="toggleHeatMode()" id="btn-heat-mode">🔥</button>
+          <button class="zoom-btn" onclick="toggleOmegaHeatmap()" id="btn-omega-heat">Ω</button>
+          <button class="fullscreen-btn" onclick="toggleGridFullscreen()" title="Fullscreen">⛶</button>
+        </div>
+      </header>
+      <canvas id="grid-canvas" width="800" height="600"></canvas>
+      <div id="hover-tooltip" class="hover-tooltip"></div>
+    </section>
+
+    <section class="panel knowledge-panel" id="knowledge-panel" data-section="kg">
+      <header class="panel-header">
+        <h3 class="panel-title">🧠 Knowledge Graph</h3>
+        <div class="panel-controls">
+          <button class="zoom-btn" onclick="zoomKG(-0.2)" aria-label="Zoom out">−</button>
+          <span class="zoom-level" id="kg-zoom-lvl">1.0×</span>
+          <button class="zoom-btn" onclick="zoomKG(0.2)" aria-label="Zoom in">+</button>
+          <span id="node-count" class="viz-debug"></span>
+          <button class="zoom-btn" onclick="toggleKGPause()" id="btn-kg-pause">⏸</button>
+          <button class="fullscreen-btn" onclick="toggleKGFullscreen()" title="Fullscreen">⛶</button>
+        </div>
+      </header>
+      <div class="kg-grid">
+        <div class="zoom-wrap"><canvas id="kg-tree"></canvas></div>
+        <div class="zoom-wrap"><canvas id="kg-solar"></canvas></div>
+        <div class="zoom-wrap"><canvas id="kg-bubble"></canvas></div>
+      </div>
+    </section>
+
+  </div>
 
   <div class="section-spacer"></div>
 
@@ -190,27 +246,6 @@
       <button class="fullscreen-btn" onclick="toggleChartFullscreen()" title="Fullscreen">⛶</button>
     </header>
     <canvas id="chart-canvas" width="800" height="200"></canvas>
-  </section>
-
-  <div class="section-spacer"></div>
-
-  <section class="panel knowledge-panel" id="knowledge-panel" data-section="kg">
-    <header class="panel-header">
-      <h3 class="panel-title">🧠 Knowledge Graph</h3>
-      <div class="panel-controls">
-        <button class="zoom-btn" onclick="zoomKG(-0.2)" aria-label="Zoom out">−</button>
-        <span class="zoom-level" id="kg-zoom-lvl">1.0×</span>
-        <button class="zoom-btn" onclick="zoomKG(0.2)" aria-label="Zoom in">+</button>
-        <span id="node-count" class="viz-debug"></span>
-        <button class="zoom-btn" onclick="toggleKGPause()" id="btn-kg-pause">⏸</button>
-        <button class="fullscreen-btn" onclick="toggleKGFullscreen()" title="Fullscreen">⛶</button>
-      </div>
-    </header>
-    <div class="kg-grid">
-      <div class="zoom-wrap"><canvas id="kg-tree"></canvas></div>
-      <div class="zoom-wrap"><canvas id="kg-solar"></canvas></div>
-      <div class="zoom-wrap"><canvas id="kg-bubble"></canvas></div>
-    </div>
   </section>
 
   <div class="section-spacer"></div>
@@ -270,7 +305,7 @@
 <script src="dashboard/js/brain-viz.js"></script>
 <script src="dashboard/js/chart.js"></script>
 <script src="dashboard/js/memory.js"></script>
+<script src="dashboard/js/story.js"></script>
 <script src="dashboard/js/chat.js"></script>
-<script src="dashboard/js/demo.js"></script>
 </body>
 </html>

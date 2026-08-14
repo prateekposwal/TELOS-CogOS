@@ -1,5 +1,4 @@
 // TELOS Core Dashboard Module — state, data flow, UI logic
-var _isDemoMode = true;
 var _display = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:100, worlds:0, terrain:'' };
 var _displayTarget = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:100, worlds:0, terrain:'' };
 var _displayPrev = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:100, worlds:0, terrain:'' };
@@ -489,7 +488,12 @@ function connectWebSocket() {
   try {
     const ws = new WebSocket('ws://localhost:8766');
     ws.onmessage = (e) => {
-      try { const d = JSON.parse(e.data); if (d.decision_trace) applyTrace(d.decision_trace); else if (d.type === 'trace') applyTrace(d); } catch {}
+      try {
+        const d = JSON.parse(e.data);
+        if (d.type === 'overview' && d.overview) { renderOverview(d.overview); }
+        else if (d.decision_trace) { applyTrace(d.decision_trace); _refreshAfterTrace(); }
+        else if (d.type === 'trace') { applyTrace(d); _refreshAfterTrace(); }
+      } catch {}
     };
     ws.onclose = () => setTimeout(connectWebSocket, 3000);
     ws.onerror = () => setTimeout(connectWebSocket, 3000);
@@ -598,86 +602,14 @@ var _animCounter = 0;
    state.animPos[0] = state.prevPos[0] + (state.position[0] - state.prevPos[0]) * e;
    state.animPos[1] = state.prevPos[1] + (state.position[1] - state.prevPos[1]) * e;
 
-   // Auto-navigate agents to new goals periodically
-   if (!state._lastAutoMove || Date.now() - state._lastAutoMove > 4000) {
-     state._lastAutoMove = Date.now();
-     // Generate new goal for agent
-     const gx = Math.floor(Math.random() * state.gridSize);
-     const gy = Math.floor(Math.random() * state.gridSize);
-     state.goal = [gx, gy];
-     // Agent2 follows a different path
-     const a2x = Math.floor(Math.random() * state.gridSize);
-     const a2y = Math.floor(Math.random() * state.gridSize);
-     state.agent2Goal = [a2x, a2y];
-     // Record interaction event
-     state.lastInteraction = { cycle: Math.floor(state.time), type: 'goal_change', x: gx, y: gy };
-     // Update agent2 position toward its goal
-     if (state.agent2Pos) {
-       const dx = state.agent2Goal[0] - state.agent2Pos[0];
-       const dy = state.agent2Goal[1] - state.agent2Pos[1];
-       const d = Math.sqrt(dx*dx + dy*dy);
-       if (d > 0.5) {
-         state.agent2Pos[0] += (dx/d) * 0.2;
-         state.agent2Pos[1] += (dy/d) * 0.2;
-       }
-     }
-   }
+   // Agent motion is driven ONLY by real trace data (state.position /
+   // state.agent2Pos are updated in applyTrace from live cycles). No
+   // random goals, no fabricated motion — the grid is honest.
 
-   // Move agent2 toward its goal every frame
-   if (state.agent2Pos && state.agent2Goal) {
-     const dx = state.agent2Goal[0] - state.agent2Pos[0];
-     const dy = state.agent2Goal[1] - state.agent2Pos[1];
-     const d = Math.sqrt(dx*dx + dy*dy);
-     if (d > 0.1) {
-       state.agent2Pos[0] += (dx/d) * 0.03;
-       state.agent2Pos[1] += (dy/d) * 0.03;
-     }
-   }
-
-  // Knowledge graph: always show something — start with demo if empty
- if (kgNodes.length === 0 && state.traces.length === 0) {
-   kgNodes = [
-     { id: 'kg_telos', label: 'TELOS', domain: 'core', importance: 1.0, x: 0, y: 0, z: 0, size: 6 },
-     { id: 'kg_waiting', label: 'Waiting for data...', domain: 'general', importance: 0.3, x: 0.5, y: 0.5, z: 0, size: 3 },
-   ];
- }
-
- // Knowledge graph: generate from trace data + benchmark metrics
- if (state.traces.length > 0) {
-    const lastTrace = state.traces[state.traces.length - 1];
-    if (lastTrace) {
-      const sources = [];
-      if (lastTrace.stream_activations) {
-        lastTrace.stream_activations.forEach((sa, i) => {
-          sources.push({ label: sa.stream_name || 'stream_' + i, domain: 'cognition' });
-        });
-      }
-      if (lastTrace.council_signals) {
-        lastTrace.council_signals.forEach((sig, i) => {
-          sources.push({ label: sig.validator_name || 'validator_' + i, domain: 'governance' });
-        });
-      }
-      sources.push(
-        { label: 'DI:' + (lastTrace.decision_integrity || 0).toFixed(2), domain: 'metrics' },
-        { label: 'MD:' + (lastTrace.mission_drift || 0).toFixed(1), domain: 'metrics' },
-      );
-      sources.forEach((src) => {
-        if (!kgNodes.some(n => n.label === src.label)) {
-          kgNodes.push({
-            id: 'live_' + kgNodes.length,
-            label: src.label,
-            importance: 0.3 + Math.random() * 0.7,
-            domain: src.domain,
-            x: Math.random(),
-            y: Math.random(),
-            size: 2.5 + Math.random() * 5,
-          });
-        }
-      });
-      // Keep KG fresh — remove old nodes if too many
-      while (kgNodes.length > 30) kgNodes.shift();
-    }
-  }
+  // Knowledge graph nodes/edges come ONLY from /api/knowledge
+  // (fetchKnowledge in knowledge-graph.js) — real serialized data,
+  // never generated here from traces or randomness.
+  // Honest boot state lives in knowledge-graph.js (empty set until data).
 
    try { renderGrid(); } catch (er) { console.warn('Grid render error:', er); }
    try { renderChart(); } catch (er) { console.warn('Chart render error:', er); }
@@ -791,6 +723,19 @@ setInterval(pollCheckpoints, 5000);
 // fetch never ran (only the 30s interval did). Defer to DOMContentLoaded.
 document.addEventListener('DOMContentLoaded', function() {
   fetchKnowledge();
-  setInterval(fetchKnowledge, 30000);
+  fetchOverview();
+  setInterval(fetchKnowledge, 5000);
+  setInterval(fetchOverview, 5000);
 });
+
+// Throttled re-fetch after a live trace push (max once per 2s) so the
+// knowledge graph + story track the producer without hammering the API.
+var _lastTraceRefresh = 0;
+function _refreshAfterTrace() {
+  var now = Date.now();
+  if (now - _lastTraceRefresh < 2000) return;
+  _lastTraceRefresh = now;
+  fetchKnowledge();
+  fetchOverview();
+}
 
