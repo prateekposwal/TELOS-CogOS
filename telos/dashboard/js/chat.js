@@ -53,5 +53,5 @@ async function sendCmd(cmd) {
     m.className = 'chat-msg telos'; m.textContent = `Error: ${e.message}`;
     msgDiv.appendChild(m);
   }
-  input.disabled = false; input.focus();
+  input.disabled = false; input.value = ''; input.focus();
 }

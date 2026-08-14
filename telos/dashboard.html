@@ -6,117 +6,139 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>TELOS — GridWorld Dashboard</title>
+<title>TELOS — Cognitive Dashboard</title>
 <link rel="stylesheet" href="dashboard/css/dashboard.css">
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <h1 style="margin:0;">⚡ TELOS</h1>
-    <span onclick="toggleSidebar()" style="cursor:pointer;color:#888;font-size:18px;padding:0 4px;transition:color 0.2s;" title="Hide sidebar" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">◀</span>
-  </div>
-  <div class="status">Status: <span id="status-text">Idle</span></div>
-  <div style="display:flex;align-items:center;gap:6px;padding:2px 0 0;"><span class="live-dot"></span><span class="live-clock" id="live-clock">waiting...</span></div>
-  <div class="metric-card">
-    <div class="label">Decision Integrity</div>
-    <div class="value" id="di-value">—</div>
-    <div class="sub">Last cycle</div>
-  </div>
-  <div class="metric-card">
-    <div class="label">Mission Drift</div>
-    <div class="value" id="md-value">—</div>
-    <div class="sub">Last cycle</div>
-  </div>
-  <div class="metric-card">
-    <div class="label">Cycles</div>
-    <div class="value" id="cycles-value">0</div>
-    <div class="sub">Total executed</div>
-  </div>
-  <div class="metric-card">
-    <div class="label">Terrain</div>
-    <div class="value" id="terrain-value">—</div>
-    <div class="sub" id="terrain-sub">Current biome</div>
-  </div>
-  <div class="metric-card">
-    <div class="label">Score</div>
-    <div class="value" id="score-value">100</div>
-    <div style="margin-top:8px;font-size:11px;color:#888;">
-      Health: <span id="health-score">--</span> |
-      System: <span id="system-score">--</span> |
-      Mission: <span id="mission-score">--</span>
-      <span class="health-toggle" onclick="toggleHealth()">📊 Health</span>
-      <div id="health-panel" class="health-panel">
-        <div class="hp-inner" id="health-content">
-          <div style="text-align:center;padding:40px;color:#555;font-size:14px;">⏳ Loading cognition data...</div>
-        </div>
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside class="sidebar" id="sidebar">
+  <header class="sidebar-header">
+    <div class="brand-row">
+      <h1 class="brand">⚡ TELOS</h1>
+      <button class="icon-btn sidebar-hide" onclick="toggleSidebar()" title="Hide sidebar" aria-label="Hide sidebar">◀</button>
+    </div>
+    <div class="status-row">
+      <span class="status">Status: <span id="status-text">Idle</span></span>
+    </div>
+    <div class="live-row">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span class="live-clock" id="live-clock">waiting...</span>
+    </div>
+  </header>
+
+  <!-- Governance -->
+  <section class="sidebar-cluster" aria-label="Governance">
+    <h2 class="sidebar-section-title">Governance</h2>
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="label">Decision Integrity</div>
+        <div class="value" id="di-value">—</div>
+        <div class="sub">Last cycle</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Mission Drift</div>
+        <div class="value" id="md-value">—</div>
+        <div class="sub">Last cycle</div>
       </div>
     </div>
-    <div class="sub">Time pressure (⬇1/cycle)</div>
-  </div>
-  <div class="metric-card">
-    <div class="label">Worlds</div>
-    <div class="value" id="worlds-value">—</div>
-    <div class="sub">This cycle</div>
-  </div>
-  <div class="metric-card" id="omega-card" style="display:none;">
-    <div class="label">Ω Vector</div>
-    <div class="value" id="omega-value" style="font-size:14px;">—</div>
-    <div class="sub" id="omega-sub">Inquiry stream</div>
-  </div>
-  <div class="metric-card" id="agent2-card" style="display:none;">
-    <div class="label">Agent 2</div>
-    <div class="value" id="agent2-value" style="font-size:18px;">—</div>
-    <div class="sub">Explorer</div>
-  </div>
-  <div class="metric-card" id="score-card" style="display:none;">
-    <div class="label">Score</div>
-    <div class="value" id="score-value" style="font-size:18px;">100</div>
-    <div class="sub">Current step</div>
-  </div>
-  <div class="metric-card">
-    <div class="label">Step</div>
-    <div class="value" id="step-counter" style="font-size:16px;">—</div>
-    <div class="sub">Position visited</div>
-  </div>
+    <div class="metric-card">
+      <div class="label">Cycles</div>
+      <div class="value" id="cycles-value">0</div>
+      <div class="sub">Total executed</div>
+    </div>
+  </section>
 
-  <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-top:4px;">Cognitive Streams</h3>
-  <div id="streams-container"></div>
-  <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-top:2px;">Council</h3>
-  <div id="council-container"></div>
+  <!-- World -->
+  <section class="sidebar-cluster" aria-label="World state">
+    <h2 class="sidebar-section-title">World</h2>
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="label">Terrain</div>
+        <div class="value value-sm" id="terrain-value">—</div>
+        <div class="sub" id="terrain-sub">Current biome</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Step</div>
+        <div class="value value-sm" id="step-counter">—</div>
+        <div class="sub">Position visited</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Worlds</div>
+      <div class="value" id="worlds-value">—</div>
+      <div class="sub">Simulated this cycle</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Score</div>
+      <div class="value" id="score-value">100</div>
+      <div class="score-health">
+        Health <span id="health-score">--</span> ·
+        System <span id="system-score">--</span> ·
+        Mission <span id="mission-score">--</span>
+        <button class="btn btn-xs health-toggle" onclick="toggleHealth()">📊 Health</button>
+      </div>
+      <div class="sub">Time pressure (⬇1/cycle)</div>
+    </div>
+  </section>
 
-  <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-top:4px;">Resources</h3>
-  <div class="resource-gauge">
-    <div class="rg-row"><span class="rg-label">Compute</span><div class="rg-bar"><div class="rg-fill" id="rg-comp" style="width:50%;background:#4ade80;"></div></div><span class="rg-val" id="rg-comp-val">50%</span></div>
-    <div class="rg-row"><span class="rg-label">Memory</span><div class="rg-bar"><div class="rg-fill" id="rg-mem" style="width:50%;background:#60a5fa;"></div></div><span class="rg-val" id="rg-mem-val">50%</span></div>
-    <div class="rg-row"><span class="rg-label">Bandwidth</span><div class="rg-bar"><div class="rg-fill" id="rg-bw" style="width:50%;background:#fbbf24;"></div></div><span class="rg-val" id="rg-bw-val">50%</span></div>
-  </div>
+  <!-- Cognition -->
+  <section class="sidebar-cluster" aria-label="Cognition">
+    <h2 class="sidebar-section-title">Cognition</h2>
+    <div class="metric-card" id="omega-card" style="display:none;">
+      <div class="label">Ω Vector</div>
+      <div class="value value-sm" id="omega-value">—</div>
+      <div class="sub" id="omega-sub">Inquiry stream</div>
+    </div>
+    <div class="metric-card" id="agent2-card" style="display:none;">
+      <div class="label">Agent 2</div>
+      <div class="value value-sm" id="agent2-value">—</div>
+      <div class="sub">Explorer</div>
+    </div>
+    <div class="metric-card" id="score-card" style="display:none;">
+      <div class="label">Score</div>
+      <div class="value value-sm" id="score-card-value">—</div>
+      <div class="sub">Current step</div>
+    </div>
+    <h3 class="sidebar-subsection">Cognitive Streams</h3>
+    <div id="streams-container"></div>
+    <h3 class="sidebar-subsection">Council</h3>
+    <div id="council-container"></div>
+  </section>
 
-  <div class="health-meter-wrap">
-    <canvas id="health-meter-canvas" width="64" height="64"></canvas>
-    <div class="hm-info"><div class="hm-label">κAesthetic</div><div class="hm-val" id="hm-val">--</div><div class="hm-sub" id="hm-sub">—</div></div>
-  </div>
+  <!-- Resources -->
+  <section class="sidebar-cluster" aria-label="Resources">
+    <h2 class="sidebar-section-title">Resources</h2>
+    <div class="resource-gauge">
+      <div class="rg-row"><span class="rg-label">Compute</span><div class="rg-bar"><div class="rg-fill" id="rg-comp"></div></div><span class="rg-val" id="rg-comp-val">50%</span></div>
+      <div class="rg-row"><span class="rg-label">Memory</span><div class="rg-bar"><div class="rg-fill" id="rg-mem"></div></div><span class="rg-val" id="rg-mem-val">50%</span></div>
+      <div class="rg-row"><span class="rg-label">Bandwidth</span><div class="rg-bar"><div class="rg-fill" id="rg-bw"></div></div><span class="rg-val" id="rg-bw-val">50%</span></div>
+    </div>
+    <div class="health-meter-wrap">
+      <canvas id="health-meter-canvas" width="64" height="64"></canvas>
+      <div class="hm-info"><div class="hm-label">κAesthetic</div><div class="hm-val" id="hm-val">--</div><div class="hm-sub" id="hm-sub">—</div></div>
+    </div>
+    <div class="minimap-wrap"><canvas id="minimap-canvas" width="150" height="150"></canvas></div>
+    <div id="kg-debug" class="node-count-label"></div>
+  </section>
+</aside>
 
-  <div class="minimap-wrap"><canvas id="minimap-canvas" width="150" height="150"></canvas></div>
+<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Hide sidebar" aria-label="Hide sidebar">◀</button>
 
-  <div id="kg-debug" class="node-count-label" style="margin-top:4px;"></div>
-</div>
+<!-- ═══════════ MAIN ═══════════ -->
+<main class="main" id="main-content">
 
-<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Hide sidebar">◀</button>
-
-<div class="main" id="main-content">
-
-  <div class="toolbar">
-    <span style="font-size:11px;color:#666;font-weight:600;">⚡ TELOS GridWorld</span>
-    <span class="spacer" style="flex:1;"></span>
+  <header class="toolbar">
+    <span class="toolbar-brand">⚡ TELOS GridWorld</span>
+    <span class="spacer" aria-hidden="true"></span>
     <div class="timeline-bar" id="pipeline-timeline"></div>
-    <span class="spacer" style="flex:1;"></span>
-    <button onclick="toggleAutoRefresh()" id="btn-auto-refresh">▶ Auto</button>
-    <button onclick="exportTraces()" title="Export traces as JSON">📥 Export</button>
-    <button onclick="toggleTheme()" id="btn-theme-toggle">🌙 Dark</button>
-  </div>
+    <span class="spacer" aria-hidden="true"></span>
+    <button class="btn btn-primary" onclick="toggleAutoRefresh()" id="btn-auto-refresh">▶ Auto</button>
+    <button class="btn" onclick="exportTraces()" title="Export traces as JSON">📥 Export</button>
+    <button class="btn" onclick="toggleTheme()" id="btn-theme-toggle">🌙 Dark</button>
+  </header>
 
-  <div class="tab-bar" id="tab-bar">
+  <nav class="tab-bar" id="tab-bar" aria-label="Dashboard views">
     <span class="tab active" onclick="switchTab('all')" data-tab="all">All</span>
     <span class="tab" onclick="switchTab('brain')" data-tab="brain">Brain</span>
     <span class="tab" onclick="switchTab('grid')" data-tab="grid">Grid</span>
@@ -124,106 +146,122 @@
     <span class="tab" onclick="switchTab('kg')" data-tab="kg">Knowledge</span>
     <span class="tab" onclick="switchTab('memory')" data-tab="memory">Memory</span>
     <span class="tab" onclick="switchTab('chat')" data-tab="chat">Chat</span>
-  </div>
+  </nav>
 
-  <div class="section-spacer"></div><div class="brain-panel" data-section="brain">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <h3 style="margin:0;">🧠 Cognitive Visualization</h3>
-      <div style="display:flex;gap:4px;align-items:center;">
-        <button class="zoom-btn" onclick="zoomBrain(-0.2)">−</button><span class="zoom-level" id="brain-zoom-lvl">1.0×</span><button class="zoom-btn" onclick="zoomBrain(0.2)">+</button>
+  <section class="panel brain-panel" data-section="brain">
+    <header class="panel-header">
+      <h3 class="panel-title">🧠 Cognitive Visualization</h3>
+      <div class="panel-controls">
+        <button class="zoom-btn" onclick="zoomBrain(-0.2)" aria-label="Zoom out">−</button>
+        <span class="zoom-level" id="brain-zoom-lvl">1.0×</span>
+        <button class="zoom-btn" onclick="zoomBrain(0.2)" aria-label="Zoom in">+</button>
         <button class="zoom-btn" onclick="toggleBrainPause()" id="btn-brain-pause">⏸</button>
-        <span id="brain-debug" style="font-size:9px;color:#555;font-family:monospace;"></span>
-        <button class="fullscreen-btn" onclick="toggleBrainFullscreen()">⛶</button>
+        <span id="brain-debug" class="viz-debug"></span>
+        <button class="fullscreen-btn" onclick="toggleBrainFullscreen()" title="Fullscreen">⛶</button>
       </div>
+    </header>
+    <div class="zoom-wrap brain-grid">
+      <canvas id="brain-orbit" width="900" height="600"></canvas>
+      <canvas id="brain-tree" width="900" height="600"></canvas>
     </div>
-    <div class="zoom-wrap" style="display:flex;gap:8px;"><canvas id="brain-orbit" width="900" height="600"></canvas><canvas id="brain-tree" width="900" height="600"></canvas></div>
-  </div>
+  </section>
 
   <div class="section-spacer"></div>
 
-  <div class="grid-panel" id="grid-panel" data-section="grid">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <h3 style="margin:0;">🗺️ GridWorld — 3D Isometric</h3>
-      <div style="display:flex;gap:4px;font-size:10px;">
+  <section class="panel grid-panel" id="grid-panel" data-section="grid">
+    <header class="panel-header">
+      <h3 class="panel-title">🗺️ GridWorld — 3D Isometric</h3>
+      <div class="panel-controls">
         <button class="zoom-btn" onclick="toggleCostView()" id="btn-cost-view">$</button>
         <button class="zoom-btn" onclick="toggleHeatMode()" id="btn-heat-mode">🔥</button>
         <button class="zoom-btn" onclick="toggleOmegaHeatmap()" id="btn-omega-heat">Ω</button>
-        <button class="fullscreen-btn" onclick="toggleGridFullscreen()">⛶</button>
+        <button class="fullscreen-btn" onclick="toggleGridFullscreen()" title="Fullscreen">⛶</button>
       </div>
-    </div>
-    <canvas id="grid-canvas" width="800" height="600" style="width:100%;height:600px;border-radius:8px;cursor:pointer;"></canvas>
-    <div id="hover-tooltip" style="position:absolute;background:rgba(0,0,0,0.8);color:#eee;padding:3px 8px;border-radius:4px;font-size:11px;pointer-events:none;display:none;"></div>
-  </div>
+    </header>
+    <canvas id="grid-canvas" width="800" height="600"></canvas>
+    <div id="hover-tooltip" class="hover-tooltip"></div>
+  </section>
 
   <div class="section-spacer"></div>
 
-  <div class="chart-panel" id="chart-panel" data-section="chart">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="margin:0;">📈 DI / MD History</h3>
-      <button class="fullscreen-btn" onclick="toggleChartFullscreen()">⛶</button>
-    </div>
+  <section class="panel chart-panel" id="chart-panel" data-section="chart">
+    <header class="panel-header">
+      <h3 class="panel-title">📈 DI / MD History</h3>
+      <button class="fullscreen-btn" onclick="toggleChartFullscreen()" title="Fullscreen">⛶</button>
+    </header>
     <canvas id="chart-canvas" width="800" height="200"></canvas>
-  </div>
+  </section>
 
   <div class="section-spacer"></div>
 
-  <div class="knowledge-panel" id="knowledge-panel" data-section="kg">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="margin:0;">🧠 Knowledge Graph</h3>
-      <div style="display:flex;gap:4px;align-items:center;">
-        <button class="zoom-btn" onclick="zoomKG(-0.2)">−</button><span class="zoom-level" id="kg-zoom-lvl">1.0×</span><button class="zoom-btn" onclick="zoomKG(0.2)">+</button>
-        <span id="node-count" style="font-size:9px;color:#555;font-family:monospace;"></span>
+  <section class="panel knowledge-panel" id="knowledge-panel" data-section="kg">
+    <header class="panel-header">
+      <h3 class="panel-title">🧠 Knowledge Graph</h3>
+      <div class="panel-controls">
+        <button class="zoom-btn" onclick="zoomKG(-0.2)" aria-label="Zoom out">−</button>
+        <span class="zoom-level" id="kg-zoom-lvl">1.0×</span>
+        <button class="zoom-btn" onclick="zoomKG(0.2)" aria-label="Zoom in">+</button>
+        <span id="node-count" class="viz-debug"></span>
         <button class="zoom-btn" onclick="toggleKGPause()" id="btn-kg-pause">⏸</button>
-        <button class="fullscreen-btn" onclick="toggleKGFullscreen()">⛶</button>
+        <button class="fullscreen-btn" onclick="toggleKGFullscreen()" title="Fullscreen">⛶</button>
       </div>
+    </header>
+    <div class="kg-grid">
+      <div class="zoom-wrap"><canvas id="kg-tree"></canvas></div>
+      <div class="zoom-wrap"><canvas id="kg-solar"></canvas></div>
+      <div class="zoom-wrap"><canvas id="kg-bubble"></canvas></div>
     </div>
-    <div style="display:flex;gap:14px;flex:1;min-height:580px;">
-      <div class="zoom-wrap" style="flex:1;"><canvas id="kg-tree" style="width:100%;height:580px;"></canvas></div>
-      <div class="zoom-wrap" style="flex:1;"><canvas id="kg-solar" style="width:100%;height:580px;"></canvas></div>
-      <div class="zoom-wrap" style="flex:1;"><canvas id="kg-bubble" style="width:100%;height:580px;"></canvas></div>
-    </div>
-  </div>
+  </section>
 
   <div class="section-spacer"></div>
 
-  <div class="memory-panel" data-section="memory">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="margin:0;">🧠 Memory Timeline</h3>
-      <button class="fullscreen-btn" onclick="toggleMemoryFullscreen()">⛶</button>
-    </div>
+  <section class="panel memory-panel" data-section="memory">
+    <header class="panel-header">
+      <h3 class="panel-title">🧠 Memory Timeline</h3>
+      <button class="fullscreen-btn" onclick="toggleMemoryFullscreen()" title="Fullscreen">⛶</button>
+    </header>
     <div id="memory-timeline"></div>
-  </div>
+  </section>
 
   <div class="section-spacer"></div>
 
-  <div class="chat-panel" data-section="chat">
-    <h3>💬 Command</h3>
+  <section class="panel chat-panel" data-section="chat">
+    <header class="panel-header">
+      <h3 class="panel-title">💬 Command</h3>
+    </header>
     <div class="chat-messages" id="chat-messages">
       <div class="chat-msg telos">Send a command to TELOS (e.g. "navigate", "status")<span class="time">ready</span></div>
     </div>
     <div class="chat-input-row">
-      <input id="chat-input" type="text" placeholder="Type command..." onkeydown="if(event.key==='Enter')sendCmd(this.value)">
-      <button id="chat-send">Send</button>
+      <input id="chat-input" type="text" placeholder="Type command..." onkeydown="if(event.key==='Enter')sendCmd(this.value)" aria-label="Command input">
+      <button id="chat-send" class="btn btn-primary" onclick="sendCmd(document.getElementById('chat-input').value)">Send</button>
     </div>
-  </div>
+  </section>
 
   <div class="section-spacer"></div>
 
-  <div class="log-panel">
-    <h3>📋 Recent Log</h3>
+  <section class="panel log-panel">
+    <header class="panel-header">
+      <h3 class="panel-title">📋 Recent Log</h3>
+    </header>
     <div id="log-container"><div id="log-entries"></div></div>
-  </div>
+  </section>
 
-</div>
+</main>
 
-<div id="learning-ticker" style="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);color:#555;font-size:11px;z-index:500;text-align:center;pointer-events:none;text-shadow:0 0 10px rgba(0,0,0,0.8);transition:opacity 0.5s;">
-  🌀 Waiting for data...
-</div>
-<div id="debug-log" style="position:fixed;bottom:35px;left:50%;transform:translateX(-50%);color:#444;font-size:10px;z-index:500;text-align:center;pointer-events:none;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+<div id="learning-ticker" class="learning-ticker">🌀 Waiting for data...</div>
+<div id="debug-log" class="debug-log"></div>
+
 <div class="phase-detail-panel" id="phase-detail-panel">
-  <span class="pd-close" onclick="document.getElementById('phase-detail-panel').style.display='none'">✕</span>
+  <span class="pd-close" onclick="document.getElementById('phase-detail-panel').style.display='none'" aria-label="Close">✕</span>
   <h3 id="pd-title">Phase Detail</h3>
   <div id="pd-body"></div>
+</div>
+
+<div class="health-panel" id="health-panel">
+  <div class="hp-inner" id="health-content">
+    <div class="hp-loading">⏳ Loading cognition data...</div>
+  </div>
 </div>
 
 <script src="dashboard/js/dashboard.js"></script>

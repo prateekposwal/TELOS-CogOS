@@ -46,6 +46,13 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
     }
     _co.closePath();
     _co.strokeStyle='rgba('+ringClr+','+(0.1+0.06*Math.sin(to)+diVal*0.08)+')'; _co.lineWidth=2; _co.stroke();
+    // AVIKU center label — the identity anchor of the cognitive core
+    _co.shadowColor='rgba(0,0,0,0.8)'; _co.shadowBlur=12;
+    _co.fillStyle='rgba(255,255,255,0.9)'; _co.font='bold 24px sans-serif'; _co.textAlign='center'; _co.textBaseline='middle';
+    _co.fillText('AVIKU',cx,cy);
+    _co.shadowBlur=0;
+    _co.fillStyle='rgba(255,255,255,0.32)'; _co.font='9px sans-serif';
+    _co.fillText('TELOS cognitive core',cx,cy+17);
     var act=_brainPaused?act:Math.floor(to*0.45)%P.length;
     for(var i=0;i<P.length;i++){
       var a1=(i/P.length)*Math.PI*2-Math.PI/2;
@@ -238,7 +245,7 @@ var _brainZoom=1;
 function zoomBrain(delta){
   _brainZoom=Math.max(0.5,Math.min(3,_brainZoom+delta));
   document.getElementById('brain-zoom-lvl').textContent=_brainZoom.toFixed(1)+'×';
-  document.querySelectorAll('#brain-mode-1 .zoom-wrap canvas, #brain-mode-3 .zoom-wrap canvas').forEach(function(c){
+  document.querySelectorAll('.brain-panel .zoom-wrap canvas').forEach(function(c){
     c.style.transform='scale('+_brainZoom+')';
     c.parentNode.style.height=Math.round(800*_brainZoom)+'px';
   });
