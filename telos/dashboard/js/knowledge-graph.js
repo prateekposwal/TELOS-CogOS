@@ -11,60 +11,19 @@ async function fetchKnowledge() {
   try {
     const resp = await fetch('/api/knowledge');
     const data = await resp.json();
-    if (data && data.nodes && data.nodes.length > 0) {
-      // Merge KG data with existing live nodes instead of replacing
-      for (const n of data.nodes) {
-        if (!kgNodes.some(k => k.id === (n.id || n.name || n.label))) {
-          const angle = Math.random() * Math.PI * 2;
-          const radius = 1 + Math.random();
-          kgNodes.push({
-            id: n.id || n.name || n.label || 'api_' + kgNodes.length,
-            label: n.label || n.name || n.id || '',
-            domain: n.domain || n.category || 'general',
-            importance: n.importance || n.relevance || 0.5,
-            x: Math.cos(angle) * radius * 0.3,
-            y: (Math.random() - 0.5) * 0.6,
-            z: Math.sin(angle) * radius * 0.3,
-            size: 3 + Math.random() * 3,
-          });
-        }
-      }
-      document.getElementById('node-count').textContent = `${kgNodes.length} nodes`;
+    if (data && Array.isArray(data.nodes)) {
+      // Real serialized data only: nodes AND their edges. If the graph has
+      // no edges yet, the empty-set state renders (no invented links).
+      initKnowledgeGraph(data);
+      kgNoData = data.nodes.length === 0;
     }
     kgLoaded = true;
-    kgNoData = false;
   } catch {
     kgLoaded = true;
     kgNoData = false;
   }
 }
 
-function generateDemoKnowledge() {
-  const terrains = ['Plains', 'Forest', 'Water', 'Desert', 'Mountain', 'Blocked'];
-  const intents = ['Navigate', 'Collect Reward', 'Avoid Obstacle', 'Reach Goal'];
-  const outcomes = ['High DI', 'Low DI', 'Approved', 'Blocked'];
-  const domainMap = { 'Plains':'terrain', 'Forest':'terrain', 'Water':'terrain', 'Desert':'terrain', 'Mountain':'terrain', 'Blocked':'terrain', 'Navigate':'intent', 'Collect Reward':'intent', 'Avoid Obstacle':'intent', 'Reach Goal':'intent', 'High DI':'outcome', 'Low DI':'outcome', 'Approved':'outcome', 'Blocked':'outcome' };
-  const allLabels = [...terrains, ...intents, ...outcomes];
-  const nodes = allLabels.map((label, i) => ({
-    id: label.toLowerCase().replace(/\s+/g, '_'),
-    label,
-    domain: domainMap[label] || 'general',
-    importance: 0.3 + Math.random() * 0.7,
-  }));
-  const edges = [];
-  const pairs = [
-    ['Forest', 'Navigate'], ['Water', 'Navigate'], ['Mountain', 'Avoid Obstacle'],
-    ['Plains', 'Navigate'], ['Desert', 'Navigate'], ['Blocked', 'Avoid Obstacle'],
-    ['Navigate', 'Reach Goal'], ['Collect Reward', 'Reach Goal'],
-    ['Navigate', 'High DI'], ['Avoid Obstacle', 'Approved'],
-    ['Blocked', 'Blocked'], ['Reach Goal', 'High DI'],
-    ['Forest', 'Low DI'], ['Water', 'Low DI'], ['Mountain', 'High DI'],
-  ];
-  for (const [a, b] of pairs) {
-    edges.push({ source: a.toLowerCase().replace(/\s+/g, '_'), target: b.toLowerCase().replace(/\s+/g, '_'), weight: 0.3 + Math.random() * 0.7 });
-  }
-  return { nodes, edges };
-}
 
 function initKnowledgeGraph(data) {
   const count = data.nodes.length;
@@ -207,7 +166,8 @@ function toggleKGPause(){
 }
 
 // Init KG with demo data so it's ready when the IIFE runs
-if(kgNodes.length===0) initKnowledgeGraph(generateDemoKnowledge());
+// Honest boot: empty graph until real serialized data arrives via /api/knowledge
+if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
 
 // ─── 5-Mode KG Visualization (single rAF loop) ───
 (function(){

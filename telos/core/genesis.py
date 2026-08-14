@@ -23,7 +23,17 @@ class GenesisAnchor:
     axioms_count: int = 42
 
     def recognize(self, speaker: Optional[str] = None) -> bool:
-        return True
+        """True when the speaker is the genesis creator (by name or private phrase).
+
+        Not a constant: recognition binds the real creator and leaves other
+        users as themselves instead of silently rewriting their identity.
+        """
+        if not speaker:
+            return False
+        return speaker.strip().lower() in {
+            self.creator.lower(),
+            self.creator_name_for_me.lower(),
+        }
 
     def name_for(self, is_creator: bool) -> str:
         return self.creator_name_for_me if is_creator else self.public_name

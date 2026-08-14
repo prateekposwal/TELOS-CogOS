@@ -2,8 +2,10 @@
 KnowledgeGraph — Spiderweb Memory of Proven Solutions.
 
 Structures past project outcomes (successes AND failures) into a
-searchable graph. Actively maintains "hot" nodes for fast retrieval;
-archives cold nodes to keep the working set lean.
+searchable graph with typed, weighted edges. Actively maintains "hot"
+nodes for fast retrieval; archives cold nodes to keep the working set
+lean. Attention (Λ4.7 Law of Attention and Trajectory) decays per node
+AND flows along edges when nodes are activated.
 
 Usage:
     kg = KnowledgeGraph()
@@ -81,6 +83,36 @@ class ProjectNode:
         }
 
 
+@dataclass
+class Edge:
+    """A typed, weighted edge between two knowledge nodes.
+
+    Edges are what make the store a graph rather than an index:
+    activation flows along them (Λ4.7 Law of Attention and Trajectory)
+    and traversal (bfs/dfs/path) follows them. src -> dst preserves
+    direction at the record level; traversal treats the web as undirected.
+    """
+    edge_id: str
+    src: str
+    dst: str
+    edge_type: str = "related"
+    weight: float = 1.0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    timestamp: float = 0.0
+
+    def to_dict(self) -> Dict:
+        return {
+            "edge_id": self.edge_id,
+            "src": self.src,
+            "dst": self.dst,
+            "edge_type": self.edge_type,
+            "weight": self.weight,
+            "metadata": self.metadata,
+            "timestamp": self.timestamp,
+        }
+
+
+
 class KnowledgeGraph:
     """Spiderweb memory — fast-forward index, auto-archive cold nodes.
     
@@ -105,6 +137,8 @@ class KnowledgeGraph:
     def __init__(self, max_hot_nodes: int = _DEFAULT_MAX_HOT, max_archived: int = 500,
                  max_records_per_minute: int = _DEFAULT_MAX_RECORDS_PER_MINUTE):
         self._nodes: Dict[str, ProjectNode] = {}
+        self._edges: Dict[str, Edge] = {}
+        self._adjacency: Dict[str, Set[str]] = defaultdict(set)
         self._domain_index: Dict[str, Set[str]] = defaultdict(set)
         self._tag_index: Dict[str, Set[str]] = defaultdict(set)
         self._max_hot_nodes = max_hot_nodes
@@ -264,7 +298,7 @@ class KnowledgeGraph:
             recency = max(0.0, 1.0 - (now - node.timestamp) / 86400)
             score = node.outcome * 0.6 + recency * 0.3 + node.activation * 0.1
             scored.append((score, node))
-        # Also query archived nodes with a cold penalty (Λ4.7 System Memory)
+        # Also query archived nodes with a cold penalty (Λ4.7 Law of Attention and Trajectory)
         archived_candidates = self._get_archived_candidates(domain, tags)
         for nid in archived_candidates:
             node = self._archived_nodes.get(nid)
@@ -303,13 +337,167 @@ class KnowledgeGraph:
         nodes = self.recommend(domain, top_k=1)
         return nodes[0].approach if nodes else None
 
-    def activate(self, node_id: str, boost: float = 0.5) -> None:
-        """Boost a node's activation when reused."""
+    def activate(self, node_id: str, boost: float = 0.5,
+                spread: float = 0.3, depth: int = 1) -> int:
+        """Boost node_id's activation when reused.
+
+        Λ4.7 Law of Attention and Trajectory: attention does not stop at
+        the node — a fraction (`spread`) of the boost propagates along
+        edges to neighbors within `depth` hops. Returns the number of
+        nodes whose activation changed. Archived neighbors are traversed
+        (they are still part of the web) but are not re-energized.
+        """
         node = self._nodes.get(node_id)
+        affected = 0
         if node:
             node.activation = min(2.0, node.activation + boost)
             node.access_count += 1
             node.timestamp = time.time()
+            affected += 1
+        frontier = {node_id}
+        visited = {node_id}
+        current_boost = boost
+        for _ in range(max(0, depth)):
+            current_boost *= spread
+            if current_boost < 0.01:
+                break
+            next_frontier: Set[str] = set()
+            for nid in frontier:
+                for nbr in self._adjacency.get(nid, set()):
+                    if nbr in visited:
+                        continue
+                    visited.add(nbr)
+                    nbr_node = self._nodes.get(nbr)
+                    if nbr_node is not None:
+                        nbr_node.activation = min(2.0, nbr_node.activation + current_boost)
+                        nbr_node.access_count += 1
+                        affected += 1
+                    next_frontier.add(nbr)
+            frontier = next_frontier
+        return affected
+
+
+    # ── Edge API (the web: typed, weighted, traversable) ─────────
+
+    def add_edge(self, src: str, dst: str, edge_type: str = "related",
+                 weight: float = 1.0, metadata: Optional[Dict] = None) -> str:
+        """Add a typed, weighted edge between two existing nodes.
+
+        The edge id is a stable hash of (src, dst, edge_type): re-adding
+        the same triple updates the edge in place (idempotent).
+        Endpoints may be hot or archived nodes; both must exist. Optional
+        `metadata` is attached verbatim to the edge record.
+        """
+        for nid in (src, dst):
+            if nid not in self._nodes and nid not in self._archived_nodes:
+                raise ValueError(f"add_edge: node '{nid}' does not exist")
+        if src == dst:
+            raise ValueError("add_edge: src and dst must be different nodes")
+        if not isinstance(weight, (int, float)) or weight < 0.0:
+            raise ValueError(f"add_edge: weight must be a non-negative number, got {weight!r}")
+        edge_id = hashlib.sha256(f"{src}::{dst}::{edge_type}".encode()).hexdigest()[:12]
+        self._edges[edge_id] = Edge(
+            edge_id=edge_id, src=src, dst=dst, edge_type=edge_type,
+            weight=float(weight), metadata=metadata or {},
+            timestamp=time.time(),
+        )
+        self._adjacency[src].add(dst)
+        self._adjacency[dst].add(src)
+        return edge_id
+
+    def remove_edge(self, edge_id: str) -> bool:
+        """Remove the edge with the given edge_id. Returns True if it existed."""
+        edge = self._edges.pop(edge_id, None)
+        if edge is None:
+            return False
+        self._adjacency[edge.src].discard(edge.dst)
+        self._adjacency[edge.dst].discard(edge.src)
+        for nid in (edge.src, edge.dst):
+            if not self._adjacency[nid]:
+                del self._adjacency[nid]
+        return True
+
+    def get_edges(self, edge_type: Optional[str] = None) -> List[Edge]:
+        """All edges, optionally filtered by edge_type."""
+        if edge_type is None:
+            return list(self._edges.values())
+        return [e for e in self._edges.values() if e.edge_type == edge_type]
+
+    def edges_for(self, node_id: str) -> List[Edge]:
+        """Edges incident to a node (either endpoint)."""
+        nbrs = self._adjacency.get(node_id, set())
+        return [e for e in self._edges.values()
+                if (e.src == node_id and e.dst in nbrs) or
+                   (e.dst == node_id and e.src in nbrs)]
+
+    def get_neighbors(self, node_id: str,
+                      edge_type: Optional[str] = None) -> List[str]:
+        """Neighboring node ids, optionally restricted to one edge type."""
+        nbrs = self._adjacency.get(node_id, set())
+        if edge_type is not None:
+            typed = {e.src if e.dst == node_id else e.dst
+                     for e in self._edges.values()
+                     if e.edge_type == edge_type and node_id in (e.src, e.dst)}
+            nbrs = nbrs & typed
+        return sorted(nbrs)
+
+    def has_adjacency(self, node_id: str) -> bool:
+        """True if the node participates in at least one edge."""
+        return node_id in self._adjacency and bool(self._adjacency[node_id])
+
+    def bfs(self, start: str, max_depth: int = 3) -> List[str]:
+        """Breadth-first traversal from start, bounded by max_depth."""
+        visited: Set[str] = set()
+        queue = [(start, 0)]
+        order: List[str] = []
+        while queue:
+            nid, depth = queue.pop(0)
+            if nid in visited or depth > max_depth:
+                continue
+            visited.add(nid)
+            order.append(nid)
+            for nbr in sorted(self._adjacency.get(nid, set())):
+                if nbr not in visited:
+                    queue.append((nbr, depth + 1))
+        return order
+
+    def dfs(self, start: str, max_depth: int = 3) -> List[str]:
+        """Depth-first traversal from start, bounded by max_depth."""
+        visited: Set[str] = set()
+        order: List[str] = []
+
+        def _walk(nid: str, depth: int) -> None:
+            if nid in visited or depth > max_depth:
+                return
+            visited.add(nid)
+            order.append(nid)
+            for nbr in sorted(self._adjacency.get(nid, set())):
+                _walk(nbr, depth + 1)
+
+        _walk(start, 0)
+        return order
+
+    def find_path(self, start: str, goal: str) -> Optional[List[str]]:
+        """Shortest path (BFS) between two nodes, or None if unreachable."""
+        if start == goal:
+            return [start]
+        prev: Dict[str, Optional[str]] = {start: None}
+        queue = [start]
+        while queue:
+            nid = queue.pop(0)
+            for nbr in self._adjacency.get(nid, set()):
+                if nbr in prev:
+                    continue
+                prev[nbr] = nid
+                if nbr == goal:
+                    path = [goal]
+                    cur = nid
+                    while cur is not None:
+                        path.append(cur)
+                        cur = prev[cur]
+                    return list(reversed(path))
+                queue.append(nbr)
+        return None
 
     # ── Lifecycle ───────────────────────────────────────────────
 
@@ -349,6 +537,7 @@ class KnowledgeGraph:
         data = {
             "nodes": {nid: n.to_dict() for nid, n in self._nodes.items()},
             "archived_nodes": {nid: n.to_dict() for nid, n in self._archived_nodes.items()},
+            "edges": {eid: e.to_dict() for eid, e in self._edges.items()},
         }
         with open(path, 'w') as f:
             json.dump(data, f, indent=2)
@@ -384,6 +573,17 @@ class KnowledgeGraph:
                 access_count=ndata.get("access_count", 1),
                 timestamp=ndata.get("timestamp", 0.0),
             )
+        for eid, edata in data.get("edges", {}).items():
+            self._edges[eid] = Edge(
+                edge_id=edata.get("edge_id", eid),
+                src=edata["src"], dst=edata["dst"],
+                edge_type=edata.get("edge_type", "related"),
+                weight=edata.get("weight", 1.0),
+                metadata=edata.get("metadata", {}),
+                timestamp=edata.get("timestamp", 0.0),
+            )
+            self._adjacency[edata["src"]].add(edata["dst"])
+            self._adjacency[edata["dst"]].add(edata["src"])
 
     # ─── Properties ──────────────────────────────────────────────
 
@@ -398,6 +598,8 @@ class KnowledgeGraph:
             "failures": failures,
             "domains": list(self._domain_index.keys()),
             "archived_nodes": len(self._archived_nodes),
+            "total_edges": len(self._edges),
+            "edge_types": sorted({e.edge_type for e in self._edges.values()}),
             "cycle": self._cycle,
         }
 
