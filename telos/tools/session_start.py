@@ -83,7 +83,7 @@ def main():
             # Extract open questions
             questions = re.findall(r'Q\d[:\.]\s*(.*)', agents)
             if questions:
-                print(f"  Open questions carryover:")
+                print(f"  Sibling project open questions (live read):")
                 for q in questions:
                     print(f"    • {q}")
 

@@ -59,11 +59,11 @@ python3 telos/serve_dashboard.py
 | `telos/` | TELOS CogOS — core architecture, axioms, pipeline, modules |
 | `archive/` | Archived code (MealDrama adapter, old experiments) |
 | `contracts/` | Domain model interfaces |
-| *(root)* | Bitcoin State Pricing research *(sub-project)* |
+| *(root)* | (Bitcoin research archived — canonical home: [`../block-space-economics`](../block-space-economics)) |
 
 ## Bitcoin Research
 
-This repo also contains [Bitcoin State Pricing research](bitcoin-oracle-arch.md) — a sub-project exploring the problem of UTXO set storage cost in Bitcoin. See `bitcoin-oracle-arch.md` and `interactive-block.html` for details.
+The [Bitcoin State Pricing research](https://github.com/prateekposwal/block-space-economics) — the problem of UTXO set storage cost in Bitcoin — is owned by the sibling repo [`../block-space-economics`](../block-space-economics) (bitcoinsahi.com), its canonical home. TELOS does not maintain it here; legacy v1-era analysis snapshots live under `archive/`.
 
 ## License
 
