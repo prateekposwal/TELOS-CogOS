@@ -1,7 +1,10 @@
 // TELOS Memory Module — decision trace timeline
 
 // ─── Memory Timeline ───
-var TERRAIN_EMOJI = TERRAIN_EMOJI || { 'plains':'🌿', 'forest':'🌲', 'water':'🌊', 'desert':'🏜️', 'mountain':'⛰️' };
+// TERRAIN_EMOJI is declared as `const` in gridworld.js (loaded before this
+// file). Re-declaring it with `var` throws "already declared" and kills this
+// script — reference the existing binding instead.
+var _TERRAIN_EMOJI = { 'plains':'🌿', 'forest':'🌲', 'water':'🌊', 'desert':'🏜️', 'mountain':'⛰️' };
 
 function renderMemoryTimeline() {
   const c = document.getElementById('memory-timeline');
@@ -18,7 +21,7 @@ function renderMemoryTimeline() {
     const approved = t.council_validated && !t.firewall_blocked;
     const di = t.decision_integrity || 1;
     const terrain = (t.domain_facts && t.domain_facts.metadata && t.domain_facts.metadata.current_terrain) || '';
-    const terrainEmoji = TERRAIN_EMOJI[terrain] || '';
+    const terrainEmoji = (typeof TERRAIN_EMOJI !== 'undefined' ? TERRAIN_EMOJI : _TERRAIN_EMOJI)[terrain] || '';
     const intent = t.selected_intent || t.intent_type || (t.strategic_options && t.strategic_options[0] && t.strategic_options[0].intent_type) || '—';
     const cycleId = t.cycle_id != null ? t.cycle_id : '?';
     const diColor = di > 0.8 ? '#4ade80' : di > 0.5 ? '#fbbf24' : '#ff6b6b';

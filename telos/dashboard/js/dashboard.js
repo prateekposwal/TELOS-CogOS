@@ -786,6 +786,11 @@ loadCheckpoints();
 pollCheckpoints();
 connectWebSocket();
 setInterval(pollCheckpoints, 5000);
-fetchKnowledge();
-setInterval(fetchKnowledge, 30000);
+// fetchKnowledge lives in knowledge-graph.js, which loads AFTER this file.
+// Calling it at parse time throws ReferenceError, so the initial knowledge
+// fetch never ran (only the 30s interval did). Defer to DOMContentLoaded.
+document.addEventListener('DOMContentLoaded', function() {
+  fetchKnowledge();
+  setInterval(fetchKnowledge, 30000);
+});
 
