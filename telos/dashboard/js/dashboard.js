@@ -1,4 +1,11 @@
 // TELOS Core Dashboard Module — state, data flow, UI logic
+
+// Accessibility gate: canvas orbits/particles must stop when the user asks
+// for reduced motion. CSS handles the CSS animations (dashboard.css media
+// block); this flag gates the rAF-driven canvas motion (chart endpoint dot,
+// brain orbit, KG rotation, particle spawns).
+window.__reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
 var _display = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:null, worlds:0, terrain:'' };
 var _displayTarget = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:null, worlds:0, terrain:'' };
 var _displayPrev = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:null, worlds:0, terrain:'' };
@@ -199,7 +206,7 @@ function applyTrace(trace) {
       var terrainEl = document.getElementById('terrain-value');
       if (terrainEl) {
         var tVal = (emojis[trace.domain_facts.metadata.current_terrain] || '') + ' ' + trace.domain_facts.metadata.current_terrain;
-        if (terrainEl.textContent !== tVal) { terrainEl.textContent = tVal; popValue(terrainEl); }
+        if (terrainEl.textContent !== tVal) { terrainEl.textContent = tVal; }
       }
     }
   }
@@ -249,33 +256,29 @@ function toggleTheme(){
 }
 
 // ─── Sidebar toggle ───
-var _sidebarOpen=true;
+var _sidebarOpen=false;   // v3: the system drawer is CLOSED by default —
+// the narrative leads the page; the readouts are on-demand, never the chrome.
 function toggleSidebar(){
   _sidebarOpen=!_sidebarOpen;
   var sb=document.getElementById('sidebar');
-  if(!sb)return;
-  sb.classList.toggle('collapsed',!_sidebarOpen);
-  var mn=document.querySelector('.main');
-  if(mn){
-    mn.classList.toggle('expanded',!_sidebarOpen);
-    if(!_sidebarOpen)setTimeout(function(){mn.classList.add('centered');},350);
-    else mn.classList.remove('centered');
-  }
+  if(sb) sb.classList.toggle('open',_sidebarOpen);
+  var fade=document.getElementById('drawer-fade');
+  if(fade) fade.classList.toggle('show',_sidebarOpen);
   var tb=document.getElementById('sidebar-toggle');
   if(tb){
-    tb.classList.toggle('shifted',!_sidebarOpen);
-    tb.textContent=_sidebarOpen?'◀':'▶';
-    tb.title=_sidebarOpen?'Hide sidebar':'Show sidebar';
+    tb.textContent=_sidebarOpen?'✕':'☰';
+    tb.title=_sidebarOpen?'Close system readouts':'Open system readouts';
+    tb.setAttribute('aria-label', tb.title);
   }
 }
 // ─── Zoom controls ───
 var _kgZoom=1;
 function zoomKG(delta){
   _kgZoom=Math.max(0.5,Math.min(3,_kgZoom+delta));
-  document.getElementById('kg-zoom-lvl').textContent=_kgZoom.toFixed(1)+'×';
+  document.querySelectorAll('.kg-zoom-lvl').forEach(function(el){el.textContent=_kgZoom.toFixed(1)+'×';});
   document.querySelectorAll('.knowledge-panel .zoom-wrap canvas').forEach(function(c){
     c.style.transform='scale('+_kgZoom+')';
-    c.parentNode.style.height=Math.round(900*_kgZoom)+'px';
+    c.parentNode.style.height=Math.round(540*_kgZoom)+'px';
   });
 }
 // ─── Phase detail panel ───
@@ -349,9 +352,9 @@ function drawHealthMeter(){
   var clr=diVal>0.8?'#4ade80':diVal>0.5?'#fbbf24':'#ff4444';
   ctx.beginPath();ctx.arc(cx,cy,r,startA,endA);
   ctx.strokeStyle=clr;ctx.lineWidth=5;ctx.lineCap='round';ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('κA',cx,cy-3);
-  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='7px sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='12px sans-serif';
   ctx.fillText((diVal*100).toFixed(0)+'%',cx,cy+10);
   var el=document.getElementById('hm-val');
   if(el)el.textContent=(diVal*100).toFixed(0)+'%';
@@ -641,27 +644,27 @@ var _animCounter = 0;
      if (diEl) {
        var diD = _display.di;
        var diPrev = _displayPrev.di;
-       if (Math.abs(diD - diPrev) > 0.005) { diEl.textContent = diD.toFixed(3); popValue(diEl); _displayPrev.di = diD; }
+       if (Math.abs(diD - diPrev) > 0.005) { diEl.textContent = diD.toFixed(3); _displayPrev.di = diD; }
        else { diEl.textContent = diD.toFixed(3); }
      }
      var mdEl = document.getElementById('md-value');
      if (mdEl) {
        var mdD = _display.md;
        var mdPrev = _displayPrev.md;
-       if (Math.abs(mdD - mdPrev) > 0.005) { mdEl.textContent = mdD.toFixed(3); popValue(mdEl); _displayPrev.md = mdD; }
+       if (Math.abs(mdD - mdPrev) > 0.005) { mdEl.textContent = mdD.toFixed(3); _displayPrev.md = mdD; }
        else { mdEl.textContent = mdD.toFixed(3); }
      }
      var cyEl = document.getElementById('cycles-value');
      if (cyEl) {
        var cyD = Math.round(_display.cycles);
-       if (cyD !== _displayPrev.cycles) { cyEl.textContent = cyD; popValue(cyEl); _displayPrev.cycles = cyD; }
+       if (cyD !== _displayPrev.cycles) { cyEl.textContent = cyD; _displayPrev.cycles = cyD; }
        else { cyEl.textContent = cyD; }
      }
      var scEl = document.getElementById('score-value');
      if (scEl) {
        if (typeof _display.score === 'number' && isFinite(_display.score)) {
          var scD = Math.round(_display.score);
-         if (scD !== _displayPrev.score) { scEl.textContent = scD; popValue(scEl); _displayPrev.score = scD; }
+         if (scD !== _displayPrev.score) { scEl.textContent = scD; _displayPrev.score = scD; }
          else { scEl.textContent = scD; }
        } else {
          if (scEl.textContent !== '\u2014') { scEl.textContent = '\u2014'; }
@@ -670,28 +673,28 @@ var _animCounter = 0;
      var wEl = document.getElementById('worlds-value');
      if (wEl) {
        var wD = Math.round(_display.worlds);
-       if (wD !== _displayPrev.worlds) { wEl.textContent = wD; popValue(wEl); _displayPrev.worlds = wD; }
+       if (wD !== _displayPrev.worlds) { wEl.textContent = wD; _displayPrev.worlds = wD; }
        else { wEl.textContent = wD; }
      }
      var hEl = document.getElementById('health-score');
      if (hEl) {
        var hD = _display.health;
        var hStr = hD > 0 ? (hD * 100).toFixed(0) + '%' : '--';
-       if (hStr !== hEl.textContent) { hEl.textContent = hStr; popValue(hEl.parentElement); }
+       if (hStr !== hEl.textContent) { hEl.textContent = hStr; }
        else { hEl.textContent = hStr; }
      }
      var sEl = document.getElementById('system-score');
      if (sEl) {
        var sysD = _display.system;
        var sysStr = sysD > 0 ? (sysD * 100).toFixed(0) + '%' : '--';
-       if (sysStr !== sEl.textContent) { sEl.textContent = sysStr; popValue(sEl.parentElement); }
+       if (sysStr !== sEl.textContent) { sEl.textContent = sysStr; }
        else { sEl.textContent = sysStr; }
      }
      var mEl = document.getElementById('mission-score');
      if (mEl) {
        var misD = _display.mission;
        var misStr = misD > 0 ? (misD * 100).toFixed(0) + '%' : '--';
-       if (misStr !== mEl.textContent) { mEl.textContent = misStr; popValue(mEl.parentElement); }
+       if (misStr !== mEl.textContent) { mEl.textContent = misStr; }
        else { mEl.textContent = misStr; }
      }
      // Live clock update
@@ -699,6 +702,11 @@ var _animCounter = 0;
      if (clockEl && _lastUpdate) {
        var secs = Math.floor((Date.now() - _lastUpdate) / 1000);
        clockEl.textContent = secs < 5 ? 'just now' : secs + 's ago';
+     }
+     var clockDrawer = document.getElementById('live-clock-drawer');
+     if (clockDrawer && _lastUpdate) {
+       var secs2 = Math.floor((Date.now() - _lastUpdate) / 1000);
+       clockDrawer.textContent = secs2 < 5 ? 'just now' : secs2 + 's ago';
      }
    } catch (er) {}
    requestAnimationFrame(animate);

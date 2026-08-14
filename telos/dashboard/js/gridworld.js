@@ -573,7 +573,7 @@ function drawGrid3D(canvas) {
       ctx.fillStyle = 'rgba(255,107,107,0.4)';
       ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.font = '7px monospace';
+      ctx.font = '12px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(visIdx + 1, sx, topY + 6);
@@ -984,7 +984,7 @@ function drawGoalMarker(ctx, cx, cy) {
   
   // Label
   ctx.fillStyle = `rgba(255,255,200,${0.4 + pulse * 0.3})`;
-  ctx.font = 'bold 9px sans-serif';
+  ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText('GOAL', cx, cy - radius - 4);
@@ -1075,7 +1075,7 @@ function drawTELOS(ctx) {
   
   // Label
   ctx.fillStyle = `rgba(255,200,200,${0.3 + Math.sin(state.time * 2) * 0.1})`;
-  ctx.font = 'bold 8px sans-serif';
+  ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText('TELOS', sx, floatY - orbRadius - 3);
@@ -1126,7 +1126,7 @@ function drawAgent2(ctx) {
   
   // Label
   ctx.fillStyle = `rgba(150,200,255,${0.3 + Math.sin(state.time * 2 + 1) * 0.1})`;
-  ctx.font = 'bold 8px sans-serif';
+  ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText('Agent2', sx, floatY - orbRadius - 3);
@@ -1192,7 +1192,7 @@ function drawAgent2(ctx) {
   
   // Label
   ctx.fillStyle = "rgba(150,200,255,0.4)";
-  ctx.font = "bold 7px sans-serif";
+  ctx.font = "bold 12px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
   ctx.fillText("Agent2", sx, floatY - orbRadius - 2);
@@ -1200,7 +1200,9 @@ function drawAgent2(ctx) {
 
 // ─── Particle System ───
  function spawnParticles() {
-    // Continuous particle spawning for living feel
+    // Continuous particle spawning for living feel (suppressed under
+    // reduced-motion: no new particles when the user asked for calm).
+    if (window.__reducedMotion) return;
     if (state.particles.length < 80 && Math.random() < 0.3) {
      const x = Math.random() * state.gridSize;
      const y = Math.random() * state.gridSize;

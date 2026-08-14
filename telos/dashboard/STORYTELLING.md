@@ -273,3 +273,52 @@ efficiency_vs_optimal         # clamp01(8 / avg) — bounded [0,1] when defined
 > labeled stat with an honest empty state — never fold it into a quality score,
 > and never invent a fill-in value.
 
+
+---
+
+## v3 addendum (2026-08-15) — from "story strip on a BI dashboard" to "the page IS the story"
+
+Owner direction: v2's story strip was a story *feature on a tool*; the ask is BIG DATA
+STORYTELLING in the spirit of https://wc26.bogachev.fr and https://meteo.ashwyn.studio.
+Full codified spec: `telos/dashboard/BIGDATA_BRIEF.md`. What changed and why it stays honest:
+
+### What the v3 redesign did
+1. **The page is now one scroll narrative.** Hero ("Cognitive Data / Portraits") → chapters
+   01 The Signal → 02 The World → 03 The Memory · Knowledge Tree → 04 The Memory · Solar
+   System → 05 The Memory · Bubble Map → 06 The Mind · Neural Orbit → 07 The Mind · Root
+   System → 08 The Story So Far → deep-dive. Chapter markers (ghost numerals + hairline)
+   replace the tab bar; the sidebar became a slide-in system drawer. The narrative arc of
+   P1 (hook → context → evidence → insight → action) now spans the whole page instead of
+   one box: hero = hook+context, chapters = evidence (each captioned "what to look at"),
+   chapter 08 = insight, chat = action.
+   **v4 (2026-08-15): one mode per section.** Each knowledge-graph mode and each mind mode
+   is its OWN full-width chapter in the GRIDWORLD pattern (ghost numeral + hairline +
+   panel + caption + pull-quote) — the three memory modes and two mind modes never share
+   a panel, and the memory timeline in the deep-dive is a compact panel matching the chat
+   panel (same 240px scroll footprint), not a tall page section.
+   **v4 explicit-structure record (2026-08-15, user-approved):** the five chapter sections remain EXPLICIT hand-written HTML (`kg-panel-tree`/`-solar`/`-bubble`, `brain-panel-orbit`/`-tree`) — a template/factory abstraction is deliberately NOT used, so the DOM-contract tests gate literal, statically readable markup.
+2. **The hero is a data canvas.** `#hero-backdrop` draws the REAL DI/MD history as a glowing
+   pulse waveform (the wc26 momentum-pulse idea, honest: it IS the measured series). The
+   title's second line is dyed with REAL knowledge-domain colors. The hero lede repeats the
+   project's opening claim in the references' spirit: *"Cognitive Data — measured live, never
+   invented."*
+3. **Pull-quotes are computed evidence.** Chapters 01–04 carry a quote derived every poll from
+   real fields: latest decision (cycle/intent/DI/verdict), live position + episode efficiency,
+   graph composition + leading domain, top stream activation. These are the "Stories with
+   Words" layer (P6) at chapter scale.
+4. **P5 (design-over-data) re-checked.** The cinematic layers (backdrop, dye, ghost numerals,
+   reveals) are all *mapped to data* — the backdrop is the DI/MD series, the dye is the domain
+   palette, the quotes are the decision log. Decoration that carries no data (the old animated
+   gradient strip) was removed. The anti-noise rule (P5: animation must be signal) still holds:
+   exactly one pulsing endpoint per canvas.
+5. **P7 (common language) preserved.** The hero/chapters speak in "decisions, lessons, world
+   states, futures" — jargon ("cycles", "stream_activations", "domain_facts") stays in the
+   drawer and the code, never the narrative.
+
+### Honesty invariants carried over (unchanged, still enforced)
+- Every number renders from `/api/overview`, `/api/checkpoints`, `/api/knowledge` or the
+  real series they feed. No Math.random for data, no demo traces, no invented insight.
+- Empty states are honest and specific ("awaiting the first decision cycle…").
+- The System Score stays a bounded 0–100 composite; endurance facts stay labeled as such.
+- The DOM-contract tests now gate the narrative structure itself (chapters, quotes, backdrop)
+  plus the overlap/visibility contract in a real browser at 1440×900.

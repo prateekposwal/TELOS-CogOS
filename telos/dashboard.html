@@ -6,51 +6,49 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>TELOS — Cognitive Dashboard</title>
+<title>TELOS — Cognitive Data Portraits</title>
 <link rel="icon" href="data:,">
+<link rel="stylesheet" href="dashboard/fonts/fonts.css">
 <link rel="stylesheet" href="dashboard/css/dashboard.css">
 </head>
 <body>
 
-<!-- ═══════════ SIDEBAR ═══════════ -->
-<aside class="sidebar" id="sidebar">
+<!-- ═══════════ TOPBAR — slim sticky chrome ═══════════ -->
+<header class="topbar">
+  <button class="icon-btn" id="sidebar-toggle" onclick="toggleSidebar()" title="System readouts" aria-label="Open system readouts">☰</button>
+  <span class="topbar-brand">TELOS<span class="tb-sub">cognitive operating system</span></span>
+  <div class="timeline-bar" id="pipeline-timeline" aria-label="Pipeline phase timeline"></div>
+  <span class="live-dot" aria-hidden="true"></span>
+  <span class="live-clock" id="live-clock">waiting…</span>
+  <span class="spacer" aria-hidden="true"></span>
+  <button class="btn btn-primary" onclick="toggleAutoRefresh()" id="btn-auto-refresh">▶ Auto</button>
+  <button class="btn" onclick="exportTraces()" title="Export traces as JSON">⤓ Export</button>
+  <button class="btn" onclick="toggleTheme()" id="btn-theme-toggle">🌙 Dark</button>
+</header>
+
+<!-- ═══════════ SYSTEM DRAWER — the v2 sidebar, now on-demand ═══════════ -->
+<aside class="sidebar" id="sidebar" aria-label="System readouts drawer">
   <header class="sidebar-header">
     <div class="brand-row">
       <h1 class="brand">⚡ TELOS</h1>
-      <button class="icon-btn sidebar-hide" onclick="toggleSidebar()" title="Hide sidebar" aria-label="Hide sidebar">◀</button>
+      <button class="icon-btn sidebar-hide" onclick="toggleSidebar()" title="Close readouts" aria-label="Close readouts">✕</button>
     </div>
-    <div class="status-row">
-      <span class="status">Status: <span id="status-text">Idle</span></span>
-    </div>
+    <div class="status-row"><span class="status">Status: <span id="status-text">Idle</span></span></div>
     <div class="live-row">
       <span class="live-dot" aria-hidden="true"></span>
-      <span class="live-clock" id="live-clock">waiting...</span>
+      <span class="live-clock" id="live-clock-drawer">waiting…</span>
     </div>
   </header>
-<!-- Governance -->
-  <section class="sidebar-cluster" aria-label="Governance">
-    <h2 class="sidebar-section-title">Governance</h2>
-    <div class="metric-grid">
-      <div class="metric-card">
-        <div class="label">Decision Integrity</div>
-        <div class="value" id="di-value">—</div>
-        <div class="sub">Last cycle</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Mission Drift</div>
-        <div class="value" id="md-value">—</div>
-        <div class="sub">Last cycle</div>
-      </div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Cycles</div>
-      <div class="value" id="cycles-value">0</div>
-      <div class="sub">Total executed</div>
-    </div>
+
+  <section class="sidebar-cluster" aria-label="Status">
+    <h2 class="sidebar-section-title">Status</h2>
+    <h3 class="sidebar-subsection">Cognitive Streams</h3>
+    <div id="streams-container"></div>
+    <h3 class="sidebar-subsection">Council</h3>
+    <div id="council-container"></div>
   </section>
 
-  <!-- World -->
-  <section class="sidebar-cluster" aria-label="World state">
+  <section class="sidebar-cluster" aria-label="World">
     <h2 class="sidebar-section-title">World</h2>
     <div class="metric-grid">
       <div class="metric-card">
@@ -74,6 +72,29 @@
       <div class="value value-sm" id="episode-value">—</div>
       <div class="sub" id="episode-sub">steps into current episode — awaiting first goal…</div>
     </div>
+    <div class="minimap-wrap"><canvas id="minimap-canvas" width="150" height="150"></canvas></div>
+    <div id="kg-debug" class="node-count-label"></div>
+  </section>
+
+  <section class="sidebar-cluster" aria-label="System">
+    <h2 class="sidebar-section-title">System</h2>
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="label">Decision Integrity</div>
+        <div class="value" id="di-value">—</div>
+        <div class="sub">Last cycle</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Mission Drift</div>
+        <div class="value" id="md-value">—</div>
+        <div class="sub">Last cycle</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Cycles</div>
+      <div class="value" id="cycles-value">0</div>
+      <div class="sub">Total executed</div>
+    </div>
     <div class="metric-card">
       <div class="label">System Score</div>
       <div class="value" id="score-value">—</div>
@@ -85,11 +106,6 @@
       </div>
       <div class="sub" id="score-breakdown">0–100 composite — waiting for first cycle</div>
     </div>
-  </section>
-
-  <!-- Cognition -->
-  <section class="sidebar-cluster" aria-label="Cognition">
-    <h2 class="sidebar-section-title">Cognition</h2>
     <div class="metric-card" id="omega-card" style="display:none;">
       <div class="label">Ω Vector</div>
       <div class="value value-sm" id="omega-value">—</div>
@@ -105,15 +121,6 @@
       <div class="value value-sm" id="score-card-value">—</div>
       <div class="sub">Current step</div>
     </div>
-    <h3 class="sidebar-subsection">Cognitive Streams</h3>
-    <div id="streams-container"></div>
-    <h3 class="sidebar-subsection">Council</h3>
-    <div id="council-container"></div>
-  </section>
-
-  <!-- Resources -->
-  <section class="sidebar-cluster" aria-label="Resources">
-    <h2 class="sidebar-section-title">Resources</h2>
     <div class="resource-gauge">
       <div class="rg-row"><span class="rg-label">Compute</span><div class="rg-bar"><div class="rg-fill" id="rg-comp"></div></div><span class="rg-val" id="rg-comp-val">50%</span></div>
       <div class="rg-row"><span class="rg-label">Memory</span><div class="rg-bar"><div class="rg-fill" id="rg-mem"></div></div><span class="rg-val" id="rg-mem-val">50%</span></div>
@@ -123,203 +130,295 @@
       <canvas id="health-meter-canvas" width="64" height="64"></canvas>
       <div class="hm-info"><div class="hm-label">κAesthetic</div><div class="hm-val" id="hm-val">--</div><div class="hm-sub" id="hm-sub">—</div></div>
     </div>
-    <div class="minimap-wrap"><canvas id="minimap-canvas" width="150" height="150"></canvas></div>
-    <div id="kg-debug" class="node-count-label"></div>
   </section>
 </aside>
 
-<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Hide sidebar" aria-label="Hide sidebar">◀</button>
+<div class="drawer-fade" id="drawer-fade" onclick="toggleSidebar()" aria-hidden="true"></div>
 
-<!-- ═══════════ MAIN ═══════════ -->
+<!-- ═══════════ MAIN — the scroll narrative ═══════════ -->
 <main class="main" id="main-content">
 
-  <header class="toolbar">
-    <span class="toolbar-brand">⚡ TELOS GridWorld</span>
-    <span class="spacer" aria-hidden="true"></span>
-    <div class="timeline-bar" id="pipeline-timeline"></div>
-    <span class="spacer" aria-hidden="true"></span>
-    <button class="btn btn-primary" onclick="toggleAutoRefresh()" id="btn-auto-refresh">▶ Auto</button>
-    <button class="btn" onclick="exportTraces()" title="Export traces as JSON">📥 Export</button>
-    <button class="btn" onclick="toggleTheme()" id="btn-theme-toggle">🌙 Dark</button>
-  </header>
-<nav class="tab-bar" id="tab-bar" aria-label="Dashboard views">
-    <span class="tab active" onclick="switchTab('all')" data-tab="all">All</span>
-    <span class="tab" onclick="switchTab('brain')" data-tab="brain">Brain</span>
-    <span class="tab" onclick="switchTab('grid')" data-tab="grid">Grid</span>
-    <span class="tab" onclick="switchTab('chart')" data-tab="chart">Chart</span>
-    <span class="tab" onclick="switchTab('kg')" data-tab="kg">Knowledge</span>
-    <span class="tab" onclick="switchTab('memory')" data-tab="memory">Memory</span>
-    <span class="tab" onclick="switchTab('chat')" data-tab="chat">Chat</span>
-  </nav>
-
-  <!-- ═══════════ BIG DATA STORY (hero — always visible, no tab needed) ═══════════
-       Narrative arc per telos/dashboard/STORYTELLING.md:
-       hook (headline) → hero number (hierarchy = explanation) → context stats
-       (each captioned) → insight (computed from live numbers) → evidence chips →
-       reflection → action (chat command box). Every number comes from
-       /api/overview measured runtime data — the narrative is DERIVED, never invented. -->
+  <!-- ═══════════ HERO — Cognitive Data Portraits ═══════════
+       Every number and every pixel is derived from real runtime data
+       (/api/overview + /api/checkpoints). The backdrop canvas draws the
+       REAL DI/MD history as a glowing pulse waveform. Nothing is staged. -->
   <section class="story-strip" id="story-strip" aria-label="TELOS data story">
-    <div class="story-headline-row">
-      <h2 class="story-headline" id="story-headline">🌀 TELOS is live…</h2>
-      <span class="story-live" id="story-live">producer starting</span>
-    </div>
+    <canvas id="hero-backdrop" class="hero-backdrop" aria-hidden="true"></canvas>
+    <div class="hero-scrim" aria-hidden="true"></div>
 
-    <!-- Hero: the one number this story is about (one hero per section, not 8 equals). -->
-    <div class="story-hero" id="story-hero">
-      <div class="story-hero-val" id="story-decisions">0</div>
-      <div class="story-hero-side">
-        <div class="story-hero-label">decisions made</div>
-        <div class="story-hero-caption" id="story-hero-caption">Every decision is a real pipeline run — DI-gated and council-checked before TELOS acts.</div>
+    <div class="hero-inner">
+      <div class="hero-eyebrow">
+        <span class="tick" aria-hidden="true"></span>
+        <span class="edition-label">Cognitive Data — measured live, never invented</span>
+        <span class="story-live" id="story-live">producer starting</span>
       </div>
-    </div>
 
-    <!-- Context: supporting numbers, each with a one-line caption (why it matters). -->
-    <div class="story-stats" id="story-stats">
-      <div class="story-stat"><div class="ss-val" id="story-domains-count">0</div><div class="ss-label">domains</div><div class="ss-caption">knowledge areas TELOS works across</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div><div class="ss-caption">graph nodes — each a real observation</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-worlds">0</div><div class="ss-label">world states</div><div class="ss-caption">distinct cells visited in GridWorld</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">futures imagined</div><div class="ss-caption">counterfactual simulations run — all hypothetical, none real</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-efficiency">—</div><div class="ss-label">steps per goal</div><div class="ss-caption">decision steps to reach the goal — optimal is 8</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-di">—</div><div class="ss-label">decision integrity</div><div class="ss-caption">quality of the last decision</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-md">—</div><div class="ss-label">mission drift</div><div class="ss-caption">distance from mission — lower is better</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-graph">0/0</div><div class="ss-label">graph</div><div class="ss-caption">nodes / edges — memory and its connections</div></div>
-    </div>
+      <h1 class="hero-title"><span class="ht-1">Cognitive Data</span><span class="ht-2" id="hero-title-dyed"><span class="ch">P</span><span class="ch">o</span><span class="ch">r</span><span class="ch">t</span><span class="ch">r</span><span class="ch">a</span><span class="ch">i</span><span class="ch">t</span><span class="ch">s</span></span></h1>
 
-    <!-- Insight: the "stories with words" layer — a sentence computed from live numbers. -->
-    <div class="story-insight" id="story-insight">🌀 Computing the story…</div>
+      <p class="hero-lede" id="story-headline">🌀 TELOS is live…</p>
+      <p class="story-subhead" id="story-subhead">Every number below is a real pipeline run — measured, DI-gated, council-checked. The story is derived from the data, never invented.</p>
 
-    <!-- Evidence: connected chips. Domain chips are clickable (choose-your-own-adventure). -->
-    <div class="story-row">
-      <span class="story-row-label">Knowledge domains</span>
-      <div class="story-chips" id="story-domain-chips"><span class="story-chip dim">waiting for data…</span></div>
-    </div>
-    <div class="story-row">
-      <span class="story-row-label">Edge types</span>
-      <div class="story-chips" id="story-edge-chips"><span class="story-chip dim">waiting for data…</span></div>
-    </div>
-    <div class="story-row">
-      <span class="story-row-label">Recent decisions</span>
-      <div class="story-recent" id="story-recent"><span class="story-chip dim">waiting for data…</span></div>
-    </div>
+      <div class="hero-meta">
+        <div class="story-hero" id="story-hero">
+          <div class="story-hero-val" id="story-decisions">0</div>
+          <div class="story-hero-side">
+            <div class="story-hero-label">decisions made</div>
+            <div class="story-hero-caption" id="story-hero-caption">Every decision is a real pipeline run — DI-gated and council-checked before TELOS acts.</div>
+          </div>
+        </div>
+        <div class="story-stats" id="story-stats">
+          <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div><div class="ss-caption">real observations in the knowledge graph</div></div>
+          <div class="story-stat"><div class="ss-val" id="story-worlds">0</div><div class="ss-label">world states</div><div class="ss-caption">distinct cells visited in GridWorld</div></div>
+          <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">futures imagined</div><div class="ss-caption">counterfactual simulations — all hypothetical</div></div>
+          <div class="story-stat"><div class="ss-val" id="story-efficiency">—</div><div class="ss-label">steps per goal</div><div class="ss-caption">decision steps to reach the goal — optimal is 8</div></div>
+        </div>
+      </div>
 
-    <div class="story-mood" id="story-mood">🌀 TELOS is warming up…</div>
-
-    <!-- Action: the story ends facing forward — the chat command box is the action surface. -->
-    <div class="story-action" id="story-action">
-      <span class="story-action-hint">TELOS is listening — what should it do next?</span>
-      <button class="btn btn-primary" onclick="openChat()">Direct TELOS →</button>
+      <div class="scroll-cue" aria-hidden="true">scroll — the story continues ↓</div>
     </div>
   </section>
 
-  <div class="section-spacer"></div>
-
-  <!-- ═══════════ GRAPH WALL — the three live graphs, visible on load ═══════════ -->
+  <!-- ═══════════ GRAPH WALL — the four evidence chapters ═══════════ -->
   <div class="graph-wall" id="graph-wall">
 
-    <section class="panel brain-panel" data-section="brain">
-      <header class="panel-header">
-        <h3 class="panel-title">🧠 Cognitive Visualization</h3>
-        <div class="panel-controls">
-          <button class="zoom-btn" onclick="zoomBrain(-0.2)" aria-label="Zoom out">−</button>
-          <span class="zoom-level" id="brain-zoom-lvl">1.0×</span>
-          <button class="zoom-btn" onclick="zoomBrain(0.2)" aria-label="Zoom in">+</button>
-          <button class="zoom-btn" onclick="toggleBrainPause()" id="btn-brain-pause">⏸</button>
-          <span id="brain-debug" class="viz-debug"></span>
-          <button class="fullscreen-btn" onclick="toggleBrainFullscreen()" title="Fullscreen">⛶</button>
+    <!-- CHAPTER 01 — The Signal -->
+    <section class="chapter" data-chapter="01">
+      <div class="chapter-mark">
+        <span class="ch-idx" aria-hidden="true">01</span>
+        <div class="ch-head"><h2>The Signal</h2><span class="ch-count">decision quality · every cycle measured</span></div>
+      </div>
+      <div class="chapter-body reveal">
+        <div class="signal-row">
+          <div class="signal-readouts">
+            <div class="sig-block"><span class="sig-label">DI · decision integrity</span><span class="sig-val sig-di" id="story-di">—</span><span class="sig-note">process over outcomes — Axiom 1.2</span></div>
+            <div class="sig-block"><span class="sig-label">MD · mission drift</span><span class="sig-val sig-md" id="story-md">—</span><span class="sig-note">threshold 5.0 — MissionDriftDetector</span></div>
+            <div class="sig-block"><span class="sig-label">System Score</span><span class="sig-val sig-score" id="sig-score-val">—</span><span class="sig-note" id="sig-score-note">bounded 0–100 composite of measured signals</span></div>
+          </div>
+          <div class="panel chart-panel" id="chart-panel">
+            <canvas id="chart-canvas" width="1200" height="380"></canvas>
+            <p class="panel-caption">Decision integrity against mission drift over the run — the quality of every choice TELOS makes, drawn from real per-cycle traces.</p>
+          </div>
         </div>
-      </header>
-    <p class="panel-caption">Each stream’s activation energy over the last cycles — watch which streams drive TELOS’s thinking right now.</p>
-<div class="zoom-wrap brain-grid">
-        <canvas id="brain-orbit" width="900" height="600"></canvas>
-        <canvas id="brain-tree" width="900" height="600"></canvas>
+        <blockquote class="pullquote" id="signal-quote"><p class="pq-body">awaiting the first decision…</p><cite class="pq-cite">latest decision · real trace</cite></blockquote>
       </div>
     </section>
 
-    <section class="panel grid-panel" id="grid-panel" data-section="grid">
-      <header class="panel-header">
-        <h3 class="panel-title">🗺️ GridWorld — 3D Isometric</h3>
-        <div class="panel-controls">
-          <button class="zoom-btn" onclick="toggleCostView()" id="btn-cost-view">$</button>
-          <button class="zoom-btn" onclick="toggleHeatMode()" id="btn-heat-mode">🔥</button>
-          <button class="zoom-btn" onclick="toggleOmegaHeatmap()" id="btn-omega-heat">Ω</button>
-          <button class="fullscreen-btn" onclick="toggleGridFullscreen()" title="Fullscreen">⛶</button>
+    <!-- CHAPTER 02 — The World -->
+    <section class="chapter" data-chapter="02">
+      <div class="chapter-mark">
+        <span class="ch-idx" aria-hidden="true">02</span>
+        <div class="ch-head"><h2>The World</h2><span class="ch-count">GridWorld · where TELOS moves</span></div>
+      </div>
+      <div class="chapter-body reveal">
+        <div class="panel grid-panel" id="grid-panel">
+          <div class="grid-controls">
+            <button class="zoom-btn" onclick="toggleCostView()" id="btn-cost-view" title="Toggle move costs">$</button>
+            <button class="zoom-btn" onclick="toggleHeatMode()" id="btn-heat-mode" title="Toggle visit heat">🔥</button>
+            <button class="zoom-btn" onclick="toggleOmegaHeatmap()" id="btn-omega-heat" title="Toggle Ω heatmap">Ω</button>
+            <button class="zoom-btn" onclick="toggleGridFullscreen()" title="Fullscreen">⛶</button>
+          </div>
+          <canvas id="grid-canvas" width="1000" height="620"></canvas>
+          <div id="hover-tooltip" class="hover-tooltip"></div>
         </div>
-      </header>
-    <p class="panel-caption">Where TELOS is in its world — blocked cells it cannot cross, rewards it has learned to seek.</p>
-<canvas id="grid-canvas" width="800" height="600"></canvas>
-      <div id="hover-tooltip" class="hover-tooltip"></div>
-    </section>
-
-    <section class="panel knowledge-panel" id="knowledge-panel" data-section="kg">
-      <header class="panel-header">
-        <h3 class="panel-title">🧠 Knowledge Graph</h3>
-        <div class="panel-controls">
-          <button class="zoom-btn" onclick="zoomKG(-0.2)" aria-label="Zoom out">−</button>
-          <span class="zoom-level" id="kg-zoom-lvl">1.0×</span>
-          <button class="zoom-btn" onclick="zoomKG(0.2)" aria-label="Zoom in">+</button>
-          <span id="node-count" class="viz-debug"></span>
-          <button class="zoom-btn" onclick="toggleKGPause()" id="btn-kg-pause">⏸</button>
-          <button class="fullscreen-btn" onclick="toggleKGFullscreen()" title="Fullscreen">⛶</button>
-        </div>
-      </header>
-    <p class="panel-caption">TELOS’s memory — every node is a real lesson, every edge a connection it drew between them. Click a domain chip above to highlight it here.</p>
-      <div class="kg-grid">
-        <div class="zoom-wrap"><canvas id="kg-tree"></canvas></div>
-        <div class="zoom-wrap"><canvas id="kg-solar"></canvas></div>
-        <div class="zoom-wrap"><canvas id="kg-bubble"></canvas></div>
+        <p class="panel-caption">The territory TELOS actually walks: blocked cells it cannot cross, rewards it has learned to secure, terrain that shifts under it — all from real positions.</p>
+        <blockquote class="pullquote" id="world-quote"><p class="pq-body">awaiting the first position…</p><cite class="pq-cite">live position · real episode</cite></blockquote>
       </div>
     </section>
 
+    <!-- CHAPTER 03 — The Memory · Knowledge Tree (one mode, one full section) -->
+    <section class="chapter" data-chapter="03">
+      <div class="chapter-mark">
+        <span class="ch-idx" aria-hidden="true">03</span>
+        <div class="ch-head"><h2>The Memory</h2><span class="ch-count">knowledge tree · where lessons branch</span></div>
+      </div>
+      <div class="chapter-body reveal">
+        <div class="mem-counts">
+          <span class="mem-count"><b id="story-graph">0/0</b>nodes / edges</span>
+          <span class="mem-count"><b id="story-domains-count">0</b>domains</span>
+          <span class="story-row">
+            <span class="story-row-label">Domains</span>
+            <div class="story-chips" id="story-domain-chips"><span class="story-chip dim">waiting for data…</span></div>
+          </span>
+          <span class="story-row">
+            <span class="story-row-label">Edge types</span>
+            <div class="story-chips" id="story-edge-chips"><span class="story-chip dim">waiting for data…</span></div>
+          </span>
+        </div>
+        <div class="panel knowledge-panel" id="kg-panel-tree">
+          <div class="panel-controls">
+            <button class="zoom-btn" onclick="zoomKG(-0.2)" aria-label="Zoom out">−</button>
+            <span class="zoom-level kg-zoom-lvl">1.0×</span>
+            <button class="zoom-btn" onclick="zoomKG(0.2)" aria-label="Zoom in">+</button>
+            <span id="node-count" class="viz-debug"></span>
+            <button class="zoom-btn kg-pause-btn" onclick="toggleKGPause()" title="Pause">⏸</button>
+            <button class="zoom-btn" onclick="toggleKGFullscreen(this)" title="Fullscreen">⛶</button>
+          </div>
+          <div class="zoom-wrap"><canvas id="kg-tree"></canvas></div>
+        </div>
+        <p class="panel-caption">TELOS's memory as a tree — the trunk is the corpus, each branch a real knowledge domain, each leaf a lesson it actually recorded. Click a domain chip above to light that branch across every mode.</p>
+        <blockquote class="pullquote" id="memory-quote"><p class="pq-body">awaiting knowledge…</p><cite class="pq-cite">knowledge graph · /api/knowledge</cite></blockquote>
+      </div>
+    </section>
+
+    <!-- CHAPTER 04 — The Memory · Solar System (one mode, one full section) -->
+    <section class="chapter" data-chapter="04">
+      <div class="chapter-mark">
+        <span class="ch-idx" aria-hidden="true">04</span>
+        <div class="ch-head"><h2>The Memory</h2><span class="ch-count">solar system · domains as orbiting worlds</span></div>
+      </div>
+      <div class="chapter-body reveal">
+        <div class="panel knowledge-panel" id="kg-panel-solar">
+          <div class="panel-controls">
+            <button class="zoom-btn" onclick="zoomKG(-0.2)" aria-label="Zoom out">−</button>
+            <span class="zoom-level kg-zoom-lvl">1.0×</span>
+            <button class="zoom-btn" onclick="zoomKG(0.2)" aria-label="Zoom in">+</button>
+            <button class="zoom-btn kg-pause-btn" onclick="toggleKGPause()" title="Pause">⏸</button>
+            <button class="zoom-btn" onclick="toggleKGFullscreen(this)" title="Fullscreen">⛶</button>
+          </div>
+          <div class="zoom-wrap"><canvas id="kg-solar"></canvas></div>
+        </div>
+        <p class="panel-caption">The same memory as a solar system — each domain is a planet on its own orbit, its moons the lessons bound to it. TELOS sits at the centre of what it knows.</p>
+        <blockquote class="pullquote" id="memory-solar-quote"><p class="pq-body">awaiting knowledge…</p><cite class="pq-cite">domains · /api/knowledge</cite></blockquote>
+      </div>
+    </section>
+
+    <!-- CHAPTER 05 — The Memory · Bubble Map (one mode, one full section) -->
+    <section class="chapter" data-chapter="05">
+      <div class="chapter-mark">
+        <span class="ch-idx" aria-hidden="true">05</span>
+        <div class="ch-head"><h2>The Memory</h2><span class="ch-count">bubble map · density at a glance</span></div>
+      </div>
+      <div class="chapter-body reveal">
+        <div class="panel knowledge-panel" id="kg-panel-bubble">
+          <div class="panel-controls">
+            <button class="zoom-btn" onclick="zoomKG(-0.2)" aria-label="Zoom out">−</button>
+            <span class="zoom-level kg-zoom-lvl">1.0×</span>
+            <button class="zoom-btn" onclick="zoomKG(0.2)" aria-label="Zoom in">+</button>
+            <button class="zoom-btn kg-pause-btn" onclick="toggleKGPause()" title="Pause">⏸</button>
+            <button class="zoom-btn" onclick="toggleKGFullscreen(this)" title="Fullscreen">⛶</button>
+          </div>
+          <div class="zoom-wrap"><canvas id="kg-bubble"></canvas></div>
+        </div>
+        <p class="panel-caption">And once more as a bubble map — bubble size is real lesson density per domain, so the heaviest clusters of memory surface at a glance.</p>
+        <blockquote class="pullquote" id="memory-bubble-quote"><p class="pq-body">awaiting knowledge…</p><cite class="pq-cite">edge types · /api/knowledge</cite></blockquote>
+      </div>
+    </section>
+
+    <!-- CHAPTER 06 — The Mind · Neural Orbit (one mode, one full section) -->
+    <section class="chapter" data-chapter="06">
+      <div class="chapter-mark">
+        <span class="ch-idx" aria-hidden="true">06</span>
+        <div class="ch-head"><h2>The Mind</h2><span class="ch-count">neural orbit · identity layers &amp; pipeline phases</span></div>
+      </div>
+      <div class="chapter-body reveal">
+        <div class="panel brain-panel" id="brain-panel-orbit">
+          <div class="panel-controls">
+            <button class="zoom-btn" onclick="zoomBrain(-0.2)" aria-label="Zoom out">−</button>
+            <span class="zoom-level brain-zoom-lvl">1.0×</span>
+            <button class="zoom-btn" onclick="zoomBrain(0.2)" aria-label="Zoom in">+</button>
+            <button class="zoom-btn brain-pause-btn" onclick="toggleBrainPause()" title="Pause">⏸</button>
+            <span id="brain-debug" class="viz-debug"></span>
+            <button class="zoom-btn" onclick="toggleBrainFullscreen(this)" title="Fullscreen">⛶</button>
+          </div>
+          <div class="zoom-wrap"><canvas id="brain-orbit"></canvas></div>
+        </div>
+        <p class="panel-caption">The neural orbit — the six identity layers ringed by the nine pipeline phases, with the phase TELOS is actually in right now glowing from the real trace. Drag to turn it.</p>
+        <blockquote class="pullquote" id="mind-quote"><p class="pq-body">awaiting stream activations…</p><cite class="pq-cite">latest cycle · stream_activations</cite></blockquote>
+      </div>
+    </section>
+
+    <!-- CHAPTER 07 — The Mind · Root System (one mode, one full section) -->
+    <section class="chapter" data-chapter="07">
+      <div class="chapter-mark">
+        <span class="ch-idx" aria-hidden="true">07</span>
+        <div class="ch-head"><h2>The Mind</h2><span class="ch-count">root system · the nine-phase pipeline canopy</span></div>
+      </div>
+      <div class="chapter-body reveal">
+        <div class="panel brain-panel" id="brain-panel-tree">
+          <div class="panel-controls">
+            <button class="zoom-btn" onclick="zoomBrain(-0.2)" aria-label="Zoom out">−</button>
+            <span class="zoom-level brain-zoom-lvl">1.0×</span>
+            <button class="zoom-btn" onclick="zoomBrain(0.2)" aria-label="Zoom in">+</button>
+            <button class="zoom-btn brain-pause-btn" onclick="toggleBrainPause()" title="Pause">⏸</button>
+            <button class="zoom-btn" onclick="toggleBrainFullscreen(this)" title="Fullscreen">⛶</button>
+          </div>
+          <div class="zoom-wrap"><canvas id="brain-tree"></canvas></div>
+        </div>
+        <p class="panel-caption">The same mind as a root system — the six identity layers anchor the trunk, and the nine pipeline phases spread overhead like a canopy. The active phase pulses from the real trace.</p>
+        <blockquote class="pullquote" id="mind-root-quote"><p class="pq-body">awaiting a decision cycle…</p><cite class="pq-cite">latest cycle · phase durations</cite></blockquote>
+      </div>
+    </section>
   </div>
 
   <div class="section-spacer"></div>
 
-  <section class="panel chart-panel" id="chart-panel" data-section="chart">
-    <header class="panel-header">
-      <h3 class="panel-title">📈 DI / MD History</h3>
-      <button class="fullscreen-btn" onclick="toggleChartFullscreen()" title="Fullscreen">⛶</button>
-    </header>
-    <p class="panel-caption">Decision integrity vs mission drift over time — the quality of every choice TELOS makes.</p>
-    <canvas id="chart-canvas" width="800" height="200"></canvas>
-  </section>
-
-  <div class="section-spacer"></div>
-
-  <section class="panel memory-panel" data-section="memory">
-    <header class="panel-header">
-      <h3 class="panel-title">🧠 Memory Timeline</h3>
-      <button class="fullscreen-btn" onclick="toggleMemoryFullscreen()" title="Fullscreen">⛶</button>
-    </header>
-    <div id="memory-timeline"></div>
-  </section>
-
-  <div class="section-spacer"></div>
-
-  <section class="panel chat-panel" data-section="chat">
-    <header class="panel-header">
-      <h3 class="panel-title">💬 Command</h3>
-    </header>
-    <div class="chat-messages" id="chat-messages">
-      <div class="chat-msg telos">Send a command to TELOS (e.g. "navigate", "status")<span class="time">ready</span></div>
+  <!-- ═══════════ CHAPTER 08 — The Story So Far (narrative hub) ═══════════ -->
+  <section class="chapter narrative-hub" data-chapter="08">
+    <div class="chapter-mark">
+      <span class="ch-idx" aria-hidden="true">08</span>
+      <div class="ch-head"><h2>The Story So Far</h2><span class="ch-count">what the numbers mean — derived, never invented</span></div>
     </div>
-    <div class="chat-input-row">
-      <input id="chat-input" type="text" placeholder="Type command..." onkeydown="if(event.key==='Enter')sendCmd(this.value)" aria-label="Command input">
-      <button id="chat-send" class="btn btn-primary" onclick="sendCmd(document.getElementById('chat-input').value)">Send</button>
+    <div class="chapter-body reveal">
+      <div class="story-insight" id="story-insight" aria-live="polite">🌀 Computing the story…</div>
+
+      <div class="story-row">
+        <span class="story-row-label">Recent decisions</span>
+        <div class="story-recent" id="story-recent"><span class="story-chip dim">waiting for data…</span></div>
+      </div>
+
+      <div class="story-mood" id="story-mood" aria-live="polite">🌀 TELOS is warming up…</div>
+
+      <div class="story-action" id="story-action">
+        <span class="story-action-hint">TELOS is listening — what should it do next?</span>
+        <button class="btn btn-primary" onclick="openChat()">Direct TELOS →</button>
+      </div>
     </div>
   </section>
 
   <div class="section-spacer"></div>
 
-  <section class="panel log-panel">
-    <header class="panel-header">
-      <h3 class="panel-title">📋 Recent Log</h3>
-    </header>
-    <div id="log-container"><div id="log-entries"></div></div>
+  <!-- ═══════════ DEEP-DIVE — memory timeline, command, log ═══════════ -->
+  <section class="chapter deep-dive" data-chapter="dd">
+    <div class="chapter-mark">
+      <span class="ch-idx" aria-hidden="true">DD</span>
+      <div class="ch-head"><h2>Show Me Everything</h2><span class="ch-count">the full record — every cycle, every command</span></div>
+    </div>
+    <div class="chapter-body reveal">
+      <div class="deep-grid">
+        <section class="panel memory-panel" id="memory-panel">
+          <header class="panel-header">
+            <h3 class="panel-title">Memory Timeline</h3>
+            <button class="zoom-btn" onclick="toggleMemoryFullscreen()" title="Fullscreen">⛶</button>
+          </header>
+          <div id="memory-timeline"></div>
+        </section>
+        <section class="panel chat-panel" id="chat-panel">
+          <header class="panel-header">
+            <h3 class="panel-title">Command</h3>
+          </header>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg telos">Send a command to TELOS (e.g. "navigate", "status")<span class="time">ready</span></div>
+          </div>
+          <div class="chat-input-row">
+            <input id="chat-input" type="text" placeholder="Type command..." onkeydown="if(event.key==='Enter')sendCmd(this.value)" aria-label="Command input">
+            <button id="chat-send" class="btn btn-primary" onclick="sendCmd(document.getElementById('chat-input').value)">Send</button>
+          </div>
+        </section>
+      </div>
+      <div class="section-spacer"></div>
+      <section class="panel log-panel" id="log-panel">
+        <header class="panel-header">
+          <h3 class="panel-title">Recent Log</h3>
+        </header>
+        <div id="log-container"><div id="log-entries"></div></div>
+      </section>
+    </div>
   </section>
+
+  <div class="learning-ticker" id="learning-ticker">🌀 Waiting for data...</div>
 
 </main>
 
-<div id="learning-ticker" class="learning-ticker">🌀 Waiting for data...</div>
 <div id="debug-log" class="debug-log"></div>
 
 <div class="phase-detail-panel" id="phase-detail-panel">
@@ -342,6 +441,7 @@
 <script src="dashboard/js/chart.js"></script>
 <script src="dashboard/js/memory.js"></script>
 <script src="dashboard/js/story.js"></script>
+<script src="dashboard/js/hero.js"></script>
 <script src="dashboard/js/chat.js"></script>
 </body>
 </html>
