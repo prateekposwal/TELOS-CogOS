@@ -31,6 +31,17 @@ EXCLUDE_DIRS_WALK = {"__pycache__"}
 EXCLUDE_DIRS_CHECK = {"telos/benchmarks/data", "telos/audit"}
 EXCLUDE_FROM_DEAD_CODE = {"telos/tools", "telos/benchmarks"}
 
+# Framework dispatch methods: reached by the runtime via name-based dispatch
+# (BaseHTTPRequestHandler.do_GET/log_message, Thread.run, browser WS handlers),
+# so they never appear at a source call site. Flagging them as dead code is a
+# false positive — they are reachable, just not by an explicit call.
+FRAMEWORK_DISPATCH_METHODS = {
+    "do_GET", "do_POST", "do_PUT", "do_DELETE", "do_HEAD", "do_OPTIONS",
+    "log_message", "end_headers", "send_head", "translate_path",
+    "run",  # threading.Thread / multiprocessing.Process
+    "onmessage", "onclose", "onerror",  # browser WebSocket handlers
+}
+
 all_pass = True
 
 
@@ -176,6 +187,11 @@ def check_dead_code():
         if any(rp.startswith(e) for e in EXCLUDE_FROM_DEAD_CODE):
             continue
         for name, (kind, def_count) in defs.items():
+            # Framework dispatch methods are runtime-reachable by name, never
+            # called at a source site — treat them as used (see Λ2.3: the
+            # scanner must not manufacture false positives).
+            if kind == "function" and name in FRAMEWORK_DISPATCH_METHODS:
+                continue
             # Used if it appears in more than one file, or in its own file more
             # times than it is defined there (i.e. real call sites exist).
             in_other_file = len(name_to_files.get(name, {fp}) - {fp}) > 0
