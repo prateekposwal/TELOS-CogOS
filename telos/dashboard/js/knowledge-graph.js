@@ -6,6 +6,17 @@ let kgEdges = [];
 let kgRotation = 0;
 let kgLoaded = false;
 let kgNoData = false;
+let kgHighlight = null;  // connected-stories state: story.js domain chips set this
+
+// Connected stories (STORYTELLING.md feature #4): called by story.js when a
+// domain chip is clicked. Highlights that domain's nodes in all three KG
+// canvases; passing null clears the highlight. Returns nothing.
+function highlightKGByDomain(domain) {
+  kgHighlight = domain || null;
+  // The KG is part of the "All" landing wall — return there so the
+  // highlight is actually visible (never destructive; 'all' is the default).
+  if (domain && typeof switchTab === 'function') switchTab('all');
+}
 
 async function fetchKnowledge() {
   try {
@@ -218,6 +229,12 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
       }
       var modeNodes=proj.slice();
       modeNodes.sort(function(a,b){return a.depth-b.depth;});
+      if(kgHighlight){
+        for(var hi=0;hi<modeNodes.length;hi++){
+          modeNodes[hi].dimmed=modeNodes[hi].domain!==kgHighlight;
+          modeNodes[hi].hl=modeNodes[hi].domain===kgHighlight;
+        }
+      }
       switch(ki){
         case 0:kgTree(ctx,w,h,modeNodes);break;
         case 1:kgSolar(ctx,w,h,modeNodes);break;
@@ -264,7 +281,9 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
         var lx=bx+Math.cos(dAngle+0.5)*pct*65,ly=by+Math.sin(dAngle+0.5)*pct*65-26;
         var col=DOMAIN_COLORS[n.domain]||'#888';
         var r=10+Math.sin(kgt+ni+di)*4;
+        if(n.dimmed){ctx.globalAlpha=0.06;ctx.fillStyle=col;ctx.beginPath();ctx.arc(lx,ly,r*2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;continue;}
         ctx.fillStyle=col;ctx.beginPath();ctx.arc(lx,ly,r*4,0,Math.PI*2);ctx.fill();
+        if(n.hl){ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(lx,ly,r*4+3,0,Math.PI*2);ctx.stroke();}
         if(n.label&&pct>0.4){
           ctx.fillStyle='rgba(200,200,200,0.5)';ctx.font='13px sans-serif';
           ctx.textAlign='center';ctx.fillText(n.label,lx,ly+18);
@@ -296,6 +315,8 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
     ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('TELOS',cx,cy+26);
     for(var di=0;di<dCount;di++){
+      var domDim=kgHighlight?(dNames[di]!==kgHighlight):false;
+      if(domDim)ctx.globalAlpha=0.10;
       var orbitR=50+(di+1)*(Math.min(w,h)*0.20);
       var angle=kgt*(0.3+di*0.1)+di*1.2;
       var px=cx+Math.cos(angle)*orbitR,py=cy+Math.sin(angle)*orbitR;
@@ -306,6 +327,7 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
       ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(px-5,py-5,5,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='17px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
       ctx.fillText(dNames[di].substring(0,5),px,py+20);
+      if(!domDim&&kgHighlight){ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,24,0,Math.PI*2);ctx.stroke();}
       var moons=domains[dNames[di]];
       for(var mi=0;mi<moons.length;mi++){
         var m=moons[mi],mAngle=angle+Math.PI/2+(mi/moons.length)*Math.PI*2+kgt*0.5;
@@ -313,6 +335,7 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
         var mx=px+Math.cos(mAngle)*mR,my=py+Math.sin(mAngle)*mR;
         ctx.fillStyle=col;ctx.beginPath();ctx.arc(mx,my,10,0,Math.PI*2);ctx.fill();
       }
+      ctx.globalAlpha=1;
     }
   }
   // ── 3. Bubble Map ──
@@ -331,6 +354,8 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
       var bx=w/2+Math.cos(angle)*radius,by=h/2+Math.sin(angle)*radius*0.7;
       var bSize=65+Math.sin(kgt*0.5+di)*10;
       var col=DOMAIN_COLORS[dNames[di]]||'#888';
+      var domDim=kgHighlight?(dNames[di]!==kgHighlight):false;
+      if(domDim)ctx.globalAlpha=0.08;
       var bg2=ctx.createRadialGradient(bx,by,0,bx,by,bSize*1.5);
       bg2.addColorStop(0,col+'22');bg2.addColorStop(1,'transparent');
       ctx.fillStyle=bg2;ctx.beginPath();ctx.arc(bx,by,bSize*1.5,0,Math.PI*2);ctx.fill();
@@ -349,6 +374,8 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
         ctx.fillStyle='rgba(255,255,255,0.1)';
         ctx.beginPath();ctx.arc(ix-r*0.2,iy-r*0.2,r*0.3,0,Math.PI*2);ctx.fill();
       }
+      if(!domDim&&kgHighlight){ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by,bSize+8,0,Math.PI*2);ctx.stroke();}
+      ctx.globalAlpha=1;
     }
   }
   kgDrawAll();

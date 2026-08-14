@@ -257,11 +257,15 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             "edges": len(knowledge.get("edges", [])),
             "edge_types": edge_types,
             "world_states": 0,
-            "worlds_simulated": 0,
+            # Honest derivation from persisted traces: sum the real
+            # worlds_simulated values each cycle recorded (never invented).
+            "worlds_simulated": sum(
+                int(t.get("worlds_simulated", 0) or 0) for t in traces
+            ),
             "di": traces[-1].get("decision_integrity", 0.0) if traces else 0.0,
             "md": traces[-1].get("mission_drift", 0.0) if traces else 0.0,
-            "mood": "neutral",
-            "score": 0.0,
+            "mood": _load_persisted_mood(),
+            "score": traces[-1].get("score", 0.0) if traces else 0.0,
             "position": [0, 0],
             "recent_decisions": recent,
             "knowledge": {"nodes": len(knowledge.get("nodes", [])), "edges": len(knowledge.get("edges", [])),
@@ -425,6 +429,24 @@ def _push_live(trace_dict: dict, overview_dict: dict) -> None:
     """
     broadcast_trace_sync(trace_dict)
     broadcast_overview_sync(overview_dict)
+
+
+def _load_persisted_mood() -> str:
+    """Real mood from the latest persisted system_self snapshot (fallback
+    path — the live producer already reads SystemSelf directly).
+
+    Returns:
+        The mood string, or "neutral" if no snapshot is readable.
+    """
+    try:
+        files = sorted(glob.glob(os.path.join(CHECKPOINT_DIR, "system_self_*.json")))
+        if not files:
+            return "neutral"
+        with open(files[-1]) as fp:
+            data = json.load(fp)
+        return str((data.get("state") or {}).get("mood", "neutral"))
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return "neutral"
 
 
 def _last_resources(snap: dict) -> dict:
