@@ -233,3 +233,43 @@ SystemScore = 100 · clamp01( 0.50·DI + 0.25·(1 − min(1, MD/5))
   the producer used), so the number is always explainable and never
   invented. Legacy unbounded trace scores are structurally rejected by
   `safe_score()` rather than displayed.
+
+## Episode efficiency decision (2026-08-14) — real steps-per-goal, ZERO sim mutation
+
+**Pattern fixed:** *rejected idea justified by a partially-true blocker* — a
+LEFT item said "episode-based scoring rejected — would require mutating shared
+sim state for a display metric; the composite already captures the efficiency
+signal." Re-examination found the blocker real only for the NAIVE design
+(restoring sim.rewards at episode reset would make `GridSim.get_facts` /
+`evaluate` — which read sim.rewards into decision-relevant DomainFacts — see
+respawned rewards TELOS already collected: fake infinite score), while the
+conclusion was wrong on both counts: a mutation-free path existed, and the
+composite (DI/MD/reward/coverage) never measured pace.
+
+**Chosen metric (producer.py, separate labeled stat cluster — NOT a System
+Score component):**
+```
+episodes.completed            # goal-reaches observed (real events)
+episode_steps                 # decision-steps in the current episode
+avg_steps_per_goal            # mean of completed episodes (None until ≥1)
+efficiency_vs_optimal         # clamp01(8 / avg) — bounded [0,1] when defined
+```
+- ZERO sim mutation: pure producer bookkeeping on `terminal()` → reset — the
+  event the producer already observes. The reward dict is never touched.
+- Separate stat, not a component: steps-per-goal is cycle-derived (each step
+  is one decision cycle) — endurance-adjacent, and the structural rule forbids
+  folding endurance facts into a quality score. Also undefined until the first
+  episode completes; a folded phantom 0/0.5 would be an invented number.
+- Shadow-reward path rejected with evidence: after episode 1 the world is
+  exhausted, so per-episode reward vs a shadow pool measures world depletion,
+  not agent efficiency; `reward_fraction` already carries the honest depletion
+  signal.
+
+**Structural rule (now enforced):**
+> Before rejecting a metric, enumerate mutation-free measurement paths on
+> events the system already observes. Distinguish "the naive implementation is
+> unsafe" from "the metric is impossible". If the metric is a pace readout
+> (cycle-derived, undefined until its first event), present it as a separate
+> labeled stat with an honest empty state — never fold it into a quality score,
+> and never invent a fill-in value.
+
