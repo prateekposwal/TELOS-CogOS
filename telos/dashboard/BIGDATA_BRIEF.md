@@ -139,9 +139,9 @@ Every section maps to a real field; the "pull-quotes" are computed from `recent_
 |---|---|---|---|
 | Hero backdrop | `state.diHistory` / `state.mdHistory` / cycle count | glowing DI waveform above a mirror-MD waveform, hairline grid, live-head endpoint | waveform progressively reveals as data grows; endpoint pulses (reduced-motion: static frame) |
 | 01 Signal | `diHistory`, `mdHistory` | dual-axis area/line chart, large (≥1000×360) | endpoint glow; reveal on scroll |
-| 02 World | `world_state` chain, `terrain`, `rewards`, `agent2` | existing isometric 3D gridworld | existing breath/particles; reveal |
-| 03–05 Memory modes | `/api/knowledge` nodes+edges, domains, edge types | ONE KG mode per full-width section (tree / solar / bubble) | existing orbit/forces; reveal |
-| 06–07 Mind modes | latest `stream_activations` | ONE mode per full-width section (neural orbit / root system) | existing; reveal |
+| 02 World | `world_state` chain, `terrain`, `rewards`, `agent2`, `episodes`, `score_components.world_coverage`, `reward_collected/available` | v5 **Scanned Perimeter** — 2D cartographic sonar: fog-of-war (visited/scan radius), luminous real trail + traveling pulse, reward flares spending down with the real ratio, coverage ring = real world_coverage, scan sweep = golden-angle data clock | motion tied to real cycle count; reveal; reduced-motion static frame |
+| 03–05 Memory modes | `/api/knowledge` nodes+edges (REAL), domains, edge types | ONE KG mode per full-width section: **Canopy** (domain branches, real edge filaments) / **Orbital Ecology** (orbital bands, real chords) / **Nebula Clusters** (domain clouds, real-degree constellation points) | deterministic layout; real edges drawn (sampled, real total labeled); reveal |
+| 06–07 Mind modes | latest `stream_activations`, `diHistory`, `meta_cognition.mode`, `system_mood`, `attention_metrics` | ONE mode per full-width section: **Activation Aurora** (DI-tinted sky, real stream ribbons, real mode marker) / **Synapse Rhizome** (DI growth-ring trunk, stream roots by mean priority, mood-tinted canopy) | motion gated by `__reducedMotion`; phases = honest structure, never faked active |
 | 05 Story | overview-derived sentences | editorial prose + chips | reveal; live re-derivation every poll |
 | Pull-quotes | `recent_decisions`, `position`, `episodes`, `knowledge`, `stream_activations` | large type quote + mono citation | reveal; re-derive every poll |
 

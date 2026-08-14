@@ -39,7 +39,11 @@ const PN = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COU
 
 const state = {
   traces: [], diHistory: [], mdHistory: [], cycleLabels: [],
-  gridSize: 5, blocked: [[1,1],[2,2],[3,1]], rewards: {'0,4':10,'4,0':5},
+  // World constants MUST mirror telos_task.py (canonical single source):
+  // DEFAULT_BLOCKED {(1,1),(2,2),(3,1)} · DEFAULT_REWARDS {(0,4):10,(4,0):5,
+  // (2,4):3,(4,2):2} — total 20 world value. A stale map here would draw
+  // reward flares on cells that do not exist in the real world.
+  gridSize: 5, blocked: [[1,1],[2,2],[3,1]], rewards: {'0,4':10,'4,0':5,'2,4':3,'4,2':2},
   goal: [4,4], position: [0,0], animPos: [0,0], prevPos: [0,0], animT: 0,
   agent2Pos: [4,0], agent2Reward: 0,
   visited: [], time: 0,
@@ -60,6 +64,14 @@ const state = {
   hoveredCell: null,
   hoverPos: null,
   altPaths: [],
+  // ── Real signal accumulators (fed by applyTrace; consumed by the
+  //    Mind + World visualizations — never invented) ──
+  streamHistory: [],     // [{cycle_id, streams:[{name, priority}]}] per cycle
+  metaMode: null,        // meta_cognition.mode (real: PLAN / DELEGATE / ...)
+  metaState: null,       // meta_cognition.current_state (real: nominal / exploring / ...)
+  sysMood: null,         // system_mood (real: confident / neutral / ...)
+  attn: null,            // attention_metrics (real: identity_entropy, momentum, ...)
+  latestIntent: null,    // latest selected_intent.type (real)
 };
 
 const TH = {
@@ -211,6 +223,22 @@ function applyTrace(trace) {
     }
   }
 
+  // ── Real signal capture for the Mind/World visualizations ──
+  state.streamHistory.push({
+    cycle_id: trace.cycle_id,
+    streams: (Array.isArray(trace.stream_activations) ? trace.stream_activations : []).map(function (s) {
+      return { name: s && s.name, priority: (s && typeof s.priority === 'number') ? s.priority : (s && typeof s.activation === 'number' ? s.activation : 0) };
+    }),
+  });
+  if (state.streamHistory.length > 200) state.streamHistory = state.streamHistory.slice(-200);
+  var _mc = trace.meta_cognition || {};
+  if (_mc.mode) state.metaMode = _mc.mode;
+  if (_mc.current_state) state.metaState = _mc.current_state;
+  if (trace.system_mood) state.sysMood = trace.system_mood;
+  if (trace.attention_metrics) state.attn = trace.attention_metrics;
+  var _si = trace.selected_intent;
+  if (_si) state.latestIntent = (typeof _si === 'string') ? _si : (_si.type || _si.intent_type || null);
+
   try { addLog(trace); } catch(e) {}
   renderAll();
 }
@@ -277,9 +305,13 @@ function zoomKG(delta){
   _kgZoom=Math.max(0.5,Math.min(3,_kgZoom+delta));
   document.querySelectorAll('.kg-zoom-lvl').forEach(function(el){el.textContent=_kgZoom.toFixed(1)+'×';});
   document.querySelectorAll('.knowledge-panel .zoom-wrap canvas').forEach(function(c){
+    // The 3D Memory Nebula (knowledge-3d.js) owns kg-bubble's camera zoom;
+    // a CSS scale transform on a WebGL canvas would fight the renderer.
+    if(c.id==='kg-bubble' && window.__kgBubble3D)return;
     c.style.transform='scale('+_kgZoom+')';
     c.parentNode.style.height=Math.round(540*_kgZoom)+'px';
   });
+  if(window.__kgBubble3D && typeof kg3dZoomButton==='function')kg3dZoomButton(delta);
 }
 // ─── Phase detail panel ───
 function showPhaseDetail(phaseName,phaseIndex,di){
@@ -508,7 +540,7 @@ function connectWebSocket() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Drag/orbit + click-to-set-goal
+  // Drag/pann + click-to-set-goal (v5 Scanned Perimeter projection).
   const gc = document.getElementById('grid-canvas');
   if (gc) {
     let dragging = false, startX, startY, moved = false;
@@ -516,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
     gc.onmousedown = (e) => {
       e.preventDefault();
       if (e.button === 1) {
-        ISO.rotY = -0.6; ISO.rotX = -0.4; ISO.zoom = 1; ISO.camX = 0; ISO.camY = 0;
+        PERIM.cell = PERIM.ox = PERIM.oy = 0; PERIM.camX = 0; PERIM.camY = 0; PERIM.zoom = 1;
         return;
       }
       dragging = true;
@@ -528,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
       gc.style.cursor = 'grabbing';
     };
     gc.onmousemove = (e) => {
-      // Hover tracking for tooltip (Feature 2)
+      // Hover tracking for the scan tooltip (real cell under the cursor).
       if (!dragging) {
         const rect = gc.getBoundingClientRect();
         const mx = (e.clientX - rect.left) * (gc.width / rect.width);
@@ -536,19 +568,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let bestDist = Infinity, bestCell = null;
         for (let y = 0; y < state.gridSize; y++) {
           for (let x = 0; x < state.gridSize; x++) {
-            const p = isoToScreen(x, y);
+            const p = cellToScreen(x, y);
             const d = Math.hypot(mx - p.sx, my - p.sy);
-            if (d < bestDist && d < ISO.tw * ISO.zoom * 0.5) { bestDist = d; bestCell = [x, y]; }
+            if (d < bestDist && d < PERIM.cell * 0.6) { bestDist = d; bestCell = [x, y]; }
           }
         }
         state.hoveredCell = bestCell;
         if (bestCell) {
-          const p = isoToScreen(bestCell[0], bestCell[1]);
-          const ttt = getTerrainAt(bestCell[0], bestCell[1]);
-          const hp = (TH[ttt] || 0) * ISO.hs;
-          const br = Math.sin((state.time || 0) * 1.5) * 1.5;
-          const ty = hp >= 0 ? p.sy - hp * ISO.zoom + br : p.sy + br;
-          state.hoverPos = { sx: p.sx, sy: ty };
+          const p = cellToScreen(bestCell[0], bestCell[1]);
+          state.hoverPos = { sx: p.sx, sy: p.sy };
         } else {
           state.hoverPos = null;
         }
@@ -557,8 +585,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (Math.abs(e.clientX - initialX) > 3 || Math.abs(e.clientY - initialY) > 3) moved = true;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
-      ISO.rotY += dx * 0.01;
-      ISO.rotX = Math.max(-1.5, Math.min(0, ISO.rotX - dy * 0.008));
+      PERIM.camX += dx;
+      PERIM.camY += dy;
       startX = e.clientX;
       startY = e.clientY;
     };
@@ -572,22 +600,22 @@ document.addEventListener('DOMContentLoaded', () => {
       let bestDist = Infinity, bestCell = null;
       for (let y = 0; y < state.gridSize; y++) {
         for (let x = 0; x < state.gridSize; x++) {
-          const p = isoToScreen(x, y);
+          const p = cellToScreen(x, y);
           const d = Math.hypot(mx - p.sx, my - p.sy);
-          if (d < bestDist && d < ISO.tw * ISO.zoom * 0.5) { bestDist = d; bestCell = [x, y]; }
+          if (d < bestDist && d < PERIM.cell * 0.6) { bestDist = d; bestCell = [x, y]; }
         }
       }
       if (bestCell) { state.goal = bestCell; document.getElementById('step-counter').textContent = `Goal → (${bestCell[0]},${bestCell[1]})`; }
     };
     gc.onmouseleave = () => { dragging = false; gc.style.cursor = 'grab'; state.hoveredCell = null; state.hoverPos = null; };
-    // Touch support for mobile orbit
+    // Touch support for mobile pan.
     gc.ontouchstart = (e) => { const t = e.touches[0]; dragging = true; moved = false; startX = t.clientX; startY = t.clientY; initialX = t.clientX; initialY = t.clientY; };
-    gc.ontouchmove = (e) => { if (!dragging) return; if (Math.abs(e.touches[0].clientX - initialX) > 3 || Math.abs(e.touches[0].clientY - initialY) > 3) moved = true; const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY; ISO.rotY += dx * 0.01; ISO.rotX = Math.max(-1.5, Math.min(0, ISO.rotX - dy * 0.008)); startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
+    gc.ontouchmove = (e) => { if (!dragging) return; if (Math.abs(e.touches[0].clientX - initialX) > 3 || Math.abs(e.touches[0].clientY - initialY) > 3) moved = true; const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY; PERIM.camX += dx; PERIM.camY += dy; startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
     gc.ontouchend = () => { dragging = false; };
-    // Use addEventListener with {passive: false} so preventDefault() is honoured (critical on macOS)
+    // Wheel = zoom the scan (bounds-safe).
     gc.addEventListener('wheel', (e) => {
       e.preventDefault();
-      ISO.zoom = Math.max(0.3, Math.min(3, ISO.zoom - e.deltaY * 0.001));
+      PERIM.cell = Math.max(18, Math.min(160, (PERIM.cell || 60) * (e.deltaY < 0 ? 1.08 : 0.92)));
     }, { passive: false });
   }
 

@@ -8,6 +8,37 @@ and each Mind mode (orbit/root) is a standalone full-width chapter in the GRIDWO
 pattern; the memory timeline is a compact panel matching the chat panel.
 **Decision record (2026-08-15, user-approved): the five mode chapters are EXPLICIT, hand-written HTML — Memory: `kg-panel-tree` / `kg-panel-solar` / `kg-panel-bubble`; Mind: `brain-panel-orbit` / `brain-panel-tree`. A JS/template factory is INTENTIONALLY NOT used. Repeated chapter-mark markup is deliberate: every section stays statically readable and every `getElementById` target stays a literal, greppable id, keeping the DOM-contract tests meaningful. Do not 'helpfully' refactor these into a factory. (Mirrored in STORYTELLING.md v4 note + BIGDATA_BRIEF.md DOM-contract para.)
 
+v5 amendment (2026-08-15, "Out of the box — energy of wc26, originality of TELOS"):
+the three evidence families are redesigned as ORIGINAL data-portraits, never
+literal copies of the reference:
+- **World (02) = The Scanned Perimeter** — a 2D cartographic sonar replacing the
+  isometric game renderer: fog-of-war reveals only cells the REAL position has
+  mapped/scanned, the trail is the real visited path with a traveling light
+  pulse, reward flares spend down with the REAL reward_collected/available
+  ratio, and the coverage ring's arc is the REAL world_coverage. The scan sweep
+  angle is a data clock (golden-angle step per real cycle).
+- **Memory (03–05) = The Canopy / Orbital Ecology / Nebula Clusters** — all
+  three now draw the REAL edges as color-coded filaments (edge_type = meaning;
+  sampled deterministically for performance, real total labeled). Tree → domain
+  branches with real-thickness trunks and buds raised by real importance;
+  Solar → domain orbital bands (width = real count) with bodies orbiting at
+  real-importance speed; Bubble → layered nebula clouds (radius = real count)
+  with constellation points sized by REAL degree. Layout is deterministic.
+- **Mind (06–07) = Activation Aurora / Synapse Rhizome** — the fake
+  timer-driven "active phase" and the rainbow are gone. Aurora: the sky is
+  tinted by real DI, ribbons are the real stream_activations (width/brightness
+  = measured priority), the ring carries the REAL meta_cognition.mode; phases
+  are honest structure. Rhizome: trunk growth rings = real diHistory, roots =
+  real streams grown to their measured mean priority, canopy tinted by real
+  system mood. The fabricated core label and the static 'AVIKU' text are gone.
+Honesty hardening in v5: ONE canonical domain palette (window._DOMAIN_COLORS_STORY
+in story.js — knowledge-graph.js reads it, never defines a copy); real edges are
+drawn (never isolated dots for a graph that has connections); phases are never
+claimed active without real per-phase data. Enforced by tests
+(test_v5_memory_modes_draw_real_edges_and_canonical_palette,
+test_v5_mind_modes_real_signals_and_no_fabrication,
+test_v5_world_is_scanned_perimeter_not_iso_game).
+
 ## Direction (owner, 2026-08-15)
 v2 was "better and more visible than the old fashion, but not what I'm looking for."
 References studied: **meteo.ashwyn.studio** (data IS the artwork — full-viewport 3D canvas,

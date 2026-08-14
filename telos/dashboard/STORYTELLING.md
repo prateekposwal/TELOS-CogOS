@@ -284,9 +284,14 @@ Full codified spec: `telos/dashboard/BIGDATA_BRIEF.md`. What changed and why it 
 
 ### What the v3 redesign did
 1. **The page is now one scroll narrative.** Hero ("Cognitive Data / Portraits") → chapters
-   01 The Signal → 02 The World → 03 The Memory · Knowledge Tree → 04 The Memory · Solar
-   System → 05 The Memory · Bubble Map → 06 The Mind · Neural Orbit → 07 The Mind · Root
-   System → 08 The Story So Far → deep-dive. Chapter markers (ghost numerals + hairline)
+   01 The Signal → 02 The World · The Scanned Perimeter → 03 The Memory · The Canopy →
+   04 The Memory · Orbital Ecology → 05 The Memory · Nebula Clusters → 06 The Mind ·
+   Activation Aurora → 07 The Mind · Synapse Rhizome → 08 The Story So Far
+   (v5, 2026-08-15: every mode is an ORIGINAL data-portrait — real edges drawn in all
+   three memory modes, stream activations + DI growth rings + real cognition mode in
+   the mind modes; the isometric grid renderer, the fake timer-driven active phase,
+   and the rainbow palette are gone. All ids + the one-mode-per-section structure are
+   unchanged.) → deep-dive. Chapter markers (ghost numerals + hairline)
    replace the tab bar; the sidebar became a slide-in system drawer. The narrative arc of
    P1 (hook → context → evidence → insight → action) now spans the whole page instead of
    one box: hero = hook+context, chapters = evidence (each captioned "what to look at"),
@@ -296,7 +301,7 @@ Full codified spec: `telos/dashboard/BIGDATA_BRIEF.md`. What changed and why it 
    panel + caption + pull-quote) — the three memory modes and two mind modes never share
    a panel, and the memory timeline in the deep-dive is a compact panel matching the chat
    panel (same 240px scroll footprint), not a tall page section.
-   **v4 explicit-structure record (2026-08-15, user-approved):** the five chapter sections remain EXPLICIT hand-written HTML (`kg-panel-tree`/`-solar`/`-bubble`, `brain-panel-orbit`/`-tree`) — a template/factory abstraction is deliberately NOT used, so the DOM-contract tests gate literal, statically readable markup.
+   **v4 explicit-structure record (2026-08-15, user-approved):** the five chapter sections remain EXPLICIT hand-written HTML (`kg-panel-tree`/`-solar`/`-bubble`, `brain-panel-orbit`/`-tree`) — a template/factory abstraction is deliberately NOT used, so the DOM-contract tests gate literal, statically readable markup. **v5 record:** the same five explicit sections now host the v5 original modes (Canopy/Orbital Ecology/Nebula Clusters, Activation Aurora/Synapse Rhizome) — same ids, same structure, new honest renderers.
 2. **The hero is a data canvas.** `#hero-backdrop` draws the REAL DI/MD history as a glowing
    pulse waveform (the wc26 momentum-pulse idea, honest: it IS the measured series). The
    title's second line is dyed with REAL knowledge-domain colors. The hero lede repeats the
