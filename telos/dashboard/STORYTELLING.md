@@ -200,3 +200,36 @@ Everything in X1–X3, X6, X7 is ONE pattern:
 7. **countPop**: keep the animation (it is a genuine value-change signal for *some* numbers) but
    stop flashing every number on every poll — pop only on actual change, which it already does;
    the deeper fix is hierarchy (hero moves, supporting numbers don't all pop equally).
+
+---
+
+## System Score decision (2026-08-14) — bounded composite replaces the timer
+
+**Pattern fixed:** *cumulative drain metric displayed as an unbounded quality
+score* — `score = 100 − cycles + rewards` subtracted an unbounded counter (a
+timer) from a fixed constant, so the headline number was monotonically
+decreasing forever (-271 after 371 cycles). The breakdown caption made it
+*legible*; it was never *good*.
+
+**Structural rule (now enforced):**
+> Display metrics that measure QUALITY must be bounded — the range is part of
+> the metric's definition and enforced at the API boundary (out-of-range
+> values are rejected as invalid format, never displayed) — and derived only
+> from measured signals. Endurance facts (cycles elapsed, run length) are
+> labeled as endurance readouts and are NEVER folded into a quality score.
+
+**Chosen metric (producer.py `system_score()`):**
+```
+SystemScore = 100 · clamp01( 0.50·DI + 0.25·(1 − min(1, MD/5))
+                           + 0.15·min(1, rewards/20)
+                           + 0.10·min(1, cells_visited/25) )
+```
+- Bounded [0, 100] by construction; every component is a real measured
+  signal (DecisionTrace DI/MD, reward pool secured, grid coverage). Perfect
+  state = 100; no state can fall below 0.
+- Time is NOT a component — cycles elapsed is a separate endurance readout.
+- DI dominates (0.50) per Axiom 1.2: process over outcomes.
+- The sidebar caption is derived from `score_components` (the exact inputs
+  the producer used), so the number is always explainable and never
+  invented. Legacy unbounded trace scores are structurally rejected by
+  `safe_score()` rather than displayed.

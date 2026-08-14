@@ -40,6 +40,10 @@ _PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
+# The bounded-score range rule lives in the producer module (single source
+# of truth): out-of-range scores are structurally rejected, never displayed.
+from telos.dashboard.producer import safe_score
+
 CHECKPOINT_DIR = "/tmp/telos_checkpoints"
 KNOWLEDGE_PATH = "/tmp/telos_knowledge.json"
 HTTP_PORT = 8765
@@ -222,10 +226,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "di": snap.get("di", 0.0),
                 "md": snap.get("md", 0.0),
                 "mood": snap.get("mood", "neutral"),
-                "score": snap.get("score", 0.0),
-                "score_base": snap.get("score_base", 100.0),
-                "time_cost": snap.get("time_cost", 0.0),
+                "score": snap.get("score"),
+                "score_components": snap.get("score_components"),
                 "reward_collected": snap.get("reward_collected", 0.0),
+                "reward_available": snap.get("reward_available", 0.0),
                 "position": snap.get("position", [0, 0]),
                 "recent_decisions": snap.get("recent_decisions", []),
                 "knowledge": snap.get("knowledge", {}),
@@ -268,7 +272,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             "di": traces[-1].get("decision_integrity", 0.0) if traces else 0.0,
             "md": traces[-1].get("mission_drift", 0.0) if traces else 0.0,
             "mood": _load_persisted_mood(),
-            "score": traces[-1].get("score", 0.0) if traces else 0.0,
+            "score": safe_score(traces[-1].get("score")) if traces else None,
+            "score_components": None,
+            "reward_collected": 0.0,
+            "reward_available": 0.0,
             "position": [0, 0],
             "recent_decisions": recent,
             "knowledge": {"nodes": len(knowledge.get("nodes", [])), "edges": len(knowledge.get("edges", [])),

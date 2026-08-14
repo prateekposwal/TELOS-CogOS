@@ -127,3 +127,48 @@ def test_serialize_knowledge_shapes_nodes_and_edges():
     assert payload["nodes"][0]["id"] and payload["nodes"][0]["label"]
     assert payload["edges"][0]["source"] == n1
     assert payload["edges"][0]["edge_type"] == "at_location"
+
+
+def test_producer_score_is_bounded_system_score(isolated_paths):
+    """The headline metric is a bounded 0-100 composite of measured signals,
+    never a timer: after real cycles the score is in range, the components
+    are exposed, and the score equals the formula re-evaluated from the
+    same components (integrity: no invented number)."""
+    from telos.dashboard.producer import system_score
+
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=3)
+    p.start()
+    try:
+        time.sleep(2.5)
+        snap = p.snapshot()
+        assert snap["decisions"] >= 3
+        assert snap["score"] is None or (0.0 <= snap["score"] <= 100.0), \
+            f"score {snap['score']} outside the defined range"
+        assert snap["score_components"] is not None, "components must be exposed"
+        c = snap["score_components"]
+        assert set(c["weights"]) == {"di", "md", "reward", "coverage"}
+        # Re-evaluate the formula from the SAME components the producer used.
+        recomputed = system_score(
+            di=c["di"], md=c["md"],
+            reward_collected=snap["reward_collected"],
+            reward_available=snap["reward_available"],
+            world_states=snap["world_states"],
+            grid_area=c["grid_area"],
+        )
+        assert abs(snap["score"] - recomputed) < 0.01, \
+            f"displayed score {snap['score']} != recomputed {recomputed}"
+        # Every trace score is bounded too (old-format scores are rejected).
+        for t in snap["traces"]:
+            s = t.get("score")
+            assert s is None or (0.0 <= s <= 100.0), f"trace score {s} out of range"
+    finally:
+        p.stop()
+
+
+def test_producer_score_before_first_cycle_is_none(isolated_paths):
+    """Honest empty state: before any cycle there is no score, not a fake
+    100 or a fabricated neutral number."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    assert p.snapshot()["score"] is None
+    assert p.snapshot()["score_components"] is None
+    p.stop()

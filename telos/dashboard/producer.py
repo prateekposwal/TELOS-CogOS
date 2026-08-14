@@ -3,11 +3,17 @@ TELOS Dashboard Live-Data Producer — runs the REAL pipeline in-process
 inside serve_dashboard.py so the dashboard serves LIVE runtime data
 instead of cold files that nothing writes.
 
-Pattern fix (structural rule):
-    A dashboard must PRODUCE or ATTACH to a live producer — it may never
-    read cold files that nothing writes. If the producer is stopped, the
-    dashboard falls back to persisted history (honest), never to fabricated
-    data.
+Pattern fixes (structural rules):
+    1. A dashboard must PRODUCE or ATTACH to a live producer — it may never
+       read cold files that nothing writes. If the producer is stopped, the
+       dashboard falls back to persisted history (honest), never to
+       fabricated data.
+    2. A metric that claims to measure QUALITY must be BOUNDED — its range
+       is part of its definition and enforced at the API boundary — and
+       derived only from measured signals. Endurance facts (cycles elapsed)
+       are labeled as endurance readouts and are NEVER folded into a quality
+       score. (The old score = 100 - cycles + rewards was a cumulative drain
+       shown as an unbounded quality score; the System Score replaces it.)
 
 Everything exposed through the snapshot() dict comes from an actual
 pipeline execution. There are no synthetic traces, no invented nodes,
@@ -56,6 +62,91 @@ def json_clean(obj: Any) -> Any:
     if isinstance(obj, int) and (obj > 9e15 or obj < -9e15):
         return None
     return obj
+
+
+# ── System Score - bounded composite of measured signals ───────────────
+# The dashboard's headline metric. Replaces the legacy unbounded timer
+# (score = 100 - cycles + rewards, monotonically decreasing forever).
+#
+# Structural rule: a quality metric must be bounded - its range is part of
+# its definition - and derived ONLY from measured signals. Time/cycles are
+# an endurance FACT (separate readout), never a component of a quality
+# score. See telos/dashboard/STORYTELLING.md "System Score decision".
+DRIFT_THRESHOLD = 5.0   # MissionDriftDetector(drift_threshold=...) in _build
+SYSTEM_SCORE_WEIGHTS = {"di": 0.50, "md": 0.25, "reward": 0.15, "coverage": 0.10}
+
+
+def _clamp01(value: float) -> float:
+    """Clamp any numeric input to [0, 1] (None/NaN-safe).
+
+    Args:
+        value: any scalar; non-numeric/None/NaN map to 0.0.
+    """
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if v != v:  # NaN
+        return 0.0
+    return max(0.0, min(1.0, v))
+
+
+def system_score(di, md, reward_collected, reward_available, world_states,
+                 grid_area, weights=None, drift_threshold=DRIFT_THRESHOLD) -> float:
+    """Bounded 0-100 System Score - a real function of measured signals.
+
+    score = 100 * clamp01(0.50*DI + 0.25*(1 - min(1, MD/tau))
+                          + 0.15*min(1, rewards/available)
+                          + 0.10*min(1, cells_visited/area))
+
+    DI (decision integrity) dominates - Axiom 1.2: process over outcomes.
+    Every component is clamped, so the result is always in [0, 100]. The
+    perfect state (DI=1, MD=0, all rewards secured, whole grid mapped)
+    scores 100; no state can score below 0 or above 100.
+
+    Args:
+        di: last cycle decision_integrity (0..1) - measured.
+        md: last cycle mission_drift (>=0) - measured; normalized by tau.
+        reward_collected: cumulative rewards secured (measured).
+        reward_available: total positive reward in the world (constant).
+        world_states: distinct grid cells visited (measured).
+        grid_area: total grid cells (constant).
+        weights: optional component weights (defaults to SYSTEM_SCORE_WEIGHTS).
+        drift_threshold: MissionDriftDetector threshold (default 5.0).
+    """
+    w = weights or SYSTEM_SCORE_WEIGHTS
+    di_c = _clamp01(di)
+    md_c = _clamp01(md / drift_threshold) if (drift_threshold and md is not None) else 0.0
+    reward_frac = (_clamp01(reward_collected / reward_available)
+                   if (reward_available and reward_collected is not None) else 0.0)
+    coverage = (_clamp01(world_states / grid_area)
+                if (grid_area and world_states is not None) else 0.0)
+    raw = (w["di"] * di_c
+           + w["md"] * (1.0 - md_c)
+           + w["reward"] * reward_frac
+           + w["coverage"] * coverage)
+    return round(100.0 * _clamp01(raw), 1)
+
+
+def safe_score(value) -> Optional[float]:
+    """Only a value inside the defined range is a valid System Score.
+
+    Legacy persisted traces carry the old unbounded format
+    (100 - cycles + rewards, e.g. -271); those are structurally rejected
+    here rather than displayed - the range is part of the metric's
+    definition. Returns None for missing/non-numeric/out-of-range values.
+
+    Args:
+        value: candidate score from a trace or snapshot.
+    """
+    if value is None or isinstance(value, bool):
+        return None
+    if not isinstance(value, (int, float)):
+        return None
+    v = float(value)
+    if v != v or not (0.0 <= v <= 100.0):
+        return None
+    return round(v, 2)
 
 # Paths shared with serve_dashboard.py and telos_task.py
 CHECKPOINT_DIR = "/tmp/telos_checkpoints"
@@ -147,9 +238,11 @@ class DashboardProducer:
         # ── live metrics (all measured, none invented) ──
         self._traces: List[Dict] = []
         self._cycles = 0
-        self._total_score = 100.0
-        self._time_cost = 0.0
+        self._system_score: Optional[float] = None  # None = no cycle yet (honest empty)
+        self._score_components: Optional[Dict] = None
         self._reward_collected = 0.0
+        self._reward_available = 0.0
+        self._grid_area = 0.0
         self._worlds_simulated_total = 0
         self._last_cycle_at: Optional[float] = None
         self._last_error: Optional[str] = None
@@ -200,10 +293,10 @@ class DashboardProducer:
                 "di": traces[-1].get("decision_integrity", 0.0) if traces else 0.0,
                 "md": traces[-1].get("mission_drift", 0.0) if traces else 0.0,
                 "health": float(traces[-1].get("health_score", 0.5)) if traces else 0.5,
-                "score": self._total_score,
-                "score_base": 100.0,
-                "time_cost": self._time_cost,
+                "score": self._system_score,
+                "score_components": self._score_components,
                 "reward_collected": self._reward_collected,
+                "reward_available": self._reward_available,
                 "worlds_simulated": self._worlds_simulated_total,
                 "world_states": len(self._visited_positions),
                 "position": self._state_np.tolist(),
@@ -304,6 +397,10 @@ class DashboardProducer:
 
         self._sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS))
         self._grid_size = 5  # GridWorld GRID_SIZE
+        self._grid_area = float(self._grid_size ** 2)
+        # Total positive reward available in the world - the denominator of
+        # the reward component of the System Score (a world constant, real).
+        self._reward_available = float(sum(v for v in DEFAULT_REWARDS.values() if v and v > 0))
         self._pipeline = TelosV14Pipeline(PipelineConfig(
             adapter=GridAdpt(), simulator=self._sim,
             compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
@@ -383,8 +480,31 @@ class DashboardProducer:
                     reward = self._sim.rewards[pos_key]
                 self._sim.rewards[pos_key] = 0.0
             self._reward_collected += reward
-            self._time_cost += 1.0
-            self._total_score = 100.0 - self._time_cost + self._reward_collected
+            # System Score - bounded composite of MEASURED signals. Time is
+            # NOT a component: cycles elapsed is an endurance fact, kept as
+            # a separate labeled readout, never folded into a quality score.
+            di_now = float(result.decision_integrity) if result.decision_integrity is not None else 0.0
+            md_now = float(result.mission_drift) if result.mission_drift is not None else 0.0
+            self._system_score = system_score(
+                di=di_now, md=md_now,
+                reward_collected=self._reward_collected,
+                reward_available=self._reward_available,
+                world_states=len(self._visited_positions),
+                grid_area=self._grid_area,
+            )
+            self._score_components = {
+                "di": round(di_now, 4),
+                "md": round(md_now, 4),
+                "reward_fraction": round(
+                    _clamp01(self._reward_collected / self._reward_available)
+                    if self._reward_available else 0.0, 4),
+                "world_coverage": round(
+                    _clamp01(len(self._visited_positions) / self._grid_area)
+                    if self._grid_area else 0.0, 4),
+                "weights": dict(SYSTEM_SCORE_WEIGHTS),
+                "drift_threshold": DRIFT_THRESHOLD,
+                "grid_area": self._grid_area,
+            }
 
             # Record REAL observations into the knowledge graph.
             self._record_knowledge(result, trace, reward, terrain_changes)
@@ -411,7 +531,7 @@ class DashboardProducer:
                 if isinstance(trace_dict, dict):
                     trace_dict["agent2_pos"] = a2_pos
                     trace_dict["agent2_reward"] = a2_reward
-                    trace_dict["score"] = round(self._total_score, 2)
+                    trace_dict["score"] = safe_score(self._system_score)
                     trace_dict["terrain_changes"] = terrain_changes
                     trace_dict["health_score"] = float(result.health_score)
                     self._traces.append(json_clean(trace_dict))
@@ -644,10 +764,10 @@ class DashboardProducer:
                 "di": self._traces[-1].get("decision_integrity", 0.0) if self._traces else 0.0,
                 "md": self._traces[-1].get("mission_drift", 0.0) if self._traces else 0.0,
                 "health": float(self._traces[-1].get("health_score", 0.5)) if self._traces else 0.5,
-                "score": self._total_score,
-                "score_base": 100.0,
-                "time_cost": self._time_cost,
+                "score": self._system_score,
+                "score_components": self._score_components,
                 "reward_collected": self._reward_collected,
+                "reward_available": self._reward_available,
                 "worlds_simulated": self._worlds_simulated_total,
                 "world_states": len(self._visited_positions),
                 "position": self._state_np.tolist(),
