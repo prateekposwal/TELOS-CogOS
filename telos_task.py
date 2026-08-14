@@ -644,6 +644,15 @@ def main():
         print(f"\nTELOS: {reply}")
         print(f"  [{status}] DI={trace.decision_integrity:.3f} | {rel} (trust={profile.trust_level:.2f})")
 
+        # ─── Post-cycle: feed the conversation turn into theory formation ────
+        # The pipeline's execute() never sees the message/reply, so the
+        # conversation path is bridged explicitly (Λ6.5 Theory Formation).
+        try:
+            conv_outcome = 1.0 - float(trace.mission_drift or 0.0) if trace else 0.5
+            pipeline.observe_conversation_outcome(user, reply, outcome=conv_outcome)
+        except Exception as e:
+            print(f"  ⚠ observe_conversation skipped: {e}")
+
         # ─── Post-cycle: Knowledge Ingestion ─────────────────────────────────
         kg_ingestion.post_cycle(USER_NAME, step_count, result, chat_history)
 

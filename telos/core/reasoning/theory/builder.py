@@ -38,6 +38,12 @@ class TheoryBuilder:
         # Tracks which experiences have been clustered
         self._indexed_experiences: Set[str] = set()
 
+        # Genealogy + cross-graph wiring (Λ6.5 Theory Formation)
+        self._genealogy = None
+        self._promotion_hook = None
+        self._cycle = 0
+        self._promotion_order: List[str] = []
+
     def add_experience(self, context: Dict[str, Any],
                        action: str, outcome: float,
                        confidence: float = 0.8,
@@ -63,6 +69,43 @@ class TheoryBuilder:
 
         logger.debug(f"TheoryBuilder: added experience {eid} ({domain}: {action} → {outcome:.2f})")
         return eid
+
+    def observe_outcome(self, outcome: float, context: str,
+                        action: str = "observed",
+                        domain: str = "pipeline") -> str:
+        """Feed a cycle outcome into theory formation (Λ6.5).
+
+        Records a lightweight experience so patterns, hypotheses, and
+        theories can be abstracted from repeated pipeline outcomes.
+        Returns the experience id.
+        """
+        self._cycle += 1
+        return self.add_experience(
+            context={"state_preview": str(context)[:80]},
+            action=action, outcome=float(outcome),
+            confidence=0.8, domain=domain,
+        )
+
+    def set_genealogy(self, genealogy) -> None:
+        """Attach the TheoryGenealogy; promoted theories register there."""
+        self._genealogy = genealogy
+
+    def set_promotion_hook(self, hook) -> None:
+        """hook(theory, genealogy_id) is called for each newly promoted theory."""
+        self._promotion_hook = hook
+
+    def _find_parent_theory_id(self, theory_id: str) -> Optional[str]:
+        """Most recently promoted theory with the same action becomes the parent."""
+        theory = self._theories.get(theory_id)
+        if theory is None:
+            return None
+        for prior in reversed(self._promotion_order):
+            if prior == theory_id:
+                continue
+            other = self._theories.get(prior)
+            if other is not None and other.action == theory.action:
+                return prior
+        return None
 
     def cluster(self) -> List[Pattern]:
         """Cluster unindexed experiences into patterns.
@@ -269,7 +312,30 @@ class TheoryBuilder:
                 created=time.time(),
             )
             self._theories[tid] = theory
+            self._promotion_order.append(tid)
             new_theories.append(theory)
+
+            # Register in the genealogy so lineage is live, not inert
+            parent_theory_id = self._find_parent_theory_id(tid)
+            if parent_theory_id is not None:
+                theory.parent_theory_id = parent_theory_id
+            if self._genealogy is not None:
+                parent_gid = None
+                if parent_theory_id is not None:
+                    parent_gid = getattr(
+                        self._theories.get(parent_theory_id), '_genealogy_id', None
+                    )
+                gid = self._genealogy.register(
+                    name=theory.name, parent_id=parent_gid, cycle=self._cycle,
+                )
+                theory._genealogy_id = gid
+                if self._promotion_hook is not None:
+                    try:
+                        self._promotion_hook(theory, gid)
+                    except Exception as e:
+                        logger.warning(
+                            f"TheoryBuilder: promotion hook failed for {gid}: {e}"
+                        )
 
             logger.warning(
                 f"TheoryBuilder: PROMOTED theory '{theory.name}' "

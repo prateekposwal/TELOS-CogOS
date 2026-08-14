@@ -255,6 +255,13 @@ class TelosV14Pipeline:
         self._research_debt = ResearchDebtTracker()
         self._belief_capital = BeliefCapitalMarket()
         self._theory_genealogy = TheoryGenealogy()
+        # Live genealogy: TheoryBuilder registers promoted theories; the
+        # knowledge linker resolves names and links nodes to theories.
+        self._theory_builder.set_genealogy(self._theory_genealogy)
+        km = getattr(self._infra_manager, 'knowledge_mgr', None)
+        if km is not None:
+            km.attach_genealogy(self._theory_genealogy)
+            self._theory_builder.set_promotion_hook(km.link_promoted_theory)
         self._discovery_orchestrator = DiscoveryOrchestrator()
         self._identity_core = IdentityCore()
         self._mission_portfolio = MissionPortfolio()
@@ -299,8 +306,8 @@ class TelosV14Pipeline:
                     if otl_data:
                         try:
                             self._omega_threshold_learner = OmegaThresholdLearner.from_dict(otl_data)
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.warning("runtime.py: swallowed error: %r", e)
 
         if self.config.knowledge_path:
             self._infra_manager.knowledge.load(self.config.knowledge_path)
@@ -629,8 +636,8 @@ class TelosV14Pipeline:
                         for opt in ctx.sim_options[:5]:
                             tb.observe_outcome(outcome=getattr(opt, 'score', 0.5),
                                                context=str(getattr(opt, 'trajectory', ''))[:80])
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"TheoryBuilder.observe_outcome (simulate) failed: {e}")
 
             # ── Compute resource budgets after STREAMS phase (before Evaluate) ──
             if phase.name == "streams":
@@ -703,8 +710,8 @@ class TelosV14Pipeline:
                             "correctness": 0.5, "safety": 0.5,
                             "efficiency": 0.5, "coherence": 0.5,
                         }, identity_markers=list(profile.identity_markers)[:3] if hasattr(profile, 'identity_markers') else None)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── Law of Attention: Project attention after PERCEIVE phase ──
             if phase.name == "perceive":
@@ -720,8 +727,8 @@ class TelosV14Pipeline:
                     if frame_w > 0 and frame_h > 0:
                         perception_result = self.assess_perception(frame_w, frame_h, target)
                         ctx.perception_report = perception_result
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── v2: UnknownUnknownDetector — find blind spots after perception ──
             if phase.name == "perceive":
@@ -732,14 +739,14 @@ class TelosV14Pipeline:
                         if novelty:
                             logger.info(f"[v2] Novelty cluster detected: {novelty.get('question', '')[:60]}")
                             ctx._novelty_question = novelty.get("question")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             if phase.name == "perceive":
                 try:
                     self._assumption_auditor.auto_audit(ctx.cycle_count)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── Bitcoin-inspired Decision Timelock: Apply penalties after EVALUATE ──
             if phase.name == "evaluate":
@@ -754,8 +761,8 @@ class TelosV14Pipeline:
                             confidence=ctx.selected_intent.confidence,
                             outcome=not (ctx.council_blocked or ctx.firewall_blocked),
                         )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             if phase.name == "evaluate":
                 try:
@@ -767,8 +774,8 @@ class TelosV14Pipeline:
                             "exploration": 0.5, "correctness": conf,
                             "safety": 0.6, "efficiency": 0.4, "coherence": 0.5,
                         }, identity_markers=list(profile.identity_markers)[:3] if hasattr(profile, 'identity_markers') else None)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── Project Context: wire cognitive processes into active project ──
             if phase.name == "select":
@@ -783,8 +790,8 @@ class TelosV14Pipeline:
                                 "name": active_proj.name,
                                 "stagnation": active_proj.stagnation_cycles,
                             }
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── Identity Modeling (parallel track): update identity before select ──
             if phase.name == "select":
@@ -804,8 +811,8 @@ class TelosV14Pipeline:
                         n_options = len(getattr(ctx, 'sim_options', []) or [])
                         ie.record(max(1, n_options))
                         ctx.identity_entropy = ie.collapse_rate
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── v2: InternalDebate — multi-perspective analysis before decision ──
             if phase.name == "select":
@@ -817,8 +824,8 @@ class TelosV14Pipeline:
                         )
                         if debate_result:
                             ctx._debate_result = debate_result
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── Bitcoin-inspired Decision Timelock: Record after SELECT ──
             if phase.name == "select":
@@ -852,8 +859,8 @@ class TelosV14Pipeline:
                         rs = self._regret_memory.get_regret_scores(
                             chosen_intent=ctx.selected_intent.intent_type, alternatives=alts)
                         if rs: ctx.regret_scores = rs
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             if phase.name == "select":
                 try:
@@ -861,8 +868,8 @@ class TelosV14Pipeline:
                         self._interpretation_engine.record_outcome(
                             conflict_id=f"cycle_{ctx.cycle_count}",
                             outcome_quality=ctx.selected_intent.confidence)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── Confirm/reject from mempool after council phase ──
             if phase.name == "council":
@@ -885,8 +892,8 @@ class TelosV14Pipeline:
                     wb = getattr(ctx, 'council_blocked', False)
                     self._council_reflector.record_decision(was_blocked=wb, predicted_block=wb,
                                                             actual_block=wb, validator_signals=signals)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             # ── Law of Attention: Record trajectory after ACT phase ──
             if phase.name == "act":
@@ -912,8 +919,8 @@ class TelosV14Pipeline:
                         outcome=outcome_success,
                         context=str(ctx.state)[:80],
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"TheoryBuilder.observe_outcome (act) failed: {e}")
 
                 try:
                     if ctx.selected_intent:
@@ -922,16 +929,16 @@ class TelosV14Pipeline:
                             alternatives=[o.get("intent_type", "unknown") for o in getattr(ctx, 'sim_options', [])[:3]],
                             outcome=outcome_success,
                         )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
                 try:
                     wb = ctx.council_blocked or ctx.firewall_blocked
                     if wb:
                         self._error_attribution.attribute(ctx=ctx, trace=None,
                             stream_activations=getattr(ctx, 'stream_activations', []))
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
                 # ── v2: CognitiveMomentum — record decision inertia ──
                 try:
@@ -940,8 +947,8 @@ class TelosV14Pipeline:
                         cycle=ctx.cycle_count,
                         intent_type=intent_type,
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
                 # P1 D3: Multi-resource budget tracking — fallback if not already set
                 # (primary budget computation happens after STREAMS phase)
@@ -1143,8 +1150,8 @@ class TelosV14Pipeline:
                     import json
                     with open('/tmp/telos_identity_tuple.json', 'w') as idf:
                         json.dump(ctx.identity_state, idf, indent=2, default=str)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
                 # P0 D8: Run meta-cognition check + P0: Tripartite Uncertainty
                 infra = getattr(self, '_infra_manager', None)
@@ -1308,16 +1315,16 @@ class TelosV14Pipeline:
                 try:
                     due = self._introspection_scheduler.get_due_tiers(ctx.cycle_count)
                     self._introspection_scheduler.introspect(ctx.cycle_count)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
                 try:
                     di = ctx.verdict.decision_integrity if ctx.verdict else 0.0
                     md = ctx.verdict.mission_drift if ctx.verdict else 0.0
                     wb = getattr(ctx, 'council_blocked', False) or getattr(ctx, 'firewall_blocked', False)
                     self._axiom_evolution.observe(cycle=ctx.cycle_count, di=di, md=md,
                         was_blocked=wb, council_signals=[], stream_activations={}, identity_state={})
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("runtime.py: swallowed error: %r", e)
 
             if getattr(ctx, 'governance_blocked', False) and phase.name not in ("act", "reflect"):
                 continue
@@ -1503,6 +1510,25 @@ class TelosV14Pipeline:
         self._display.freeze()
         return result
 
+    def observe_conversation_outcome(self, message: str, reply: str,
+                                     outcome: float,
+                                     domain: str = "conversation") -> str:
+        """Feed a conversation turn into theory formation (Λ6.5).
+
+        The chat loop's user message / assistant reply never reaches
+        TheoryBuilder through execute(); this is the explicit bridge so
+        the conversation path contributes experiences, patterns, and
+        theories like every other stream. Returns the experience id.
+        """
+        if getattr(self, '_theory_builder', None) is None:
+            return ""
+        return self._theory_builder.observe_outcome(
+            outcome=float(outcome),
+            context=f"user: {str(message)[:40]} -> telos: {str(reply)[:40]}",
+            action="conversation",
+            domain=domain,
+        )
+
     def shutdown(self) -> None:
         if self.config.ledger_path:
             try:
@@ -1559,8 +1585,8 @@ class TelosV14Pipeline:
                 "md": getattr(self, '_last_trace', None).mission_drift if hasattr(self, '_last_trace') else 0.0,
                 "cycles": self._cycle_count,
             })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("runtime.py: swallowed error: %r", e)
         try:
             write_handoff(self, {
                 "di": getattr(self, '_last_trace', None).decision_integrity if hasattr(self, '_last_trace') else 1.0,

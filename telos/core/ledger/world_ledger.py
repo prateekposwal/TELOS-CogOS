@@ -68,12 +68,13 @@ class WorldLedger:
 
     def record_user_interaction(self, user_name: str, intent_type: str,
                                  confidence: float, cycle: int) -> None:
-        """Record a user interaction cycle — builds identity memory."""
-        if user_name not in self._user_profiles:
-            return
-        self._user_profiles[user_name].update_from_interaction(
-            intent_type, confidence, cycle
-        )
+        """Record a user interaction cycle — builds identity memory.
+
+        The profile is upserted on first interaction so the interaction
+        is never silently dropped (Kintsugi Λ2.3: no silent swallows).
+        """
+        profile = self.upsert_user(user_name)
+        profile.update_from_interaction(intent_type, confidence, cycle)
 
     def get_user_profile(self, user_name: str) -> Optional[UserProfile]:
         """Retrieve a user's identity profile, or None if unknown."""

@@ -248,6 +248,14 @@ def dump_knowledge(knowledge_graph: Any) -> dict:
             for nid, n in getattr(knowledge_graph, '_archived_nodes', {}).items()
         } if hasattr(knowledge_graph, '_archived_nodes') else {},
         "cycle": getattr(knowledge_graph, '_cycle', 0),
+        "edges": {
+            eid: {
+                "edge_id": e.edge_id, "src": e.src, "dst": e.dst,
+                "edge_type": e.edge_type, "weight": e.weight,
+                "metadata": e.metadata, "timestamp": e.timestamp,
+            }
+            for eid, e in getattr(knowledge_graph, '_edges', {}).items()
+        } if hasattr(knowledge_graph, '_edges') else {},
     }
 
 
@@ -275,6 +283,18 @@ def load_knowledge(data: dict, kg: Any) -> None:
                 params=nd.get("params", {}), timestamp=nd.get("timestamp", 0),
                 activation=0.0, access_count=nd.get("access_count", 0),
             )
+    if hasattr(kg, '_edges'):
+        from telos.core.knowledge.graph import Edge
+        for eid, ed in data.get("edges", {}).items():
+            kg._edges[eid] = Edge(
+                edge_id=ed.get("edge_id", eid), src=ed.get("src", ""),
+                dst=ed.get("dst", ""), edge_type=ed.get("edge_type", "related"),
+                weight=ed.get("weight", 1.0), metadata=ed.get("metadata", {}),
+                timestamp=ed.get("timestamp", 0.0),
+            )
+            if ed.get("src") and ed.get("dst"):
+                kg._adjacency[ed["src"]].add(ed["dst"])
+                kg._adjacency[ed["dst"]].add(ed["src"])
 
 
 # ── SimEngine ──

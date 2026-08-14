@@ -51,7 +51,7 @@
 | **Second Agent** | ✅ Competes for rewards |
 | **5×5 Isometric 3D** | ✅ Canvas-based with orbit/zoom |
 | **3D DI/MD Chart** | ✅ Terrain pillars with glow |
-| **3D Knowledge Graph** | ✅ Force-directed with auto-rotation |
+| **3D Knowledge Graph** | ✅ Force-directed with auto-rotation — renders real serialized edges (typed/weighted), honest empty state when no edges exist |
 | **Memory Timeline** | ✅ Vertical trace history |
 
 ## Bitcoin-Inspired Upgrades

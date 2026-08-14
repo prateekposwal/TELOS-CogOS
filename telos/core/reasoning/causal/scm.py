@@ -11,6 +11,7 @@ Axiom 4.3 (Possibility Preservation) is strengthened by causal:
 
 import logging
 import numpy as np
+from collections import defaultdict, deque
 from typing import Dict, List, Any, Optional, Callable, Tuple
 
 logger = logging.getLogger("telos_scm")
@@ -95,10 +96,11 @@ class StructuralCausalModel:
         # Set the intervened value, which breaks incoming edges
         self._variable_values[variable] = value
 
-        # Propagate through the causal graph (topological order)
-        # Find all descendants of the intervened variable
+        # Propagate through the causal graph in topological order (Kahn's
+        # algorithm): a descendant is recomputed only after its causal
+        # parents have settled, so equations see consistent inputs.
         descendants = self._find_descendants(variable)
-        for desc in descendants:
+        for desc in self._topological_order(descendants):
             if desc in self.structural_equations:
                 try:
                     causes = self._get_cause_values(desc)
@@ -111,6 +113,43 @@ class StructuralCausalModel:
 
         logger.debug(f"SCM: do({variable}={value}) — propagated to {len(descendants)} descendants")
         return dict(self._variable_values)
+
+    def _topological_order(self, descendants: List[str]) -> List[str]:
+        """Kahn's algorithm on the induced descendant subgraph.
+
+        Returns a topologically sorted list of the descendant nodes
+        (causes before effects). If the subgraph contains a cycle the
+        remaining nodes are emitted after the acyclic prefix so
+        propagation always terminates.
+        """
+        if not descendants:
+            return []
+        dset = set(descendants)
+        # Induced subgraph: effect -> [causes that are also descendants]
+        subgraph: Dict[str, List[str]] = {}
+        for effect, causes in self.causal_graph.items():
+            if effect in dset:
+                subgraph[effect] = [c[0] for c in causes if c[0] in dset]
+
+        in_degree = {n: len(subgraph.get(n, [])) for n in descendants}
+        reverse: Dict[str, List[str]] = defaultdict(list)
+        for effect, causes in subgraph.items():
+            for cause in causes:
+                reverse[cause].append(effect)
+
+        queue = deque(n for n in descendants if in_degree[n] == 0)
+        order: List[str] = []
+        while queue:
+            n = queue.popleft()
+            order.append(n)
+            for effect in reverse.get(n, []):
+                in_degree[effect] -= 1
+                if in_degree[effect] == 0:
+                    queue.append(effect)
+
+        # Cycle remainder (never hangs; emitted after the acyclic prefix)
+        order.extend(n for n in descendants if n not in order)
+        return order
 
     def _find_descendants(self, variable: str) -> List[str]:
         """Find all descendants of a variable in the causal graph."""

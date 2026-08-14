@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger('telos_genealogy')
 
@@ -37,9 +37,22 @@ class TheoryGenealogy:
         return nid
 
     def get_lineage(self, node_id: str) -> List[GenealogyNode]:
+        """Ancestor chain from node up to the root.
+
+        Cycle-guarded: a visited set bounds the walk so a corrupt
+        parent cycle can never loop forever.
+        """
         ancestors = []
+        seen: Set[str] = {node_id}
         current = self._nodes.get(node_id)
         while current and current.parent_id:
+            if current.parent_id in seen:
+                logger.warning(
+                    f"Genealogy: cycle detected at '{current.parent_id}' while "
+                    f"walking lineage of '{node_id}' — stopping"
+                )
+                break
+            seen.add(current.parent_id)
             parent = self._nodes.get(current.parent_id)
             if parent:
                 ancestors.append(parent)
@@ -49,13 +62,21 @@ class TheoryGenealogy:
         return ancestors
 
     def get_descendants(self, node_id: str) -> List[GenealogyNode]:
+        """All descendants of a node (recursive children walk).
+
+        Visited-set guarded: shared or cyclic children are visited once.
+        """
         result = []
+        visited: Set[str] = set()
         def walk(nid):
+            if nid in visited:
+                return
+            visited.add(nid)
             node = self._nodes.get(nid)
             if node:
                 for cid in node.children:
                     child = self._nodes.get(cid)
-                    if child:
+                    if child and child.id not in visited:
                         result.append(child)
                         walk(cid)
         walk(node_id)

@@ -3,7 +3,7 @@ KnowledgeManager — Knowledge consultation, recording, and perception feedback.
 
 Extracted from InfrastructureManager to reduce god-object complexity.
 Handles:
-  - Knowledge Graph search and consultation (Lambda 4.7)
+  - Knowledge Graph search and consultation (Λ4.7 Law of Attention and Trajectory)
   - Outcome recording to KnowledgeGraph (success/failure)
   - UCB outcome recording for exploration bonus
   - SystemSelf identity updates
@@ -18,6 +18,7 @@ from typing import Optional, Dict, List, Any
 from telos.core.infra_manager.mission_policy import MissionPolicyManager
 from telos.core.knowledge.inference import KGInferenceEngine
 from telos.core.knowledge.graph import KnowledgeGraph
+from telos.core.knowledge.links import KnowledgeLinker
 from telos.core.knowledge.recommender import KnowledgeRecommender
 from telos.core.knowledge.recorder import OutcomeRecorder
 
@@ -46,6 +47,7 @@ class KnowledgeManager:
         self.inference = KGInferenceEngine(self.knowledge)
         self.recommender = KnowledgeRecommender(self.knowledge)
         self.recorder = OutcomeRecorder(self.knowledge)
+        self.linker = KnowledgeLinker()
         self._last_consultation: Dict[str, int] = {}
 
     def _get_domain_scale(self, key: str) -> float:
@@ -217,9 +219,56 @@ class KnowledgeManager:
         self.knowledge.tick()
         return failure
 
+    # ── Cross-graph linker (KnowledgeGraph ↔ Genealogy ↔ SCM) ──
+
+    def attach_genealogy(self, genealogy) -> None:
+        """Attach the TheoryGenealogy so queries can resolve theory names."""
+        self.linker.attach_genealogy(genealogy)
+
+    def link_node_to_theory(self, node_id: str, theory_id: str) -> None:
+        """Link a knowledge node (node_id) to a genealogy theory id (theory_id)."""
+        self.linker.link_node_to_theory(node_id, theory_id)
+
+    def link_theory_to_scm(self, theory_id: str, scm) -> str:
+        """Link theory_id to the causal structure of the given SCM.
+
+        Returns the snapshot structure id.
+        """
+        return self.linker.link_theory_to_scm(theory_id, scm)
+
+    def link_promoted_theory(self, theory, genealogy_id: str) -> int:
+        """Link a freshly promoted theory to knowledge nodes in its domains.
+
+        Called by TheoryBuilder's promotion hook (genealogy_id is the new
+        genealogy node id) so every new theory is connected to the knowledge
+        it abstracts (Λ6.7 Knowledge is Compressed Experience). Returns the
+        number of links created.
+        """
+        domains = list(getattr(theory, 'domains', []) or [])
+        linked = 0
+        for domain in domains:
+            nodes = self.knowledge.search(domain, top_k=3, min_outcome=0.0)
+            for node in nodes:
+                self.linker.link_node_to_theory(node.node_id, genealogy_id)
+                linked += 1
+        if linked:
+            logger.info(
+                f"KnowledgeLinker: theory {genealogy_id} linked to {linked} "
+                f"knowledge node(s) across {len(domains)} domain(s)"
+            )
+        return linked
+
+    def get_connected_structure(self, node_id: str) -> Dict:
+        """Whole reachable neighborhood from node_id: node → theories → SCM → siblings."""
+        return self.linker.get_connected_structure(
+            node_id, knowledge_graph=self.knowledge,
+        )
+
     @property
     def stats(self) -> Dict:
         return {
             "knowledge_nodes": len(self.knowledge._nodes) if hasattr(self.knowledge, '_nodes') else 0,
             "last_consultations": len(self._last_consultation),
+            "linked_theories": len(self.linker._theory_to_node) if hasattr(self.linker, '_theory_to_node') else 0,
+            "linked_scm_structures": len(self.linker._scm_structures) if hasattr(self.linker, '_scm_structures') else 0,
         }
