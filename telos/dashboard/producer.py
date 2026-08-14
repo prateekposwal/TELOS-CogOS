@@ -75,6 +75,21 @@ def json_clean(obj: Any) -> Any:
 DRIFT_THRESHOLD = 5.0   # MissionDriftDetector(drift_threshold=...) in _build
 SYSTEM_SCORE_WEIGHTS = {"di": 0.50, "md": 0.25, "reward": 0.15, "coverage": 0.10}
 
+# ── Episode efficiency - real behavioral readout, ZERO sim mutation ─────
+# The producer observes every goal-reach (terminal() -> reset) and counts
+# decision-steps per episode. Pure producer-side bookkeeping on events it
+# already observes: the shared sim's reward dict is NEVER touched for a
+# display metric. (Restoring it at episode reset would make the pipeline's
+# perception - GridSim.get_facts/evaluate read sim.rewards - see respawned
+# rewards it already collected: fake infinite score. That was the original
+# rejection's real kernel; the mutation-free path below delivers the same
+# signal without it.) The System Score is untouched: steps-per-goal is a
+# cycle-derived pace readout (each step is one decision cycle), and the
+# structural rule says endurance facts are never folded into a quality
+# score - so efficiency is a separate labeled stat, not a component.
+OPTIMAL_STEPS = 8.0   # Manhattan distance (0,0)->(4,4): shortest possible episode
+MAX_EPISODE_HISTORY = 50
+
 
 def _clamp01(value: float) -> float:
     """Clamp any numeric input to [0, 1] (None/NaN-safe).
@@ -235,6 +250,12 @@ class DashboardProducer:
         self._last_nav_node: Optional[str] = None
         self._visited_positions: set = set()
 
+        # ── episode efficiency (measured from real goal-reach events) ──
+        self._episode_steps = 0
+        self._episodes_completed = 0
+        self._last_episode_steps: Optional[int] = None
+        self._completed_episode_steps: List[int] = []
+
         # ── live metrics (all measured, none invented) ──
         self._traces: List[Dict] = []
         self._cycles = 0
@@ -299,6 +320,7 @@ class DashboardProducer:
                 "reward_available": self._reward_available,
                 "worlds_simulated": self._worlds_simulated_total,
                 "world_states": len(self._visited_positions),
+                "episodes": self._episode_stats(),
                 "position": self._state_np.tolist(),
                 "mood": self._mood(),
                 "knowledge": self._knowledge_stats(),
@@ -348,6 +370,51 @@ class DashboardProducer:
             "domains": domains,
             "edge_types": edge_types,
         }
+
+    # ── Episode efficiency (zero sim mutation) ─────────────────────
+
+    def _on_goal_reached(self) -> None:
+        """Goal-reach bookkeeping (called from _run_cycle on terminal()).
+
+        ZERO sim mutation: this only counts events the producer already
+        observes. The live world's reward dict is untouched - no respawn,
+        no fake re-collection, no changed perception for the pipeline.
+
+        Returns:
+            None.
+        """
+        self._episodes_completed += 1
+        self._last_episode_steps = self._episode_steps
+        self._completed_episode_steps.append(self._episode_steps)
+        if len(self._completed_episode_steps) > MAX_EPISODE_HISTORY:
+            self._completed_episode_steps = self._completed_episode_steps[-MAX_EPISODE_HISTORY:]
+        self._episode_steps = 0
+
+    def _episode_stats(self) -> Dict[str, Any]:
+        """Episode efficiency - all values derived from real goal-reach events.
+
+        avg_steps_per_goal / efficiency_vs_optimal are None until at least
+        one episode completes (honest empty state: 'unmeasured' is never
+        shown as a fake number). optimal_steps is the Manhattan distance
+        (0,0)->(4,4) = 8, the shortest possible episode; efficiency is
+        clamp01(optimal / avg), so it is bounded [0, 1] when defined.
+
+        Returns:
+            Dict with completed/current_steps/last_steps/avg_steps_per_goal/
+            efficiency_vs_optimal/optimal_steps.
+        """
+        with self._lock:
+            hist = list(self._completed_episode_steps)
+            avg = (float(sum(hist)) / len(hist)) if hist else None
+            eff = _clamp01(OPTIMAL_STEPS / avg) if avg else None
+            return {
+                "completed": self._episodes_completed,
+                "current_steps": self._episode_steps,
+                "last_steps": self._last_episode_steps,
+                "avg_steps_per_goal": (None if avg is None else round(avg, 1)),
+                "efficiency_vs_optimal": (None if eff is None else round(eff, 4)),
+                "optimal_steps": OPTIMAL_STEPS,
+            }
 
     # ── Producer loop ──────────────────────────────────────────────
 
@@ -452,6 +519,10 @@ class DashboardProducer:
         with self._lock:
             result = self._pipeline.execute(self._state_np, user_name="Prateek")
             self._cycles += 1
+            # Every decision cycle is one step of the episode clock (moves,
+            # no-ops AND inquiry pauses are all real time-to-goal - an
+            # honest measure of how many decisions reaching the goal takes).
+            self._episode_steps += 1
             trace = result.decision_trace
             self._experience_mgr.observe(result)
 
@@ -542,8 +613,10 @@ class DashboardProducer:
             self._worlds_simulated_total += int(trace.worlds_simulated if trace else 0)
             self._last_cycle_at = time.time()
 
-            # Goal reached → reset to origin for a continuous live run.
+            # Goal reached → record the episode (producer-side bookkeeping,
+            # ZERO sim mutation) and reset to origin for a continuous live run.
             if trace is not None and trace.selected_action is not None and self._sim.terminal(self._state_np):
+                self._on_goal_reached()
                 self._state_np = np.array([0.0, 0.0])
 
         # Broadcast OUTSIDE the lock (network I/O must not stall the cycle).
@@ -770,6 +843,7 @@ class DashboardProducer:
                 "reward_available": self._reward_available,
                 "worlds_simulated": self._worlds_simulated_total,
                 "world_states": len(self._visited_positions),
+                "episodes": self._episode_stats(),
                 "position": self._state_np.tolist(),
                 "mood": self._mood(),
                 "knowledge": self._knowledge_stats(),

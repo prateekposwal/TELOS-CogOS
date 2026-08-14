@@ -231,6 +231,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "reward_collected": snap.get("reward_collected", 0.0),
                 "reward_available": snap.get("reward_available", 0.0),
                 "position": snap.get("position", [0, 0]),
+                "episodes": snap.get("episodes"),
                 "recent_decisions": snap.get("recent_decisions", []),
                 "knowledge": snap.get("knowledge", {}),
             }
@@ -277,6 +278,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             "reward_collected": 0.0,
             "reward_available": 0.0,
             "position": [0, 0],
+            # Episode efficiency requires the live producer's in-memory
+            # goal-reach bookkeeping — history-only mode has none, so it
+            # is honestly None (the UI renders '—'), never invented.
+            "episodes": None,
             "recent_decisions": recent,
             "knowledge": {"nodes": len(knowledge.get("nodes", [])), "edges": len(knowledge.get("edges", [])),
                           "domains": domains, "edge_types": edge_types},

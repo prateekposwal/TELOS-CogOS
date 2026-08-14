@@ -70,6 +70,11 @@
       <div class="sub">Simulated this cycle</div>
     </div>
     <div class="metric-card">
+      <div class="label">Episode</div>
+      <div class="value value-sm" id="episode-value">—</div>
+      <div class="sub" id="episode-sub">steps into current episode — awaiting first goal…</div>
+    </div>
+    <div class="metric-card">
       <div class="label">System Score</div>
       <div class="value" id="score-value">—</div>
       <div class="score-health">
@@ -174,6 +179,7 @@
       <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div><div class="ss-caption">graph nodes — each a real observation</div></div>
       <div class="story-stat"><div class="ss-val" id="story-worlds">0</div><div class="ss-label">world states</div><div class="ss-caption">distinct cells visited in GridWorld</div></div>
       <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">futures imagined</div><div class="ss-caption">counterfactual simulations run — all hypothetical, none real</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-efficiency">—</div><div class="ss-label">steps per goal</div><div class="ss-caption">decision steps to reach the goal — optimal is 8</div></div>
       <div class="story-stat"><div class="ss-val" id="story-di">—</div><div class="ss-label">decision integrity</div><div class="ss-caption">quality of the last decision</div></div>
       <div class="story-stat"><div class="ss-val" id="story-md">—</div><div class="ss-label">mission drift</div><div class="ss-caption">distance from mission — lower is better</div></div>
       <div class="story-stat"><div class="ss-val" id="story-graph">0/0</div><div class="ss-label">graph</div><div class="ss-caption">nodes / edges — memory and its connections</div></div>

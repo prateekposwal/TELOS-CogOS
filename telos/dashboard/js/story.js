@@ -13,6 +13,7 @@ var _overviewUpdatedAt = null;
 // Previous-poll state: honest "is TELOS learning right now?" deltas.
 var _prevLessons = null;
 var _prevEdges = null;
+var _prevEpisodes = null;   // goal-reach delta for the insight line
 
 var _DOMAIN_COLORS_STORY = {
   'navigation': '#4ade80', 'gridworld': '#4ade80',
@@ -63,6 +64,7 @@ function _normalize(d) {
     score_components: d.score_components || null,
     reward_collected: typeof d.reward_collected === 'number' ? d.reward_collected : 0,
     reward_available: typeof d.reward_available === 'number' ? d.reward_available : 0,
+    episodes: d.episodes || null,
   };
 }
 
@@ -108,6 +110,38 @@ function renderOverview(d) {
   var mdEl = document.getElementById('story-md');
   if (mdEl) mdEl.textContent = n.md > 0 ? n.md.toFixed(2) : '0.00';
 
+  // Episode efficiency — REAL measured goal-reach events (producer-side
+  // bookkeeping, ZERO sim mutation). Unmeasured (no episode yet, or no
+  // producer) renders '—', never a fabricated number.
+  var ep = n.episodes;
+  var effEl = document.getElementById('story-efficiency');
+  if (effEl) {
+    if (!ep || !producer.running || ep.completed === 0 || typeof ep.avg_steps_per_goal !== 'number') {
+      effEl.textContent = '—';
+    } else {
+      effEl.textContent = Math.round(ep.avg_steps_per_goal);
+    }
+  }
+  // Sidebar Episode readout (same live payload; honest empty state).
+  var epVal = document.getElementById('episode-value');
+  var epSub = document.getElementById('episode-sub');
+  if (epVal) {
+    epVal.textContent = (!ep || !producer.running) ? '—' : String(ep.current_steps);
+  }
+  if (epSub) {
+    if (!ep || !producer.running) {
+      epSub.textContent = 'episode stats need a live producer';
+    } else if (ep.completed === 0) {
+      epSub.textContent = 'steps into current episode — awaiting first goal…';
+    } else {
+      var avgTxt = (typeof ep.avg_steps_per_goal === 'number')
+        ? Math.round(ep.avg_steps_per_goal) + ' avg'
+        : 'avg —';
+      epSub.textContent = ep.completed + ' goal' + (ep.completed === 1 ? '' : 's') +
+        ' reached · ' + avgTxt + ' · optimal ' + ep.optimal_steps;
+    }
+  }
+
   // Sidebar score breakdown: the System Score is a BOUNDED 0-100 composite
   // of measured signals (DI, mission drift, world value secured, grid
   // mapped). Cycles elapsed is an endurance fact — a separate readout —
@@ -150,6 +184,13 @@ function renderOverview(d) {
   // 10) Track poll deltas for the growth insight.
   if (_prevLessons === null) _prevLessons = lessons;
   if (_prevEdges === null) _prevEdges = edges;
+  var epTrack = n.episodes;
+  if (epTrack && typeof epTrack.completed === 'number') {
+    if (_prevEpisodes === null) _prevEpisodes = epTrack.completed;
+    _prevEpisodes = epTrack.completed;
+  } else if (_prevEpisodes !== null) {
+    _prevEpisodes = null;   // producer lost — reset the delta baseline
+  }
   _prevLessons = lessons;
   _prevEdges = edges;
 }
@@ -218,6 +259,16 @@ function renderInsight(n, lessons, edges, domainsObj, recent) {
   if (newLessons > 0) {
     parts.push('TELOS is learning — ' + newLessons + ' new lesson' + (newLessons === 1 ? '' : 's') +
       ' since the last update.');
+  }
+
+  // Goal-reach delta: a real completed episode since the last poll — the
+  // efficiency signal, measured from the producer's goal-reach bookkeeping.
+  var epNow = n.episodes;
+  if (epNow && typeof epNow.completed === 'number' && _prevEpisodes !== null &&
+      epNow.completed > _prevEpisodes && typeof epNow.last_steps === 'number') {
+    parts.push('TELOS reached the goal in ' + epNow.last_steps + ' decision steps — ' +
+      epNow.completed + ' episode' + (epNow.completed === 1 ? '' : 's') +
+      ' complete (optimal ' + epNow.optimal_steps + ').');
   }
 
   // Dominance: what the graph is mostly about (real share).
@@ -317,9 +368,14 @@ function renderMood(n, decisions, lessons, worldsSim, recent) {
   }
   var last = recent[recent.length - 1] || {};
   var lastBit = last.intent ? ', its latest move being "' + last.intent + '"' : '';
+  var epMood = n.episodes;
+  var goalsBit = '';
+  if (epMood && typeof epMood.completed === 'number' && epMood.completed > 0) {
+    goalsBit = ', ' + epMood.completed + ' goal' + (epMood.completed === 1 ? '' : 's') + ' reached';
+  }
   moodEl.innerHTML = 'Right now TELOS feels <b>' + n.mood + '</b> — ' + decisions +
     ' decisions in, ' + lessons + ' lessons learned, ' + worldsSim +
-    ' futures simulated' + lastBit + '.';
+    ' futures simulated' + goalsBit + lastBit + '.';
 }
 
 function setNum(id, val) {
