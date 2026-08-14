@@ -27,8 +27,7 @@
       <span class="live-clock" id="live-clock">waiting...</span>
     </div>
   </header>
-
-  <!-- Governance -->
+<!-- Governance -->
   <section class="sidebar-cluster" aria-label="Governance">
     <h2 class="sidebar-section-title">Governance</h2>
     <div class="metric-grid">
@@ -138,8 +137,7 @@
     <button class="btn" onclick="exportTraces()" title="Export traces as JSON">📥 Export</button>
     <button class="btn" onclick="toggleTheme()" id="btn-theme-toggle">🌙 Dark</button>
   </header>
-
-  <nav class="tab-bar" id="tab-bar" aria-label="Dashboard views">
+<nav class="tab-bar" id="tab-bar" aria-label="Dashboard views">
     <span class="tab active" onclick="switchTab('all')" data-tab="all">All</span>
     <span class="tab" onclick="switchTab('brain')" data-tab="brain">Brain</span>
     <span class="tab" onclick="switchTab('grid')" data-tab="grid">Grid</span>
@@ -149,22 +147,42 @@
     <span class="tab" onclick="switchTab('chat')" data-tab="chat">Chat</span>
   </nav>
 
-  <!-- ═══════════ BIG DATA STORY (hero — always visible, no tab needed) ═══════════ -->
+  <!-- ═══════════ BIG DATA STORY (hero — always visible, no tab needed) ═══════════
+       Narrative arc per telos/dashboard/STORYTELLING.md:
+       hook (headline) → hero number (hierarchy = explanation) → context stats
+       (each captioned) → insight (computed from live numbers) → evidence chips →
+       reflection → action (chat command box). Every number comes from
+       /api/overview measured runtime data — the narrative is DERIVED, never invented. -->
   <section class="story-strip" id="story-strip" aria-label="TELOS data story">
     <div class="story-headline-row">
       <h2 class="story-headline" id="story-headline">🌀 TELOS is live…</h2>
       <span class="story-live" id="story-live">producer starting</span>
     </div>
-    <div class="story-stats" id="story-stats">
-      <div class="story-stat"><div class="ss-val" id="story-decisions">0</div><div class="ss-label">decisions</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-domains-count">0</div><div class="ss-label">domains</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-worlds">0</div><div class="ss-label">world states</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">worlds simulated</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-di">—</div><div class="ss-label">DI</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-md">—</div><div class="ss-label">MD</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-graph">0/0</div><div class="ss-label">graph nodes/edges</div></div>
+
+    <!-- Hero: the one number this story is about (one hero per section, not 8 equals). -->
+    <div class="story-hero" id="story-hero">
+      <div class="story-hero-val" id="story-decisions">0</div>
+      <div class="story-hero-side">
+        <div class="story-hero-label">decisions made</div>
+        <div class="story-hero-caption" id="story-hero-caption">Every decision is a real pipeline run — DI-gated and council-checked before TELOS acts.</div>
+      </div>
     </div>
+
+    <!-- Context: supporting numbers, each with a one-line caption (why it matters). -->
+    <div class="story-stats" id="story-stats">
+      <div class="story-stat"><div class="ss-val" id="story-domains-count">0</div><div class="ss-label">domains</div><div class="ss-caption">knowledge areas TELOS works across</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div><div class="ss-caption">graph nodes — each a real observation</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-worlds">0</div><div class="ss-label">world states</div><div class="ss-caption">distinct cells visited in GridWorld</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">worlds simulated</div><div class="ss-caption">counterfactual futures imagined</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-di">—</div><div class="ss-label">decision integrity</div><div class="ss-caption">quality of the last decision</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-md">—</div><div class="ss-label">mission drift</div><div class="ss-caption">distance from mission — lower is better</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-graph">0/0</div><div class="ss-label">graph</div><div class="ss-caption">nodes / edges — memory and its connections</div></div>
+    </div>
+
+    <!-- Insight: the "stories with words" layer — a sentence computed from live numbers. -->
+    <div class="story-insight" id="story-insight">🌀 Computing the story…</div>
+
+    <!-- Evidence: connected chips. Domain chips are clickable (choose-your-own-adventure). -->
     <div class="story-row">
       <span class="story-row-label">Knowledge domains</span>
       <div class="story-chips" id="story-domain-chips"><span class="story-chip dim">waiting for data…</span></div>
@@ -177,7 +195,14 @@
       <span class="story-row-label">Recent decisions</span>
       <div class="story-recent" id="story-recent"><span class="story-chip dim">waiting for data…</span></div>
     </div>
+
     <div class="story-mood" id="story-mood">🌀 TELOS is warming up…</div>
+
+    <!-- Action: the story ends facing forward — the chat command box is the action surface. -->
+    <div class="story-action" id="story-action">
+      <span class="story-action-hint">TELOS is listening — what should it do next?</span>
+      <button class="btn btn-primary" onclick="openChat()">Direct TELOS →</button>
+    </div>
   </section>
 
   <div class="section-spacer"></div>
@@ -197,7 +222,8 @@
           <button class="fullscreen-btn" onclick="toggleBrainFullscreen()" title="Fullscreen">⛶</button>
         </div>
       </header>
-      <div class="zoom-wrap brain-grid">
+    <p class="panel-caption">Each stream’s activation energy over the last cycles — watch which streams drive TELOS’s thinking right now.</p>
+<div class="zoom-wrap brain-grid">
         <canvas id="brain-orbit" width="900" height="600"></canvas>
         <canvas id="brain-tree" width="900" height="600"></canvas>
       </div>
@@ -213,7 +239,8 @@
           <button class="fullscreen-btn" onclick="toggleGridFullscreen()" title="Fullscreen">⛶</button>
         </div>
       </header>
-      <canvas id="grid-canvas" width="800" height="600"></canvas>
+    <p class="panel-caption">Where TELOS is in its world — blocked cells it cannot cross, rewards it has learned to seek.</p>
+<canvas id="grid-canvas" width="800" height="600"></canvas>
       <div id="hover-tooltip" class="hover-tooltip"></div>
     </section>
 
@@ -229,6 +256,7 @@
           <button class="fullscreen-btn" onclick="toggleKGFullscreen()" title="Fullscreen">⛶</button>
         </div>
       </header>
+    <p class="panel-caption">TELOS’s memory — every node is a real lesson, every edge a connection it drew between them. Click a domain chip above to highlight it here.</p>
       <div class="kg-grid">
         <div class="zoom-wrap"><canvas id="kg-tree"></canvas></div>
         <div class="zoom-wrap"><canvas id="kg-solar"></canvas></div>
@@ -245,6 +273,7 @@
       <h3 class="panel-title">📈 DI / MD History</h3>
       <button class="fullscreen-btn" onclick="toggleChartFullscreen()" title="Fullscreen">⛶</button>
     </header>
+    <p class="panel-caption">Decision integrity vs mission drift over time — the quality of every choice TELOS makes.</p>
     <canvas id="chart-canvas" width="800" height="200"></canvas>
   </section>
 
