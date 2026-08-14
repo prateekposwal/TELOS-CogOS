@@ -273,3 +273,50 @@ class TestWriteSummary:
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
+
+
+class TestWriteHandoffGuard:
+    """write_handoff must not regenerate the empty-handoff bloat."""
+
+    def test_skips_empty_zero_cycle_handoff(self):
+        """No learnings + 0 cycles → nothing appended (the bloat source)."""
+        import telos.core.session.agents_writer as aw
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as tmp:
+            tmp_path = tmp.name
+            tmp.write("# Existing\n")
+        try:
+            original = aw.AGENTS_PATH
+            aw.AGENTS_PATH = tmp_path
+            try:
+                wrote = aw.write_handoff(
+                    None, {"di": 1.0, "md": 0.0, "cycles": 0, "mood": "neutral"}
+                )
+            finally:
+                aw.AGENTS_PATH = original
+            assert wrote is False
+            content = open(tmp_path).read()
+            assert "Session Handoff" not in content
+        finally:
+            os.unlink(tmp_path)
+
+    def test_writes_handoff_when_cycles_exist(self):
+        """A session with cycles still records a handoff."""
+        import telos.core.session.agents_writer as aw
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as tmp:
+            tmp_path = tmp.name
+            tmp.write("# Existing\n")
+        try:
+            original = aw.AGENTS_PATH
+            aw.AGENTS_PATH = tmp_path
+            try:
+                wrote = aw.write_handoff(
+                    None, {"di": 0.9, "md": 0.1, "cycles": 5, "mood": "reflective"}
+                )
+            finally:
+                aw.AGENTS_PATH = original
+            assert wrote is True
+            content = open(tmp_path).read()
+            assert "## Session Handoff" in content
+            assert "Cycles: 5" in content
+        finally:
+            os.unlink(tmp_path)
