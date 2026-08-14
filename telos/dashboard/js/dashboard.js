@@ -150,7 +150,12 @@ function applyTrace(trace) {
   if (trace.score !== undefined) {
     state.score = trace.score;
     _displayTarget.score = Math.round(state.score);
-    document.getElementById('score-card') && (document.getElementById('score-card').style.display = '');
+    var sc = document.getElementById('score-card');
+    if (sc) {
+      sc.style.display = '';
+      var scv = document.getElementById('score-card-value');
+      if (scv) scv.textContent = Math.round(state.score);
+    }
   }
   if (trace.terrain_changes && trace.terrain_changes.length > 0) {
     state.terrainChanges = trace.terrain_changes;
