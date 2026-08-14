@@ -22,8 +22,8 @@ LOOP_CANVAS_IDS = {
 }
 
 JS_FILES = [
-    "dashboard.js", "knowledge-graph.js", "gridworld.js", "brain-viz.js",
-    "chart.js", "memory.js", "story.js", "chat.js",
+    "dashboard.js", "intent.js", "knowledge-graph.js", "gridworld.js",
+    "brain-viz.js", "chart.js", "memory.js", "story.js", "chat.js",
 ]
 
 
@@ -94,3 +94,54 @@ def test_graphs_and_story_visible_without_tab_activation():
         assert f'id="{cid}"' in html, f"graph canvas missing: {cid}"
     # No canvas may start hidden in the markup
     assert 'style="display:none"' not in html.split('<main')[1].split('</main>')[0]
+
+
+def test_intent_label_never_renders_object_object():
+    """Regression: the Memory timeline showed '[object Object]' because
+    selected_intent is a dict {type, confidence} in real traces and the
+    old code interpolated the raw field. intentLabel() must extract a
+    string from every known shape and never return an object. The real
+    intent.js function is executed under node (verify as the user — the
+    exact code the browser runs)."""
+    import json
+    import subprocess
+
+    intent_src = open(os.path.join(JS_DIR, "intent.js")).read()
+    cases = [
+        ({"selected_intent": {"type": "explore_unknown_unknown", "confidence": 0.5}}, "explore_unknown_unknown"),
+        ({"selected_intent": {"intent_type": "navigate_to_goal"}}, "navigate_to_goal"),
+        ({"selected_intent": "plain_string_intent"}, "plain_string_intent"),
+        ({"intent_type": "top_level_intent"}, "top_level_intent"),
+        ({"strategic_options": [{"intent_type": "via_options"}]}, "via_options"),
+        ({"selected_intent": {}}, "—"),
+        ({}, "—"),
+        (None, "—"),
+    ]
+    harness = intent_src + "\n" + (
+        "const cases = " + json.dumps([c[0] for c in cases]) + ";\n"
+        "for (const c of cases) console.log(intentLabel(c));\n"
+    )
+    proc = subprocess.run(
+        ["node", "-e", harness],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert proc.returncode == 0, f"node failed: {proc.stderr}"
+    got = [line for line in proc.stdout.splitlines() if line]
+    expected = [c[1] for c in cases]
+    assert got == expected, f"intentLabel mismatch:\n  got={got}\n  expected={expected}"
+    assert "object Object" not in proc.stdout, "intentLabel leaked '[object Object]'"
+
+
+def test_memory_renders_intent_via_canonical_extractor():
+    """memory.js must route intent display through intentLabel() (the one
+    canonical extractor) and must never interpolate selected_intent raw."""
+    texts = {f: open(os.path.join(JS_DIR, f)).read() for f in JS_FILES}
+    memory_src = texts["memory.js"]
+    assert "intentLabel(t)" in memory_src, \
+        "memory.js must use the canonical intentLabel() extractor"
+    assert "selected_intent || t.intent_type" not in memory_src, \
+        "memory.js must not fall back to raw selected_intent interpolation"
+    html = open(HTML).read()
+    assert "js/intent.js" in html, "intent.js must be loaded before memory.js"
+    assert html.index("js/intent.js") < html.index("js/memory.js"), \
+        "intent.js must load before memory.js"

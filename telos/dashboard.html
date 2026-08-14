@@ -78,7 +78,7 @@
         Mission <span id="mission-score">--</span>
         <button class="btn btn-xs health-toggle" onclick="toggleHealth()">📊 Health</button>
       </div>
-      <div class="sub">Time pressure (⬇1/cycle)</div>
+      <div class="sub" id="score-breakdown">Time pressure (⬇1/cycle)</div>
     </div>
   </section>
 
@@ -173,7 +173,7 @@
       <div class="story-stat"><div class="ss-val" id="story-domains-count">0</div><div class="ss-label">domains</div><div class="ss-caption">knowledge areas TELOS works across</div></div>
       <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div><div class="ss-caption">graph nodes — each a real observation</div></div>
       <div class="story-stat"><div class="ss-val" id="story-worlds">0</div><div class="ss-label">world states</div><div class="ss-caption">distinct cells visited in GridWorld</div></div>
-      <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">worlds simulated</div><div class="ss-caption">counterfactual futures imagined</div></div>
+      <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">futures imagined</div><div class="ss-caption">counterfactual simulations run — all hypothetical, none real</div></div>
       <div class="story-stat"><div class="ss-val" id="story-di">—</div><div class="ss-label">decision integrity</div><div class="ss-caption">quality of the last decision</div></div>
       <div class="story-stat"><div class="ss-val" id="story-md">—</div><div class="ss-label">mission drift</div><div class="ss-caption">distance from mission — lower is better</div></div>
       <div class="story-stat"><div class="ss-val" id="story-graph">0/0</div><div class="ss-label">graph</div><div class="ss-caption">nodes / edges — memory and its connections</div></div>
@@ -329,6 +329,7 @@
 </div>
 
 <script src="dashboard/js/dashboard.js"></script>
+<script src="dashboard/js/intent.js"></script>
 <script src="dashboard/js/knowledge-graph.js"></script>
 <script src="dashboard/js/gridworld.js"></script>
 <script src="dashboard/js/brain-viz.js"></script>
