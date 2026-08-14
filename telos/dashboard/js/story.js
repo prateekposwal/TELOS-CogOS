@@ -59,10 +59,10 @@ function _normalize(d) {
     producer: d.producer || { running: false, cycles: 0 },
     recent_decisions: d.recent_decisions || [],
     position: d.position || [],
-    score: d.score || 0,
-    score_base: d.score_base !== undefined ? d.score_base : 100,
-    time_cost: d.time_cost !== undefined ? d.time_cost : 0,
-    reward_collected: d.reward_collected !== undefined ? d.reward_collected : 0,
+    score: (typeof d.score === 'number' && isFinite(d.score)) ? d.score : null,
+    score_components: d.score_components || null,
+    reward_collected: typeof d.reward_collected === 'number' ? d.reward_collected : 0,
+    reward_available: typeof d.reward_available === 'number' ? d.reward_available : 0,
   };
 }
 
@@ -108,17 +108,25 @@ function renderOverview(d) {
   var mdEl = document.getElementById('story-md');
   if (mdEl) mdEl.textContent = n.md > 0 ? n.md.toFixed(2) : '0.00';
 
-  // Sidebar score breakdown: Score = base − time cost + rewards. Real numbers,
-  // so a negative score reads as a timer, not a mystery.
+  // Sidebar score breakdown: the System Score is a BOUNDED 0-100 composite
+  // of measured signals (DI, mission drift, world value secured, grid
+  // mapped). Cycles elapsed is an endurance fact — a separate readout —
+  // never folded into the quality score. The caption is DERIVED from the
+  // exact components the producer used (score_components), never invented.
   var sbEl = document.getElementById('score-breakdown');
   if (sbEl) {
-    var base = n.score_base || 100;
-    var cost = Math.round(n.time_cost || 0);
-    var rew = Math.round(n.reward_collected || 0);
-    if (cost > 0) {
-      sbEl.textContent = base + ' − ' + cost + ' time + ' + rew + ' reward = ' + Math.round(n.score) + '  (⬇1/cycle)';
+    if (n.decisions === 0) {
+      sbEl.textContent = '0–100 composite — waiting for first cycle';
+    } else if (n.score === null) {
+      sbEl.textContent = '0–100 composite — unavailable from persisted history (needs a live producer)';
+    } else if (n.score_components) {
+      var c = n.score_components;
+      var valuePct = Math.round((c.reward_fraction || 0) * 100);
+      var mappedPct = Math.round((c.world_coverage || 0) * 100);
+      sbEl.textContent = '0–100 · DI ' + Math.round((c.di || 0) * 100) + '% · drift ' +
+        (c.md || 0).toFixed(2) + ' · value ' + valuePct + '% · mapped ' + mappedPct + '%';
     } else {
-      sbEl.textContent = 'Time pressure (⬇1/cycle)';
+      sbEl.textContent = '0–100 composite of DI, drift, rewards, exploration';
     }
   }
 

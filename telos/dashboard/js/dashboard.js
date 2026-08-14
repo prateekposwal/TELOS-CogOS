@@ -1,7 +1,7 @@
 // TELOS Core Dashboard Module — state, data flow, UI logic
-var _display = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:100, worlds:0, terrain:'' };
-var _displayTarget = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:100, worlds:0, terrain:'' };
-var _displayPrev = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:100, worlds:0, terrain:'' };
+var _display = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:null, worlds:0, terrain:'' };
+var _displayTarget = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:null, worlds:0, terrain:'' };
+var _displayPrev = { di:0, md:0, cycles:0, health:0, system:0, mission:0, score:null, worlds:0, terrain:'' };
 var _lastUpdate = null;
 function popValue(el) { if(el){el.classList.remove('val-pop');void el.offsetWidth;el.classList.add('val-pop');} }
 
@@ -146,9 +146,13 @@ function applyTrace(trace) {
   if (trace.agent2_reward !== undefined) {
     state.agent2Reward = trace.agent2_reward;
   }
-  if (trace.score !== undefined) {
+  // System Score is bounded 0-100 by definition (range is part of the
+  // metric). Legacy persisted traces carry the old unbounded timer score
+  // (100 - cycles + rewards, e.g. -271); out-of-range values are rejected
+  // structurally rather than displayed.
+  if (typeof trace.score === 'number' && isFinite(trace.score) && trace.score >= 0 && trace.score <= 100) {
     state.score = trace.score;
-    _displayTarget.score = Math.round(state.score);
+    _displayTarget.score = trace.score;
     var sc = document.getElementById('score-card');
     if (sc) {
       sc.style.display = '';
@@ -629,6 +633,8 @@ var _animCounter = 0;
        if (typeof t === 'number' && typeof c === 'number') {
          if (Math.abs(t - c) < 0.001) { _display[k] = t; }
          else { _display[k] = c + (t - c) * 0.15; }
+       } else if (typeof t === 'number') {
+         _display[k] = t; // snap from null (honest empty) to the first real value
        }
      });
      var diEl = document.getElementById('di-value');
@@ -653,9 +659,13 @@ var _animCounter = 0;
      }
      var scEl = document.getElementById('score-value');
      if (scEl) {
-       var scD = Math.round(_display.score);
-       if (scD !== _displayPrev.score) { scEl.textContent = scD; popValue(scEl); _displayPrev.score = scD; }
-       else { scEl.textContent = scD; }
+       if (typeof _display.score === 'number' && isFinite(_display.score)) {
+         var scD = Math.round(_display.score);
+         if (scD !== _displayPrev.score) { scEl.textContent = scD; popValue(scEl); _displayPrev.score = scD; }
+         else { scEl.textContent = scD; }
+       } else {
+         if (scEl.textContent !== '\u2014') { scEl.textContent = '\u2014'; }
+       }
      }
      var wEl = document.getElementById('worlds-value');
      if (wEl) {
