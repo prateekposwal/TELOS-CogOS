@@ -69,17 +69,32 @@ def test_checkpoints_merge_producer_and_disk(handler, tmp_path, monkeypatch):
         snap = p.snapshot()
         assert snap["decisions"] >= 2
         monkeypatch.setattr(sd, "_producer", p)
+        # The producer is LIVE: cycles advance between reads, so each API
+        # read must be compared against a FRESH snapshot (a window, not an
+        # exact tick). This was a latent timing race: health["cycles"] ==
+        # snap["decisions"] failed when a cycle landed between the two reads
+        # (6 vs 5) under full-suite load. The assertions below keep the
+        # original intent — every API reflects the LIVE producer — without
+        # demanding the producer pause between our reads.
+        def fresh():
+            return p.snapshot()["decisions"]
+
         traces = h._load_checkpoints()
         assert len(traces) >= 2, "full traces from the live producer"
-        assert traces[-1]["cycle_id"] == snap["decisions"]
+        assert abs(traces[-1]["cycle_id"] - fresh()) <= 1, (
+            "checkpoints tail must track the live producer"
+        )
         # Health reflects the live producer
         health = h._load_health_summary()
-        assert health["cycles"] == snap["decisions"]
         assert health["producer_running"] is True
+        assert health["cycles"] >= 2
+        assert abs(health["cycles"] - fresh()) <= 1, (
+            "health cycles drifted from the live producer"
+        )
         assert health["mood"] == snap["mood"]
         # Overview reflects the live producer
         ov = h._load_overview()
-        assert ov["decisions"] == snap["decisions"]
+        assert abs(ov["decisions"] - fresh()) <= 1
         assert ov["lessons"] == snap["knowledge"]["nodes"]
         assert ov["edges"] == snap["knowledge"]["edges"]
     finally:

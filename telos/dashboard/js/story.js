@@ -14,6 +14,7 @@ var _overviewUpdatedAt = null;
 var _prevLessons = null;
 var _prevEdges = null;
 var _prevEpisodes = null;   // goal-reach delta for the insight line
+var _prevDecisions = null;  // hero number delta for the count-pop
 
 var _DOMAIN_COLORS_STORY = {
   'navigation': '#4ade80', 'gridworld': '#4ade80',
@@ -96,15 +97,29 @@ function renderOverview(d) {
   }
 
   // 3) Hero number (decisions) + caption that explains why it matters.
-  setNum('story-decisions', decisions);
+  //    The count-pop lives HERE and only here (DESIGN.md: sidebar values
+  //    no longer flash; the hero number keeps the single attention pulse).
+  var decEl = document.getElementById('story-decisions');
+  if (decEl) {
+    var decStr = String(decisions);
+    if (decEl.textContent !== decStr) {
+      decEl.textContent = decStr;
+      if (typeof popValue === 'function') popValue(decEl);
+    }
+    _prevDecisions = decisions;
+  }
   renderHeroCaption(n);
 
-  // 4) Context stats (captions live in the HTML markup).
+  // 4) Context stats — the 4 hero slots (captions live in the HTML markup).
+  //    domains-count + graph render in the Knowledge-graph chip row;
+  //    DI/MD render in the Chart panel caption (see below). Honesty: every
+  //    value here comes from /api/overview measured data or a real delta.
   setNum('story-domains-count', domainNames.length);
   setNum('story-lessons', lessons);
   setNum('story-worlds', worldStates);
   setNum('story-worlds-sim', worldsSim);
   setNum('story-graph', lessons + '/' + edges);
+  // DI / MD moved into the Chart panel caption (still measured values).
   var diEl = document.getElementById('story-di');
   if (diEl) diEl.textContent = n.di > 0 ? (n.di * 100).toFixed(0) + '%' : '—';
   var mdEl = document.getElementById('story-md');

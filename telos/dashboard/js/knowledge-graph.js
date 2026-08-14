@@ -144,9 +144,11 @@ const DOMAIN_COLORS = {
 };
 
 var _kgFullscreen = false;
-function toggleKGFullscreen() {
+function toggleKGFullscreen(btn) {
   _kgFullscreen = !_kgFullscreen;
-  var kp = document.querySelector('.knowledge-panel');
+  // Each knowledge mode is now its own section/panel — fullscreen the panel
+  // the button lives in (fallback: first panel, pre-split behaviour).
+  var kp = btn && btn.closest ? btn.closest('.knowledge-panel') : document.querySelector('.knowledge-panel');
   if (!kp) return;
   if (_kgFullscreen) {
     kp.style.position = 'fixed'; kp.style.top = '0'; kp.style.left = '0';
@@ -172,8 +174,7 @@ function resizeKgCanvas() {
 var _kgPaused=false;
 function toggleKGPause(){
   _kgPaused=!_kgPaused;
-  var btn=document.getElementById('btn-kg-pause');
-  if(btn)btn.textContent=_kgPaused?'▶ Play':'⏸ Pause';
+  document.querySelectorAll('.kg-pause-btn').forEach(function(btn){btn.textContent=_kgPaused?'▶ Play':'⏸ Pause';});
 }
 
 // Init KG with demo data so it's ready when the IIFE runs
@@ -211,9 +212,9 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
   }
   function kgDrawAll(){
     try{
-    if(!_kgPaused)kgt+=0.02;
+    if(!_kgPaused && !window.__reducedMotion)kgt+=0.02;
     if(kgNodes.length>0)simulateKnowledgeForces(false);
-    if(!_kgPaused)kgRotation+=0.004;
+    if(!_kgPaused && !window.__reducedMotion)kgRotation+=0.004;
     var proj=kgProject();
     for(var ki=0;ki<kgCanvases.length;ki++){
       kgResize(kgCanvases[ki]);
@@ -222,7 +223,7 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
       bg.addColorStop(0,'#111122');bg.addColorStop(1,'#06060a');
       ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
       ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='18px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
-      ctx.fillText((ki+1)+'. '+kgLabels[ki]+' ('+kgNodes.length+' nodes)',w/2,6);
+      ctx.fillText(kgLabels[ki]+' ('+kgNodes.length+' nodes)',w/2,6);
       if(kgNodes.length===0){
         ctx.fillStyle='rgba(136,136,136,0.5)';ctx.font='16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
         ctx.fillText('No knowledge nodes yet',w/2,h/2);continue;
@@ -246,7 +247,7 @@ if(kgNodes.length===0) initKnowledgeGraph({nodes: [], edges: []});
       var html='';
       for(var pi=0;pi<Math.min(10,proj.length);pi++){
         var n=proj[pi];
-        html+='<span style="color:'+(DOMAIN_COLORS[n.domain]||'#888')+';margin:2px 4px;font-size:9px;">\u25CF '+(n.label||'?')+'</span>';
+        html+='<span style="color:'+(DOMAIN_COLORS[n.domain]||'#888')+';margin:2px 4px;font-size:12px;">\u25CF '+(n.label||'?')+'</span>';
       }
       kd.innerHTML=html;
     }

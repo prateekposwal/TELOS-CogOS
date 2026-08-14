@@ -26,7 +26,7 @@ import websockets
 import logging
 import subprocess
 import sys
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse
 from threading import Thread
 
@@ -553,7 +553,14 @@ def broadcast_overview_sync(overview_dict: dict):
 # ─── Main ───
 def run_http():
     try:
-        server = HTTPServer(('0.0.0.0', HTTP_PORT), DashboardHandler)
+        # ThreadingHTTPServer, not HTTPServer: the page polls ~6 endpoints in
+        # parallel (checkpoints/overview/knowledge/health + WS handshake) and a
+        # grown knowledge graph makes each /api/knowledge serialization take
+        # >1s — a single-threaded accept loop then overflows its backlog and
+        # the browser's own dashboard times out (ERR_CONNECTION_TIMED_OUT).
+        # Each request is bounded by the producer's RLock (snapshot reads) and
+        # file-read try/excepts, so concurrent handlers are safe.
+        server = ThreadingHTTPServer(('0.0.0.0', HTTP_PORT), DashboardHandler)
         logger.info(f"📊 TELOS Dashboard → http://localhost:{HTTP_PORT}")
         server.serve_forever()
     except OSError as e:

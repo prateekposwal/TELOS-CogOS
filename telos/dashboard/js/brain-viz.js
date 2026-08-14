@@ -1,6 +1,9 @@
 // TELOS Brain Visualization Module — Neural Orbit, Pipeline Flow, Root System
 
 // ─── 3-Mode Brain Visualization (single rAF loop) ───
+// Pipeline phase names at module scope: the drawing IIFE and the click
+// handler both need them (the handler cannot see the IIFE-local `P`).
+var _BRAIN_PHASES = ['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
 var _brainPaused=false;
 var _lastHealthData={di:0.5, compute:{c_compute:0.5,c_memory:0.5,c_bandwidth:0.5}};
 var _brainOrbitAngle=0;
@@ -13,7 +16,7 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
   if(!bco||!bct)return;
   var co=bco.getContext('2d'), ct=bct.getContext('2d');
   if(!co||!ct)return;
-  var P=['PERCEIVE','STREAMS','SIMULATE','EVALUATE','SYNTHESIS','SELECT','COUNCIL','ACT','REFLECT'];
+  var P=_BRAIN_PHASES;
   var C=['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f472b6','#fb923c','#34d399','#ff6b6b','#888888'];
   var L_=['Core','Narrative','Mission','Project','Method','Action'];
   var to=0; var _co=co, _bco=bco;
@@ -22,7 +25,7 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
   function draw(){
     try{
     // ── Mode 1: Neural Orbit ──
-    if(!_brainPaused)to+=0.02;
+    if(!_brainPaused && !window.__reducedMotion)to+=0.02;
     var diVal=state.diHistory.length>0?state.diHistory[state.diHistory.length-1]:0.5;
     var w=_bco.width=_bco.clientWidth||280,     h=_bco.height=_bco.clientHeight||800;
     var cx=w/2,cy=h/2,R=Math.min(w,h)*0.50;
@@ -51,7 +54,7 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
     _co.fillStyle='rgba(255,255,255,0.9)'; _co.font='bold 24px sans-serif'; _co.textAlign='center'; _co.textBaseline='middle';
     _co.fillText('REDACTED',cx,cy);
     _co.shadowBlur=0;
-    _co.fillStyle='rgba(255,255,255,0.32)'; _co.font='9px sans-serif';
+    _co.fillStyle='rgba(255,255,255,0.32)'; _co.font='12px sans-serif';
     _co.fillText('TELOS cognitive core',cx,cy+17);
     var act=_brainPaused?act:Math.floor(to*0.45)%P.length;
     for(var i=0;i<P.length;i++){
@@ -103,15 +106,15 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       _co.fillStyle='rgba(10,10,22,0.92)';_co.strokeStyle='rgba(80,80,140,0.3)';_co.lineWidth=1;
       roundRect(_co,hx2,hy2,hw,hh,6);_co.fill();_co.stroke();
       _co.shadowBlur=0;
-      _co.fillStyle='#ddd';_co.font='bold 11px sans-serif';_co.textAlign='left';_co.textBaseline='top';
+      _co.fillStyle='#ddd';_co.font='bold 12px sans-serif';_co.textAlign='left';_co.textBaseline='top';
       _co.fillText(P[_hoveredPhase],hx2+8,hy2+6);
-      _co.fillStyle='#888';_co.font='10px sans-serif';
+      _co.fillStyle='#888';_co.font='12px sans-serif';
       _co.fillText('DI: '+diVal.toFixed(2)+' | '+P[_hoveredPhase].substring(0,4)+' phase',hx2+8,hy2+22);
       _co.restore();
     }
 
     // ── Mode 2: Root System ──
-    if(!_brainPaused)tt+=0.02;
+    if(!_brainPaused && !window.__reducedMotion)tt+=0.02;
     var diVal2=state.diHistory.length>0?state.diHistory[state.diHistory.length-1]:0.5;
     var ringClr2=diVal2>0.8?'74,222,128':diVal2>0.5?'251,191,36':'255,68,68';
     w=_bct.width=_bct.clientWidth||280; h=_bct.height=_bct.clientHeight||800;
@@ -209,7 +212,8 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
       var p=_brainPhasePositions[i];
       var d2=(mx-p.x)*(mx-p.x)+(my-p.y)*(my-p.y);
       if(d2<1600){
-        showPhaseDetail(P[i],i,diVal);
+        showPhaseDetail(_BRAIN_PHASES[i], i,
+          state.diHistory.length > 0 ? state.diHistory[state.diHistory.length-1] : 0.5);
         return;
       }
     }
@@ -219,15 +223,16 @@ var _brainDragState={active:false,startX:0,startY:0,startAngle:0};
 // ─── Pause/Resume for brain ───
 function toggleBrainPause(){
   _brainPaused=!_brainPaused;
-  var btn=document.getElementById('btn-brain-pause');
-  if(btn)btn.textContent=_brainPaused?'▶ Play':'⏸ Pause';
+  document.querySelectorAll('.brain-pause-btn').forEach(function(btn){btn.textContent=_brainPaused?'▶ Play':'⏸ Pause';});
 }
 
 // ─── Fullscreen for brain ───
 var _brainFullscreen=false;
-function toggleBrainFullscreen(){
+function toggleBrainFullscreen(btn){
   _brainFullscreen=!_brainFullscreen;
-  var bp=document.querySelector('.brain-panel');
+  // Each mind mode is now its own section/panel — fullscreen the panel the
+  // button lives in (fallback: first panel, pre-split behaviour).
+  var bp = btn && btn.closest ? btn.closest('.brain-panel') : document.querySelector('.brain-panel');
   if(!bp)return;
   if(_brainFullscreen){
     bp.style.position='fixed';bp.style.top='0';bp.style.left='0';
@@ -244,9 +249,9 @@ function toggleBrainFullscreen(){
 var _brainZoom=1;
 function zoomBrain(delta){
   _brainZoom=Math.max(0.5,Math.min(3,_brainZoom+delta));
-  document.getElementById('brain-zoom-lvl').textContent=_brainZoom.toFixed(1)+'×';
+  document.querySelectorAll('.brain-zoom-lvl').forEach(function(el){el.textContent=_brainZoom.toFixed(1)+'×';});
   document.querySelectorAll('.brain-panel .zoom-wrap canvas').forEach(function(c){
     c.style.transform='scale('+_brainZoom+')';
-    c.parentNode.style.height=Math.round(800*_brainZoom)+'px';
+    c.parentNode.style.height=Math.round(540*_brainZoom)+'px';
   });
 }
