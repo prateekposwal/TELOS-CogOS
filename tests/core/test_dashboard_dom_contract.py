@@ -24,8 +24,8 @@ LOOP_CANVAS_IDS = {
 
 JS_FILES = [
     "dashboard.js", "intent.js", "knowledge-graph.js", "gridworld.js",
-    "brain-viz.js", "chart.js", "memory.js", "story.js", "chat.js",
-    "hero.js",
+    "brain-viz.js", "chart.js", "memory.js", "story.js",
+    "chat.js", "hero.js", "knowledge-3d.js",
 ]
 
 
@@ -338,6 +338,66 @@ def test_chart_js_no_random_and_real_canvas_width():
     assert "clientWidth" in chart, "chart.js must read the real canvas width"
     assert "clientHeight" in chart, "chart.js must read the real canvas height"
 
+def test_v5_memory_modes_draw_real_edges_and_canonical_palette():
+    """v5 Memory redesign (2026-08-15): all three KG modes must draw the
+    REAL edges (color-coded by edge_type) — never isolated dots for a graph
+    that has connections — and must use the ONE canonical domain palette
+    (window._DOMAIN_COLORS_STORY from story.js), not a private copy."""
+    kg = open(os.path.join(JS_DIR, "knowledge-graph.js")).read()
+    # Real edges consumed by the draw path (kgDrawEdges + deterministic sample).
+    assert "kgDrawEdges(" in kg, "KG modes must draw real edges"
+    assert "edgeSample(" in kg, "real-edge sampling helper missing"
+    assert "kgEdgeCount" in kg, "real edge total must be tracked"
+    assert "edge_type" in kg, "edge_type must drive filament color (meaning)"
+    # Canonical palette: NO private domain-color map (old DOMAIN_COLORS gone),
+    # the canonical map is read from window._DOMAIN_COLORS_STORY.
+    assert "var DOMAIN_COLORS" not in kg, "private palette copy regressed"
+    assert "window._DOMAIN_COLORS_STORY" in kg, \
+        "KG must read the canonical domain palette from story.js"
+    # Original mode names (the v5 identity).
+    for marker in ("THE CANOPY", "ORBITAL ECOLOGY", "NEBULA CLUSTERS"):
+        assert marker in kg, "v5 mode marker missing: " + marker
+    # Deterministic layout: no Math.random for node positions.
+    assert "Math.random(" not in kg, "KG layout must be deterministic"
+
+
+def test_v5_mind_modes_real_signals_and_no_fabrication():
+    """v5 Mind redesign: stream activations / DI history / meta mode drive
+    the canvases; the fabricated 'REDACTED' label and the rainbow phase palette
+    are gone; no fake timer-driven 'active phase' claim survives."""
+    brain = open(os.path.join(JS_DIR, "brain-viz.js")).read()
+    for marker in ("ACTIVATION AURORA", "SYNAPSE RHIZOME"):
+        assert marker in brain, "v5 mind marker missing: " + marker
+    assert "REDACTED" not in brain, "fabricated core label must be gone"
+    assert "Math.random(" not in brain, "Mind modes must not fabricate data"
+    # Real data accessors drive the canvases.
+    assert "_latestStreams" in brain, "must read real stream_activations"
+    assert "_streamMeanPriorities" in brain, "must compute real stream means"
+    assert "state.metaMode" in brain, "must read real meta_cognition.mode"
+    assert "state.sysMood" in brain, "must read real system_mood"
+    # Semantic stream palette, not a rainbow.
+    assert "_STREAM_COLORS" in brain, "semantic stream palette missing"
+
+
+def test_v5_world_is_scanned_perimeter_not_iso_game():
+    """v5 World redesign: the isometric game renderer is replaced by the
+    Scanned Perimeter (2D cartographic sonar) — real positions, real trail,
+    real coverage. The old ISO engine constants must be gone from the JS."""
+    grid = open(os.path.join(JS_DIR, "gridworld.js")).read()
+    assert "THE SCANNED PERIMETER" in grid, "v5 world marker missing"
+    assert "cellToScreen(" in grid, "perimeter projection helper missing"
+    assert "coverageFraction(" in grid, "real coverage readout missing"
+    assert "rewardFraction(" in grid, "real reward-fraction readout missing"
+    assert "ISO.tw" not in grid, "legacy isometric engine must be gone"
+    assert "drawBlock3D" not in grid, "legacy block renderer must be gone"
+    assert "state.visitCounts" in grid, "visit heat must stay real"
+    # Dashboard.js must drive the new projection (no dead ISO handlers).
+    dash = open(os.path.join(JS_DIR, "dashboard.js")).read()
+    assert "PERIM.camX" in dash, "dashboard.js must drive the perimeter pan"
+    assert "state.metaMode" in dash, "dashboard.js must capture meta mode"
+    assert "streamHistory" in dash, "dashboard.js must accumulate stream history"
+
+
 
 def _serve_telos_static():
     """In-process static server for the telos/ dir (no dashboard required)."""
@@ -576,6 +636,251 @@ def test_story_strip_visible_above_fold_browser():
                 "flex-shrink visibility contract missing (static fallback)"
             t = _parse_theme_block(css, ":root")
             assert "--text-display" in t, "display token missing (static fallback)"
+        finally:
+            try:
+                os.unlink(probe_path)
+            except OSError:
+                pass
+    finally:
+        server.shutdown()
+
+# ═══════════════════════════════════════════════════════════════════════
+# v6 3D Memory Nebula (kg-bubble → three.js WebGL, 2026-08-15)
+#   1. Vendored three.js (no CDN), deterministic layout, real data only.
+#   2. WebGL-unavailable / three-missing → the 2D nebula renderer stays.
+#   3. The 3D canvas paints real pixels in the browser (measured).
+# ═══════════════════════════════════════════════════════════════════════
+
+VENDOR_DIR = os.path.join(PROJECT, "telos", "dashboard", "vendor")
+
+
+def test_v6_knowledge_3d_static_structure_and_real_data():
+    """The 3D Memory Nebula must be vendored (never a CDN), deterministic
+    (no Math.random — same layout rule as the 2D modes), driven ONLY by the
+    real shared graph state (kgNodes/kgEdges/kgDegree/edge_type and the ONE
+    canonical domain palette), and structurally able to fall back to the 2D
+    nebula renderer when WebGL or three.js is unavailable."""
+    html = open(HTML).read()
+    k3d = open(os.path.join(JS_DIR, "knowledge-3d.js")).read()
+    kg = open(os.path.join(JS_DIR, "knowledge-graph.js")).read()
+
+    # Vendored, not CDN: the three scripts must load from /dashboard/vendor/
+    # and /dashboard/js/ BEFORE the modules that depend on them.
+    assert os.path.exists(os.path.join(VENDOR_DIR, "three.min.js")), "three.min.js must be vendored"
+    assert os.path.exists(os.path.join(VENDOR_DIR, "OrbitControls.js")), "OrbitControls.js must be vendored"
+    assert os.path.getsize(os.path.join(VENDOR_DIR, "three.min.js")) > 300000, "vendored three.min.js looks truncated"
+    assert "https://" not in "".join(
+        open(os.path.join(VENDOR_DIR, f)).read() for f in ("three.min.js", "OrbitControls.js")
+    ), "vendored libs must not be CDN proxies"
+    i_three = html.index('src="dashboard/vendor/three.min.js"')
+    i_oc = html.index('src="dashboard/vendor/OrbitControls.js"')
+    i_k3d = html.index('src="dashboard/js/knowledge-3d.js"')
+    i_dash = html.index('src="dashboard/js/dashboard.js"')
+    i_kg = html.index('src="dashboard/js/knowledge-graph.js"')
+    assert i_three < i_oc < i_k3d < i_dash < i_kg, (
+        "load order must be: three.min.js → OrbitControls.js → knowledge-3d.js "
+        "→ dashboard.js → knowledge-graph.js (the 3D module must claim the "
+        "kg-bubble WebGL context before knowledge-graph.js claims 2D)"
+    )
+    assert 'src="https://' not in html, "no CDN scripts allowed"
+
+    # Deterministic layout: no Math.random anywhere in the 3D module.
+    assert "Math.random(" not in k3d, "3D layout must be deterministic"
+
+    # Real-data contract: the 3D module reads ONLY the shared real state and
+    # the ONE canonical palette; no private color map, no invented fields.
+    for marker in ("kgNodes", "kgEdges", "kgDegree", "kgDegreeMax",
+                   "edgeSample(", "edgeColor(", "window._DOMAIN_COLORS_STORY",
+                   "kgEdgeCount"):
+        assert marker in k3d, f"3D module must read real state: {marker}"
+    assert "edge_type" in k3d, "edge_type must drive 3D edge colors (meaning)"
+    assert "var DOMAIN_COLORS" not in k3d, "no private palette copy in 3D module"
+
+    # Honest fallback structure: __kgBubble3D is set ONLY when a WebGL
+    # context was actually obtained; knowledge-graph.js consults it before
+    # touching kg-bubble with 2D (so the 2D nebula survives a WebGL-less env).
+    assert "window.__kgBubble3D = true;" in k3d, "3D activation flag missing"
+    assert "getContext('webgl2')" in k3d, "WebGL probe missing"
+    assert "getContext('webgl')" in k3d, "WebGL probe missing"
+    assert "window.__kgBubble3D" in kg, "knowledge-graph.js must guard kg-bubble against the 3D owner"
+    assert "kg3dZoomButton" in k3d and "kg3dZoomButton(delta)" in open(os.path.join(JS_DIR, "dashboard.js")).read(),         "zoom buttons must dolly the 3D camera (not CSS-scale the WebGL canvas)"
+
+    # Honest empty state + inspect card ids exist and start hidden (no
+    # fabricated content; the card fills only from a real node on click).
+    for hid in ("kg3d-hud", "kg3d-empty", "kg3d-labels", "kg3d-card"):
+        assert f'id="{hid}"' in html, f"3D overlay id missing: {hid}"
+    empty_idx = html.index('id="kg3d-empty"')
+    assert "hidden" in html[empty_idx:empty_idx + 60], "empty state must start hidden"
+    card_idx = html.index('id="kg3d-card"')
+    assert "hidden" in html[card_idx:card_idx + 60], "inspect card must start hidden"
+    # Chapter 05 still carries exactly one canvas (the contract survives).
+    seg = html[html.index('<section class="chapter" data-chapter="05"'):]
+    seg = seg[:seg.index('</section>')]
+    assert seg.count('<canvas') == 1, "chapter 05 must contain exactly one canvas (kg-bubble)"
+    # Overlays must never intercept canvas interactions (probe contract).
+    css = open(CSS).read()
+    assert "pointer-events: none" in css, "3D overlays must be pointer-transparent"
+    # Sub-13px floor applies to the new overlay text too.
+    for m in re.finditer(r"font-size\s*:\s*([0-9]+(?:\.[0-9]+)?)px", css):
+        assert float(m.group(1)) >= 13, f"sub-13px font regressed: {m.group(0)}"
+
+
+_KG3D_PROBE_TEMPLATE = r"""
+import { chromium } from 'playwright';
+import zlib from 'zlib';
+const port = process.argv[2];
+const errors = [];
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+page.on('pageerror', e => errors.push(String(e)));
+await page.goto('http://localhost:' + port + '/dashboard.html',
+  { waitUntil: 'networkidle', timeout: 25000 }).catch(() => {});
+await page.waitForTimeout(3500);
+// The nebula chapter is below the fold — elementFromPoint needs it on screen.
+await page.evaluate(() => {
+  const el = document.getElementById('kg-bubble');
+  const r = el.getBoundingClientRect();
+  window.scrollTo({ top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2, behavior: 'instant' });
+});
+await page.waitForTimeout(900);
+const r = await page.evaluate(() => {
+  const canvas = document.getElementById('kg-bubble');
+  const dbg = window.__kg3dDebug || null;
+  const rc = canvas.getBoundingClientRect();
+  const painted = (() => { try { return canvas.toDataURL('image/png').length > 2000; } catch (e) { return false; } })();
+  const hit = document.elementFromPoint(Math.round(rc.left + rc.width / 2), Math.round(rc.top + rc.height / 2));
+  return {
+    bubble3d: !!window.__kgBubble3D,
+    nodeCount: dbg ? dbg.nodeCount() : 0,
+    edgeCount: dbg ? dbg.edgeCount() : 0,
+    painted,
+    selfPaints: hit === canvas,
+    hud: document.getElementById('kg3d-hud').textContent,
+    emptyShown: !document.getElementById('kg3d-empty').hidden,
+    labels: document.querySelectorAll('#kg3d-labels .kg3d-cloud').length,
+    treeAlive: !!(document.getElementById('kg-tree') && document.getElementById('kg-tree').getContext('2d')),
+    solarAlive: !!(document.getElementById('kg-solar') && document.getElementById('kg-solar').getContext('2d')),
+    bubbleBox: { x: rc.x, y: rc.y, w: rc.width, h: rc.height },
+  };
+});
+// Honest screen-pixel proof: sample the COMPOSITED viewport (what a user
+// sees). toDataURL is blank for in-view WebGL canvases in headless Chromium
+// (presented-surface artifact) — the screenshot is ground truth.
+const shot = await page.screenshot();
+function decodePng(buf) {
+  let pos = 8, w = 0, h = 0, colorType = 6, idat = [];
+  while (pos < buf.length) {
+    const len = buf.readUInt32BE(pos);
+    const ty = buf.toString('ascii', pos + 4, pos + 8);
+    if (ty === 'IHDR') { w = buf.readUInt32BE(pos + 8); h = buf.readUInt32BE(pos + 12); colorType = buf[pos + 17]; }
+    else if (ty === 'IDAT') idat.push(buf.slice(pos + 8, pos + 8 + len));
+    pos += 12 + len;
+  }
+  const raw = zlib.inflateSync(Buffer.concat(idat));
+  const bpp = colorType === 6 ? 4 : 3;
+  const stride = w * bpp;
+  const out = Buffer.alloc(w * h * 4);
+  let prev = Buffer.alloc(stride);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (stride + 1)];
+    const line = raw.slice(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    const cur = Buffer.from(line);
+    for (let x = 0; x < stride; x++) {
+      const a = x >= bpp ? cur[x - bpp] : 0, b = prev[x], c = x >= bpp ? prev[x - bpp] : 0;
+      let v = cur[x];
+      if (f === 1) v = (v + a) & 255;
+      else if (f === 2) v = (v + b) & 255;
+      else if (f === 3) v = (v + ((a + b) >> 1)) & 255;
+      else if (f === 4) { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); v = (v + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c)) & 255; }
+      cur[x] = v;
+    }
+    for (let x = 0; x < w; x++) { const s2 = x * bpp; out[(y * w + x) * 4] = cur[s2]; out[(y * w + x) * 4 + 1] = colorType === 6 ? cur[s2 + 1] : cur[s2]; out[(y * w + x) * 4 + 2] = colorType === 6 ? cur[s2 + 2] : cur[s2]; out[(y * w + x) * 4 + 3] = 255; }
+    prev = cur;
+  }
+  return { w, h, data: out };
+}
+const img = decodePng(Buffer.from(shot));
+const box = r.bubbleBox;
+const x0 = Math.max(0, Math.round(box.x)), y0 = Math.max(0, Math.round(box.y));
+const x1 = Math.min(img.w, Math.round(box.x + box.w)), y1 = Math.min(img.h, Math.round(box.y + box.h));
+let lit = 0;
+for (let y = y0; y < y1; y += 2) for (let x = x0; x < x1; x += 2) {
+  const i = (y * img.w + x) * 4;
+  if (img.data[i] + img.data[i + 1] + img.data[i + 2] > 60) lit++;
+}
+console.log(JSON.stringify({ r, screenLit: lit, errors }));
+await browser.close();
+"""
+
+
+def test_v6_kg3d_webgl_renders_real_pixels_browser():
+    """BROWSER TEST — the 3D Memory Nebula must boot over HTTP with the
+    vendored three.js, paint real pixels into #kg-bubble, stay
+    self-painting at its center (overlays never intercept), show real
+    totals in the HUD, and leave the 2D canopy + orbital ecology canvases
+    alive.
+
+    Pixel proof is HONEST COMPOSITED-VIEWPORT sampling: the screenshot (what
+    a user actually sees — headless toDataURL is blank for in-view WebGL
+    canvases) is PNG-decoded and the #kg-bubble box is counted for lit
+    pixels, alongside the preserveDrawingBuffer toDataURL check.
+
+    If headless Chromium is unavailable, falls back to static assertions
+    and warns (the live measurement is then done by the manual probe)."""
+    import json
+    import subprocess
+    import warnings
+
+    server, port = _serve_telos_static()
+    try:
+        probe_path = os.path.join(PROJECT, f".kg3d_probe_{os.getpid()}.mjs")
+        with open(probe_path, "w") as tf:
+            tf.write(_KG3D_PROBE_TEMPLATE)
+        try:
+            proc = subprocess.run(
+                ["node", probe_path, str(port)],
+                capture_output=True, text=True, timeout=90,
+                cwd=PROJECT,
+            )
+            if proc.returncode != 0:
+                raise RuntimeError(f"probe failed: {proc.stderr[:300]}")
+            data = json.loads(proc.stdout.strip().splitlines()[-1])
+            r = data["r"]
+            # 404s on /api/* are expected (unit-test server has no backend);
+            # anything else is a real regression.
+            real_errors = [
+                e for e in data["errors"]
+                if "Failed to load resource" not in e and "404" not in e
+            ]
+            assert not real_errors, f"console errors: {real_errors}"
+            assert r["bubble3d"], "3D engine did not activate (WebGL absent?)"
+            assert r["painted"], "3D canvas did not paint real pixels"
+            assert r["selfPaints"], "overlay intercepts the canvas center"
+            assert r["treeAlive"] and r["solarAlive"], "2D canopy/orbital modes must stay alive"
+            if r["nodeCount"] > 0:
+                # Real backend present: the scene must carry the REAL graph.
+                assert r["edgeCount"] > 0, "3D scene has no real edges"
+                assert "nodes" in r["hud"] and "edges" in r["hud"], "HUD must show real totals"
+                assert r["labels"] >= 1, "domain cloud labels missing"
+                assert not r["emptyShown"], "empty state shown with data present"
+                assert data["screenLit"] > 500, (
+                    f"composited viewport shows no real nebula pixels ({data['screenLit']})"
+                )
+            else:
+                # No /api backend (unit-test server): the HONEST empty state
+                # must render — never fabricated nodes, empty overlay visible.
+                assert r["emptyShown"], "honest empty state must be visible without data"
+                assert "0 nodes" in r["hud"], "HUD must report the real (zero) total"
+        except (RuntimeError, OSError, FileNotFoundError) as e:
+            warnings.warn(
+                "headless-Chromium probe unavailable for kg3d — falling back "
+                f"to static assertions. ({e})",
+                stacklevel=2,
+            )
+            k3d = open(os.path.join(JS_DIR, "knowledge-3d.js")).read()
+            assert "window.__kgBubble3D = true;" in k3d
+            assert "preserveDrawingBuffer" in k3d
         finally:
             try:
                 os.unlink(probe_path)

@@ -17,6 +17,11 @@ var _prevEpisodes = null;   // goal-reach delta for the insight line
 var _prevDecisions = null;  // hero number delta for the count-pop
 
 var _DOMAIN_COLORS_STORY = {
+  // ── THE canonical domain palette (single source of truth) ──────────
+  // Observed live domains (2026-08-15, producer run): blocker, unknown,
+  // navigation, identity, gridworld. knowledge-graph.js READS this map
+  // (window._DOMAIN_COLORS_STORY) — there is exactly ONE domain palette
+  // in the codebase; drifting copies are a pattern regression.
   'navigation': '#4ade80', 'gridworld': '#4ade80',
   'identity': '#f472b6', 'governance': '#c084fc',
   'terrain': '#fbbf24', 'preference': '#60a5fa',
@@ -24,8 +29,12 @@ var _DOMAIN_COLORS_STORY = {
   'perception': '#60a5fa', 'planning': '#fbbf24',
   'simulation': '#4ade80', 'pattern': '#94a3b8',
   'reflection': '#a78bfa', 'conversation': '#f472b6',
+  'unknown': '#8f89ad',
   'general': '#94a3b8',
 };
+// Alias exposed to modules that load BEFORE story.js (knowledge-graph.js
+// reads it at draw time, never at parse time — load order is safe).
+if (typeof window !== 'undefined') window._DOMAIN_COLORS_STORY = _DOMAIN_COLORS_STORY;
 
 async function fetchOverview() {
   try {

@@ -315,13 +315,15 @@
         var actVal = (typeof acts.priority === 'number')
           ? (acts.priority * 100).toFixed(0) + '%'
           : (typeof acts.activation === 'number' ? (acts.activation * 100).toFixed(0) + '%' : '—');
+        var _modeBit = (state.metaMode ? ' — cognition mode ' + state.metaMode : '');
         mind.querySelector('.pq-body').textContent =
-          'Right now "' + acts.name + '" leads the mind at ' + actVal + ' activation.';
+          'Right now "' + acts.name + '" leads the mind at ' + actVal + ' activation.' + _modeBit;
         var mindCite = mind.querySelector('.pq-cite');
         if (mindCite) mindCite.textContent = 'latest cycle · stream_activations';
       } else if (d.decisions > 0) {
+        var _modeBit2 = (state.metaMode ? ' Cognition mode: ' + state.metaMode + '.' : '');
         mind.querySelector('.pq-body').textContent =
-          'TELOS has imagined ' + d.worlds_simulated + ' counterfactual futures so far, and feels ' + d.mood + '.';
+          'TELOS has imagined ' + d.worlds_simulated + ' counterfactual futures so far, and feels ' + d.mood + '.' + _modeBit2;
         var mindCite2 = mind.querySelector('.pq-cite');
         if (mindCite2) mindCite2.textContent = 'worlds simulated · measured mood';
       } else {
