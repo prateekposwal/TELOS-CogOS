@@ -50,7 +50,9 @@ cmd_start() {
     echo "Already running (pid $(cat "$PIDFILE")) -> http://localhost:${PORT}"
     return 0
   fi
-  (cd "$HERE" && nohup python3 -u serve_dashboard.py >> "$LOGFILE" 2>&1 & echo $! > "$PIDFILE")
+  cd "$HERE"
+  nohup python3 -u serve_dashboard.py >> "$LOGFILE" 2>&1 &
+  echo $! > "$PIDFILE"
   for _ in $(seq 1 30); do
     if curl -sf -o /dev/null "http://localhost:${PORT}/"; then
       echo "TELOS dashboard started (pid $(cat "$PIDFILE"))"
