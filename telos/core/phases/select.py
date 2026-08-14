@@ -32,10 +32,14 @@ class SelectPhase(Phase):
     name = "select"
 
     def _compute_tripartite_from_available(self, pipeline, ctx):
-        """Compute tripartite uncertainty from data available during SELECT phase.
-        
-        This fixes the timing issue where tripartite U was computed in ACT phase
-        but consumed in SELECT phase.
+        """Compute tripartite uncertainty from available context.
+
+        Args:
+            pipeline: the pipeline instance (for entropy/uncertainty state).
+            ctx: the phase context.
+
+        Returns:
+            Dict with U_W, U_I, U_O components.
         """
         # Prediction error from attention trajectory divergences
         attn = getattr(pipeline, '_attention_engine', None)
@@ -213,7 +217,7 @@ class SelectPhase(Phase):
                 skip_inquiry = False
 
                 if question_id == 'explore_terrain':
-                    angle = np.random.uniform(0, 2 * np.pi)
+                    angle = pipeline._rng.uniform(0, 2 * np.pi)
                     action_vec = np.array([np.cos(angle), np.sin(angle)]) * 0.5
                     ctx.selected_intent = IntentIR(
                         intent_type="inquiry_explore",
@@ -328,7 +332,7 @@ class SelectPhase(Phase):
                 # action_vector = (1-blend) * goal_direction + blend * explore_direction
                 # Use the question type to determine exploration direction
                 if question_id == 'explore_terrain':
-                    angle = np.random.uniform(0, 2 * np.pi)
+                    angle = pipeline._rng.uniform(0, 2 * np.pi)
                     explore_vec = np.array([np.cos(angle), np.sin(angle)]) * 0.5
                 else:
                     explore_vec = np.array([0.0, 0.0])

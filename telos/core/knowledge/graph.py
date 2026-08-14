@@ -126,6 +126,15 @@ class KnowledgeGraph:
         "mission_policy", "stream_calibrator", "failure_ledger",
         "system_self", "identity", "governance", "firewall",
     })
+    # Only these provenance callers may write INTERNAL_DOMAINS via
+    # record_internal(). The normal record() path keeps refusing internal
+    # domains so the pipeline cannot write governance/identity state as if
+    # it were empirical domain knowledge (Λ4.1 boundary: identity is not a
+    # regular knowledge domain — its nodes are self-observations with
+    # provenance, written only by the designated bridge).
+    TRUSTED_INTERNAL_CALLERS: frozenset = frozenset({
+        "identity_bridge", "governance_bridge",
+    })
     ALLOWED_WRITE_DOMAINS: frozenset = frozenset({
         "d", "x", "search", "domain", "d1", "d2", "multi",
         "gridworld", "devdomain", "navigation", "perception",
@@ -154,7 +163,16 @@ class KnowledgeGraph:
                          failure_reason: Optional[str] = None,
                          tags: Optional[List[str]] = None,
                          params: Optional[Dict] = None) -> None:
-        """Validate record inputs before storing. Raises ValueError on invalid data."""
+        """Validate record inputs before storing. Raises ValueError on invalid data.
+
+        Args:
+            domain: domain string (1-256 chars).
+            approach: approach string (1-256 chars).
+            outcome: float in [0, 1].
+            failure_reason: optional string.
+            tags: optional list of strings (max 20).
+            params: optional dict (no '_'-prefixed keys).
+        """
 
         # domain: string, 1-256 chars
         if not isinstance(domain, str):
@@ -210,10 +228,19 @@ class KnowledgeGraph:
                params: Optional[Dict] = None,
                provenance: Optional[Dict] = None) -> str:
         """Record any outcome — success or failure.
-        
+
         Args:
+            domain: knowledge domain (must be whitelisted, not internal).
+            approach: approach/technique that was tried.
+            outcome: score in [0, 1] (success > 0.5, failure <= 0.5).
+            failure_reason: why it failed (required for failures).
+            tags: searchable tags.
+            params: structured parameters.
             provenance: Optional dict with source/cycle/caller info.
                 Attached to the node for audit trail.
+
+        Returns:
+            The new node id, or "" if denied/rate-limited.
         """
         # Domain whitelist check — block only internal domains, warn for unknown
         if domain in self.INTERNAL_DOMAINS:
@@ -228,6 +255,73 @@ class KnowledgeGraph:
             )
             return ""
 
+        # Gate passed — delegate storage (validate + rate limit + insert)
+        return self._store_record(domain, approach, outcome, failure_reason,
+                                  tags, params, provenance)
+
+    def record_internal(self, domain: str, approach: str, outcome: float,
+                        failure_reason: Optional[str] = None,
+                        tags: Optional[List[str]] = None,
+                        params: Optional[Dict] = None,
+                        provenance: Optional[Dict] = None) -> str:
+        """Trusted-writer path for INTERNAL_DOMAINS (identity, governance, ...).
+
+        The regular record() path refuses internal domains so the pipeline
+        cannot write governance/identity state as empirical knowledge. This
+        bridge exists ONLY for designated callers: provenance['caller'] must
+        be in TRUSTED_INTERNAL_CALLERS. Every internal node therefore carries
+        an auditable provenance stamp — this is the identity↔knowledge
+        connection (Λ4.1 Identity Shapes Decisions × Λ4.10 Recursive World
+        Models: identity participates in the connected web, with provenance).
+
+        Args:
+            domain: internal domain (e.g. "identity").
+            approach: approach label for the node.
+            outcome: score in [0, 1].
+            failure_reason: optional failure string.
+            tags: searchable tags.
+            params: structured parameters.
+            provenance: MUST contain caller in TRUSTED_INTERNAL_CALLERS.
+
+        Returns:
+            The new node id, or "" if denied/rate-limited.
+        """
+        if domain not in self.INTERNAL_DOMAINS:
+            # Not an internal domain — route through the normal whitelist path.
+            return self.record(domain, approach, outcome,
+                               failure_reason=failure_reason, tags=tags,
+                               params=params, provenance=provenance)
+        caller = (provenance or {}).get("caller")
+        if caller not in self.TRUSTED_INTERNAL_CALLERS:
+            logger.warning(
+                f"KnowledgeGraph: internal write to domain '{domain}' denied — "
+                f"caller '{caller}' is not a trusted internal caller"
+            )
+            return ""
+        return self._store_record(domain, approach, outcome, failure_reason,
+                                  tags, params, provenance)
+
+    def _store_record(self, domain: str, approach: str, outcome: float,
+                      failure_reason: Optional[str] = None,
+                      tags: Optional[List[str]] = None,
+                      params: Optional[Dict] = None,
+                      provenance: Optional[Dict] = None) -> str:
+        """Shared store path: validate → rate-limit → insert. Used by both
+        record() (external whitelisted domains) and record_internal()
+        (trusted internal callers) — one canonical insert, two gates.
+
+        Args:
+            domain: knowledge domain.
+            approach: approach label for the node.
+            outcome: score in [0, 1].
+            failure_reason: optional failure string.
+            tags: searchable tags.
+            params: structured parameters.
+            provenance: provenance stamp attached to the node.
+
+        Returns:
+            The new node id, or "" if rate-limited.
+        """
         # Validate inputs before any mutation
         self._validate_record(domain, approach, outcome, failure_reason, tags, params)
 
@@ -282,7 +376,15 @@ class KnowledgeGraph:
     # ── Query API ───────────────────────────────────────────────
 
     def recommend(self, domain: str, top_k: int = 1) -> List[ProjectNode]:
-        """Get the best-proven solutions for a domain (successes only)."""
+        """Get the best-proven solutions for a domain (successes only).
+
+        Args:
+            domain: knowledge domain to recommend from.
+            top_k: maximum number of results to return.
+
+        Returns:
+            List of successful ProjectNode results.
+        """
         return self.search(domain=domain, top_k=top_k, min_outcome=0.51)
 
     def search(self, domain: Optional[str] = None,
@@ -424,7 +526,14 @@ class KnowledgeGraph:
         return [e for e in self._edges.values() if e.edge_type == edge_type]
 
     def edges_for(self, node_id: str) -> List[Edge]:
-        """Edges incident to a node (either endpoint)."""
+        """Edges incident to a node (either endpoint).
+
+        Args:
+            node_id: node to find incident edges for.
+
+        Returns:
+            List of Edge records touching node_id.
+        """
         nbrs = self._adjacency.get(node_id, set())
         return [e for e in self._edges.values()
                 if (e.src == node_id and e.dst in nbrs) or
@@ -432,7 +541,15 @@ class KnowledgeGraph:
 
     def get_neighbors(self, node_id: str,
                       edge_type: Optional[str] = None) -> List[str]:
-        """Neighboring node ids, optionally restricted to one edge type."""
+        """Neighboring node ids, optionally restricted to one edge type.
+
+        Args:
+            node_id: node to find neighbors of.
+            edge_type: optional filter — only neighbors via this edge type.
+
+        Returns:
+            Sorted list of neighbor node ids.
+        """
         nbrs = self._adjacency.get(node_id, set())
         if edge_type is not None:
             typed = {e.src if e.dst == node_id else e.dst
@@ -442,7 +559,14 @@ class KnowledgeGraph:
         return sorted(nbrs)
 
     def has_adjacency(self, node_id: str) -> bool:
-        """True if the node participates in at least one edge."""
+        """True if the node participates in at least one edge.
+
+        Args:
+            node_id: node to check.
+
+        Returns:
+            True if node_id has at least one incident edge.
+        """
         return node_id in self._adjacency and bool(self._adjacency[node_id])
 
     def bfs(self, start: str, max_depth: int = 3) -> List[str]:
@@ -478,7 +602,15 @@ class KnowledgeGraph:
         return order
 
     def find_path(self, start: str, goal: str) -> Optional[List[str]]:
-        """Shortest path (BFS) between two nodes, or None if unreachable."""
+        """Shortest path (BFS) between two nodes, or None if unreachable.
+
+        Args:
+            start: source node id.
+            goal: destination node id.
+
+        Returns:
+            List of node ids forming the path, or None if unreachable.
+        """
         if start == goal:
             return [start]
         prev: Dict[str, Optional[str]] = {start: None}
@@ -558,6 +690,7 @@ class KnowledgeGraph:
                 activation=ndata.get("activation", 0.5),
                 access_count=ndata.get("access_count", 1),
                 timestamp=ndata.get("timestamp", 0.0),
+                provenance=ndata.get("provenance", {}),
             )
             self._domain_index[ndata["domain"]].add(nid)
             for tag in ndata.get("tags", []):
@@ -572,6 +705,7 @@ class KnowledgeGraph:
                 activation=ndata.get("activation", 0.0),
                 access_count=ndata.get("access_count", 1),
                 timestamp=ndata.get("timestamp", 0.0),
+                provenance=ndata.get("provenance", {}),
             )
         for eid, edata in data.get("edges", {}).items():
             self._edges[eid] = Edge(
@@ -607,7 +741,13 @@ class KnowledgeGraph:
 
     def restore(self, node_id: str) -> bool:
         """Restore an archived node back to the active set.
-        Returns True if the node was found and restored, False otherwise."""
+
+        Args:
+            node_id: archived node to restore.
+
+        Returns:
+            True if the node was found and restored, False otherwise.
+        """
         node = self._archived_nodes.pop(node_id, None)
         if node is None:
             return False

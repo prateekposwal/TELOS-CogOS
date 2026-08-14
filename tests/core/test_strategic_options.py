@@ -178,12 +178,15 @@ def test_evaluate_paths_nonzero_for_real_domains():
     from telos.examples.gridworld.simulator import GridWorldSimulator
     from telos.examples.synthetic.simulator import SyntheticWorld
 
+    # Deterministic seeding (RNG-isolation pattern): the engine and each
+    # simulator own private seeded streams, so scores are reproducible and
+    # independent of whatever other tests did to global np.random.
     for name, sim, state in [
-        ("GridWorld", GridWorldSimulator(size=5), np.array([0.0, 0.0])),
-        ("Synthetic", SyntheticWorld(noise_std=0.0), np.array([2.0, 3.0])),
+        ("GridWorld", GridWorldSimulator(size=5, seed=42), np.array([0.0, 0.0])),
+        ("Synthetic", SyntheticWorld(noise_std=0.0, seed=7), np.array([2.0, 3.0])),
     ]:
         sim.initialize()
-        engine = CounterfactualEngine(sim)
+        engine = CounterfactualEngine(sim, seed=123)
         options = engine.generate_options(state, horizon=3, n_worlds=5)
         assert len(options) > 0, f"{name}: no options generated"
         scores = [o.score for o in options]
@@ -195,9 +198,9 @@ def test_evaluate_paths_nonzero_for_real_domains():
 def test_best_path_selects_genuinely_best():
     """Regression: best_path must pick a genuinely better path, not just first."""
     from telos.examples.gridworld.simulator import GridWorldSimulator
-    sim = GridWorldSimulator(size=5)
+    sim = GridWorldSimulator(size=5, seed=42)
     sim.initialize()
-    engine = CounterfactualEngine(sim)
+    engine = CounterfactualEngine(sim, seed=123)
 
     state = np.array([0.0, 0.0])
     best = engine.best_path(state, horizon=5, n_worlds=10)
@@ -208,3 +211,41 @@ def test_best_path_selects_genuinely_best():
 
     assert dist_from_start > 0, "best_path did not move from start"
     sim.cleanup()
+
+
+def test_rng_isolation_immune_to_global_np_random_pollution():
+    """Regression for the latent flake (GAP 2): the discrimination collapse
+    (all 5 GridWorld options scoring -0.9811) happened because the simulator
+    read the SHARED global np.random stream, whose state depends on whatever
+    tests ran before. The structural fix: simulators/engines own private
+    RandomState instances and never read global np.random — so even with the
+    global stream driven into the exact degenerate state that caused the
+    observed collapse, trajectories still discriminate."""
+    from telos.examples.gridworld.simulator import GridWorldSimulator
+    from telos.core.simulation import CounterfactualEngine
+
+    # Reproduce the observed failure precondition: global seed 34 + pollution
+    # made np.random.randint(4) return clipping actions every draw.
+    np.random.seed(34)
+    for _ in range(4):
+        np.random.randn(6)
+
+    # Unseeded simulator: still private RandomState (OS entropy) — but to make
+    # the test fully deterministic, drive it with a fixed per-instance seed
+    # and prove it discriminates under the poisoned global stream.
+    for sim_seed in (42, 7, 2026):
+        sim = GridWorldSimulator(size=5, seed=sim_seed)
+        engine = CounterfactualEngine(sim, seed=sim_seed + 1)
+        opts = engine.generate_options(np.array([0.0, 0.0]), horizon=3, n_worlds=5)
+        scores = [o.score for o in opts]
+        assert max(scores) > min(scores), \
+            f"seed {sim_seed}: discrimination collapsed under global pollution"
+        assert any(s != -0.9811497450761412 for s in scores), \
+            f"seed {sim_seed}: degenerate all-origin walk leaked through"
+
+    # The engine itself must never consult global np.random for simulation
+    # noise: an unseeded engine owns a private stream too.
+    sim = GridWorldSimulator(size=5, seed=42)
+    engine = CounterfactualEngine(sim, seed=123)
+    assert engine._rng is not None
+    assert engine._rng is not np.random

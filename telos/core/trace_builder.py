@@ -37,6 +37,10 @@ def build_trace(
         infra_manager: InfrastructureManager for system mood
         last_quality_report: PerceptionQuality report
         perception_explanation: Optional explanation string
+        prev_trace_id: previous cycle's produced ctx id (for chaining)
+
+    Returns:
+        A complete DecisionTrace for this cycle.
     """
     health = 1.0 - (budget_manager.consumed_ms / budget_manager.total_budget_ms
                      if budget_manager.total_budget_ms > 0 else 0.0)
@@ -119,7 +123,8 @@ def build_trace(
         # P1 D1: Causal annotations
         causal_annotations=getattr(ctx, 'causal_annotations', None),
         # P1 D4: Identity tuple
-        identity_state=getattr(ctx, 'identity_state', None),
+        distributed_verdict=getattr(ctx, 'distributed_verdict', None),
+            identity_state=getattr(ctx, 'identity_state', None),
         # P1 D3: Multi-resource budgets
         resource_budgets=getattr(ctx, 'resource_budgets', None),
         # P0 D8: Meta-cognition state

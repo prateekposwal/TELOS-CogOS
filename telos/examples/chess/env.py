@@ -3,9 +3,6 @@ TELOS Chess Environment: Stubbed for Integration Testing.
 """
 import numpy as np
 from typing import Dict, List, Any, Tuple, Optional
-from telos.adapters.base_adapter import BaseAdapter
-from telos.intent_ir import IntentIR
-from telos.representations.transform import RuntimeState
 from telos.core.contracts.domain_model import Constraint, RiskProfile, Objectives
 
 PIECE_SYMBOLS = {
@@ -45,9 +42,6 @@ class ChessEnv:
     def _legal_moves(self) -> List[Tuple[int, int]]:
         return [(8, 16), (9, 17), (10, 18)]
 
-    def _get_obs(self) -> np.ndarray:
-        return np.zeros(6)
-
     def _is_check(self, player: int) -> bool:
         return False
 
@@ -56,12 +50,6 @@ class ChessEnv:
 
     def _is_stalemate(self) -> bool:
         return False
-
-    def _insufficient_material(self) -> bool:
-        return False
-
-    def get_board_image(self) -> np.ndarray:
-        return np.zeros((8, 8))
 
     def reset(self) -> np.ndarray:
         self._setup_initial_board()
@@ -72,66 +60,3 @@ class ChessEnv:
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, Dict]:
         return np.zeros(64), 0.1, False, {}
 
-class TELOSChessAdapter(BaseAdapter):
-    def __init__(self, env: ChessEnv):
-        self.env = env
-
-    @property
-    def action_dim(self) -> int:
-        return 6
-        
-    @property
-    def state_dim(self) -> int:
-        return 64
-
-    def reset(self) -> np.ndarray:
-        return self.env.reset()
-
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, Dict]:
-        return self.env.step(action)
-    
-    def sample_action(self, state: np.ndarray, mission_dir: np.ndarray) -> np.ndarray:
-        legal = self.env._legal_moves()
-        # Pick random legal move
-        move = legal[np.random.randint(len(legal))]
-        from_sq, to_sq = move[0], move[1]
-        from_r, from_c = from_sq // 8, from_sq % 8
-        to_r, to_c = to_sq // 8, to_sq % 8
-        return np.array([from_r/7, from_c/7, to_r/7, to_c/7, 0, 0], dtype=np.float64)
-
-    def intent_to_action(self, intent: IntentIR, state: np.ndarray, mission_dir: np.ndarray) -> np.ndarray:
-        return np.random.rand(self.action_dim)
-        
-    def action_to_intent(self, action: np.ndarray, state: Optional[np.ndarray] = None) -> IntentIR:
-        return IntentIR("chess_move", confidence=1.0)
-        
-    def is_action_valid(self, action: np.ndarray, state: np.ndarray) -> bool:
-        return True
-
-    def forward(self, input_data: Any) -> Any:
-        return input_data
-
-    def inverse(self, transformed_data: Any) -> Any:
-        return transformed_data
-        
-    def applicable(self, state: RuntimeState) -> float:
-        return 1.0
-
-    @property
-    def name(self) -> str:
-        return "chess_adapter"
-
-    def legality(self, action: np.ndarray, state: np.ndarray) -> bool:
-        return True
-
-    def constraints(self) -> List[Constraint]:
-        return [Constraint("chess_rules", "Must follow standard chess rules")]
-
-    def risks(self) -> RiskProfile:
-        return RiskProfile(["checkmate"], 1.0)
-
-    def objectives(self) -> Objectives:
-        return Objectives(["checkmate_opponent"])
-
-    def recovery_strategy(self, state: np.ndarray) -> np.ndarray:
-        return np.zeros(self.action_dim)

@@ -72,6 +72,8 @@ class DecisionTrace:
     causal_annotations: Optional[Dict] = None
     # P1 D4: Identity tuple (G_t, M_t, C_t, V_t)
     identity_state: Optional[Dict] = None
+    # Distributed Council aggregate (advisory) for this cycle
+    distributed_verdict: Optional[Dict] = None
     # P1 D3: Multi-resource budget tracking
     resource_budgets: Optional[Dict] = None
     # P0 D8: Meta-cognition state
@@ -182,6 +184,7 @@ class DecisionTrace:
             "representation_confidence": self.representation_confidence,
             "causal_annotations": self.causal_annotations,
             "identity_state": self.identity_state,
+            "distributed_verdict": self.distributed_verdict,
             "resource_budgets": self.resource_budgets,
             "meta_cognition": self.meta_cognition,
             "causal_graph": self.causal_graph,
@@ -214,36 +217,6 @@ class DecisionTrace:
             "axiom_results": self.axiom_results,
         }
 
-    def to_dict_core_only(self) -> Dict[str, Any]:
-        """Return ONLY the lightweight decision core — minimal, fast queries."""
-        return {
-            "cycle_id": self.cycle_id,
-            "timestamp": self.timestamp,
-            "selected_intent": {
-                "type": self.selected_intent.intent_type,
-                "confidence": self.selected_intent.confidence,
-            } if self.selected_intent else None,
-            "selected_action": self.selected_action.tolist() if self.selected_action is not None else None,
-            "decision_integrity": self.decision_integrity,
-            "mission_drift": self.mission_drift,
-            "council_validated": self.council_validated,
-            "identity_state": self.identity_state,
-            "merkle_root": self.merkle_root,
-            "inquiry_summary": self.inquiry_summary,
-            "curiosity_state": self.curiosity_state,
-            "curiosity_bonus": self.curiosity_bonus,
-            "axiom_results": self.axiom_results,
-            "axiom_results": self.axiom_results,
-        }
-
-    def to_dict_with_witness(self) -> Dict[str, Any]:
-        """Return full trace including both decision_core and reasoning_witness."""
-        d = self.to_dict()
-        d["reasoning_witness"] = self.reasoning_witness
-        d["decision_core"] = self.decision_core
-        return d
-
-
 @dataclass
 class PipelineConfig:
     simulator: Optional[DomainSimulator] = None
@@ -272,6 +245,10 @@ class PipelineConfig:
     timelock_window_cycles: int = 3
     # Deterministic execution seed
     deterministic_seed: Optional[int] = None
+    # Distributed Council (advisory crew layer on top of the blocking primary
+    # council): enabled toggle + cadence (run every N cycles).
+    distributed_council_enabled: bool = True
+    distributed_council_interval: int = 1
 
 
 @dataclass
@@ -287,3 +264,4 @@ class PipelineResult:
     firewall_blocked: bool = False
     governance_blocked_by: Optional[str] = None
     alternatives_available: int = 0
+    distributed_verdict: Optional[Dict] = None

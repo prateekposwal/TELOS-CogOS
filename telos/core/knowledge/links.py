@@ -1,10 +1,12 @@
 """
 KnowledgeLinker — one canonical registry for cross-graph references.
 
-Binds the three knowledge islands into one connected structure:
+Binds the knowledge islands into one connected structure:
   - KnowledgeGraph nodes     (telos/core/knowledge/graph.py)
   - TheoryGenealogy theories (telos/core/reasoning/genealogy.py)
   - SCM causal structures    (telos/core/reasoning/causal/scm.py)
+  - Identity nodes           (telos/core/identity/identity_bridge.py) —
+    self-observation nodes written by the IdentityBridge (Λ4.1 × Λ4.10)
 
 A single linkage table lives here; nothing else owns node↔theory↔scm
 references, so there is exactly one source of truth for cross-graph
@@ -35,6 +37,26 @@ class KnowledgeLinker:
         self._scm_structures: Dict[str, Dict[str, Any]] = {}
         self._scm_counter: int = 0
         self._genealogy = None
+        # Identity nodes: self-observation knowledge nodes registered here so
+        # "what do I know about my own state?" is a registry query, not a guess.
+        self._identity_nodes: Set[str] = set()
+
+    # ── Identity node registry ───────────────────────────────────
+
+    def link_identity_node(self, node_id: str) -> None:
+        """Register a knowledge node as a self-observation (identity) node.
+
+        Args:
+            node_id: knowledge-graph node id to register as identity.
+        """
+        self._identity_nodes.add(node_id)
+
+    def identity_nodes(self) -> List[str]:
+        """All registered identity self-observation nodes."""
+        return sorted(self._identity_nodes)
+
+    def is_identity_node(self, node_id: str) -> bool:
+        return node_id in self._identity_nodes
 
     # ── Wiring ───────────────────────────────────────────────────
 
@@ -45,12 +67,21 @@ class KnowledgeLinker:
     # ── Link operations ──────────────────────────────────────────
 
     def link_node_to_theory(self, node_id: str, theory_id: str) -> None:
-        """Register a knowledge node ↔ theory reference (both directions)."""
+        """Register a knowledge node ↔ theory reference (both directions).
+
+        Args:
+            node_id: knowledge-graph node id.
+            theory_id: genealogy theory id.
+        """
         self._node_to_theory[node_id].add(theory_id)
         self._theory_to_node[theory_id].add(node_id)
 
     def unlink_node(self, node_id: str) -> None:
-        """Remove every theory reference for a knowledge node."""
+        """Remove every theory reference for a knowledge node.
+
+        Args:
+            node_id: knowledge-graph node id to unlink from all theories.
+        """
         for tid in self._node_to_theory.pop(node_id, set()):
             self._theory_to_node[tid].discard(node_id)
 
@@ -59,7 +90,13 @@ class KnowledgeLinker:
 
         Snapshots the structure (edges, variables, intervention count) at
         link time. Re-linking the same theory replaces its snapshot with
-        the latest one. Returns the structure id.
+        the latest one.
+
+        Args:
+            theory_id: genealogy theory id.
+
+        Returns:
+            The structure id.
         """
         summary = getattr(scm, 'graph_summary', {}) or {}
         sid = f"scm_{self._scm_counter}"
@@ -92,6 +129,14 @@ class KnowledgeLinker:
 
         node_id → linked theories → (their SCM structures, sibling
         knowledge nodes) plus node_id → knowledge-graph edge neighbors.
+
+        Args:
+            node_id: starting node id.
+            knowledge_graph: optional KnowledgeGraph for edge neighbors.
+
+        Returns:
+            Dict with knowledge_neighbors, theories, linked_theory_count,
+            identity_node and sibling_identity_nodes.
         """
         theories = self.theories_for_node(node_id)
 
@@ -131,6 +176,8 @@ class KnowledgeLinker:
             "knowledge_neighbors": knowledge_neighbors,
             "theories": theory_views,
             "linked_theory_count": len(theories),
+            "identity_node": node_id in self._identity_nodes,
+            "sibling_identity_nodes": sorted(self._identity_nodes - {node_id}),
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -139,4 +186,5 @@ class KnowledgeLinker:
             "node_to_theory": {k: sorted(v) for k, v in self._node_to_theory.items()},
             "theory_to_scm": dict(self._theory_to_scm),
             "scm_structures": self._scm_structures,
+            "identity_nodes": sorted(self._identity_nodes),
         }

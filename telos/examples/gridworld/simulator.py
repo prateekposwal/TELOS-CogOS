@@ -5,9 +5,14 @@ from telos.world.world import World
 
 class GridWorldSimulator(DomainSimulator):
     """A fully compliant GridWorld implementation for architecture validation."""
-    
-    def __init__(self, size=10):
+
+    def __init__(self, size=10, seed=None):
         self.size = size
+        # Pattern: one RNG authority per engine — private RandomState, never
+        # global np.random in the simulation hot path. A global stream shared
+        # across tests/simulators makes trajectories order-dependent (the
+        # discrimination-collapse flake: all 5 options scored identically).
+        self._rng = np.random.RandomState(seed)
 
     def initialize(self) -> None: pass
     def cleanup(self) -> None: pass
@@ -32,7 +37,7 @@ class GridWorldSimulator(DomainSimulator):
         if not actions:
             return futures
         for _ in range(horizon):
-            action = actions[np.random.randint(len(actions))]
+            action = actions[self._rng.randint(len(actions))]
             curr = self.transition(curr, action)
             futures.append(World(state=curr))
         return futures

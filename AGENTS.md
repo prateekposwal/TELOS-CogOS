@@ -18,16 +18,16 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (631 tests)
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (648 tests)
 - **Gap scanner:** `PYTHONPATH=. python3 telos/tools/gap_scanner.py`
 - **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
-## Status (FINISH + SHIP — 2026-08-14)
-- **631/631 tests passing** across 55 test files
+## Status (EVOLVED + SHIPPED — 2026-08-14)
+- **648/648 tests passing** across 73 test files (5 consecutive green runs)
 - **31/31 self-audit checks passing**
 - **42 axioms** across 6 layers — verified by AxiomProver every cycle and self-audit check [25]
 - **KnowledgeGraph edge layer** (`telos/core/knowledge/graph.py`): typed/weighted `Edge` dataclass, activation spreads along edges (Λ4.7 Law of Attention and Trajectory), `bfs`/`dfs`/`find_path` traversal, edges serialized in checkpoints and served by `/api/knowledge`
-- **KnowledgeLinker** (`telos/core/knowledge/links.py`): one canonical registry binding KnowledgeGraph ↔ TheoryGenealogy ↔ SCM; promotion hook auto-links every promoted theory to its knowledge nodes (Λ6.7)
+- **KnowledgeLinker** (`telos/core/knowledge/links.py`): one canonical registry binding KnowledgeGraph ↔ TheoryGenealogy ↔ SCM ↔ **Identity nodes**; promotion hook auto-links every promoted theory to its knowledge nodes (Λ6.7)
 - **SCM causal propagation** (`telos/core/reasoning/causal/scm.py`): Kahn topological order in `do()` — descendants recompute only after their causal parents settle
 - **TheoryBuilder `observe_outcome`** (`telos/core/reasoning/theory/builder.py`): pipeline cycles AND conversation turns feed experience → pattern → hypothesis → theory (Λ6.5)
 - **Genealogy live-wiring** (`telos/core/reasoning/genealogy.py`): `get_lineage`/`get_descendants` cycle-guarded; promoted theories register in `TheoryGenealogy` with parent lineage
@@ -40,7 +40,9 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 - **Unified Cognitive Functional**: 18-term J with aesthetic heuristic + project coherence
 - **Benchmark framework**: 24 metrics across 7 cognitive processes, health dashboard
 - **Resource Accounting**: R(a,s) = (C_compute, C_memory, C_bandwidth, C_storage)
-
+- **Identity↔Knowledge wiring** (`telos/core/identity/identity_bridge.py`): IdentityBridge closes the identity island — mutable layers (IdentityNarrative/IdentityState) write provenance-stamped self-observation nodes to the identity domain via `KnowledgeGraph.record_internal` (trusted-caller gate), join the KnowledgeLinker as a 4th connected structure, and answer "what do I know about my own state?" (`pipeline.get_identity_knowledge()`). Frozen IdentityCore untouched (Λ4.1 × Λ4.10 × Λ6.7)
+- **RNG isolation** (flake killed): one RNG authority per engine — simulators/engine/adapters/select-phase own private `RandomState`, never global `np.random` in production hot paths; seeded regression test locks the discrimination-collapse pattern dead
+- **DistributedCouncil live** (`telos/core/council/distributed.py`): 5-agent advisory crew (PRIMARY/SKEPTIC/EXPLORER/CONSERVATIVE/ANALYST) re-scores primary council evidence through role lenses every cycle (configurable cadence + disable), aggregates weighted, surfaces in ctx/DecisionTrace/decision log — advisory only, primary blocking power untouched (Λ1.2)
 ## All shipping blockers cleared
 - All 19 v2/v2.5 modules wired into pipeline
 - KnowledgeGraph edge layer + cross-graph linker (KnowledgeGraph ↔ Genealogy ↔ SCM) shipped
@@ -93,25 +95,24 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 - ~~MealDrama adapter~~ (archived)
 
 ## Phase 3: Long-term Vision
-- Cross-session learning via ExperienceManager
-- Distributed Council (multi-agent validation)
+- ✅ Cross-session learning via ExperienceManager
+- ✅ Distributed Council (multi-agent validation) — shipped 2026-08-14 as in-process advisory crew
 - Real-world tool integration
 - Autonomous curiosity-driven exploration
 
-## Session Handoff — 2026-08-14 (FINISH + SHIP)
+## Session Handoff — 2026-08-14 (EVOLVED + SHIPPED — the three gaps)
 
 ### Current State
 - Session mood: deliberate
-- Shipped: KnowledgeGraph edge layer, KnowledgeLinker, SCM topological order, TheoryBuilder observe_outcome + genealogy live-wiring, honest dashboard (no fabrication), dead .bak removed, Kintsugi exception logging, conversation→theory feed, empty-handoff writer guard
-- Axiom count: 42 (reconciled)
+- Shipped: Identity↔Knowledge wiring (IdentityBridge), RNG isolation (flake dead across 5 consecutive full-suite runs), DistributedCouncil wired into the pipeline
+- Axiom count: 42 (reconciled, unchanged)
+- Test count: 631 → 648 (17 new tests: 8 identity-knowledge, 8 distributed-council, 1 RNG-isolation regression)
 
 ### Decisions Made
-- Removed `telos/dashboard.html.bak` from git — dead backup; contained the deleted `generateDemoKnowledge()` fabrication; all functionality lives in `dashboard/js/*`
-- Converted bare `except: pass` in `serve_dashboard.py` `end_headers` to logged Kintsugi handling
-- Wired conversation turns into theory formation via `observe_conversation_outcome` (pipeline method + `telos_task.py` call)
-- Guarded `write_handoff` against empty zero-cycle sessions (root cause of the 216-block bloat; tests must not regenerate handoffs)
-- Collapsed 216 empty duplicated handoff blocks into this single current handoff
-- Reconciled stale doc counts (469/482/529/581 → 631 tests across 55 files)
+- **Gap 1 (identity↔knowledge, was 0/10)**: chose the provenance-gated safe write path — `KnowledgeGraph.record_internal()` is the ONLY way to write INTERNAL_DOMAINS, and only with trusted provenance (`caller=identity_bridge`). Identity joins the KnowledgeLinker as a 4th connected structure. Fixed a hidden dead block: `self._system_self` was never assigned (select-phase identity modeling silently died every cycle); also fixed two provenance-dropping serialization sites (`KnowledgeGraph.load`, checkpoint dump/load) the new audit trail exposed, plus linker rebind after checkpoint restore.
+- **Gap 2 (latent flake)**: reproduced exactly (global seed 34 → all 5 GridWorld options at -0.9811497450761412). Root cause: simulator read shared global `np.random` whose state depends on test order. Fix: private `RandomState` per simulator/engine/adapter/select-phase; engine never falls back to global. Seeded the flaky test; added a regression test that poisons global state and proves discrimination still holds.
+- **Gap 3 (shelved council)**: DistributedCouncil now runs every cycle (or every N via `distributed_council_interval`, disable-able via `distributed_council_enabled`). 5 role-agents re-score the primary verdict's signals through role lenses (skeptic weights dissent 1.6×, conservative enforces DI floor 0.5 + MD cap 1.5, explorer has Λ4.3 novelty path). Weighted-majority aggregation; advisory only — primary blocking power untouched. `PRIMARAY` typo fixed → `PRIMARY` (deprecated alias kept). Aggregate flows to ctx, DecisionTrace, decision log.
+- RNG audit classification: fixed all production simulation/pipeline sites; left `telos_task.py` (interactive harness, not in pytest), `trajectory_sufficiency.py` (theorem-checker consumed only by its own test), `gridworld_demo.py` (imported nowhere), tests/* (input generation — with production RNG isolated, ordering cannot corrupt behavior).
 
 ### Metrics
-- DI: 1.000 | MD: 0.000 | Cycles: ship session (no pipeline cycles run)
+- DI: 1.000 | MD: 0.000 | Cycles: build+ship session (3 gap closures + 17 tests + 5×648 green runs)

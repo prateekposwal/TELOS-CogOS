@@ -9,8 +9,11 @@ class ChessDomainSimulator(DomainSimulator):
     Plugin: Implements the DSI contract for Chess.
     Encapsulates all board logic. The TELOS Runtime sees only DSI methods.
     """
-    def __init__(self):
+    def __init__(self, seed=None):
         self.env = ChessEnv()
+        # Pattern: one RNG authority per engine — private RandomState,
+        # never global np.random in the simulation hot path.
+        self._rng = np.random.RandomState(seed)
 
     def initialize(self) -> None: pass
     def cleanup(self) -> None: pass
@@ -35,7 +38,7 @@ class ChessDomainSimulator(DomainSimulator):
         for _ in range(horizon):
             moves = self.legal_transitions(curr)
             if not moves: break
-            move = moves[np.random.randint(len(moves))]
+            move = moves[self._rng.randint(len(moves))]
             curr = self.transition(curr, move)
             futures.append(World(state=curr))
         return futures

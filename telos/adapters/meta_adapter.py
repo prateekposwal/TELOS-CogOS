@@ -43,8 +43,11 @@ class MetaDomainSimulator(DomainSimulator):
     file counts, axiom coverage.
     """
 
-    def __init__(self, config: Optional[MetaConfig] = None):
-        self.config = config or MetaConfig()
+    def __init__(self, config: Optional[MetaConfig] = None, seed=None):
+        self.config = config
+        # Pattern: one RNG authority per engine — private RandomState,
+        # never global np.random in the simulation hot path.
+        self._rng = np.random.RandomState(seed) or MetaConfig()
         self._initialized = False
         self._fact_cache: Optional[DomainFacts] = None
 
@@ -65,7 +68,7 @@ class MetaDomainSimulator(DomainSimulator):
     def simulate(self, state: np.ndarray, horizon: int) -> List[World]:
         worlds = []
         for h in range(horizon):
-            worlds.append(World(state=state + np.random.randn(*state.shape) * 0.05))
+            worlds.append(World(state=state + self._rng.randn(*state.shape) * 0.05))
         return worlds
 
     def get_facts(self, state: np.ndarray) -> DomainFacts:

@@ -234,6 +234,7 @@ def dump_knowledge(knowledge_graph: Any) -> dict:
                 "failure_reason": n.failure_reason, "tags": n.tags,
                 "params": n.params, "timestamp": n.timestamp,
                 "activation": n.activation, "access_count": n.access_count,
+                "provenance": n.provenance,
             }
             for nid, n in knowledge_graph._nodes.items()
         },
@@ -244,6 +245,7 @@ def dump_knowledge(knowledge_graph: Any) -> dict:
                 "failure_reason": n.failure_reason, "tags": n.tags,
                 "params": n.params, "timestamp": n.timestamp,
                 "activation": 0.0, "access_count": n.access_count,
+                "provenance": n.provenance,
             }
             for nid, n in getattr(knowledge_graph, '_archived_nodes', {}).items()
         } if hasattr(knowledge_graph, '_archived_nodes') else {},
@@ -271,6 +273,7 @@ def load_knowledge(data: dict, kg: Any) -> None:
             failure_reason=nd.get("failure_reason"), tags=nd.get("tags", []),
             params=nd.get("params", {}), timestamp=nd.get("timestamp", 0),
             activation=nd.get("activation", 1.0), access_count=nd.get("access_count", 0),
+            provenance=nd.get("provenance", {}),
         )
     kg._cycle = data.get("cycle", 0)
     archived = data.get("archived_nodes", {})
@@ -282,6 +285,7 @@ def load_knowledge(data: dict, kg: Any) -> None:
                 failure_reason=nd.get("failure_reason"), tags=nd.get("tags", []),
                 params=nd.get("params", {}), timestamp=nd.get("timestamp", 0),
                 activation=0.0, access_count=nd.get("access_count", 0),
+                provenance=nd.get("provenance", {}),
             )
     if hasattr(kg, '_edges'):
         from telos.core.knowledge.graph import Edge
@@ -341,19 +345,9 @@ def dump_trace(decision_trace: Any) -> Optional[dict]:
 
 # ── Session Continuity ──
 
-def dump_session_essence(session_essence: Optional[Dict]) -> Optional[Dict]:
-    """SessionEssence is already JSON-serializable; pass through."""
-    return session_essence
-
-
 def load_session_essence(data: Optional[Dict]) -> Optional[Dict]:
     """Load session essence from checkpoint data."""
     return data or {}
-
-
-def dump_truncated_history(truncated_history: Optional[List[Dict]]) -> Optional[List[Dict]]:
-    """Truncated chat history is already JSON-serializable; pass through."""
-    return truncated_history
 
 
 def load_truncated_history(data: Optional[List[Dict]]) -> List[Dict]:
