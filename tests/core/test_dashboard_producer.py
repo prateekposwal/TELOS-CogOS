@@ -172,3 +172,60 @@ def test_producer_score_before_first_cycle_is_none(isolated_paths):
     assert p.snapshot()["score"] is None
     assert p.snapshot()["score_components"] is None
     p.stop()
+
+
+def test_producer_episode_bookkeeping_counts_and_resets(isolated_paths):
+    """Goal-reach wiring: _on_goal_reached increments the episode counter,
+    records the episode's step count, and resets the current-step counter.
+
+    ZERO sim mutation: episode bookkeeping never touches the sim's reward
+    dict — it only counts events the producer already observes (the same
+    terminal() the reset path uses)."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        stats = p._episode_stats()
+        assert stats["completed"] == 0
+        assert stats["avg_steps_per_goal"] is None, "unmeasured until an episode completes"
+        assert stats["efficiency_vs_optimal"] is None, "unmeasured until an episode completes"
+        assert stats["optimal_steps"] == 8.0, "Manhattan distance (0,0)->(4,4)"
+        p._episode_steps = 12
+        p._on_goal_reached()
+        stats = p._episode_stats()
+        assert stats["completed"] == 1
+        assert stats["last_steps"] == 12
+        assert stats["avg_steps_per_goal"] == 12.0
+        assert stats["efficiency_vs_optimal"] == pytest.approx(round(8.0 / 12.0, 4))
+        assert stats["current_steps"] == 0, "step counter resets for the next episode"
+    finally:
+        p.stop()
+
+
+def test_producer_episode_stats_real_run_shape_and_no_reward_mutation(isolated_paths):
+    """Real cycles: the episodes payload is present, honest, and the sim's
+    reward dict is never mutated by the metric — the live pool only ever
+    decreases from the initial 20.0 as TELOS collects it (no respawn)."""
+    p = DashboardProducer(cycle_interval_s=0.05, burst_cycles=4)
+    p.start()
+    try:
+        deadline = time.time() + 12
+        while time.time() < deadline and p.snapshot()["decisions"] < 8:
+            time.sleep(0.1)
+        snap = p.snapshot()
+        ep = snap["episodes"]
+        assert set(ep) == {"completed", "current_steps", "last_steps",
+                           "avg_steps_per_goal", "efficiency_vs_optimal",
+                           "optimal_steps"}
+        assert ep["completed"] >= 0
+        assert ep["current_steps"] >= 0
+        if ep["completed"] > 0:
+            # Can't beat the Manhattan optimum (>= 8 decision steps); the
+            # efficiency ratio is bounded [0, 1] when defined.
+            assert ep["avg_steps_per_goal"] >= 8.0
+            assert 0.0 <= ep["efficiency_vs_optimal"] <= 1.0
+        # Honesty: unmeasured stays None until the first episode completes.
+        assert (ep["avg_steps_per_goal"] is None) == (ep["completed"] == 0)
+        # ZERO sim mutation: the live reward pool never increases.
+        total = sum(v for v in p._sim.rewards.values() if v and v > 0)
+        assert total <= 20.0 + 1e-9, f"reward pool grew to {total} — sim mutated"
+    finally:
+        p.stop()
