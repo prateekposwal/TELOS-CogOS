@@ -36,9 +36,6 @@ telos_context = {"cycle": 0, "last_response": ""}
 
 # ─── HTTP Server ───
 class DashboardHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=os.path.dirname(os.path.abspath(__file__)), **kwargs)
-    
     def do_GET(self):
         parsed = urlparse(self.path)
         
@@ -262,6 +259,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             if trace:
                 di = trace.get('decision_integrity', 1.0)
                 status = "BLOCKED" if trace.get('firewall_blocked') else "APPROVED"
+                # Live feed: push the fresh trace to every connected dashboard client.
+                broadcast_trace_sync(trace)
             
             return {"response": response, "trace": trace, "di": di, "status": status}
             
@@ -293,14 +292,20 @@ async def ws_handler(websocket):
         logger.info(f"WebSocket client disconnected ({len(websocket_clients)} remaining)")
 
 async def broadcast_trace(trace_dict: dict):
-    """Call this to push live traces to the dashboard. Thread-safe."""
+    """Push a decision trace to all connected dashboard clients.
+
+    :param trace_dict: serialized decision trace dict to broadcast.
+    """
     if not websocket_clients:
         return
     message = json.dumps({"type": "trace", "decision_trace": trace_dict})
     await asyncio.gather(*[client.send(message) for client in websocket_clients], return_exceptions=True)
 
 def broadcast_trace_sync(trace_dict: dict):
-    """Synchronous wrapper for broadcast_trace — call from any thread."""
+    """Synchronous wrapper for broadcast_trace — call from any thread.
+
+    :param trace_dict: serialized decision trace dict to broadcast.
+    """
     global _ws_loop
     if not websocket_clients or _ws_loop is None:
         return
@@ -322,13 +327,23 @@ async def main():
     _ws_loop = asyncio.get_running_loop()
     http_thread = Thread(target=run_http, daemon=True)
     http_thread.start()
-    
+
+    # WebSocket is best-effort: if the port is taken, HTTP keeps serving.
+    # (Pattern fix: a single failed subsystem must not take down the surface.)
+    ws_server = None
     try:
-        async with websockets.serve(ws_handler, '0.0.0.0', WS_PORT):
-            logger.info(f"   WebSocket → ws://localhost:{WS_PORT}")
-            await asyncio.Future()
+        ws_server = await websockets.serve(ws_handler, '0.0.0.0', WS_PORT)
+        logger.info(f"   WebSocket → ws://localhost:{WS_PORT}")
     except OSError as e:
-        logger.warning(f"Port {WS_PORT} in use — WebSocket may already be running")
+        logger.warning(f"Port {WS_PORT} in use — WebSocket unavailable; HTTP still serving")
+
+    try:
+        await asyncio.Future()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if ws_server is not None:
+            ws_server.close()
 
 if __name__ == '__main__':
     try:

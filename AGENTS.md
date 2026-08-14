@@ -60,8 +60,9 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 
 ## To run
 ```bash
-# Dashboard
-python3 telos/serve_dashboard.py
+# Dashboard (persistent launcher — survives terminal close; logs to /tmp/telos_dashboard.log)
+./telos/start_dashboard.sh            # start (status / stop / restart subcommands)
+# raw server (foreground) still works: python3 telos/serve_dashboard.py
 
 # Pipeline
 PYTHONPATH=. python3 telos_task.py
