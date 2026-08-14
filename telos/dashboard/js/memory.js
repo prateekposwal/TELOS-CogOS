@@ -22,7 +22,7 @@ function renderMemoryTimeline() {
     const di = t.decision_integrity || 1;
     const terrain = (t.domain_facts && t.domain_facts.metadata && t.domain_facts.metadata.current_terrain) || '';
     const terrainEmoji = (typeof TERRAIN_EMOJI !== 'undefined' ? TERRAIN_EMOJI : _TERRAIN_EMOJI)[terrain] || '';
-    const intent = t.selected_intent || t.intent_type || (t.strategic_options && t.strategic_options[0] && t.strategic_options[0].intent_type) || '—';
+    const intent = intentLabel(t);  // canonical extractor (intent.js) — selected_intent is a dict in real traces
     const cycleId = t.cycle_id != null ? t.cycle_id : '?';
     const diColor = di > 0.8 ? '#4ade80' : di > 0.5 ? '#fbbf24' : '#ff6b6b';
     const statusIcon = approved ? '✅' : '🚫';

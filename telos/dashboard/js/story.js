@@ -60,6 +60,9 @@ function _normalize(d) {
     recent_decisions: d.recent_decisions || [],
     position: d.position || [],
     score: d.score || 0,
+    score_base: d.score_base !== undefined ? d.score_base : 100,
+    time_cost: d.time_cost !== undefined ? d.time_cost : 0,
+    reward_collected: d.reward_collected !== undefined ? d.reward_collected : 0,
   };
 }
 
@@ -104,6 +107,20 @@ function renderOverview(d) {
   if (diEl) diEl.textContent = n.di > 0 ? (n.di * 100).toFixed(0) + '%' : '—';
   var mdEl = document.getElementById('story-md');
   if (mdEl) mdEl.textContent = n.md > 0 ? n.md.toFixed(2) : '0.00';
+
+  // Sidebar score breakdown: Score = base − time cost + rewards. Real numbers,
+  // so a negative score reads as a timer, not a mystery.
+  var sbEl = document.getElementById('score-breakdown');
+  if (sbEl) {
+    var base = n.score_base || 100;
+    var cost = Math.round(n.time_cost || 0);
+    var rew = Math.round(n.reward_collected || 0);
+    if (cost > 0) {
+      sbEl.textContent = base + ' − ' + cost + ' time + ' + rew + ' reward = ' + Math.round(n.score) + '  (⬇1/cycle)';
+    } else {
+      sbEl.textContent = 'Time pressure (⬇1/cycle)';
+    }
+  }
 
   // 5) INSIGHT — the "stories with words" layer: a sentence computed from
   //    the live numbers (integrity trend, growth since last poll, dominance).
