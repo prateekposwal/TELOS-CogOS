@@ -25,6 +25,7 @@ def isolated_paths(tmp_path, monkeypatch):
         monkeypatch: pytest monkeypatch for producer module globals.
     """
     monkeypatch.setattr(prod_mod, "CHECKPOINT_DIR", str(tmp_path / "checkpoints"))
+    monkeypatch.setattr(prod_mod, "PRODUCER_STATE_PATH", str(tmp_path / "producer_state.json"))
     monkeypatch.setattr(prod_mod, "KNOWLEDGE_PATH", str(tmp_path / "knowledge.json"))
     monkeypatch.setattr(prod_mod, "LEDGER_PATH", str(tmp_path / "ledger.json"))
     monkeypatch.setattr(prod_mod, "IDENTITY_PATH", str(tmp_path / "identity.json"))
@@ -93,14 +94,18 @@ def test_producer_checkpoints_are_json_clean_and_serializable(isolated_paths):
 
 def test_producer_no_fabrication_snapshot_counts_match_cycles(isolated_paths):
     """Honesty: snapshot numbers must equal measured cycle counts, never
-    invented larger values."""
+    invented larger values. The trace-list equality holds in a clean
+    session (this fixture isolates paths, so no restore happens); when the
+    producer restores counters from persisted state (Item 5c) the in-memory
+    trace list is a bounded window of the history, so the invariant is
+    traces <= decisions — the hero number is never inflated by traces."""
     p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=2)
     p.start()
     try:
         time.sleep(2.0)
         snap = p.snapshot()
         assert snap["decisions"] == snap["producer"]["cycles"]
-        assert len(snap["traces"]) == snap["decisions"]
+        assert len(snap["traces"]) <= snap["decisions"]
         assert len(snap["recent_decisions"]) <= len(snap["traces"])
     finally:
         p.stop()
@@ -212,9 +217,11 @@ def test_producer_episode_stats_real_run_shape_and_no_reward_mutation(isolated_p
             time.sleep(0.1)
         snap = p.snapshot()
         ep = snap["episodes"]
-        assert set(ep) == {"completed", "current_steps", "last_steps",
-                           "avg_steps_per_goal", "efficiency_vs_optimal",
-                           "optimal_steps"}
+        assert set(ep) == {"completed", "current_steps", "current_moves",
+                           "last_steps", "last_moves",
+                           "avg_steps_per_goal", "avg_moves_per_goal",
+                           "efficiency_vs_optimal", "moves_efficiency_vs_optimal",
+                           "optimal_steps", "optimal_moves"}
         assert ep["completed"] >= 0
         assert ep["current_steps"] >= 0
         if ep["completed"] > 0:
@@ -227,5 +234,211 @@ def test_producer_episode_stats_real_run_shape_and_no_reward_mutation(isolated_p
         # ZERO sim mutation: the live reward pool never increases.
         total = sum(v for v in p._sim.rewards.values() if v and v > 0)
         assert total <= 20.0 + 1e-9, f"reward pool grew to {total} — sim mutated"
+    finally:
+        p.stop()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Item 3 — BFS/A* legal-route executor (replaces the greedy diagonal
+# decomposition): every approved cycle that can move makes monotone progress
+# over the REAL 5x5 legal grid (blocked cells from the live sim). Deterministic,
+# bounds-safe, honest no-op for immovable states.
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_astar_step_finds_optimal_legal_monotone_path():
+    """A* plans the shortest legal path around the real blocked cells
+    {(1,1),(2,2),(3,1)} toward (4,4); each step is cardinal, in-bounds,
+    unblocked, and strictly reduces Manhattan distance (monotone)."""
+    from telos.dashboard.producer import _astar_step
+    blocked = {(1, 1), (2, 2), (3, 1)}
+    goal = np.array([4.0, 4.0])
+    fallback = np.array([0.0, 0.0])
+    pos = np.array([0.0, 0.0])
+    path = [(0, 0)]
+    steps = 0
+    while tuple(int(round(v)) for v in pos) != (4, 4):
+        step = _astar_step(pos, blocked, goal, 5, fallback)
+        assert abs(step[0]) + abs(step[1]) == 1, f"non-cardinal step {step}"
+        nxt = pos + step
+        key = (int(round(nxt[0])), int(round(nxt[1])))
+        assert 0 <= key[0] < 5 and 0 <= key[1] < 5, f"out of bounds {key}"
+        assert key not in blocked, f"entered blocked cell {key}"
+        # Monotone progress: Manhattan distance to the goal strictly drops.
+        mh = abs(key[0] - 4) + abs(key[1] - 4)
+        assert mh < abs(path[-1][0] - 4) + abs(path[-1][1] - 4), "no progress"
+        path.append(key)
+        pos = nxt
+        steps += 1
+        assert steps <= 10, "path is not optimal"
+    assert path == [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0),
+                    (4, 1), (4, 2), (4, 3), (4, 4)], f"unexpected path {path}"
+    assert steps == 8, "Manhattan optimum must be reachable legally"
+
+
+def test_astar_step_deterministic_and_honest_noops():
+    """Same state → same step (deterministic); at the goal or with no legal
+    path the executor returns the fallback (honest no-op, never invented)."""
+    from telos.dashboard.producer import _astar_step
+    blocked = {(1, 1), (2, 2), (3, 1)}
+    goal = np.array([4.0, 4.0])
+    fallback = np.array([0.0, 0.0])
+    pos = np.array([2.0, 0.0])
+    s1 = _astar_step(pos, blocked, goal, 5, fallback)
+    s2 = _astar_step(pos, blocked, goal, 5, fallback)
+    assert (s1 == s2).all(), "A* must be deterministic"
+    # Already at the goal → no-op.
+    assert _astar_step(np.array([4.0, 4.0]), blocked, goal, 5, fallback) is fallback
+    # Trapped state with no path (fully walled) → honest no-op.
+    walled = {(x, y) for x in range(5) for y in range(5) if (x, y) != (0, 0) and (x, y) != (4, 4)}
+    # Goal unreachable: all neighbours blocked.
+    trapped = {(1, 0), (0, 1)}
+    assert _astar_step(np.array([0.0, 0.0]), blocked | trapped, goal, 5, fallback) is fallback
+
+
+def test_apply_action_preserves_genuine_noop_and_plans_legally(isolated_paths):
+    """_apply_action: zero vectors stay put (respect the decision), non-zero
+    vectors become the first legal A* step — in-bounds and unblocked."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        from telos_task import GridSim, DEFAULT_BLOCKED, DEFAULT_REWARDS
+        p._sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS))
+        p._grid_size = 5
+        from telos_task import GOAL
+        p._goal = GOAL
+        state = np.array([0.0, 0.0])
+        # Genuine no-op: unchanged.
+        out = p._apply_action(state, np.array([0.0, 0.0]))
+        assert (out == state).all(), "no-op must stay put"
+        # Legal plan from the origin (blocked cells read from the live sim).
+        out = p._apply_action(state, np.array([1.0, 1.0]))
+        key = (int(round(out[0])), int(round(out[1])))
+        assert 0 <= key[0] < 5 and 0 <= key[1] < 5, "out of bounds"
+        assert key not in p._sim.blocked, "planned into a blocked cell"
+        assert tuple(int(v) for v in out) == (1, 0), "A* first step from (0,0)"
+    finally:
+        p.stop()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Item 2 — moves-per-goal split: the episode `moves` counter increments ONLY
+# when the agent actually changed position (never on blocked/no-op/inquiry).
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_producer_episode_moves_bookkeeping_counts_real_moves_only(isolated_paths):
+    """_on_goal_reached records the moves split alongside steps, and the
+    stats payload exposes avg_moves_per_goal bounded by avg_steps_per_goal
+    (moves ⊆ cycles — a move can never exceed its episode's cycles)."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        stats = p._episode_stats()
+        assert stats["avg_moves_per_goal"] is None, "unmeasured until an episode completes"
+        p._episode_steps = 12
+        p._episode_moves = 7   # 5 cycles were blocked/inquiry/no-op pauses
+        p._on_goal_reached()
+        stats = p._episode_stats()
+        assert stats["completed"] == 1
+        assert stats["last_steps"] == 12
+        assert stats["last_moves"] == 7
+        assert stats["avg_steps_per_goal"] == 12.0
+        assert stats["avg_moves_per_goal"] == 7.0
+        assert stats["optimal_moves"] == 8.0, "optimal episode = all cycles are moves"
+        assert stats["current_steps"] == 0 and stats["current_moves"] == 0, \
+            "both clocks reset for the next episode"
+    finally:
+        p.stop()
+
+
+def test_producer_real_run_moves_never_exceed_cycles(isolated_paths):
+    """Real cycles: moves-per-goal is present and bounded by steps-per-goal
+    (a position change is a subset of decision cycles)."""
+    p = DashboardProducer(cycle_interval_s=0.05, burst_cycles=4)
+    p.start()
+    try:
+        deadline = time.time() + 12
+        while time.time() < deadline and p.snapshot()["decisions"] < 8:
+            time.sleep(0.1)
+        snap = p.snapshot()
+        ep = snap["episodes"]
+        assert "avg_moves_per_goal" in ep
+        if ep["completed"] > 0 and ep["avg_moves_per_goal"] is not None:
+            assert ep["avg_moves_per_goal"] <= ep["avg_steps_per_goal"] + 1e-9
+        assert ep["current_moves"] <= ep["current_steps"]
+    finally:
+        p.stop()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Item 5c — hero counters survive restarts: exact state file first, then the
+# newest checkpoint as an honest best-effort baseline + trace seeding.
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_producer_restores_exact_counters_from_state_file(isolated_paths, monkeypatch):
+    """The producer state file (written every cycle) restores the EXACT hero
+    counters on boot — the totals never reset to 0 across a dashboard restart.
+
+    Args:
+        isolated_paths: pytest tmp_path fixture for isolated state files.
+        monkeypatch: pytest fixture used to redirect PRODUCER_STATE_PATH."""
+    import telos.dashboard.producer as prod_mod
+    state_path = str(isolated_paths / "producer_state.json")
+    monkeypatch.setattr(prod_mod, "PRODUCER_STATE_PATH", state_path)
+    with open(state_path, "w") as fh:
+        json.dump({"cycles": 41, "worlds_simulated_total": 3137, "updated_at": 1.0}, fh)
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        p._restore_producer_counters()
+        assert p._cycles == 41, "cycles must restore from the exact state file"
+        assert p._worlds_simulated_total == 3137, "worlds_simulated must restore exactly"
+    finally:
+        p.stop()
+
+
+def test_producer_restores_counters_from_checkpoint_fallback(isolated_paths):
+    """No state file → the newest checkpoint's cycle becomes the honest
+    baseline and its real decision trace seeds the story (never invented)."""
+    cp_dir = isolated_paths / "checkpoints"
+    cp_dir.mkdir()
+    for cyc, ws in ((9, 100), (10, 120)):
+        with open(cp_dir / f"checkpoint_{cyc}.json", "w") as fh:
+            json.dump({
+                "cycle": cyc,
+                "decision_trace": {"cycle_id": cyc, "decision_integrity": 0.9,
+                                   "mission_drift": 0.1, "council_validated": True,
+                                   "selected_intent": {"type": "navigate_to_goal", "confidence": 0.7}},
+            }, fh)
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        p._restore_producer_counters()
+        assert p._cycles == 10, "baseline must come from the newest checkpoint"
+        assert p._traces, "real persisted traces must seed the story"
+        assert p._traces[-1]["cycle_id"] == 10
+        # worlds_simulated is NOT persisted in legacy checkpoint traces —
+        # it honestly starts at 0 rather than inventing a value.
+        assert p._worlds_simulated_total == 0
+    finally:
+        p.stop()
+
+
+def test_producer_persists_counter_state_after_cycles(isolated_paths, monkeypatch):
+    """Every cycle writes the exact counters to the state file — the same
+    file _restore_producer_counters reads on the next boot.
+
+    Args:
+        isolated_paths: pytest tmp_path fixture for isolated state files.
+        monkeypatch: pytest fixture used to redirect PRODUCER_STATE_PATH."""
+    import telos.dashboard.producer as prod_mod
+    state_path = str(isolated_paths / "producer_state.json")
+    monkeypatch.setattr(prod_mod, "PRODUCER_STATE_PATH", state_path)
+    p = DashboardProducer(cycle_interval_s=0.05, burst_cycles=3)
+    p.start()
+    try:
+        deadline = time.time() + 8
+        while time.time() < deadline and p.snapshot()["decisions"] < 4:
+            time.sleep(0.1)
+        assert os.path.exists(state_path), "state file must be written"
+        with open(state_path) as fh:
+            state = json.load(fh)
+        assert state["cycles"] == p.snapshot()["decisions"]
+        assert state["worlds_simulated_total"] == p.snapshot()["worlds_simulated"]
     finally:
         p.stop()

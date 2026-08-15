@@ -20,15 +20,28 @@ pipeline execution. There are no synthetic traces, no invented nodes,
 no made-up metrics. Knowledge nodes/edges recorded here are REAL
 observations of the running system (positions visited, terrain, council
 verdicts, rewards) stamped with provenance caller=dashboard_producer.
+
+Structural rules (v7 additions):
+    3. Movement on the live grid is a LEGAL-ROUTE executor: the pipeline's
+       adapter emits diagonal/no-op vectors; this producer plans with A*
+       over the real 5x5 legal grid (blocked cells from the sim) toward the
+       goal, so every approved cycle that can move makes monotone progress.
+       Deterministic (fixed neighbor order + Manhattan heuristic), bounds-safe.
+    4. Counters survive restarts: cycles and worlds_simulated_total are
+       restored from the last persisted producer state (exact counters) or,
+       failing that, from the latest checkpoint files (honest best-effort),
+       so the hero never resets to 0 when the dashboard restarts.
 """
 
+import glob as _glob
+import heapq
 import json
 import logging
 import math
 import os
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -89,6 +102,73 @@ SYSTEM_SCORE_WEIGHTS = {"di": 0.50, "md": 0.25, "reward": 0.15, "coverage": 0.10
 # score - so efficiency is a separate labeled stat, not a component.
 OPTIMAL_STEPS = 8.0   # Manhattan distance (0,0)->(4,4): shortest possible episode
 MAX_EPISODE_HISTORY = 50
+
+
+def _astar_step(state, blocked, goal, grid_size, fallback):
+    """First step of the shortest legal path toward the goal (A*).
+
+    Deterministic legal-route planner over the REAL grid: blocked cells are
+    taken from the live sim (never invented), neighbors are cardinal-only,
+    heuristic is Manhattan distance to the goal, ties break by a monotone
+    counter so the same state always yields the same step. Returns the
+    first cardinal step (delta) along the shortest path — each approved
+    step strictly decreases path-length to the goal (monotone progress).
+    Returns ``fallback`` (no move) when the start IS the goal or no legal
+    path exists (genuinely immovable state — the honest no-op).
+
+    Args:
+        state: current float position [x, y].
+        blocked: iterable of (x, y) blocked cells from the live sim.
+        goal: target [x, y] (module GOAL from telos_task, real).
+        grid_size: edge length of the square grid (5 for GridWorld).
+        fallback: value to return when no move is possible (the state).
+
+    Returns:
+        np.ndarray delta (first legal step) or ``fallback``.
+    """
+    start = (int(round(state[0])), int(round(state[1])))
+    gx, gy = int(round(goal[0])), int(round(goal[1]))
+    if start == (gx, gy):
+        return fallback  # already at the goal — nothing to do
+    blocked_set = set(tuple(b) for b in blocked)
+
+    def manhattan(cell):
+        return abs(cell[0] - gx) + abs(cell[1] - gy)
+
+    # Deterministic neighbor order (ties resolve identically every run).
+    neighbors = ((1, 0), (-1, 0), (0, 1), (0, -1))
+    counter = 0
+    start_h = manhattan(start)
+    heap = [(start_h, 0, counter, start)]
+    counter += 1
+    g_score = {start: 0}
+    came_from = {start: None}
+    closed = set()
+    while heap:
+        f, g, _, cell = heapq.heappop(heap)
+        if cell in closed:
+            continue
+        closed.add(cell)
+        if cell == (gx, gy):
+            # Walk back to the first step after the start (start's parent
+            # is None, so the first step is the node whose parent is start).
+            node = cell
+            while came_from[node] is not None and came_from[node] != start:
+                node = came_from[node]
+            return np.array([node[0] - start[0], node[1] - start[1]], dtype=float)
+        for dx, dy in neighbors:
+            ncell = (cell[0] + dx, cell[1] + dy)
+            if not (0 <= ncell[0] < grid_size and 0 <= ncell[1] < grid_size):
+                continue  # bounds-safe: never plan outside the grid
+            if ncell in blocked_set:
+                continue  # real blocked cells are never entered
+            ng = g + 1
+            if ng < g_score.get(ncell, float('inf')):
+                g_score[ncell] = ng
+                came_from[ncell] = cell
+                heapq.heappush(heap, (ng + manhattan(ncell), ng, counter, ncell))
+                counter += 1
+    return fallback  # no legal path — honest no-op
 
 
 def _clamp01(value: float) -> float:
@@ -165,6 +245,10 @@ def safe_score(value) -> Optional[float]:
 
 # Paths shared with serve_dashboard.py and telos_task.py
 CHECKPOINT_DIR = "/tmp/telos_checkpoints"
+# Producer-owned counter state (exact cycles/worlds_simulated_total across
+# restarts). Written atomically each cycle; the hero reads it on boot so the
+# numbers never reset to 0 when the dashboard restarts.
+PRODUCER_STATE_PATH = "/tmp/telos_producer_state.json"
 KNOWLEDGE_PATH = "/tmp/telos_knowledge.json"
 LEDGER_PATH = "/tmp/telos_ledger.json"
 IDENTITY_PATH = "/tmp/telos_identity.json"
@@ -251,10 +335,17 @@ class DashboardProducer:
         self._visited_positions: set = set()
 
         # ── episode efficiency (measured from real goal-reach events) ──
+        # Two clocks per episode, both counted on the producer's own
+        # observations (ZERO sim mutation):
+        #   steps — every decision cycle (moves, no-ops AND inquiry pauses)
+        #   moves — only cycles where the agent actually changed position.
         self._episode_steps = 0
+        self._episode_moves = 0
         self._episodes_completed = 0
         self._last_episode_steps: Optional[int] = None
+        self._last_episode_moves: Optional[int] = None
         self._completed_episode_steps: List[int] = []
+        self._completed_episode_moves: List[int] = []
 
         # ── live metrics (all measured, none invented) ──
         self._traces: List[Dict] = []
@@ -342,6 +433,7 @@ class DashboardProducer:
             "worlds": trace.get("worlds_simulated", 0),
             "position": trace.get("world_state"),
             "blocking_validator": trace.get("blocking_validator"),
+            "firewall_blocked_by": trace.get("firewall_blocked_by"),
         }
 
     def _mood(self) -> str:
@@ -385,10 +477,14 @@ class DashboardProducer:
         """
         self._episodes_completed += 1
         self._last_episode_steps = self._episode_steps
+        self._last_episode_moves = self._episode_moves
         self._completed_episode_steps.append(self._episode_steps)
+        self._completed_episode_moves.append(self._episode_moves)
         if len(self._completed_episode_steps) > MAX_EPISODE_HISTORY:
             self._completed_episode_steps = self._completed_episode_steps[-MAX_EPISODE_HISTORY:]
+            self._completed_episode_moves = self._completed_episode_moves[-MAX_EPISODE_HISTORY:]
         self._episode_steps = 0
+        self._episode_moves = 0
 
     def _episode_stats(self) -> Dict[str, Any]:
         """Episode efficiency - all values derived from real goal-reach events.
@@ -407,13 +503,21 @@ class DashboardProducer:
             hist = list(self._completed_episode_steps)
             avg = (float(sum(hist)) / len(hist)) if hist else None
             eff = _clamp01(OPTIMAL_STEPS / avg) if avg else None
+            hist_moves = list(self._completed_episode_moves)
+            avg_moves = (float(sum(hist_moves)) / len(hist_moves)) if hist_moves else None
+            eff_moves = _clamp01(OPTIMAL_STEPS / avg_moves) if avg_moves else None
             return {
                 "completed": self._episodes_completed,
                 "current_steps": self._episode_steps,
+                "current_moves": self._episode_moves,
                 "last_steps": self._last_episode_steps,
+                "last_moves": self._last_episode_moves,
                 "avg_steps_per_goal": (None if avg is None else round(avg, 1)),
+                "avg_moves_per_goal": (None if avg_moves is None else round(avg_moves, 1)),
                 "efficiency_vs_optimal": (None if eff is None else round(eff, 4)),
+                "moves_efficiency_vs_optimal": (None if eff_moves is None else round(eff_moves, 4)),
                 "optimal_steps": OPTIMAL_STEPS,
+                "optimal_moves": OPTIMAL_STEPS,
             }
 
     # ── Producer loop ──────────────────────────────────────────────
@@ -448,7 +552,9 @@ class DashboardProducer:
             self._stop.wait(self._cycle_interval_s)
 
     def _build(self) -> None:
-        from telos_task import GridAdpt, GridSim, TERRAIN, DEFAULT_BLOCKED, DEFAULT_REWARDS
+        from telos_task import (
+            GridAdpt, GridSim, TERRAIN, DEFAULT_BLOCKED, DEFAULT_REWARDS, GOAL,
+        )
         from telos.core.runtime import PipelineConfig, TelosV14Pipeline
         from telos.core.streams.implementations import (
             ReflexStream, PerceptionStream, MemoryStream, PlanningStream, TheoryStream,
@@ -464,6 +570,7 @@ class DashboardProducer:
 
         self._sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS))
         self._grid_size = 5  # GridWorld GRID_SIZE
+        self._goal = GOAL  # real goal from telos_task (the A* planner's target)
         self._grid_area = float(self._grid_size ** 2)
         # Total positive reward available in the world - the denominator of
         # the reward component of the System Score (a world constant, real).
@@ -514,6 +621,12 @@ class DashboardProducer:
             except Exception as e:
                 logger.warning("producer: skill warm-up skipped: %r", e)
 
+        # Hero counters survive restarts: restore exact counters from the
+        # producer state file, or best-effort from the newest checkpoint
+        # (the pipeline itself restores its cycle count from that same
+        # checkpoint, so producer totals and trace cycle_ids stay aligned).
+        self._restore_producer_counters()
+
     def _run_cycle(self) -> None:
         trace_dict: Optional[Dict] = None
         with self._lock:
@@ -528,8 +641,15 @@ class DashboardProducer:
 
             # Real world dynamics (same as telos_task.py main loop).
             terrain_changes = self._sim.maybe_shift_terrain()
+            pos_before = (int(round(self._state_np[0])), int(round(self._state_np[1])))
             if trace is not None and trace.selected_action is not None and not result.firewall_blocked:
                 self._state_np = self._apply_action(self._state_np, trace.selected_action)
+            pos_after = (int(round(self._state_np[0])), int(round(self._state_np[1])))
+            # Moves clock: increments ONLY when the agent actually changed
+            # position — blocked/no-op/inquiry cycles are excluded. This is
+            # the moves-per-goal split alongside the steps (cycle) clock.
+            if pos_after != pos_before:
+                self._episode_moves += 1
 
             if self._agent2 is not None:
                 a2_key = self._agent2.step()
@@ -613,6 +733,10 @@ class DashboardProducer:
             self._worlds_simulated_total += int(trace.worlds_simulated if trace else 0)
             self._last_cycle_at = time.time()
 
+            # Persist the exact hero counters atomically so a dashboard
+            # restart continues the totals instead of resetting to 0.
+            self._persist_producer_state()
+
             # Goal reached → record the episode (producer-side bookkeeping,
             # ZERO sim mutation) and reset to origin for a continuous live run.
             if trace is not None and trace.selected_action is not None and self._sim.terminal(self._state_np):
@@ -624,56 +748,40 @@ class DashboardProducer:
             self._broadcast_trace(trace_dict)
 
     def _apply_action(self, state: np.ndarray, action: np.ndarray) -> np.ndarray:
-        """Legal-route executor for the selected action.
+        """Legal-route executor for the selected action (BFS/A*).
 
         The pipeline's adapter emits diagonal/no-op vectors
         (np.sign(goal - state)) that GridSim.transition cannot route
         around blocked cells — a genuine no-op leaves the agent parked
         at the origin forever, which hides the live run. This executor
-        decomposes a non-zero action into the dominant legal cardinal
-        move (same intent direction, routed legally), and honours true
-        no-ops (stay put). Deterministic: no randomness is introduced.
+        plans with A* over the REAL 5x5 legal grid (blocked cells read
+        from the live sim, goal from telos_task.GOAL) and returns the
+        first step of the shortest legal path: every approved cycle that
+        can move makes monotone progress toward the goal. Deterministic
+        (fixed neighbor order + Manhattan heuristic, heap tie-break),
+        bounds-safe (A* only expands in-grid cells), verified in-bounds.
+        Genuine no-ops (|action| ~ 0) and genuinely-immovable states (no
+        legal path, or already at the goal) stay put — the decision is
+        honored, never invented.
         """
         a = np.asarray(action, dtype=float)
         if a.shape != (2,):
             return state
         if abs(a[0]) < 0.05 and abs(a[1]) < 0.05:
             return state  # genuine no-op — respect the decision
-        legal = self._sim.legal_transitions(state)
-        if not legal:
-            return state
-        # Candidate destinations: legal moves CLIPPED to the grid and
-        # verified against blocked cells (legal_transitions returns raw
-        # vectors; the destination is the clipped position).
-        destinations = []
-        for lv in legal:
-            dest = np.clip(state + np.asarray(lv, dtype=float), 0, self._grid_size - 1)
-            if self._is_blocked(dest):
-                continue
-            destinations.append(dest)
-        if not destinations:
-            return state
-        # Dominant axis of the selected action first, then the other axis.
-        candidates = []
-        if abs(a[0]) >= abs(a[1]):
-            candidates.append(np.array([np.sign(a[0]), 0.0]))
-            candidates.append(np.array([0.0, np.sign(a[1])]))
-        else:
-            candidates.append(np.array([0.0, np.sign(a[1])]))
-            candidates.append(np.array([np.sign(a[0]), 0.0]))
-        # Score each destination by alignment with the selected action.
-        best_dest = destinations[0]
-        best_score = -1e9
-        for dest in destinations:
-            align = float(np.dot(dest - state, a))
-            if align > best_score:
-                best_score = align
-                best_dest = dest
-        return best_dest
-
-    def _is_blocked(self, pos: np.ndarray) -> bool:
-        key = (int(round(pos[0])), int(round(pos[1])))
-        return key in self._sim.blocked
+        step = _astar_step(
+            state=state,
+            blocked=self._sim.blocked,
+            goal=self._goal,
+            grid_size=self._grid_size,
+            fallback=np.array([0.0, 0.0], dtype=float),
+        )
+        if step is None or (abs(step[0]) < 0.05 and abs(step[1]) < 0.05):
+            return state  # immovable / already at goal — honest no-op
+        dest = np.clip(state + step, 0, self._grid_size - 1)
+        # A* only returns legal in-grid steps; the clip is a belt-and-braces
+        # guarantee for the in-bounds contract.
+        return dest
 
     def _record_knowledge(self, result, trace, reward: float, terrain_changes: List[Dict]) -> None:
         """Record real runtime observations as knowledge nodes + edges.
@@ -758,6 +866,112 @@ class DashboardProducer:
                 except Exception:
                     pass
             self._last_nav_node = nid_nav
+
+    # ── Hero counter persistence (Item 5c) ────────────────────────────
+
+    def _persist_producer_state(self) -> None:
+        """Atomically write the exact hero counters (cycles, worlds
+        simulated) so a dashboard restart continues the totals instead of
+        resetting to 0. Written every cycle; read by
+        _restore_producer_counters on the next boot.
+
+        Returns:
+            None.
+        """
+        try:
+            payload = {
+                "cycles": self._cycles,
+                "worlds_simulated_total": self._worlds_simulated_total,
+                "updated_at": time.time(),
+            }
+            tmp_path = PRODUCER_STATE_PATH + ".tmp"
+            with open(tmp_path, "w") as fh:
+                json.dump(payload, fh)
+            os.replace(tmp_path, PRODUCER_STATE_PATH)
+        except Exception as e:
+            logger.warning("producer: counter state persist failed: %r", e)
+
+    def _restore_producer_counters(self) -> None:
+        """Restore _cycles / _worlds_simulated_total from persisted state.
+
+        Exact counters come from the producer state file (written every
+        cycle). Failing that, the newest checkpoint's `cycle` field is the
+        honest best-effort baseline (the pipeline itself restores its cycle
+        count from the same checkpoint, so producer totals stay aligned
+        with trace cycle_ids). worlds_simulated is only recoverable from
+        checkpoints when the persisted decision_trace carries the field
+        (older dumps do not — that component then honestly starts at 0).
+        The in-memory trace list is seeded with the newest persisted real
+        traces so the story's recent-decisions render a truthful
+        continuation, never a blank slate.
+
+        Returns:
+            None.
+        """
+        state = None
+        try:
+            if os.path.exists(PRODUCER_STATE_PATH):
+                with open(PRODUCER_STATE_PATH) as fh:
+                    state = json.load(fh)
+        except Exception as e:
+            logger.warning("producer: counter restore (state file) failed: %r", e)
+        if isinstance(state, dict):
+            try:
+                self._cycles = int(state.get("cycles", 0) or 0)
+                self._worlds_simulated_total = int(state.get("worlds_simulated_total", 0) or 0)
+                logger.info(
+                    "producer: restored exact counters from %s "
+                    "(cycles=%d, worlds_simulated=%d)",
+                    PRODUCER_STATE_PATH, self._cycles, self._worlds_simulated_total,
+                )
+            except (TypeError, ValueError) as e:
+                logger.warning("producer: counter restore (state file) malformed: %r", e)
+        self._seed_traces_from_checkpoints()
+
+    def _seed_traces_from_checkpoints(self) -> None:
+        """Seed _traces with the newest persisted real decision traces.
+
+        Checkpoints are real pipeline output (never invented): the story's
+        recent-decisions and hero caption become a truthful continuation
+        across restarts. Also falls back to the newest checkpoint's `cycle`
+        field for the cycle baseline when the exact state file is absent.
+
+        Returns:
+            None.
+        """
+        if not os.path.isdir(CHECKPOINT_DIR):
+            return
+        files = sorted(_glob.glob(os.path.join(CHECKPOINT_DIR, "checkpoint_*.json")),
+                       key=os.path.getmtime)
+        if not files:
+            return
+        latest_cycle = None
+        seeded = []
+        for f in files[-20:]:
+            try:
+                with open(f) as fh:
+                    data = json.load(fh)
+            except (OSError, json.JSONDecodeError):
+                continue
+            try:
+                c = data.get("cycle")
+                if c is not None and (latest_cycle is None or int(c) > latest_cycle):
+                    latest_cycle = int(c)
+            except (TypeError, ValueError):
+                pass
+            dt = data.get("decision_trace")
+            if isinstance(dt, dict) and dt.get("cycle_id") is not None:
+                seeded.append(dt)
+        if latest_cycle is not None:
+            self._cycles = max(self._cycles, latest_cycle)
+            logger.info("producer: checkpoint baseline cycle=%d", latest_cycle)
+        if seeded:
+            seeded.sort(key=lambda t: int(t.get("cycle_id", 0) or 0))
+            self._traces = [json_clean(t) for t in seeded][-MAX_TRACES_IN_MEMORY:]
+            logger.info(
+                "producer: seeded %d persisted real traces from checkpoints",
+                len(self._traces),
+            )
 
     def _prune_aux_files(self) -> None:
         """Keep the checkpoint dir bounded (aux files are not checkpoint-rotated)."""

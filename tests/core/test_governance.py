@@ -132,3 +132,70 @@ def test_firewall_no_intent_block():
     v = fw.inspect(world, intent=None, council_validated=True, decision_integrity=0.5)
     assert v.passed is False
     assert v.blocked_by == "no_intent"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Item 4 — Λ3.1 loop-trap escape: after RECOVERY_AFTER_LOOP_BLOCKS (2)
+# consecutive action_loop blocks the firewall's verdict carries a
+# recovery_requested signal. The block is NEVER waived — recovery only
+# informs the next selection (the recovery intent passes every check).
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_firewall_loop_recovery_signal_after_repeated_blocks():
+    """Two consecutive action_loop blocks request a goal-seek recovery; a
+    pass or a non-loop block clears the streak; the block still happens."""
+    from telos.core.governance.firewall import (
+        DecisionFirewall, FirewallConfig, RECOVERY_AFTER_LOOP_BLOCKS,
+    )
+    fw = DecisionFirewall(FirewallConfig(min_decision_integrity=0.3))
+    world = World(state=np.array([1.0, 2.0]))
+
+    def same_intent(tag):
+        return IntentIR(tag, confidence=0.9)
+
+    # First streak: 4 repeats of the same type → blocked, streak = 1.
+    for _ in range(4):
+        v = fw.inspect(world, same_intent("navigate_to_goal"), council_validated=True,
+                       decision_integrity=0.9)
+    assert not v.passed and v.blocked_by == "action_loop"
+    assert fw.consecutive_loop_blocks == 1
+    assert not any(s.get("recovery_requested") for s in v.governance_signals), \
+        "recovery must not be requested on the FIRST loop block"
+
+    # Second streak: ONE more repeat (the sliding window of 4 is full of the
+    # same type) → blocked again, streak = 2 → recovery requested.
+    v = fw.inspect(world, same_intent("navigate_to_goal"), council_validated=True,
+                   decision_integrity=0.9)
+    assert not v.passed and v.blocked_by == "action_loop"
+    assert fw.consecutive_loop_blocks == 2
+    recovery = [s for s in v.governance_signals if s.get("recovery_requested")]
+    assert recovery, "2nd consecutive loop block must request recovery (Λ3.1)"
+    assert recovery[0]["consecutive_loop_blocks"] == 2
+    assert recovery[0].get("axiom") == "3.1"
+
+    # A legitimate pass (different intent) clears the streak.
+    v = fw.inspect(world, same_intent("explore_terrain"), council_validated=True,
+                   decision_integrity=0.9)
+    assert v.passed and fw.consecutive_loop_blocks == 0
+
+    # A non-loop block also clears the streak (the window needs 4 repeats
+    # to re-form the trap, then the council-rejection block resets it).
+    for _ in range(4):
+        fw.inspect(world, same_intent("navigate_to_goal"), council_validated=True,
+                   decision_integrity=0.9)
+    assert fw.consecutive_loop_blocks == 1, "streak must rebuild after passes"
+    fw.inspect(world, same_intent("navigate_to_goal"), council_validated=True,
+               decision_integrity=0.9)
+    assert fw.consecutive_loop_blocks == 2, "second consecutive block reaches the threshold"
+    v = fw.inspect(world, same_intent("navigate_to_goal"), council_validated=False,
+                   decision_integrity=0.9)
+    assert v.blocked_by == "council_rejection"
+    assert fw.consecutive_loop_blocks == 0, "non-loop blocks clear the streak"
+    assert RECOVERY_AFTER_LOOP_BLOCKS == 2
+
+
+def test_firewall_loop_recovery_threshold_constant():
+    """RECOVERY_AFTER_LOOP_BLOCKS must be exactly 2 (the spec: 'after 2+
+    consecutive action_loop firewall blocks, trigger a recovery path')."""
+    from telos.core.governance.firewall import RECOVERY_AFTER_LOOP_BLOCKS
+    assert RECOVERY_AFTER_LOOP_BLOCKS == 2

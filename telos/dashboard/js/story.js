@@ -128,6 +128,17 @@ function renderOverview(d) {
   setNum('story-worlds', worldStates);
   setNum('story-worlds-sim', worldsSim);
   setNum('story-graph', lessons + '/' + edges);
+  // WORLDS SIMULATED caption — the honest per-decision rate. Chosen metric:
+  // total_worlds / total_decisions (the run-wide mean rollout width), NOT the
+  // last-cycle value — inquiry modulation makes the per-cycle count noisy and
+  // the mean is stable and derived from two measured totals (never invented).
+  var wsCap = document.getElementById('story-worlds-sim-caption');
+  if (wsCap) {
+    var rate = (decisions > 0 && worldsSim > 0) ? (worldsSim / decisions) : null;
+    wsCap.textContent = 'cumulative counterfactual rollout states' +
+      (rate !== null ? ' — ~' + rate.toFixed(1) + ' per decision (horizon steps)'
+                     : ' — awaiting the first decision');
+  }
   // DI / MD moved into the Chart panel caption (still measured values).
   var diEl = document.getElementById('story-di');
   if (diEl) diEl.textContent = n.di > 0 ? (n.di * 100).toFixed(0) + '%' : '—';
@@ -146,6 +157,17 @@ function renderOverview(d) {
       effEl.textContent = Math.round(ep.avg_steps_per_goal);
     }
   }
+  // Moves-per-goal split: only cycles where the agent actually changed
+  // position (blocked/no-op/inquiry cycles excluded) — real producer-side
+  // bookkeeping, unmeasured stays '—' (never a fabricated number).
+  var mvEl = document.getElementById('story-moves-per-goal');
+  if (mvEl) {
+    if (!ep || !producer.running || ep.completed === 0 || typeof ep.avg_moves_per_goal !== 'number') {
+      mvEl.textContent = '—';
+    } else {
+      mvEl.textContent = Math.round(ep.avg_moves_per_goal);
+    }
+  }
   // Sidebar Episode readout (same live payload; honest empty state).
   var epVal = document.getElementById('episode-value');
   var epSub = document.getElementById('episode-sub');
@@ -159,10 +181,13 @@ function renderOverview(d) {
       epSub.textContent = 'steps into current episode — awaiting first goal…';
     } else {
       var avgTxt = (typeof ep.avg_steps_per_goal === 'number')
-        ? Math.round(ep.avg_steps_per_goal) + ' avg'
-        : 'avg —';
+        ? Math.round(ep.avg_steps_per_goal) + ' cycles avg'
+        : 'cycles avg —';
+      var mvTxt = (typeof ep.avg_moves_per_goal === 'number')
+        ? Math.round(ep.avg_moves_per_goal) + ' moves avg'
+        : 'moves avg —';
       epSub.textContent = ep.completed + ' goal' + (ep.completed === 1 ? '' : 's') +
-        ' reached · ' + avgTxt + ' · optimal ' + ep.optimal_steps;
+        ' reached · ' + avgTxt + ' · ' + mvTxt + ' · optimal ' + ep.optimal_steps;
     }
   }
 
@@ -246,9 +271,15 @@ function renderHeroCaption(n) {
     return;
   }
   var last = (n.recent_decisions || [])[(n.recent_decisions || []).length - 1] || {};
-  var verdict = last.status === 'APPROVED'
-    ? 'The last one passed the council and became action.'
-    : 'The last one was held back by a validator — TELOS chose not to act.';
+  var verdict;
+  if (last.status === 'APPROVED') {
+    verdict = 'The last one passed the council and became action.';
+  } else {
+    // Name the ACTUAL gate from the live trace: the firewall's loop detector
+    // ('action_loop') vs the council validator that rejected the action.
+    var gate = last.firewall_blocked_by || last.blocking_validator || 'a validator';
+    verdict = 'The last one was held back by ' + gate + ' — TELOS chose not to act.';
+  }
   el.textContent = 'Each decision is a real pipeline run — DI-gated and council-checked. ' + verdict;
 }
 
@@ -290,7 +321,11 @@ function renderInsight(n, lessons, edges, domainsObj, recent) {
   var epNow = n.episodes;
   if (epNow && typeof epNow.completed === 'number' && _prevEpisodes !== null &&
       epNow.completed > _prevEpisodes && typeof epNow.last_steps === 'number') {
-    parts.push('TELOS reached the goal in ' + epNow.last_steps + ' decision steps — ' +
+    var movesBit = (typeof epNow.last_moves === 'number')
+      ? ' — ' + epNow.last_moves + ' actual move' + (epNow.last_moves === 1 ? '' : 's')
+      : '';
+    parts.push('TELOS reached the goal in ' + epNow.last_steps + ' decision cycles' +
+      movesBit + ' — ' +
       epNow.completed + ' episode' + (epNow.completed === 1 ? '' : 's') +
       ' complete (optimal ' + epNow.optimal_steps + ').');
   }
@@ -377,7 +412,7 @@ function renderRecent(recent, decisions) {
     var ok = r.status === 'APPROVED';
     var pos = Array.isArray(r.position) ? '(' + Math.round(r.position[0]) + ',' + Math.round(r.position[1]) + ')' : '';
     return '<span class="story-decision ' + (ok ? 'ok' : 'warn') + '" title="' +
-      (r.blocking_validator || '') + '">C' + r.cycle_id + ' ' + (r.intent || '?') +
+      (r.firewall_blocked_by || r.blocking_validator || '') + '">C' + r.cycle_id + ' ' + (r.intent || '?') +
       ' DI=' + (r.di !== undefined ? (r.di * 100).toFixed(0) + '%' : '—') + ' ' + pos + '</span>';
   }).join('');
 }
@@ -399,7 +434,7 @@ function renderMood(n, decisions, lessons, worldsSim, recent) {
   }
   moodEl.innerHTML = 'Right now TELOS feels <b>' + n.mood + '</b> — ' + decisions +
     ' decisions in, ' + lessons + ' lessons learned, ' + worldsSim +
-    ' futures simulated' + goalsBit + lastBit + '.';
+    ' worlds simulated' + goalsBit + lastBit + '.';
 }
 
 function setNum(id, val) {

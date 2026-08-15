@@ -234,7 +234,7 @@ SystemScore = 100 · clamp01( 0.50·DI + 0.25·(1 − min(1, MD/5))
   invented. Legacy unbounded trace scores are structurally rejected by
   `safe_score()` rather than displayed.
 
-## Episode efficiency decision (2026-08-14) — real steps-per-goal, ZERO sim mutation
+## Episode efficiency decision (2026-08-14, v7-refined 2026-08-15) — real cycles-per-goal + moves-per-goal split, ZERO sim mutation
 
 **Pattern fixed:** *rejected idea justified by a partially-true blocker* — a
 LEFT item said "episode-based scoring rejected — would require mutating shared
@@ -250,16 +250,25 @@ composite (DI/MD/reward/coverage) never measured pace.
 Score component):**
 ```
 episodes.completed            # goal-reaches observed (real events)
-episode_steps                 # decision-steps in the current episode
-avg_steps_per_goal            # mean of completed episodes (None until ≥1)
-efficiency_vs_optimal         # clamp01(8 / avg) — bounded [0,1] when defined
+episode_steps                 # decision-cycles in the current episode (ALL cycles)
+episode_moves                 # position-changing moves only (blocked/no-op/inquiry excluded)
+avg_steps_per_goal            # mean of completed episodes (None until ≥1) — hero label: CYCLES per goal
+avg_moves_per_goal            # mean of position-changing moves (v7 split) — hero label: MOVES per goal
+efficiency_vs_optimal         # clamp01(8 / avg_cycles) — bounded [0,1] when defined
+moves_efficiency_vs_optimal   # clamp01(8 / avg_moves)
 ```
 - ZERO sim mutation: pure producer bookkeeping on `terminal()` → reset — the
   event the producer already observes. The reward dict is never touched.
-- Separate stat, not a component: steps-per-goal is cycle-derived (each step
-  is one decision cycle) — endurance-adjacent, and the structural rule forbids
-  folding endurance facts into a quality score. Also undefined until the first
-  episode completes; a folded phantom 0/0.5 would be an invented number.
+- Separate stat, not a component: cycles-per-goal is cycle-derived (each cycle
+  is one decision cycle incl. blocked/inquiry pauses) — endurance-adjacent,
+  and the structural rule forbids folding endurance facts into a quality
+  score. Also undefined until the first episode completes; a folded phantom
+  0/0.5 would be an invented number.
+- v7 split (2026-08-15): the hero now shows BOTH — "cycles per goal" (counts
+  every decision cycle incl. blocked & inquiry pauses) and "moves per goal"
+  (blocked/no-op/inquiry excluded, i.e. real position changes). The split
+  answers "how expensive was the episode" vs "how direct was the path" from
+  the same real episode events. Honest '—' until the first episode completes.
 - Shadow-reward path rejected with evidence: after episode 1 the world is
   exhausted, so per-episode reward vs a shadow pool measures world depletion,
   not agent efficiency; `reward_fraction` already carries the honest depletion
@@ -327,3 +336,48 @@ Full codified spec: `telos/dashboard/BIGDATA_BRIEF.md`. What changed and why it 
 - The System Score stays a bounded 0–100 composite; endurance facts stay labeled as such.
 - The DOM-contract tests now gate the narrative structure itself (chapters, quotes, backdrop)
   plus the overlap/visibility contract in a real browser at 1440×900.
+
+---
+
+## v6/v7 addendum (2026-08-15) — performance & UX pass (Items 6–8) + hero-stat honesty
+
+### Structural changes (frontend brief)
+1. **three.js is lazy-loaded** (`dashboard/js/lazy-3d.js`, new). The ~600 KB
+   vendor chain (three.min.js → OrbitControls.js → knowledge-3d.js) is no
+   longer eager `<script>` tags: an IntersectionObserver on `#kg-panel-bubble`
+   (chapter 05) with a 900px preload margin injects the chain in strict order
+   when the nebula approaches the viewport. Initial paint never waits on the
+   600 KB file. The DOM-contract load-order test was deliberately updated to
+   assert the loader's chain order instead of HTML tag order. Vendored-only,
+   still no CDN, still the same honest 2D fallback if THREE/WebGL is missing.
+2. **gzip + cache headers** (serve_dashboard.py). Static assets are gzipped
+   when the client asks (`Content-Encoding: gzip` + `Vary: Accept-Encoding`);
+   `/dashboard/vendor/*` is `public, max-age=31536000, immutable`; `/dashboard/*`
+   is `public, max-age=3600`; the HTML shell + API stay no-cache. The
+   WebSocket endpoint (port 8766) and every `/api/*` endpoint are untouched.
+3. **Nebula hint pill** (`#kg3d-hint`, chapter 05). "drag to orbit · scroll to
+   zoom · click a star" — bottom-center chip, `pointer-events:none`, 13px mono
+   floor, fades on first pointerdown or after 6s (wired before the WebGL gates
+   so the 2D fallback dismisses it too).
+4. **Chapter scrollspy mini-nav** (`#mini-nav` + `dashboard/js/scrollspy.js`,
+   new). Fixed right rail of the nine story stops (01–08 + DD), current chapter
+   highlighted via IntersectionObserver band + `aria-current="true"`, native
+   anchor click-to-scroll (scroll-margin-top 72px; reduced-motion = instant).
+   Visible ≥1280px where it cannot overlap the 1200px narrative column.
+5. **Mobile pass.** ≤768px the memory/mind panel zoom/pause/fullscreen buttons
+   are ≥44×44px touch targets; the 3D canvas renders at 375px (verified with a
+   real-pixel browser probe at 375×812).
+
+### Hero-stat honesty (v7, data-side)
+- "futures imagined" → **"worlds simulated"** with a per-decision caption
+  (`#story-worlds-sim-caption`): cumulative counterfactual rollout states
+  divided by real decisions — both measured totals, never a constant.
+- "steps per goal" → **"cycles per goal"** (counts every decision cycle incl.
+  blocked & inquiry pauses) + new **"moves per goal"** stat
+  (`#story-moves-per-goal`: blocked/no-op/inquiry excluded). Both render '—'
+  until the first episode completes — never a fabricated number.
+- The DECISIONS caption names the REAL gate that held the latest decision
+  back (`firewall_blocked_by` / council `blocking_validator`): "was held back
+  by …", measured from the live trace.
+- The LESSONS caption names the real knowledge-graph source: "live
+  knowledge-graph nodes …", tracked from real KG archival over time.

@@ -57,6 +57,7 @@ def test_checkpoints_merge_producer_and_disk(handler, tmp_path, monkeypatch):
     # Producer with 2 real cycles
     import telos.dashboard.producer as prod_mod
     monkeypatch.setattr(prod_mod, "CHECKPOINT_DIR", str(tmp / "checkpoints"))
+    monkeypatch.setattr(prod_mod, "PRODUCER_STATE_PATH", str(tmp / "producer_state.json"))
     monkeypatch.setattr(prod_mod, "KNOWLEDGE_PATH", str(tmp / "knowledge.json"))
     monkeypatch.setattr(prod_mod, "LEDGER_PATH", str(tmp / "ledger.json"))
     monkeypatch.setattr(prod_mod, "IDENTITY_PATH", str(tmp / "identity.json"))
@@ -113,6 +114,7 @@ def test_checkpoints_are_strict_json_serializable(handler, tmp_path, monkeypatch
     h, tmp = handler
     import telos.dashboard.producer as prod_mod
     monkeypatch.setattr(prod_mod, "CHECKPOINT_DIR", str(tmp / "checkpoints"))
+    monkeypatch.setattr(prod_mod, "PRODUCER_STATE_PATH", str(tmp / "producer_state.json"))
     monkeypatch.setattr(prod_mod, "KNOWLEDGE_PATH", str(tmp / "knowledge.json"))
     monkeypatch.setattr(prod_mod, "LEDGER_PATH", str(tmp / "ledger.json"))
     monkeypatch.setattr(prod_mod, "IDENTITY_PATH", str(tmp / "identity.json"))

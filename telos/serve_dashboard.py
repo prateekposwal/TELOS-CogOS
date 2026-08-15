@@ -18,6 +18,8 @@ or persisted history — never fabricated. If the producer is disabled
 back to the honest empty/history state.
 """
 
+import gzip
+import io
 import json
 import os
 import glob
@@ -26,6 +28,8 @@ import websockets
 import logging
 import subprocess
 import sys
+import email.utils
+from datetime import timezone as _tz
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse
 from threading import Thread
@@ -48,6 +52,23 @@ CHECKPOINT_DIR = "/tmp/telos_checkpoints"
 KNOWLEDGE_PATH = "/tmp/telos_knowledge.json"
 HTTP_PORT = 8765
 WS_PORT = 8766
+
+# ── Static-asset delivery: gzip + explicit cache policy (Item 6a, 2026-08-15) ──
+# Compressible extensions (everything else — woff2/ttf/png — is already
+# compressed/binary and passes through untouched). Honoring Accept-Encoding:
+# clients that don't ask for gzip get the identity body with the same headers.
+COMPRESSIBLE_EXTS = {".js", ".css", ".json", ".html", ".svg", ".map", ".txt", ".xml"}
+# Cache policy: vendored third-party libs (three.js, OrbitControls — never
+# change between sessions) are immutable for a year; first-party /dashboard/*
+# assets get a modest shared lifetime; the HTML shell + entry JS stay
+# no-cache (they change every session and the page carries its own no-store
+# meta tags).
+CACHE_VENDOR = "public, max-age=31536000, immutable"
+CACHE_STATIC = "public, max-age=3600"
+CACHE_SHELL = "no-cache, no-store, must-revalidate"
+# Paths that are the live shell (never cached): dashboard.html + the old
+# top-level brain-viz.js entry (kept for backward compatibility).
+_SHELL_PATHS = ("/", "/dashboard.html", "/brain-viz.js")
 
 # Store for live WebSocket clients
 websocket_clients = set()
@@ -136,14 +157,92 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(data, allow_nan=False).encode())
 
     def end_headers(self):
-        if self.path in ('/', '/dashboard.html', '/brain-viz.js'):
+        # Cache-Control is stamped by send_head (static assets) or send_json
+        # (API). This fallback covers the remaining paths (shell + errors)
+        # and guards against the client vanishing mid-handshake (Λ2.3).
+        cc = getattr(self, '_static_cache_control', None)
+        if cc:
             try:
-                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Cache-Control', cc)
+            except (BrokenPipeError, ConnectionResetError, OSError) as e:
+                logger.warning(f"end_headers: client dropped before Cache-Control sent: {e}")
+        elif self.path in _SHELL_PATHS:
+            try:
+                self.send_header('Cache-Control', CACHE_SHELL)
             except (BrokenPipeError, ConnectionResetError, OSError) as e:
                 # Kintsugi (Λ2.3): a dropped client is a recorded event, not
                 # a silent swallow — log it and let the server move on.
                 logger.warning(f"end_headers: client dropped before Cache-Control sent: {e}")
         super().end_headers()
+
+    def _cache_policy(self, path: str) -> str:
+        """Explicit cache policy per asset class (never guessed).
+
+        Args:
+            path: URL path of the requested static file.
+        """
+        if path.startswith('/dashboard/vendor/'):
+            return CACHE_VENDOR
+        if path.startswith('/dashboard/'):
+            return CACHE_STATIC
+        return CACHE_SHELL
+
+    def send_head(self):
+        """Static assets: gzip when the client accepts it (Content-Encoding
+        honored) + explicit Cache-Control (vendor immutable). API/WebSocket
+        endpoints never reach this — do_GET intercepts /api/* first and the
+        WebSocket lives on its own port.
+
+        Returns:
+            A BytesIO with the (possibly compressed) body, or the parent's
+            result for 404s/dirs/conditional requests.
+        """
+        path = urlparse(self.path).path
+        full = self.translate_path(path)
+        if not os.path.isfile(full):
+            return super().send_head()
+
+        ext = os.path.splitext(path)[1].lower()
+        compressible = ext in COMPRESSIBLE_EXTS
+        accepts_gzip = 'gzip' in self.headers.get('Accept-Encoding', '').lower()
+
+        try:
+            with open(full, 'rb') as f:
+                data = f.read()
+        except OSError:
+            return super().send_head()
+
+        if accepts_gzip and compressible:
+            data = gzip.compress(data, compresslevel=6)
+
+        mtime = os.path.getmtime(full)
+        # Conditional fast path: If-Modified-Since → 304 with the same cache
+        # policy (browsers revalidate after max-age without re-downloading).
+        ims = self.headers.get('If-Modified-Since')
+        if ims:
+            try:
+                mod_since = email.utils.parsedate_to_datetime(ims)
+                if mod_since.tzinfo is None:
+                    mod_since = mod_since.replace(tzinfo=_tz.utc)
+                if int(mtime) <= int(mod_since.timestamp()):
+                    self.send_response(304)
+                    self.send_header('Last-Modified', self.date_time_string(mtime))
+                    self._static_cache_control = self._cache_policy(path)
+                    self.end_headers()
+                    return None
+            except (TypeError, ValueError, OverflowError):
+                pass  # malformed date → serve 200
+
+        self.send_response(200)
+        self.send_header('Content-Type', self.guess_type(path))
+        self.send_header('Content-Length', str(len(data)))
+        self.send_header('Last-Modified', self.date_time_string(mtime))
+        if accepts_gzip and compressible:
+            self.send_header('Content-Encoding', 'gzip')
+            self.send_header('Vary', 'Accept-Encoding')
+        self._static_cache_control = self._cache_policy(path)
+        self.end_headers()
+        return io.BytesIO(data)
 
     def _load_benchmark(self):
         """Load latest benchmark snapshot or return placeholder (zeros, honest)."""
