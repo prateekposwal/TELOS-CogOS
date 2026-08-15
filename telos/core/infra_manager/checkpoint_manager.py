@@ -80,12 +80,19 @@ class CheckpointManager:
             try:
                 with open(latest) as lf:
                     raw = json.load(lf)
-                # Reconstruct the hash that was stored as prev_checkpoint_hash
-                # for the NEXT checkpoint
-                stored_prev = raw.get("prev_checkpoint_hash", "")
-                if stored_prev:
-                    self._last_checkpoint_hash = stored_prev
-                    logger.debug(f"CheckpointChain initialized with prev_hash={stored_prev[:16]}...")
+                # Recompute the CONTENT hash of the latest checkpoint (payload
+                # minus hmac). That is exactly what the next save must link to
+                # as prev_checkpoint_hash. Reading the stored prev_checkpoint_hash
+                # FIELD would link to the checkpoint BEFORE the latest and skip
+                # this link (chain pattern: the tracker holds the last block's
+                # own hash, never the field it wrote).
+                latest_for_hash = {k: v for k, v in raw.items() if k != "hmac"}
+                latest_hash = hashlib.sha256(
+                    json.dumps(latest_for_hash, default=str, sort_keys=True).encode()
+                ).hexdigest()
+                if latest_hash:
+                    self._last_checkpoint_hash = latest_hash
+                    logger.debug(f"CheckpointChain initialized with latest_hash={latest_hash[:16]}...")
             except Exception as e:
                 logger.warning(f"Checkpoint chain init failed: {e}")
         CHECKPOINT_SCHEMA = {
@@ -122,7 +129,28 @@ class CheckpointManager:
              session_essence: Optional[Dict] = None,
              truncated_history: Optional[List[Dict]] = None,
              omega_threshold_learner: Optional[Any] = None) -> Path:
-        """Serialize Pipeline state to a checkpoint file."""
+        """Serialize Pipeline state to a checkpoint file.
+
+        Args:
+            cycle: the pipeline cycle being persisted.
+            world_ledger: ledger state (serialized via dump_ledger).
+            skill_library: skill library state (serialized via dump_skills).
+            stream_calibrator: stream calibrator weights (dump_calibrator).
+            failure_ledger: failure records (dump_failures).
+            mission_policy: mission policy state (dump_policy).
+            decision_trace: the cycle's DecisionTrace (dump_trace).
+            knowledge_graph: knowledge graph state (dump_knowledge).
+            sim_engine: counterfactual engine state (dump_sim_engine).
+            planning_horizon: planning horizon state.
+            pattern_library: pattern library (side-saved to patterns_N.json).
+            infrastructure_manager: optional infra state source.
+            session_essence: cross-session essence dict.
+            truncated_history: truncated trace history.
+            omega_threshold_learner: omega threshold learner state.
+
+        Returns:
+            Path to the written checkpoint file.
+        """
         patterns_path_value = None
         if pattern_library is not None and hasattr(pattern_library, 'save'):
             patterns_path_value = os.path.join(self._path, f"patterns_{cycle}.json")
@@ -182,11 +210,14 @@ class CheckpointManager:
             # ── Checkpoint Chain ───────────────────────────────────────────
             "prev_checkpoint_hash": self._last_checkpoint_hash,
         }
-        # Compute this checkpoint's own hash for chain continuity
+        # Compute this checkpoint's own hash for chain continuity. The prev
+        # slot KEEPS the previous checkpoint's hash (backward link — chain
+        # pattern: the link field must never be overwritten with the block's
+        # own hash, or verification can never match). The block's own hash
+        # only advances the tracker for the NEXT checkpoint.
         raw_for_hash = json.dumps(payload, default=str, sort_keys=True)
         checkpoint_hash = hashlib.sha256(raw_for_hash.encode()).hexdigest()
-        data.prev_checkpoint_hash = checkpoint_hash
-        payload["prev_checkpoint_hash"] = checkpoint_hash
+        data.prev_checkpoint_hash = self._last_checkpoint_hash
         self._last_checkpoint_hash = checkpoint_hash
         payload["hmac"] = self._compute_hmac(payload)
         with open(tmp_path, "w") as f:
@@ -269,8 +300,13 @@ class CheckpointManager:
                 else:
                     logger.debug(f"Checkpoint chain: no previous checkpoint to verify (cycle {data.cycle})")
 
-                # Update the chain tracker
-                self._last_checkpoint_hash = data.prev_checkpoint_hash
+                # Update the chain tracker: the next save must link to THIS
+                # checkpoint's content hash (recomputed here, hmac already
+                # popped from raw above), not to the stored prev field —
+                # that field is the PREVIOUS checkpoint's hash (chain pattern).
+                self._last_checkpoint_hash = hashlib.sha256(
+                    json.dumps(raw, default=str, sort_keys=True).encode()
+                ).hexdigest()
 
             logger.info(f"Checkpoint loaded: {path} (cycle {data.cycle})")
             return data

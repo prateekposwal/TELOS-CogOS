@@ -132,6 +132,128 @@ def test_checkpoint_clear():
         assert mgr.latest_path is None
 
 
+def test_checkpoint_chain_links_backward_not_self():
+    """Chain pattern regression (2026-08-15): prev_checkpoint_hash must hold
+    the PREVIOUS checkpoint's content hash — never this checkpoint's own
+    hash. The old save() overwrote the prev slot with the block's own hash,
+    so chain verification could never match (observed 22/22 warnings on
+    /tmp/telos_checkpoints, e.g. 9999 claims own-hash vs 9998's content).
+
+    Assertions:
+      1. stored prev(N) == content-hash of file N-1 (backward link).
+      2. stored prev(N) != own content hash (never self-referential).
+      3. load() verifies the chain with zero mismatch warnings.
+      4. Chaining continues correctly after load() -> save() (restart path).
+    """
+    import hashlib
+    import logging
+    import os
+
+    def content_hash(path):
+        raw = json.load(open(path))
+        raw.pop("hmac", None)
+        return hashlib.sha256(
+            json.dumps(raw, default=str, sort_keys=True).encode()
+        ).hexdigest()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        mgr = CheckpointManager(path=tmp, max_checkpoints=5)
+        for i in range(1, 5):
+            mgr.save(i, FakeWorldLedger(), FakeSkillLibrary(), FakeCalibrator(),
+                     FakeFailureLedger(), FakeMissionPolicy())
+
+        files = {}
+        for i in range(1, 5):
+            files[i] = os.path.join(tmp, f"checkpoint_{i:04d}.json")
+            assert os.path.exists(files[i]), f"checkpoint {i} missing"
+
+        # 1 + 2: the stored link is the PREVIOUS file's content hash.
+        for i in range(2, 5):
+            raw = json.load(open(files[i]))
+            assert raw["prev_checkpoint_hash"] == content_hash(files[i - 1]), (
+                f"checkpoint {i} must link to the PREVIOUS checkpoint's hash"
+            )
+            assert raw["prev_checkpoint_hash"] != content_hash(files[i]), (
+                f"checkpoint {i} must not store its own hash as the link"
+            )
+
+        # 3: load verifies the whole chain cleanly (no mismatch warnings).
+        records = []
+        handler = logging.Handler()
+        handler.emit = lambda r: records.append(r.getMessage())
+        logger = logging.getLogger("telos_checkpoint")
+        logger.addHandler(handler)
+        try:
+            loaded = mgr.load()
+        finally:
+            logger.removeHandler(handler)
+        assert loaded is not None and loaded.cycle == 4
+        assert not any("chain MISMATCH" in m for m in records), (
+            f"chain must verify cleanly, got: {[m for m in records if 'MISMATCH' in m]}"
+        )
+
+        # 4: chaining from the loaded state (restart path) still verifies.
+        records = []
+        logger.addHandler(handler)
+        try:
+            mgr.save(5, FakeWorldLedger(), FakeSkillLibrary(), FakeCalibrator(),
+                     FakeFailureLedger(), FakeMissionPolicy())
+            mgr.load()
+        finally:
+            logger.removeHandler(handler)
+        assert not any("chain MISMATCH" in m for m in records), (
+            f"post-load save must chain cleanly, got: "
+            f"{[m for m in records if 'MISMATCH' in m]}"
+        )
+        raw5 = json.load(open(os.path.join(tmp, "checkpoint_0005.json")))
+        assert raw5["prev_checkpoint_hash"] == content_hash(files[4])
+
+
+def test_checkpoint_chain_bootstrap_recomputes_latest_hash():
+    """A NEW manager on an existing checkpoint dir must chain from the
+    LATEST file's content hash (not from its stored prev field, which is
+    the PREVIOUS file's link) — otherwise the first save after boot would
+    skip a link and mismatch on the next verification."""
+    import hashlib
+    import logging
+    import os
+
+    def content_hash(path):
+        raw = json.load(open(path))
+        raw.pop("hmac", None)
+        return hashlib.sha256(
+            json.dumps(raw, default=str, sort_keys=True).encode()
+        ).hexdigest()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        mgr1 = CheckpointManager(path=tmp, max_checkpoints=5)
+        for i in range(1, 4):
+            mgr1.save(i, FakeWorldLedger(), FakeSkillLibrary(), FakeCalibrator(),
+                     FakeFailureLedger(), FakeMissionPolicy())
+
+        # Simulate a dashboard restart: a brand-new manager on the same dir.
+        mgr2 = CheckpointManager(path=tmp, max_checkpoints=5)
+        records = []
+        handler = logging.Handler()
+        handler.emit = lambda r: records.append(r.getMessage())
+        logger = logging.getLogger("telos_checkpoint")
+        logger.addHandler(handler)
+        try:
+            mgr2.save(4, FakeWorldLedger(), FakeSkillLibrary(), FakeCalibrator(),
+                      FakeFailureLedger(), FakeMissionPolicy())
+            mgr2.load()
+        finally:
+            logger.removeHandler(handler)
+        assert not any("chain MISMATCH" in m for m in records), (
+            f"bootstrap chain must verify cleanly, got: "
+            f"{[m for m in records if 'MISMATCH' in m]}"
+        )
+        raw4 = json.load(open(os.path.join(tmp, "checkpoint_0004.json")))
+        assert raw4["prev_checkpoint_hash"] == content_hash(
+            os.path.join(tmp, "checkpoint_0003.json")
+        ), "restart save must link to the latest pre-existing checkpoint"
+
+
 def test_checkpoint_max_prunes_old():
     with tempfile.TemporaryDirectory() as tmp:
         mgr = CheckpointManager(path=tmp, max_checkpoints=2)
