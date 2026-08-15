@@ -28,15 +28,36 @@
 // Reduced motion (window.__reducedMotion) → static scene, no auto-rotation,
 // no per-frame animation loop (render on demand only).
 //
-// Load order: three.min.js → OrbitControls.js → knowledge-3d.js → dashboard.js
-// → knowledge-graph.js. This file claims the WebGL context FIRST so
-// knowledge-graph.js can skip its 2D context for kg-bubble.
+// Load model (Item 6b): lazy-3d.js injects three.min.js → OrbitControls.js →
+// knowledge-3d.js when chapter 05 approaches the viewport (~600 KB of vendor
+// bytes stay off the initial load; scrollspy/scroll to the nebula triggers
+// it). knowledge-graph.js loads eagerly, so THIS file claims the WebGL
+// context first — it must parse after THREE (the loader guarantees that) —
+// and knowledge-graph.js skips its 2D context for kg-bubble.
 
 (function () {
   'use strict';
 
   var canvas = document.getElementById('kg-bubble');
   if (!canvas) return;
+
+  // ── Hint pill (Item 7) — "drag to orbit · scroll to zoom · click a star"
+  //    Wired BEFORE the THREE/WebGL gates so it always dismisses, even when
+  //    the 2D nebula fallback owns the canvas: first pointerdown anywhere on
+  //    the panel fades it (the interaction is over — the hint is no longer
+  //    needed), and a 6s auto-fade covers users who never interact. Fade is
+  //    a CSS opacity transition; pointer-events:none keeps it inert. ────────
+  var hintEl = document.getElementById('kg3d-hint');
+  var hintDone = false;
+  function fadeHint() {
+    if (hintDone || !hintEl) return;
+    hintDone = true;
+    hintEl.classList.add('fade');
+  }
+  if (hintEl) {
+    canvas.addEventListener('pointerdown', fadeHint, { once: true });
+    setTimeout(fadeHint, 6000);
+  }
 
   // ── Gate 1: three.js must be present ────────────────────────────────────
   if (typeof THREE === 'undefined' || !THREE.WebGLRenderer) {

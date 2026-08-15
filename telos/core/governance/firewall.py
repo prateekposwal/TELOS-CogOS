@@ -12,6 +12,13 @@ converted into an action. It conducts a "Reality Audit":
 The Firewall is "Ministerial" — it does not make decisions. It only
 validates that the decision-making process was clean.
 
+Loop-trap escape (Λ3.1 Recovery Mode): when the same intent type is
+blocked as `action_loop` on RECOVERY_AFTER_LOOP_BLOCKS consecutive
+cycles, the block carries a `recovery_requested` signal so the pipeline
+can select a differently-typed goal-seek intent next cycle. The block is
+NEVER waived — recovery only changes what gets selected; the recovery
+intent still passes through every check.
+
 Engineering Value:
   Prevents the system from acting on information it was not authorized
   to use, or from acting when the reasoning process was compromised.
@@ -44,6 +51,12 @@ DOMAIN_THRESHOLDS: Dict[str, float] = {
     "default": 0.4,
 }
 
+# Λ3.1 Recovery Mode: after this many consecutive action_loop blocks, the
+# block verdict requests a goal-seek recovery intent (different intent_type)
+# so the same-intent detector cannot trap the agent forever. The block is
+# still enforced; recovery only informs the next selection.
+RECOVERY_AFTER_LOOP_BLOCKS = 2
+
 
 class DecisionFirewall:
     """Final pre-execution reality audit.
@@ -63,6 +76,8 @@ class DecisionFirewall:
         self._action_history: List[str] = []
         self._max_action_history: int = 10
         self._loop_threshold: int = 4
+        # Consecutive action_loop blocks — recovery counter (Λ3.1).
+        self._consecutive_loop_blocks: int = 0
 
     def set_di_threshold(self, threshold: float) -> None:
         """Update the minimum Decision Integrity threshold dynamically.
@@ -92,6 +107,20 @@ class DecisionFirewall:
           4. Intent validity
           5. Loop detection (same action repeated)
           6. Identity integrity (mood not in dangerous state)
+
+        Args:
+            world: the current world state snapshot being audited.
+            intent: the proposed IntentIR (None when no intent was produced).
+            council_validated: whether the council approved the intent.
+            decision_integrity: measured DI in [0, 1] for the proposal.
+            mission_violation: whether the proposal violates the mission.
+            domain: knowledge domain for the DI threshold lookup.
+            system_mood: current measured system mood (identity gate).
+            available_moves: legal moves in the world (0 == stuck retry).
+
+        Returns:
+            FirewallVerdict: passed with governance signals, or a blocking
+            verdict (blocked_by names the failing check).
         """
         signals: list = []
 
@@ -149,6 +178,7 @@ class DecisionFirewall:
             if len(recent) >= self._loop_threshold and len(set(recent)) == 1:
                 # If all moves are blocked (surrounded), allow a "try anyway" retry
                 if available_moves is not None and available_moves == 0:
+                    self._consecutive_loop_blocks = 0  # stuck retry is a pass
                     logger.info(
                         f"DecisionFirewall: loop detected ({recent[0]} x{self._loop_threshold}) "
                         f"but available_moves=0 — allowing retry (stuck)"
@@ -161,12 +191,30 @@ class DecisionFirewall:
                         "stuck": True,
                     })
                 else:
-                    signals.append({
+                    # Λ3.1 Recovery Mode: 2+ consecutive action_loop blocks
+                    # request a goal-seek recovery intent (different type)
+                    # so the same-intent detector cannot trap the agent.
+                    self._consecutive_loop_blocks += 1
+                    recovery_requested = (
+                        self._consecutive_loop_blocks >= RECOVERY_AFTER_LOOP_BLOCKS
+                    )
+                    signal = {
                         "check": "loop_detection",
                         "passed": False,
                         "reason": f"Same action '{recent[0]}' repeated {self._loop_threshold}+ consecutive cycles",
                         "action": recent[0],
-                    })
+                        "consecutive_loop_blocks": self._consecutive_loop_blocks,
+                    }
+                    if recovery_requested:
+                        signal["recovery_requested"] = True
+                        signal["recovery"] = "goal_seek_escape"
+                        signal["axiom"] = "3.1"
+                        logger.info(
+                            f"DecisionFirewall: loop recovery requested — "
+                            f"{self._consecutive_loop_blocks} consecutive action_loop "
+                            f"blocks on '{recent[0]}' (Λ3.1)"
+                        )
+                    signals.append(signal)
                     return self._block("action_loop",
                                        f"Action '{recent[0]}' repeated {self._loop_threshold}+ cycles", signals)
 
@@ -184,6 +232,7 @@ class DecisionFirewall:
                                    f"Mood '{system_mood}' blocks action below DI {elevated_threshold:.3f}", signals)
 
         self._pass_count += 1
+        self._consecutive_loop_blocks = 0  # any pass clears the loop-recovery streak
         signals.append({
             "check": "all_governance_checks",
             "passed": True,
@@ -198,6 +247,8 @@ class DecisionFirewall:
 
     def _block(self, blocked_by: str, reason: str, signals: list) -> FirewallVerdict:
         self._block_count += 1
+        if blocked_by != "action_loop":
+            self._consecutive_loop_blocks = 0  # only consecutive loop blocks count
         logger.warning(f"DecisionFirewall: BLOCKED by {blocked_by} — {reason}")
         return FirewallVerdict(
             passed=False,
@@ -207,12 +258,18 @@ class DecisionFirewall:
         )
 
     @property
+    def consecutive_loop_blocks(self) -> int:
+        """Consecutive action_loop blocks (Λ3.1 recovery counter)."""
+        return self._consecutive_loop_blocks
+
+    @property
     def stats(self) -> Dict:
         total = self._block_count + self._pass_count
         return {
             "blocks": self._block_count,
             "passes": self._pass_count,
             "block_rate": self._block_count / max(total, 1),
+            "consecutive_loop_blocks": self._consecutive_loop_blocks,
             "constitutional": {
                 "loop_detection": True,
                 "identity_gate": True,

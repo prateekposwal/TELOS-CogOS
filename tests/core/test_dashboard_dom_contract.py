@@ -26,6 +26,7 @@ JS_FILES = [
     "dashboard.js", "intent.js", "knowledge-graph.js", "gridworld.js",
     "brain-viz.js", "chart.js", "memory.js", "story.js",
     "chat.js", "hero.js", "knowledge-3d.js",
+    "lazy-3d.js", "scrollspy.js",
 ]
 
 
@@ -664,25 +665,38 @@ def test_v6_knowledge_3d_static_structure_and_real_data():
     k3d = open(os.path.join(JS_DIR, "knowledge-3d.js")).read()
     kg = open(os.path.join(JS_DIR, "knowledge-graph.js")).read()
 
-    # Vendored, not CDN: the three scripts must load from /dashboard/vendor/
-    # and /dashboard/js/ BEFORE the modules that depend on them.
+    # Vendored, not CDN: three.min.js + OrbitControls.js exist on disk,
+    # are full-size, and contain no CDN proxy references.
     assert os.path.exists(os.path.join(VENDOR_DIR, "three.min.js")), "three.min.js must be vendored"
     assert os.path.exists(os.path.join(VENDOR_DIR, "OrbitControls.js")), "OrbitControls.js must be vendored"
     assert os.path.getsize(os.path.join(VENDOR_DIR, "three.min.js")) > 300000, "vendored three.min.js looks truncated"
     assert "https://" not in "".join(
         open(os.path.join(VENDOR_DIR, f)).read() for f in ("three.min.js", "OrbitControls.js")
     ), "vendored libs must not be CDN proxies"
-    i_three = html.index('src="dashboard/vendor/three.min.js"')
-    i_oc = html.index('src="dashboard/vendor/OrbitControls.js"')
-    i_k3d = html.index('src="dashboard/js/knowledge-3d.js"')
-    i_dash = html.index('src="dashboard/js/dashboard.js"')
-    i_kg = html.index('src="dashboard/js/knowledge-graph.js"')
-    assert i_three < i_oc < i_k3d < i_dash < i_kg, (
-        "load order must be: three.min.js → OrbitControls.js → knowledge-3d.js "
-        "→ dashboard.js → knowledge-graph.js (the 3D module must claim the "
-        "kg-bubble WebGL context before knowledge-graph.js claims 2D)"
-    )
     assert 'src="https://' not in html, "no CDN scripts allowed"
+
+    # LAZY-LOAD model (Item 6b, 2026-08-15): the ~600 KB vendor chain is NOT
+    # eager script tags. lazy-3d.js injects three.min.js → OrbitControls.js →
+    # knowledge-3d.js in that EXACT order when chapter 05 approaches the
+    # viewport (IntersectionObserver on #kg-panel-bubble). knowledge-3d.js
+    # is not an eager tag either — it must never parse before THREE, and the
+    # loader's chained onload guarantees the order. The load-order contract
+    # is asserted from the loader's chain, not the HTML tag soup.
+    assert 'src="dashboard/vendor/three.min.js"' not in html, "three.min.js must be lazy-loaded, not eager (Item 6b)"
+    assert 'src="dashboard/vendor/OrbitControls.js"' not in html, "OrbitControls must be lazy-loaded, not eager (Item 6b)"
+    assert 'src="dashboard/js/knowledge-3d.js"' not in html, \
+        "knowledge-3d.js must load with the vendor chain, not eagerly"
+    assert 'src="dashboard/js/lazy-3d.js"' in html, "lazy loader must be loaded by the page"
+    loader = open(os.path.join(JS_DIR, "lazy-3d.js")).read()
+    i_three = loader.index("three.min.js")
+    i_oc = loader.index("OrbitControls.js")
+    i_k3d = loader.index("knowledge-3d.js")
+    assert i_three < i_oc < i_k3d, (
+        "lazy loader must preserve order: three.min.js → OrbitControls.js "
+        "→ knowledge-3d.js"
+    )
+    assert "IntersectionObserver" in loader, "lazy loader must use IntersectionObserver"
+    assert "kg-panel-bubble" in loader, "lazy loader must watch the chapter-05 panel"
 
     # Deterministic layout: no Math.random anywhere in the 3D module.
     assert "Math.random(" not in k3d, "3D layout must be deterministic"
@@ -737,11 +751,35 @@ page.on('pageerror', e => errors.push(String(e)));
 await page.goto('http://localhost:' + port + '/dashboard.html',
   { waitUntil: 'networkidle', timeout: 25000 }).catch(() => {});
 await page.waitForTimeout(3500);
+// Item 6b proof — captured BEFORE any scroll: at initial load (nebula below
+// the fold) the ~600 KB vendor chain must NOT be present, so three.js never
+// blocks first paint. The lazy loader only injects it once the chapter-05
+// panel approaches the viewport (IntersectionObserver, rootMargin 900px).
+const preScroll = await page.evaluate(() => ({
+  lazyState: (window.__kg3dLazy || {}).state,
+  threeTag: !!document.querySelector('script[src*="three.min.js"]'),
+  hint: (() => {
+    const h = document.getElementById('kg3d-hint');
+    return h ? { present: true, faded: h.classList.contains('fade') } : { present: false };
+  })(),
+}));
 // The nebula chapter is below the fold — elementFromPoint needs it on screen.
 await page.evaluate(() => {
   const el = document.getElementById('kg-bubble');
   const r = el.getBoundingClientRect();
   window.scrollTo({ top: window.scrollY + r.top + r.height / 2 - window.innerHeight / 2, behavior: 'instant' });
+});
+// Scrolling near chapter 05 triggers the LAZY loader — wait for the whole
+// chain (three → OrbitControls → knowledge-3d) to boot the 3D scene.
+const lazyBoot = await page.evaluate(async () => {
+  const t0 = Date.now();
+  while (!window.__kg3dDebug && Date.now() - t0 < 8000) {
+    await new Promise(r2 => setTimeout(r2, 100));
+  }
+  return {
+    lazy: window.__kg3dLazy || null,
+    debug: !!window.__kg3dDebug,
+  };
 });
 await page.waitForTimeout(900);
 const r = await page.evaluate(() => {
@@ -809,7 +847,7 @@ for (let y = y0; y < y1; y += 2) for (let x = x0; x < x1; x += 2) {
   const i = (y * img.w + x) * 4;
   if (img.data[i] + img.data[i + 1] + img.data[i + 2] > 60) lit++;
 }
-console.log(JSON.stringify({ r, screenLit: lit, errors }));
+console.log(JSON.stringify({ r, preScroll, lazyBoot, screenLit: lit, errors }));
 await browser.close();
 """
 
@@ -854,24 +892,48 @@ def test_v6_kg3d_webgl_renders_real_pixels_browser():
                 if "Failed to load resource" not in e and "404" not in e
             ]
             assert not real_errors, f"console errors: {real_errors}"
-            assert r["bubble3d"], "3D engine did not activate (WebGL absent?)"
-            assert r["painted"], "3D canvas did not paint real pixels"
-            assert r["selfPaints"], "overlay intercepts the canvas center"
+            ps = data.get("preScroll") or {}
+            assert ps.get("threeTag") is False, \
+                "three.min.js must NOT be an eager tag at first paint (Item 6b lazy-load)"
+            assert ps.get("lazyState") == "idle", \
+                f"lazy loader must be idle until the panel approaches, got {ps.get('lazyState')}"
+            lb = data.get("lazyBoot") or {}
+            lazy = lb.get("lazy") or {}
+            assert lazy.get("state") == "loaded", \
+                "scrolling to chapter 05 must trigger the lazy vendor chain"
+            assert lazy.get("scripts") == [
+                "dashboard/vendor/three.min.js", "dashboard/vendor/OrbitControls.js",
+                "dashboard/js/knowledge-3d.js",
+            ], "lazy chain must load three → OrbitControls → knowledge-3d in order"
             assert r["treeAlive"] and r["solarAlive"], "2D canopy/orbital modes must stay alive"
-            if r["nodeCount"] > 0:
-                # Real backend present: the scene must carry the REAL graph.
-                assert r["edgeCount"] > 0, "3D scene has no real edges"
-                assert "nodes" in r["hud"] and "edges" in r["hud"], "HUD must show real totals"
-                assert r["labels"] >= 1, "domain cloud labels missing"
-                assert not r["emptyShown"], "empty state shown with data present"
-                assert data["screenLit"] > 500, (
-                    f"composited viewport shows no real nebula pixels ({data['screenLit']})"
-                )
+            if r["bubble3d"]:
+                # Real 3D claimed the canvas — verify it paints and carries
+                # the REAL graph (or the honest empty state when no backend).
+                assert r["painted"], "3D canvas did not paint real pixels"
+                assert r["selfPaints"], "overlay intercepts the canvas center"
+                if r["nodeCount"] > 0:
+                    # Real backend present: the scene must carry the REAL graph.
+                    assert r["edgeCount"] > 0, "3D scene has no real edges"
+                    assert "nodes" in r["hud"] and "edges" in r["hud"], "HUD must show real totals"
+                    assert r["labels"] >= 1, "domain cloud labels missing"
+                    assert not r["emptyShown"], "empty state shown with data present"
+                    assert data["screenLit"] > 500, (
+                        f"composited viewport shows no real nebula pixels ({data['screenLit']})"
+                    )
+                else:
+                    # No /api backend (unit-test server): the HONEST empty state
+                    # must render — never fabricated nodes, empty overlay visible.
+                    assert r["emptyShown"], "honest empty state must be visible without data"
+                    assert "0 nodes" in r["hud"], "HUD must report the real (zero) total"
             else:
-                # No /api backend (unit-test server): the HONEST empty state
-                # must render — never fabricated nodes, empty overlay visible.
-                assert r["emptyShown"], "honest empty state must be visible without data"
-                assert "0 nodes" in r["hud"], "HUD must report the real (zero) total"
+                # WebGL genuinely unavailable in this environment (headless
+                # without GPU): the HONEST 2D nebula fallback must paint real
+                # pixels on the same canvas — never a blank/broken panel.
+                assert r["painted"] and r["selfPaints"], \
+                    "2D nebula fallback must paint the canvas"
+                assert data["screenLit"] > 500, (
+                    f"composited viewport shows no fallback pixels ({data['screenLit']})"
+                )
         except (RuntimeError, OSError, FileNotFoundError) as e:
             warnings.warn(
                 "headless-Chromium probe unavailable for kg3d — falling back "
@@ -888,3 +950,58 @@ def test_v6_kg3d_webgl_renders_real_pixels_browser():
                 pass
     finally:
         server.shutdown()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# v7 data-side improvements (2026-08-15) — hero stat honesty contracts:
+#   1. WORLDS SIMULATED — relabel + live per-decision rate caption.
+#   2. cycles-per-goal + moves-per-goal split (moves = real position changes).
+#   5a. DECISIONS caption names the REAL gate from the live trace
+#       (firewall action_loop vs council blocking_validator).
+#   5b. LESSONS caption reflects live knowledge-graph nodes archived over time.
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_v7_hero_stats_relabel_and_honest_captions():
+    """The hero renders the new honest labels: WORLDS SIMULATED (with a
+    per-decision caption element), cycles-per-goal + moves-per-goal split,
+    and the LESSONS caption that names live knowledge-graph archival."""
+    html = open(HTML).read()
+    # Item 1: relabel futures → worlds simulated; caption element exists for
+    # the live per-decision rate story.js computes from measured totals.
+    assert "futures imagined" not in html, "old futures label must be gone"
+    assert ">worlds simulated</div>" in html, "WORLDS SIMULATED label missing"
+    assert 'id="story-worlds-sim-caption"' in html, "per-decision caption id missing"
+    assert "cumulative counterfactual rollout states" in html
+    # Item 2: cycles-per-goal relabel + moves-per-goal split element.
+    assert "steps per goal" not in html, "old steps-per-goal label must be gone"
+    assert "cycles per goal" in html, "cycles-per-goal label missing"
+    assert "counts every decision cycle incl. blocked" in html, \
+        "cycles caption must include blocked & inquiry pauses"
+    assert 'id="story-moves-per-goal"' in html, "moves-per-goal stat id missing"
+    assert "moves per goal" in html
+    assert "blocked &amp; inquiry pauses excluded" in html, \
+        "moves caption must exclude blocked & inquiry pauses"
+    # Item 5b: lessons caption reflects live KG nodes archived over time.
+    assert "live knowledge-graph nodes" in html, "LESSONS caption must name KG nodes"
+
+
+def test_v7_story_js_wires_gate_naming_and_worlds_rate():
+    """story.js wires the REAL firewall/council gate into the DECISIONS
+    caption and computes the worlds-per-decision rate from measured totals
+    (never a fabricated constant)."""
+    story = open(os.path.join(JS_DIR, "story.js")).read()
+    # Item 5a: the gate is read from the live trace fields.
+    assert "firewall_blocked_by" in story, "story.js must read the firewall gate"
+    assert "blocking_validator" in story, "story.js must read the council gate"
+    assert "was held back by" in story, "gate-naming verdict must render"
+    # Item 1: per-decision rate derived from two measured totals.
+    assert "worldsSim / decisions" in story, \
+        "per-decision rate must be total/decisions (measured, never invented)"
+    assert "story-worlds-sim-caption" in story, "caption element must be wired"
+    # Item 2: moves-per-goal rendering from the real episodes payload.
+    assert "avg_moves_per_goal" in story, "moves split must render"
+    assert "story-moves-per-goal" in story, "moves stat must be written"
+    # Honest unmeasured state: '—' until the first episode completes.
+    assert "ep.completed === 0" in story, "honest empty state must persist"
+    # No fabricated wording survives.
+    assert "futures simulated" not in story, "old mood wording must be gone"

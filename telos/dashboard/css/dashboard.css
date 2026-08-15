@@ -180,6 +180,42 @@ body.theme-light .topbar { background: rgba(242, 242, 247, 0.88); }
 .timeline-bar .t-dot:hover { transform: scale(1.2); }
 .timeline-bar .t-dot.active { transform: scale(1.25); box-shadow: 0 0 8px var(--accent-soft); }
 
+/* ── MINI-NAV — fixed right-rail chapter scrollspy (Item 8, 2026-08-15) ──
+   Nine stops (01–08 + DD); vertically centered, sits in the page margin
+   beyond the 1200px content column (visible ≥1280px where the margin is
+   wide enough — never overlaps the narrative; hidden on small screens so
+   the drawer + topbar carry navigation there). Active stop = accent chip +
+   aria-current="true". Labels appear only where the margin is generous. */
+.mini-nav {
+  position: fixed; right: 16px; top: 50%; transform: translateY(-50%);
+  z-index: 55; /* below the sticky topbar (60), above page content */
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 6px;
+  background: rgba(19, 16, 42, 0.72);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(8px);
+}
+body.theme-light .mini-nav { background: rgba(255, 255, 255, 0.78); }
+.mini-nav-link {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 5px 8px; border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.08em;
+  color: var(--text-dim); text-decoration: none; white-space: nowrap;
+  transition: color 0.2s, background 0.2s;
+}
+.mini-nav-link .mn-label { display: none; }
+.mini-nav-link:hover { color: var(--text); background: var(--bg-elev-3); }
+.mini-nav-link.active, .mini-nav-link[aria-current="true"] {
+  color: var(--accent); background: var(--accent-soft);
+}
+@media (min-width: 1600px) {
+  .mini-nav-link .mn-label { display: inline; }
+}
+@media (max-width: 1279px) {
+  .mini-nav { display: none; }
+}
+
 /* ── SYSTEM DRAWER (was the v2 sidebar — on-demand, never the chrome) ── */
 .sidebar {
   position: fixed; top: 0; left: 0; bottom: 0; z-index: 90;
@@ -390,7 +426,9 @@ body.theme-light .hero-scrim {
 
 .story-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* 5 hero stats: worlds simulated, world states, lessons, cycles per goal,
+     moves per goal (the moves/cycles split is the episode-efficiency pair). */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-4);
 }
 .story-stat { text-align: left; }
@@ -417,7 +455,11 @@ body.theme-light .hero-scrim {
 }
 
 /* ── CHAPTERS — editorial scroll narrative ── */
-.chapter { width: 100%; max-width: 1200px; }
+.chapter {
+  width: 100%; max-width: 1200px;
+  /* Mini-nav anchors scroll here; offset clears the sticky topbar (Item 8). */
+  scroll-margin-top: 72px;
+}
 .chapter-mark {
   display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: var(--space-5);
   padding-bottom: var(--space-3);
@@ -750,6 +792,22 @@ body.theme-light .hero-scrim {
 .kg3d-card .kg3d-card-row span { color: var(--text); }
 .kg3d-card:empty { display: none; }
 
+/* ── 3D hint pill (Item 7) — bottom-center chip, pointer-transparent so it
+      never intercepts orbit/drag; fades after first pointerdown or 6s
+      (JS adds .fade). Design system: 13px floor, mono, tokens, chip bg. ── */
+.kg3d-hint {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  z-index: 3; pointer-events: none;
+  font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.04em;
+  color: var(--text-dim); text-align: center;
+  background: var(--bg-elev-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 14px;
+  box-shadow: var(--shadow);
+  max-width: 88%;
+  transition: opacity 0.5s ease;
+}
+.kg3d-hint.fade { opacity: 0; }
+
 .zoom-wrap { overflow: auto; border-radius: var(--radius-sm); }
 .zoom-wrap canvas { transform-origin: top left; transition: transform 0.2s; }
 
@@ -787,11 +845,24 @@ body.theme-light .hero-scrim {
   .story-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero-title .ht-1, .hero-title .ht-2 { white-space: normal; }
   .knowledge-panel .zoom-wrap canvas, .brain-panel .zoom-wrap canvas { height: 380px; }
+  /* Item 7 mobile pass: ≥44px touch targets for the memory/mind panel
+     zoom / pause / fullscreen buttons (the 3D nebula panel included). */
+  .knowledge-panel .panel-controls .zoom-btn,
+  .brain-panel .panel-controls .zoom-btn {
+    min-width: 44px; min-height: 44px; padding: 10px 12px;
+  }
   .grid-panel canvas { height: 420px; }
   .chart-panel canvas { height: 300px; }
   .deep-grid { grid-template-columns: 1fr; }
   .chapter-mark { grid-template-columns: auto 1fr; }
-  .chapter-mark .ch-count { grid-column: 2; text-align: left; margin-top: 4px; }
+  .chapter-mark .ch-count {
+    grid-column: 2; text-align: left; margin-top: 4px;
+    /* Mobile fix (2026-08-15, 375px pass): the nowrap 13px-mono count is
+       ~514px of min-content — it blew the chapter-mark grid (and every
+       chapter in graph-wall) to 573px on narrow viewports. Wrapping lets
+       the grid shrink to the column. */
+    white-space: normal; max-width: 100%;
+  }
   .topbar { flex-wrap: wrap; gap: var(--space-2); }
   .chat-msg { max-width: 95%; }
 }

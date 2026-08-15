@@ -73,7 +73,9 @@ from telos.core.council.base import Council, CouncilVerdict, ValidationSignal
 from telos.core.ledger.world_ledger import WorldLedger
 from telos.core.governance.trust_manager import TrustManager
 from telos.core.governance.timing import InformationReadinessEngine, ReadinessCondition
-from telos.core.governance.firewall import DecisionFirewall, FirewallConfig
+from telos.core.governance.firewall import (
+    DecisionFirewall, FirewallConfig, RECOVERY_AFTER_LOOP_BLOCKS,
+)
 from telos.core.governance.human_gateway import HumanGateway
 from telos.core.context.summarizer import ContextSummarizer
 from telos.core.context.tiered import TieredContext
@@ -162,6 +164,14 @@ class TelosV14Pipeline:
         self._trust_manager = TrustManager()
         self._readiness = InformationReadinessEngine()
         self._firewall = DecisionFirewall()
+        # Λ3.1 Recovery Mode: goal-seek escape from firewall loop traps.
+        # Set when the firewall blocks the same intent type 2+ consecutive
+        # cycles (action_loop); consumed by the select phase to inject a
+        # differently-typed recovery intent next cycle. The firewall is
+        # never overridden — the recovery intent passes every check.
+        self._recovery_goal_seek_pending: bool = False
+        self._recovery_looped_type: Optional[str] = None
+        self._recovery_armed_cycle: Optional[int] = None
         from telos.core.infra_manager.infrastructure_manager import InfrastructureManager
         self._infra_manager = InfrastructureManager(domain=getattr(self.config.adapter, 'name', 'gridworld'))
         # B3: Register callbacks for council blocks and recovery events
@@ -485,6 +495,120 @@ class TelosV14Pipeline:
             new_intents.append((intent, weight))
         ctx.intents = new_intents
     
+    def _update_loop_recovery_state(self, ctx) -> None:
+        """Arm/disarm the goal-seek recovery after the act phase settles.
+
+        Reads the REAL firewall verdict from this cycle: a block by
+        'action_loop' with the firewall's own consecutive-block counter at
+        the recovery threshold arms the next select phase to inject a
+        differently-typed goal-seek intent. Any other outcome disarms it —
+        recovery is only for genuine loop traps, never for other blocks.
+
+        Args:
+            ctx: the phase context (firewall verdict already computed).
+        """
+        fw = self._firewall
+        verdict = getattr(ctx, 'firewall_verdict', None)
+        blocked_by = getattr(verdict, 'blocked_by', None) if verdict is not None else None
+        if (ctx.firewall_blocked and blocked_by == "action_loop"
+                and getattr(fw, 'consecutive_loop_blocks', 0) >= RECOVERY_AFTER_LOOP_BLOCKS):
+            self._recovery_goal_seek_pending = True
+            self._recovery_armed_cycle = ctx.cycle_count
+            self._recovery_looped_type = (
+                ctx.selected_intent.intent_type if ctx.selected_intent else None
+            )
+            logger.info(
+                f"Cycle {ctx.cycle_count}: firewall loop trap detected "
+                f"({fw.consecutive_loop_blocks} consecutive action_loop blocks on "
+                f"'{self._recovery_looped_type}') — goal-seek recovery armed (Λ3.1)"
+            )
+        else:
+            self._recovery_goal_seek_pending = False
+
+    def _maybe_inject_recovery_intent(self, ctx) -> None:
+        """Select-phase recovery (Λ3.1): break a firewall action_loop trap.
+
+        When the previous cycle ended on a loop block at the recovery
+        threshold AND the streams are about to re-select the SAME looped
+        intent type (or produced no intent), replace it with a
+        'goal_seek_recovery' intent whose type differs from the looped one,
+        so the firewall's same-intent detector history window breaks and
+        the agent can move again. The recovery intent is validated by the
+        council and the firewall like every other intent — legitimate
+        blocks are never overridden.
+
+        Args:
+            ctx: the phase context (selected_intent already computed).
+        """
+        if not self._recovery_goal_seek_pending:
+            return
+        self._recovery_goal_seek_pending = False  # one-shot recovery
+        fw = self._firewall
+        if getattr(fw, 'consecutive_loop_blocks', 0) < RECOVERY_AFTER_LOOP_BLOCKS:
+            return  # authoritative counter says recovery is not needed
+        looped = self._recovery_looped_type
+        current = ctx.selected_intent.intent_type if ctx.selected_intent else None
+        if current is not None and looped is not None and current != looped:
+            # The streams chose something different — do NOT stomp it here.
+            # The council may still fall back to the looped type (Λ4.3
+            # alternative selection); the post-council hook re-checks the
+            # FINAL intent and injects only then.
+            return
+        from telos.intent_ir import IntentIR
+        ctx.selected_intent = IntentIR(
+            intent_type="goal_seek_recovery",
+            confidence=0.6,
+            params={
+                "recovery_mode": True,
+                "reason": "firewall_loop_recovery",
+                "consecutive_loop_blocks": fw.consecutive_loop_blocks,
+                "escaped_loop_type": looped,
+            },
+            metadata={"stream": "recovery", "axiom": "3.1", "recovery": True},
+        )
+        ctx.recovery_goal_seek = True
+        logger.info(
+            f"Cycle {ctx.cycle_count}: injected goal_seek_recovery "
+            f"(replacing '{looped or 'none'}', {fw.consecutive_loop_blocks} loop blocks)"
+        )
+
+    def _maybe_inject_recovery_intent_post_council(self, ctx) -> None:
+        # Post-council recovery (Lambda 3.1): escape when the council's
+        # Lambda 4.3 alternative fallback re-selected the looped intent type.
+        # The select-phase hook sees the streams' pick, but the council can
+        # swap ctx.selected_intent to a fallback alternative afterwards
+        # (council.py Lambda 4.3). When the armed recovery is from the
+        # PREVIOUS cycle and the FINAL intent is the looped type, replace it
+        # with the goal-seek escape before act - the firewall still audits it
+        # like any other action. If the final intent is genuinely different,
+        # the trap already broke naturally and nothing is injected.
+        armed = self._recovery_armed_cycle
+        if armed is None or ctx.cycle_count - armed != 1:
+            return  # recovery not armed in the immediately previous cycle
+        looped = self._recovery_looped_type
+        final = ctx.selected_intent.intent_type if ctx.selected_intent else None
+        if final is None or looped is None or final != looped:
+            return  # the system escaped naturally - no injection
+        if getattr(self._firewall, 'consecutive_loop_blocks', 0) < RECOVERY_AFTER_LOOP_BLOCKS:
+            return  # authoritative counter says recovery is not needed
+        from telos.intent_ir import IntentIR
+        ctx.selected_intent = IntentIR(
+            intent_type="goal_seek_recovery",
+            confidence=0.6,
+            params={
+                "recovery_mode": True,
+                "reason": "firewall_loop_recovery_post_council",
+                "consecutive_loop_blocks": self._firewall.consecutive_loop_blocks,
+                "escaped_loop_type": looped,
+            },
+            metadata={"stream": "recovery", "axiom": "3.1", "recovery": True},
+        )
+        ctx.recovery_goal_seek = True
+        logger.info(
+            f"Cycle {ctx.cycle_count}: injected goal_seek_recovery post-council "
+            f"(replacing '{looped}', {self._firewall.consecutive_loop_blocks} loop blocks)"
+        )
+
     def _record_timelock(self, ctx, selected_intent) -> None:
         """Record the selected intent type for future timelock checks.
 
@@ -887,6 +1011,13 @@ class TelosV14Pipeline:
                 if selected is not None:
                     self.planning_horizon.set_plan([selected])
 
+            # ── Λ3.1 Recovery Mode: goal-seek escape (firewall loop trap) ──
+            if phase.name == "select":
+                try:
+                    self._maybe_inject_recovery_intent(ctx)
+                except Exception as e:
+                    logger.warning("runtime.py: recovery intent injection failed: %r", e)
+
             # ── Submit selected intent to Decision Mempool before council ──
             if phase.name == "select":
                 selected = getattr(ctx, 'selected_intent', None)
@@ -943,6 +1074,17 @@ class TelosV14Pipeline:
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
+            # ── Λ3.1 Recovery Mode (post-council): the council's Λ4.3
+            #    alternative fallback may have re-selected the looped intent
+            #    type AFTER the select-phase injection hook ran. Re-check the
+            #    FINAL intent here and inject the goal-seek escape when the
+            #    trap is still in place — the firewall still audits it at act. ──
+            if phase.name == "council":
+                try:
+                    self._maybe_inject_recovery_intent_post_council(ctx)
+                except Exception as e:
+                    logger.warning("runtime.py: post-council recovery injection failed: %r", e)
+
             # ── Distributed Council: advisory crew review after the council
             #    phase settles (mempool confirm/reject already done) ──
             if phase.name == "council":
@@ -950,6 +1092,17 @@ class TelosV14Pipeline:
                     self._run_distributed_council(ctx)
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
+
+            # ── Λ3.1 Recovery Mode: arm goal-seek escape when the firewall
+            #    blocks the same intent twice in a row (action_loop). The
+            #    block itself is NEVER overridden — this only informs the
+            #    next cycle's selection. ──
+            if phase.name == "act":
+                try:
+                    self._update_loop_recovery_state(ctx)
+                except Exception as e:
+                    logger.warning("runtime.py: loop-recovery state update failed: %r", e)
+                    self._recovery_goal_seek_pending = False
 
             # ── Law of Attention: Record trajectory after ACT phase ──
             if phase.name == "act":

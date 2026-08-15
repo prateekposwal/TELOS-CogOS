@@ -135,6 +135,22 @@
 
 <div class="drawer-fade" id="drawer-fade" onclick="toggleSidebar()" aria-hidden="true"></div>
 
+<!-- ═══════════ MINI-NAV — fixed right-rail chapter scrollspy (Item 8) ═══════════
+     Nine stops: chapters 01–08 + the deep dive. Click jumps to the section
+     (native anchor + scroll-margin-top clears the sticky topbar);
+     scrollspy.js marks the current chapter with aria-current="true". -->
+<nav class="mini-nav" id="mini-nav" aria-label="Chapter navigation">
+  <a href="#chapter-01" class="mini-nav-link" aria-label="Chapter 01 — The Signal"><span class="mn-idx" aria-hidden="true">01</span><span class="mn-label">Signal</span></a>
+  <a href="#chapter-02" class="mini-nav-link" aria-label="Chapter 02 — The World"><span class="mn-idx" aria-hidden="true">02</span><span class="mn-label">World</span></a>
+  <a href="#chapter-03" class="mini-nav-link" aria-label="Chapter 03 — The Memory, Canopy"><span class="mn-idx" aria-hidden="true">03</span><span class="mn-label">Canopy</span></a>
+  <a href="#chapter-04" class="mini-nav-link" aria-label="Chapter 04 — The Memory, Orbital"><span class="mn-idx" aria-hidden="true">04</span><span class="mn-label">Orbital</span></a>
+  <a href="#chapter-05" class="mini-nav-link" aria-label="Chapter 05 — The Memory, Nebula"><span class="mn-idx" aria-hidden="true">05</span><span class="mn-label">Nebula</span></a>
+  <a href="#chapter-06" class="mini-nav-link" aria-label="Chapter 06 — The Mind, Aurora"><span class="mn-idx" aria-hidden="true">06</span><span class="mn-label">Aurora</span></a>
+  <a href="#chapter-07" class="mini-nav-link" aria-label="Chapter 07 — The Mind, Rhizome"><span class="mn-idx" aria-hidden="true">07</span><span class="mn-label">Rhizome</span></a>
+  <a href="#chapter-08" class="mini-nav-link" aria-label="Chapter 08 — The Story So Far"><span class="mn-idx" aria-hidden="true">08</span><span class="mn-label">Story</span></a>
+  <a href="#chapter-dd" class="mini-nav-link" aria-label="Deep dive — Show Me Everything"><span class="mn-idx" aria-hidden="true">DD</span><span class="mn-label">Deep dive</span></a>
+</nav>
+
 <!-- ═══════════ MAIN — the scroll narrative ═══════════ -->
 <main class="main" id="main-content">
 
@@ -167,10 +183,11 @@
           </div>
         </div>
         <div class="story-stats" id="story-stats">
-          <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div><div class="ss-caption">real observations in the knowledge graph</div></div>
+          <div class="story-stat"><div class="ss-val" id="story-lessons">0</div><div class="ss-label">lessons</div><div class="ss-caption">live knowledge-graph nodes — archived over time</div></div>
           <div class="story-stat"><div class="ss-val" id="story-worlds">0</div><div class="ss-label">world states</div><div class="ss-caption">distinct cells visited in GridWorld</div></div>
-          <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">futures imagined</div><div class="ss-caption">counterfactual simulations — all hypothetical</div></div>
-          <div class="story-stat"><div class="ss-val" id="story-efficiency">—</div><div class="ss-label">steps per goal</div><div class="ss-caption">decision steps to reach the goal — optimal is 8</div></div>
+          <div class="story-stat"><div class="ss-val" id="story-worlds-sim">0</div><div class="ss-label">worlds simulated</div><div class="ss-caption" id="story-worlds-sim-caption">cumulative counterfactual rollout states</div></div>
+          <div class="story-stat"><div class="ss-val" id="story-efficiency">—</div><div class="ss-label">cycles per goal</div><div class="ss-caption">counts every decision cycle incl. blocked &amp; inquiry pauses</div></div>
+          <div class="story-stat"><div class="ss-val" id="story-moves-per-goal">—</div><div class="ss-label">moves per goal</div><div class="ss-caption">cycles where TELOS actually changed position — blocked &amp; inquiry pauses excluded</div></div>
         </div>
       </div>
 
@@ -182,7 +199,7 @@
   <div class="graph-wall" id="graph-wall">
 
     <!-- CHAPTER 01 — The Signal -->
-    <section class="chapter" data-chapter="01">
+    <section class="chapter" data-chapter="01" id="chapter-01">
       <div class="chapter-mark">
         <span class="ch-idx" aria-hidden="true">01</span>
         <div class="ch-head"><h2>The Signal</h2><span class="ch-count">decision quality · every cycle measured</span></div>
@@ -204,7 +221,7 @@
     </section>
 
     <!-- CHAPTER 02 — The World -->
-    <section class="chapter" data-chapter="02">
+    <section class="chapter" data-chapter="02" id="chapter-02">
       <div class="chapter-mark">
         <span class="ch-idx" aria-hidden="true">02</span>
         <div class="ch-head"><h2>The World</h2><span class="ch-count">the scanned perimeter · territory as it is mapped</span></div>
@@ -226,7 +243,7 @@
     </section>
 
     <!-- CHAPTER 03 — The Memory · Knowledge Tree (one mode, one full section) -->
-    <section class="chapter" data-chapter="03">
+    <section class="chapter" data-chapter="03" id="chapter-03">
       <div class="chapter-mark">
         <span class="ch-idx" aria-hidden="true">03</span>
         <div class="ch-head"><h2>The Memory</h2><span class="ch-count">the canopy · domains as branches</span></div>
@@ -261,7 +278,7 @@
     </section>
 
     <!-- CHAPTER 04 — The Memory · Solar System (one mode, one full section) -->
-    <section class="chapter" data-chapter="04">
+    <section class="chapter" data-chapter="04" id="chapter-04">
       <div class="chapter-mark">
         <span class="ch-idx" aria-hidden="true">04</span>
         <div class="ch-head"><h2>The Memory</h2><span class="ch-count">orbital ecology · domains as orbital bands</span></div>
@@ -283,7 +300,7 @@
     </section>
 
     <!-- CHAPTER 05 — The Memory · Bubble Map (one mode, one full section) -->
-    <section class="chapter" data-chapter="05">
+    <section class="chapter" data-chapter="05" id="chapter-05">
       <div class="chapter-mark">
         <span class="ch-idx" aria-hidden="true">05</span>
         <div class="ch-head"><h2>The Memory</h2><span class="ch-count">nebula clusters · domains as clouds</span></div>
@@ -303,6 +320,7 @@
             <div id="kg3d-empty" class="kg3d-empty" hidden>No knowledge nodes yet — the nebulae stay empty until TELOS records real observations.</div>
             <div id="kg3d-labels" class="kg3d-labels" aria-hidden="true"></div>
             <div id="kg3d-card" class="kg3d-card" hidden aria-live="polite"><div class="kg3d-card-body"></div></div>
+            <div id="kg3d-hint" class="kg3d-hint" role="note">drag to orbit · scroll to zoom · click a star</div>
           </div>
         </div>
         <p class="panel-caption">And once more as nebulae — now in true 3D: drag to orbit the real constellation, scroll or pinch to zoom, hover a star to spotlight it, click to inspect the real lesson behind it (its id, domain, degree and importance are all measured). Each real domain is a layered cloud sized by its true lesson count, the constellation points are the lessons themselves placed by the real-edge force layout and sized by their real degree, with cross-domain edges as filaments between clouds. Every node, edge and axis is real data from /api/knowledge — nothing invented.</p>
@@ -311,7 +329,7 @@
     </section>
 
     <!-- CHAPTER 06 — The Mind · Neural Orbit (one mode, one full section) -->
-    <section class="chapter" data-chapter="06">
+    <section class="chapter" data-chapter="06" id="chapter-06">
       <div class="chapter-mark">
         <span class="ch-idx" aria-hidden="true">06</span>
         <div class="ch-head"><h2>The Mind</h2><span class="ch-count">activation aurora · stream energy, measured</span></div>
@@ -334,7 +352,7 @@
     </section>
 
     <!-- CHAPTER 07 — The Mind · Root System (one mode, one full section) -->
-    <section class="chapter" data-chapter="07">
+    <section class="chapter" data-chapter="07" id="chapter-07">
       <div class="chapter-mark">
         <span class="ch-idx" aria-hidden="true">07</span>
         <div class="ch-head"><h2>The Mind</h2><span class="ch-count">synapse rhizome · streams as roots, DI as growth rings</span></div>
@@ -359,7 +377,7 @@
   <div class="section-spacer"></div>
 
   <!-- ═══════════ CHAPTER 08 — The Story So Far (narrative hub) ═══════════ -->
-  <section class="chapter narrative-hub" data-chapter="08">
+  <section class="chapter narrative-hub" data-chapter="08" id="chapter-08">
     <div class="chapter-mark">
       <span class="ch-idx" aria-hidden="true">08</span>
       <div class="ch-head"><h2>The Story So Far</h2><span class="ch-count">what the numbers mean — derived, never invented</span></div>
@@ -384,7 +402,7 @@
   <div class="section-spacer"></div>
 
   <!-- ═══════════ DEEP-DIVE — memory timeline, command, log ═══════════ -->
-  <section class="chapter deep-dive" data-chapter="dd">
+  <section class="chapter deep-dive" data-chapter="dd" id="chapter-dd">
     <div class="chapter-mark">
       <span class="ch-idx" aria-hidden="true">DD</span>
       <div class="ch-head"><h2>Show Me Everything</h2><span class="ch-count">the full record — every cycle, every command</span></div>
@@ -439,10 +457,13 @@
   </div>
 </div>
 
-<script src="dashboard/vendor/three.min.js"></script>
-<script src="dashboard/vendor/OrbitControls.js"></script>
-<script src="dashboard/js/knowledge-3d.js"></script>
+<!-- three.js + OrbitControls + knowledge-3d.js are LAZY-LOADED by
+     lazy-3d.js when chapter 05 (the 3D Memory Nebula) approaches the
+     viewport — ~600 KB of vendor bytes stay off the initial load path.
+     knowledge-3d.js loads with that chain (it must parse AFTER THREE). -->
+<script src="dashboard/js/lazy-3d.js"></script>
 <script src="dashboard/js/dashboard.js"></script>
+<script src="dashboard/js/scrollspy.js"></script>
 <script src="dashboard/js/intent.js"></script>
 <script src="dashboard/js/knowledge-graph.js"></script>
 <script src="dashboard/js/gridworld.js"></script>

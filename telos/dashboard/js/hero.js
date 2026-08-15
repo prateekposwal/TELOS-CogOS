@@ -244,7 +244,8 @@
       if (last && d.decisions > 0) {
         var verdict = last.status === 'APPROVED'
           ? 'passed the council and became action'
-          : 'was held back by a validator — TELOS chose not to act';
+          : 'was held back by ' + (last.firewall_blocked_by || last.blocking_validator || 'a validator') +
+            ' — TELOS chose not to act';
         var diTxt = (typeof last.di === 'number') ? (last.di * 100).toFixed(0) + '%' : '—';
         sq.querySelector('.pq-body').textContent =
           'Cycle ' + (last.cycle_id != null ? last.cycle_id : '—') + ' — "' + (last.intent || 'a decision') +
@@ -323,7 +324,7 @@
       } else if (d.decisions > 0) {
         var _modeBit2 = (state.metaMode ? ' Cognition mode: ' + state.metaMode + '.' : '');
         mind.querySelector('.pq-body').textContent =
-          'TELOS has imagined ' + d.worlds_simulated + ' counterfactual futures so far, and feels ' + d.mood + '.' + _modeBit2;
+          'TELOS has simulated ' + d.worlds_simulated + ' counterfactual worlds so far, and feels ' + d.mood + '.' + _modeBit2;
         var mindCite2 = mind.querySelector('.pq-cite');
         if (mindCite2) mindCite2.textContent = 'worlds simulated · measured mood';
       } else {

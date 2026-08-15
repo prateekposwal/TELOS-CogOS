@@ -165,6 +165,13 @@ Every section maps to a real field; the "pull-quotes" are computed from `recent_
 - **Interaction:** scroll-reveal (IntersectionObserver → `.reveal.in`), live badge, clickable
   domain chips (existing KG highlight), chart hover shows the real last-cycle values,
   drawer opens system readouts on demand; reduced-motion renders everything static.
+- **Navigation:** fixed right-rail chapter scrollspy (`#mini-nav` + `scrollspy.js`, ≥1280px —
+  nine stops 01–08 + DD, current chapter highlighted, `aria-current="true"`, native-anchor
+  click-to-scroll with scroll-margin-top clearing the topbar).
+- **Performance:** three.js vendor chain (~600 KB) is LAZY-LOADED by `lazy-3d.js` when
+  chapter 05 approaches the viewport (strict order three → OrbitControls → knowledge-3d);
+  static assets are gzipped on `Accept-Encoding: gzip` with explicit cache headers
+  (vendor immutable 1y, dashboard assets 1h, HTML shell no-cache); API + WebSocket untouched.
 
 ## 6 · File plan + test implications
 
@@ -177,7 +184,11 @@ Every section maps to a real field; the "pull-quotes" are computed from `recent_
 | `telos/dashboard/js/chart.js` | UPGRADE — larger cinematic render, real last-cycle readout |
 | `telos/dashboard/js/story.js` | MINOR — expose overview for hero; wording stays derived |
 | `telos/dashboard/js/dashboard.js` | MINOR — drawer toggle, topbar wiring; state/animate untouched |
-| `tests/core/test_dashboard_dom_contract.py` | UPDATE — keep all gates; add hero-backdrop to canvas loop; extend browser probe with overlap + new-section asserts |
+| `telos/dashboard/js/lazy-3d.js` | NEW — three.js vendor-chain lazy loader (Item 6b) |
+| `telos/dashboard/js/scrollspy.js` | NEW — chapter mini-nav scrollspy + aria-current (Item 8) |
+| `telos/dashboard/js/knowledge-3d.js` | UPGRADE — hint-pill fade wiring before the WebGL gates (Item 7) |
+| `telos/serve_dashboard.py` | UPGRADE — gzip Content-Encoding + explicit cache headers for static assets (Item 6a) |
+| `tests/core/test_dashboard_dom_contract.py` | UPDATE — keep all gates; add hero-backdrop to canvas loop; extend browser probe with overlap + new-section asserts; lazy-load order asserted from the loader chain; kg3d probe verifies lazy boot + hint fade + 375px mobile render |
 | `telos/dashboard/DESIGN.md` | REWRITE v3 rules (editorial system) |
 | `telos/dashboard/STORYTELLING.md` | ADD v3 addendum (scroll-narrative shift, references) |
 
@@ -189,5 +200,11 @@ canvas ids + `story-strip` (no `data-section`) stay; no `display:none` inline in
 ## 7 · Verification plan
 Full pytest suite green · headless Chromium at 1440×900 + 1920×1080: zero overlaps (paint-at
 probe), zero console errors, story visible ≥400px, real data renders (non-zero decisions after
-producer burst), contrast ≥4.5 · screenshots → `telos/dashboard/screenshots/dashboard_after.png`
-(old preserved as `dashboard_old_v1.png`) · `git diff --stat` + `git status` (NO commit).
+producer burst), contrast ≥4.5 · gzip verified with `curl -H "Accept-Encoding: gzip" -I`
+(Content-Encoding present on static assets; API endpoints unaffected) · lazy-load verified
+in the browser probe (three.js absent at first paint, `__kg3dLazy` idle → loads only after
+chapter 05 approaches, strict chain order) · hint pill appears then fades after pointerdown ·
+scrollspy highlights the current chapter on scroll (aria-current flips) · 375px mobile pass
+(canvas paints real pixels, ≥44px tap targets, no horizontal overflow) · screenshots →
+`telos/dashboard/screenshots/dashboard_after.png` (overwritten, prior preserved) ·
+`git diff --stat` + `git status` (NO commit).

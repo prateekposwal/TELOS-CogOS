@@ -39,6 +39,46 @@ claimed active without real per-phase data. Enforced by tests
 test_v5_mind_modes_real_signals_and_no_fabrication,
 test_v5_world_is_scanned_perimeter_not_iso_game).
 
+v6/v7 amendment (2026-08-15, "performance & UX pass" — Items 6–8 of the
+frontend brief; mirror in STORYTELLING.md + BIGDATA_BRIEF.md):
+- **Perf 1 — gzip + cache headers (serve_dashboard.py).** Static assets
+  (.js/.css/.json/.html/.svg/.map/.txt/.xml) are gzipped when the client sends
+  `Accept-Encoding: gzip` (`Content-Encoding: gzip` + `Vary: Accept-Encoding`);
+  identity body otherwise (API/WebSocket endpoints untouched — `/api/*` keeps
+  `no-cache, no-store, must-revalidate`, the WS lives on its own port).
+  `Cache-Control` policy is explicit per class: `/dashboard/vendor/*` →
+  `public, max-age=31536000, immutable` (three.js/OrbitControls never change);
+  `/dashboard/*` → `public, max-age=3600`; the HTML shell + entry JS stay
+  no-cache (they change every session). `If-Modified-Since` still answers 304.
+- **Perf 2 — three.js is LAZY-LOADED (`lazy-3d.js`, new).** The ~600 KB vendor
+  chain (three.min.js → OrbitControls.js → knowledge-3d.js) is NOT eager
+  script tags. An IntersectionObserver on `#kg-panel-bubble` (chapter 05, the
+  3D Memory Nebula) with a 900px preload margin injects the chain in strict
+  order (chained onload + `async=false`) when the nebula approaches the
+  viewport. Initial load is never blocked by the 600 KB file. Failure is
+  honest: a failed vendor script logs (Λ2.3) and knowledge-3d.js's own
+  `typeof THREE === 'undefined'` gate keeps the 2D nebula fallback. Exposed
+  `window.__kg3dLazy` for probes. The DOM-contract load-order test now asserts
+  the LOADER's chain order, not HTML tag order (deliberate test update).
+- **UX — nebula hint pill (`#kg3d-hint`, chapter 05).** "drag to orbit · scroll
+  to zoom · click a star" — bottom-center chip, design-system tokens, 13px
+  mono floor, `pointer-events:none` (never intercepts orbit/drag), fades
+  (`.fade` opacity transition) on first `pointerdown` or after 6s. Wired in
+  knowledge-3d.js BEFORE the WebGL gates so the hint dismisses even when the
+  2D fallback owns the canvas.
+- **UX — chapter scrollspy mini-nav (`#mini-nav` + `scrollspy.js`, new).**
+  Fixed right-rail listing the nine story stops (chapters 01–08 + DD), visible
+  ≥1280px where the page margin is wide enough to never overlap the 1200px
+  content column (labels appear ≥1600px). Native anchor click-to-scroll
+  (scroll-margin-top 72px clears the sticky topbar; smooth scrolling is CSS,
+  reduced-motion falls back to instant). Current chapter is highlighted by an
+  IntersectionObserver band (`-30% 0px -60% 0px`) with `aria-current="true"`.
+- **Mobile pass (Item 7b).** ≤768px: the memory/mind panel zoom/pause/
+  fullscreen buttons grow to ≥44×44px touch targets (`.panel-controls .zoom-btn`
+  min-width/min-height). The 3D canvas renders at 375px width (canvas 380px
+  tall, renderer tracks clientWidth/clientHeight — verified in the browser
+  probe with real pixel sampling).
+
 ## Direction (owner, 2026-08-15)
 v2 was "better and more visible than the old fashion, but not what I'm looking for."
 References studied: **meteo.ashwyn.studio** (data IS the artwork — full-viewport 3D canvas,
