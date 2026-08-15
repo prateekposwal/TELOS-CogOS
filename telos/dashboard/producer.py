@@ -974,10 +974,21 @@ class DashboardProducer:
             )
 
     def _prune_aux_files(self) -> None:
-        """Keep the checkpoint dir bounded (aux files are not checkpoint-rotated)."""
+        """Keep the checkpoint dir bounded (aux files are not checkpoint-rotated).
+
+        Aux files (system_self_*.json, patterns_*.json) share the same
+        zero-padded numeric names as checkpoints: they must be ordered by
+        the canonical numeric key, never lexically (pattern: natural order —
+        lexical sort inverts at the 4→5 digit boundary and would delete the
+        NEWEST file).
+        """
         import glob as _glob
+        from telos.core.infra_manager.checkpoint_manager import _checkpoint_cycle_key
         for pattern, keep in (("system_self_*.json", 20), ("patterns_*.json", 20)):
-            files = sorted(_glob.glob(os.path.join(CHECKPOINT_DIR, pattern)))
+            files = sorted(
+                _glob.glob(os.path.join(CHECKPOINT_DIR, pattern)),
+                key=_checkpoint_cycle_key,
+            )
             for stale in files[:-keep]:
                 try:
                     os.remove(stale)

@@ -553,7 +553,11 @@ def _load_persisted_mood() -> str:
         The mood string, or "neutral" if no snapshot is readable.
     """
     try:
-        files = sorted(glob.glob(os.path.join(CHECKPOINT_DIR, "system_self_*.json")))
+        from telos.core.infra_manager.checkpoint_manager import _checkpoint_cycle_key
+        files = sorted(
+            glob.glob(os.path.join(CHECKPOINT_DIR, "system_self_*.json")),
+            key=_checkpoint_cycle_key,
+        )
         if not files:
             return "neutral"
         with open(files[-1]) as fp:

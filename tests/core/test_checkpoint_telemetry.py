@@ -209,6 +209,67 @@ def test_checkpoint_chain_links_backward_not_self():
         assert raw5["prev_checkpoint_hash"] == content_hash(files[4])
 
 
+def test_checkpoint_prune_numeric_order_across_digit_boundary():
+    """Natural-order regression (2026-08-15): _prune must delete the OLDEST
+    cycle numerically. Lexical sort inverts at the 4→5 digit boundary
+    ('checkpoint_10089.json' < 'checkpoint_9990.json' because '1' < '9'),
+    so the old code deleted the NEWEST 5-digit checkpoint every cycle and
+    the chain could never advance past 9999 (observed live: stuck at 9999
+    while the producer ran cycles 10000-11237)."""
+    import os
+    with tempfile.TemporaryDirectory() as tmp:
+        mgr = CheckpointManager(path=tmp, max_checkpoints=10)
+        for i in range(9990, 10000):
+            mgr.save(i, FakeWorldLedger(), FakeSkillLibrary(), FakeCalibrator(),
+                     FakeFailureLedger(), FakeMissionPolicy())
+        # The critical case: a 5-digit cycle saved on top of 4-digit legacy.
+        mgr.save(10089, FakeWorldLedger(), FakeSkillLibrary(), FakeCalibrator(),
+                 FakeFailureLedger(), FakeMissionPolicy())
+        files = {int(os.path.basename(f).split("_")[1].split(".")[0])
+                 for f in os.listdir(tmp)
+                 if os.path.basename(f).startswith("checkpoint_")}
+        assert 10089 in files, "newest 5-digit checkpoint must survive pruning"
+        assert 9990 not in files, "oldest legacy checkpoint must be pruned"
+        assert len(files) == 10, f"prune must keep exactly 10, got {sorted(files)}"
+
+
+def test_checkpoint_latest_path_numeric_across_digit_boundary():
+    """latest_path must return the highest cycle NUMERICALLY — lexical sort
+    would pick a 4-digit file (or checkpoint_tmp.json) over a newer 5-digit
+    checkpoint, restoring a stale state on crash recovery."""
+    import os
+    with tempfile.TemporaryDirectory() as tmp:
+        mgr = CheckpointManager(path=tmp, max_checkpoints=50)
+        for i in range(9995, 10005):
+            mgr.save(i, FakeWorldLedger(), FakeSkillLibrary(), FakeCalibrator(),
+                     FakeFailureLedger(), FakeMissionPolicy())
+        latest = mgr.latest_path
+        assert latest is not None
+        assert "10004" in latest.name, f"latest must be the numerically newest, got {latest}"
+        # A leftover tmp file must never be chosen as latest.
+        tmpfile = os.path.join(tmp, "checkpoint_tmp.json")
+        with open(tmpfile, "w") as fh:
+            fh.write("{}")
+        assert "tmp" not in mgr.latest_path.name, "tmp must never be the latest checkpoint"
+
+
+def test_checkpoint_cycle_key_natural_order():
+    """The canonical key orders zero-padded filenames numerically and maps
+    non-cycle files to -1 (pruned first, never latest)."""
+    from telos.core.infra_manager.checkpoint_manager import _checkpoint_cycle_key
+    assert _checkpoint_cycle_key("checkpoint_0009.json") == 9
+    assert _checkpoint_cycle_key("checkpoint_9999.json") == 9999
+    assert _checkpoint_cycle_key("checkpoint_10089.json") == 10089
+    assert _checkpoint_cycle_key("system_self_9981.json") == 9981
+    assert _checkpoint_cycle_key("patterns_167.json") == 167
+    assert _checkpoint_cycle_key("checkpoint_tmp.json") == -1
+    # Numeric order must dominate: 10089 > 9990 > tmp.
+    names = ["checkpoint_9990.json", "checkpoint_10089.json", "checkpoint_tmp.json"]
+    assert sorted(names, key=_checkpoint_cycle_key) == [
+        "checkpoint_tmp.json", "checkpoint_9990.json", "checkpoint_10089.json",
+    ]
+
+
 def test_checkpoint_chain_bootstrap_recomputes_latest_hash():
     """A NEW manager on an existing checkpoint dir must chain from the
     LATEST file's content hash (not from its stored prev field, which is

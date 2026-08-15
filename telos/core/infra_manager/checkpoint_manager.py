@@ -33,6 +33,29 @@ from telos.core.infra_manager.checkpoint_serializers import (
 logger = logging.getLogger('telos_checkpoint')
 
 
+def _checkpoint_cycle_key(path) -> int:
+    """Numeric sort key for checkpoint filenames (pattern: natural order).
+
+    checkpoint_NNNN.json / checkpoint_NNNNN.json must be ordered
+    NUMERICALLY, never lexically: at the 4→5 digit boundary the lexical
+    order inverts ('checkpoint_10089' < 'checkpoint_9990' because '1' < '9'),
+    which made _prune delete the NEWEST checkpoint every cycle and left the
+    chain stuck at 9999. Non-cycle files (checkpoint_tmp.json) key to -1 so
+    they sort oldest (pruned first, never selected as latest).
+
+    Args:
+        path: the checkpoint file path (or filename) to key.
+
+    Returns:
+        int: the cycle number, or -1 for non-cycle files.
+    """
+    name = Path(path).name
+    try:
+        return int(name.split("_")[-1].split(".")[0])
+    except (IndexError, ValueError):
+        return -1
+
+
 @dataclass
 class CheckpointData:
     cycle: int
@@ -111,7 +134,9 @@ class CheckpointManager:
 
     @property
     def latest_path(self) -> Optional[Path]:
-        checkpoints = sorted(self._path.glob("checkpoint_*.json"))
+        checkpoints = sorted(
+            self._path.glob("checkpoint_*.json"), key=_checkpoint_cycle_key
+        )
         return checkpoints[-1] if checkpoints else None
 
     def save(self, cycle: int,
@@ -363,7 +388,9 @@ class CheckpointManager:
         logger.info("All checkpoints cleared")
 
     def _prune(self) -> None:
-        checkpoints = sorted(self._path.glob("checkpoint_*.json"))
+        checkpoints = sorted(
+            self._path.glob("checkpoint_*.json"), key=_checkpoint_cycle_key
+        )
         while len(checkpoints) > self._max_checkpoints:
             oldest = checkpoints.pop(0)
             oldest.unlink()
