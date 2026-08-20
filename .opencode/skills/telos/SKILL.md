@@ -56,6 +56,28 @@ Pipeline (7 phases): PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT �
 | Ledger | `telos/core/ledger/` | WorldLedger, SkillLibrary, ExperienceManager |
 | Transparency | `telos/audit/monitor.py` | decision_log.json + report |
 
+### Debug Loop Guard (canonical rule for the agent/debugger layer)
+
+`telos/core/debug/guard.py` makes load-bearing the three loop-breaking
+patterns the GridWorld pipeline already enforces (Decision Firewall loop-trap
+Λ3.1, EvidenceProvenanceValidator Λ2.3×Λ6.5). If a debugging session starts
+stuttering — same intent, no progress — apply these:
+
+1. **Acts over Intentions (Λ3.1)** — an "I will read/run/edit" that yields
+   consecutive zero tool-calls is a no-action cycle, not a plan. Inject the
+   missing act instead of narrating it again (`DebugLoopGuard.record_intent`).
+2. **One Grounded Truth (Λ6.5)** — never restate a failure cause without
+   citing the actual pytest/tool-output row it came from; an uncited claim is
+   an unsupported hypothesis, scored 0 and auto-deprioritised
+   (`DebugLoopGuard.score_claim`). Restating it twice = loop signal.
+3. **Single Concern per Thread (Λ1.1, Λ4.6)** — one debug thread holds one
+   failing test. Referencing assertion A while holding file B fires an
+   explicit reconciliation (`DebugLoopGuard.check_concern`); the two do not
+   share a workspace without a conflict line.
+
+Self-check before reporting: if you can't name the tool output your claim
+grounded on, you are looping — stop and ground.
+
 ### Key Axioms (42 total — subset shown)
 
 1.1 Architecture Produces Outcomes (Pipeline is pure structural engine)
