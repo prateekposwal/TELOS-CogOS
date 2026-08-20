@@ -13,12 +13,268 @@ import logging
 import numpy as np
 
 from telos.core.phases.base import Phase, PhaseContext
+from telos.core.governance.capability_authorization import (
+    CapabilityAuthorization, CapabilityStatus,
+)
+from telos.core.governance.governor import (
+    DecisionGovernor, GovernorInput, DecisionMode, GovernorDecision,
+)
+from telos.world.epistemic import derive_epistemic_state, EpistemicState
+from telos.core.contracts.domain_model import WorldSpec
 
 logger = logging.getLogger('telos_pipeline')
 
 
 class ActPhase(Phase):
     name = "act"
+
+    def __init__(self, md_alpha: float = 0.3, md_catastrophe_ceiling: float = 2.0):
+        # TELOS v6 over-conservatism fix (V1): EWMA smoothing state for mission
+        # drift so a single noisy spike never instantaneously BLOCKs a healthy
+        # cycle. `md_alpha` blends new readings; `md_catastrophe_ceiling` is the
+        # absolute instantaneous MD above which we DO hard-veto regardless of
+        # smoothing (true out-of-band spike).
+        super().__init__()
+        self._md_filtered: float = 0.0
+        self._md_alpha: float = md_alpha
+        self._md_catastrophe_ceiling: float = md_catastrophe_ceiling
+
+    def _compute_governance(self, pipeline, ctx) -> tuple:
+        """Compute CapabilityAuthorization + EpistemicState + GovernorDecision
+        for this cycle.
+
+        Uses only signals that are genuinely available; a missing signal is a
+        permissive PASS so default behavior (all gates OK) is unchanged. Returns
+        a tuple (capability, epistemic_state, governor_decision).
+
+        Args:
+            pipeline: the running pipeline (source of reality-gap tracker).
+            ctx: the phase context for this cycle.
+        """
+        # Optional injected authorization (tests / explicit override).
+        override = getattr(ctx, '_governance_override', None)
+        if override is not None and isinstance(override, CapabilityAuthorization):
+            capability = override
+        else:
+            # ── Gather per-gate signals ──
+            # model fidelity from the reality-gap tracker (Phase 4).
+            model_id = "world"
+            model_fidelity = None
+            tested = False
+            tracker = getattr(pipeline, '_reality_gap_tracker', None)
+            if tracker is not None and not isinstance(tracker, type):
+                try:
+                    mf = tracker.model_fidelity(model_id)
+                    if isinstance(mf, (int, float)) and not isinstance(mf, bool):
+                        model_fidelity = float(mf)
+                        tested = True
+                except Exception:
+                    model_fidelity = None
+
+            # Risk-coverage proxy = TRUE per-step prediction error (mean reality
+            # gap), NOT the council's instantaneous MD (||horizon-end prediction -
+            # current observation||), which is structurally large (~horizon
+            # distance) in any moving world and would permanently veto ACT (the
+            # no-action stagnation trap). The RealityGapTracker holds the
+            # deferred one-cycle-ahead per-step error: a healthy model's gap -> 0;
+            # a falsified model's gap stays high -> risk gate FAILs.
+            # Untested model (no records yet) does NOT claim false failure: the
+            # v6 act-then-learn permission lets a not-yet-falsified model act so
+            # the first executed steps start feeding the real signal.
+            md_raw = 0.0
+            try:
+                m = tracker.model("world")
+                if m.tested and m.gap_history:
+                    md_raw = float(m.recent_mean_gap)
+            except Exception:
+                md_raw = 0.0
+            try:
+                md_raw = float(md_raw)
+            except (TypeError, ValueError):
+                md_raw = 0.0
+            # NOTE: no verdict-MD fallback. The risk signal is the model's OWN
+            # per-step prediction error. An untested model claims NO failure
+            # (act-then-learn, matching the model_fidelity gate's treatment of
+            # unvalidated models in high-observability worlds); a tested model
+            # vetoes only on genuine, sustained prediction error.
+
+            # TELOS v6 (over-conservatism fix V1): smooth mission drift so a
+            # single noisy spike does NOT instantaneously BLOCK a healthy cycle.
+            # Sentence of the fix: "transient jitter -> continue/explore (log);
+            # sustained divergence -> refuse." We keep an EWMA of MD and gate the
+            # 0.75 risk threshold and the governor's MD on the SMOOTHED value,
+            # while reserving an INSTANTANEOUS hard veto for a catastrophe ceiling
+            # (true out-of-band spike). This does NOT weaken genuine FAIL gates.
+            alpha = getattr(self, '_md_alpha', 0.3)
+            prev = getattr(self, '_md_filtered', 0.0)
+            try:
+                prev = float(prev)
+            except (TypeError, ValueError):
+                prev = 0.0
+            md = alpha * md_raw + (1.0 - alpha) * prev
+            self._md_filtered = md
+            catastrophe = md_raw > getattr(self, '_md_catastrophe_ceiling', 2.0)
+            raw_verdict_md = 0.0
+            verdict = getattr(ctx, 'verdict', None)
+            if verdict is not None:
+                try:
+                    raw_verdict_md = float(getattr(verdict, 'mission_drift', 0.0) or 0.0)
+                except (TypeError, ValueError):
+                    raw_verdict_md = 0.0
+            if raw_verdict_md > 4.0:  # beyond any legitimate one-step landing
+                catastrophe = True
+
+            # DI / council signals for causal-confidence + recovery.
+            di = 1.0
+            if verdict is not None:
+                di = getattr(verdict, 'decision_integrity', 1.0) or 1.0
+            try:
+                di = float(di)
+            except (TypeError, ValueError):
+                di = 1.0
+            # Unfloored evidence-integrity: reflect evidence-weighted dissent, NOT
+            # the DissentFloor cap. Prevents a single dissenting validator from
+            # spuriously failing the causal/recovery capability gates (V2).
+            di_evidence = di
+            if verdict is not None:
+                ev = getattr(verdict, 'evidence_integrity', None)
+                if ev is None:
+                    ev = getattr(verdict, 'decision_integrity', di)
+                try:
+                    di_evidence = float(ev)
+                except (TypeError, ValueError):
+                    di_evidence = di
+
+            # observability from the world spec if available.
+            observability_status = CapabilityStatus.PASS
+            spec = None
+            adapter = getattr(pipeline, 'config', None)
+            adapter = getattr(adapter, 'adapter', None) if adapter is not None else None
+            if adapter is not None and not isinstance(adapter, type) \
+                    and callable(getattr(adapter, 'world_spec', None)):
+                try:
+                    spec = adapter.world_spec()
+                    # Only a genuine WorldSpec counts. A MagicMock (unit-test
+                    # pipeline) or arbitrary object must NOT leak garbage into
+                    # the gates — treat it as no constraint (permissive PASS).
+                    if spec is not None and not isinstance(spec, WorldSpec):
+                        spec = None
+                    elif spec is not None and hasattr(spec, 'observability')\
+                            and getattr(spec, 'observability', 'high') in ("low", "partial"):
+                        observability_status = CapabilityStatus.LIMITED
+                except Exception:
+                    spec = None
+
+            # model_fidelity gate: a validated model below 0.5 fidelity is FAIL.
+            model_fidelity_status = CapabilityStatus.PASS
+            if tested and model_fidelity is not None and model_fidelity < 0.5:
+                model_fidelity_status = CapabilityStatus.FAIL
+            # Evidence-bounded calibration (benchmark Task C finding): an UNTESTED
+            # model in a LOW/PARTIAL-observability world is genuinely insufficient
+            # to justify ACT — we cannot see the world well AND we have not
+            # validated the model. High-observability untested worlds may still
+            # act-then-learn (returns PASS there). This TIGHTENS a justified gate;
+            # it does NOT relax any conjunctive veto.
+            elif (not tested) and observability_status == CapabilityStatus.LIMITED:
+                model_fidelity_status = CapabilityStatus.FAIL
+
+            # risk_coverage gate: high mission drift => unacceptable risk => FAIL.
+            # Uses SMOOTHED md (sustained divergence) OR an instantaneous
+            # catastrophe spike (true out-of-band). Transient jitter alone,
+            # below the ceiling, does NOT fail the gate (over-conservatism fix).
+            risk_coverage_status = CapabilityStatus.PASS
+            if md > 0.75 or catastrophe:
+                risk_coverage_status = CapabilityStatus.FAIL
+
+            # causal_confidence / recovery from DI.
+            causal_status = CapabilityStatus.PASS
+            if di_evidence < 0.3:
+                causal_status = CapabilityStatus.FAIL
+            recovery_status = CapabilityStatus.PASS
+            if di_evidence < 0.4:
+                recovery_status = CapabilityStatus.FAIL
+
+            # authority from world spec authorized_modes.
+            authority_status = CapabilityStatus.PASS
+            authorized_modes = None
+            if spec is not None and hasattr(spec, 'authorized_modes'):
+                authorized_modes = set(spec.authorized_modes)
+                if DecisionMode.ACT.value not in (authorized_modes or set()):
+                    authority_status = CapabilityStatus.FAIL
+
+            capability = CapabilityAuthorization(
+                observability=observability_status,
+                model_fidelity=model_fidelity_status,
+                action_validity=CapabilityStatus.PASS,
+                risk_coverage=risk_coverage_status,
+                causal_confidence=causal_status,
+                recovery=recovery_status,
+                authority=authority_status,
+            )
+
+        # ── Epistemic state (Phase 5) ──
+        tripartite = getattr(pipeline, '_tripartite_u', None)
+        composite_u = 0.0
+        if tripartite is not None:
+            composite_u = getattr(tripartite, 'composite', 0.0) or 0.0
+        try:
+            composite_u = float(composite_u)
+        except (TypeError, ValueError):
+            composite_u = 0.0
+        epistemic_state = derive_epistemic_state(
+            model_fidelity=model_fidelity,
+            tested=tested,
+            composite_uncertainty=composite_u,
+            has_model=True,
+        )
+
+        # ── World authorized modes + escalation policy (Phase 6 / v6 policy) ──
+        # `spec` is the guarded WorldSpec (or None) computed above in the
+        # observability block — recycle it rather than re-deriving unguarded.
+        authorized_modes = None
+        escalation_policy = "advisory"
+        if spec is not None:
+            authorized_modes = set(spec.authorized_modes)
+            escalation_policy = getattr(spec, "escalation_policy", "advisory") or "advisory"
+
+        # ── Governor ──
+        verdict = getattr(ctx, 'verdict', None)
+        escalation = bool(getattr(verdict, 'escalation_requested', False)) if verdict else False
+        human_authorized = bool(getattr(ctx, 'human_authorized', False))
+        governor = getattr(pipeline, '_decision_governor', None)
+        if governor is None or not callable(getattr(governor, 'evaluate', None)):
+            governor = DecisionGovernor()
+
+        decision = governor.evaluate(GovernorInput(
+            capability=capability,
+            epistemic_state=epistemic_state,
+            authorized_modes=authorized_modes,
+            DI=di,
+            MD=md,
+            escalation_requested=escalation,
+            escalation_policy=escalation_policy,
+            human_authorized=human_authorized,
+            hard_constraint_violation=catastrophe,
+        ))
+        # A governance decision that is not a real GovernorDecision (e.g. a
+        # MagicMock leaking from a unit-test mock pipeline) is invalid — fall
+        # back to a fresh DecisionGovernor so a bogus "decision" can never
+        # authorize ACT.
+        if not isinstance(decision, GovernorDecision):
+            logger.warning("DecisionGovernor returned a non-GovernorDecision — "
+                           "recomputing with a fresh governor")
+            decision = DecisionGovernor().evaluate(GovernorInput(
+                capability=capability,
+                epistemic_state=epistemic_state,
+                authorized_modes=authorized_modes,
+                DI=di,
+                MD=md,
+                escalation_requested=escalation,
+                escalation_policy=escalation_policy,
+                human_authorized=human_authorized,
+                hard_constraint_violation=catastrophe,
+            ))
+        return capability, epistemic_state, decision
 
     def execute(self, pipeline, ctx: PhaseContext) -> None:
         # P1.3: Sync Firewall DI threshold from MissionPolicy before inspect
@@ -145,14 +401,82 @@ class ActPhase(Phase):
         firewall_passed = ctx.firewall_verdict.passed
         council_ok = (ctx.verdict.validated if ctx.verdict else True) or (ctx.verdict and ctx.verdict.escalation_requested)
 
-        if firewall_passed and council_ok and not ctx.governance_blocked:
+        # ── TELOS v6 governance (Phases 6/7/8): capability authorization +
+        #    DecisionGovernor. This is STRUCTURAL — before any action vector is
+        #    constructed, the governor must authorize ACT. If not authorized,
+        #    we skip the inten_to_action call entirely (no action emitted). ──
+        governor_allows_act = True
+        try:
+            capability, epistemic_state, governor_decision = self._compute_governance(pipeline, ctx)
+            ctx.capability_authorization = capability
+            ctx.epistemic_state = epistemic_state
+            ctx.governor_decision = governor_decision
+            ctx.decision_mode = governor_decision.mode
+            # ESCALATE is a deliberate per-world policy (see GovernorDecision.hard_stop):
+            #   advisory  -> proceed + log (existing behavior preserved)
+            #   required  -> HARD STOP until distinct human authorization (safety-critical)
+            # DEFER/ABSTAIN/BLOCK always structurally suppress action emission.
+            ctx.no_action = governor_decision.hard_stop
+            if governor_decision.hard_stop:
+                governor_allows_act = False
+                ctx.blocking_reason = governor_decision.reason
+                if governor_decision.mode == DecisionMode.BLOCK:
+                    # A governor BLOCK is a genuine block — preserve the
+                    # governance_blocked semantics that BenchmarkMetrics counts.
+                    ctx.governance_blocked = True
+                logger.warning(
+                    f"Cycle {ctx.cycle_count}: DecisionGovernor → {governor_decision.mode.value} — "
+                    f"{governor_decision.reason}"
+                )
+            else:
+                ctx.escalation_pending = ctx.escalation_pending or governor_decision.mode == DecisionMode.ESCALATE
+        except Exception as e:
+            logger.warning(f"Cycle {ctx.cycle_count}: governance computation failed — {e}")
+
+        if firewall_passed and council_ok and not ctx.governance_blocked and governor_allows_act:
             if pipeline.config.adapter and ctx.selected_intent:
+                # P1: validate state dimensionality against the adapter's declared
+                # dimension (acceptance: dimensions validated, no accidental
+                # shape-inference-only). If the adapter declares one, it must match
+                # the actual state vector — a mismatch is a loud error, not a NaN.
+                declared = pipeline.config.adapter.declared_state_dim()
+                # Only enforce when the adapter genuinely declares an integer
+                # dimension. Non-integer/missing (None or, e.g., a MagicMock in
+                # unit tests) means "no declared dimension" → skip validation.
+                if isinstance(declared, int) and not isinstance(declared, bool) \
+                        and ctx.state is not None and declared != ctx.state.shape[0]:
+                    raise ValueError(
+                        f"State dimension mismatch: adapter '{pipeline.config.adapter.name}' "
+                        f"declares state_dim={declared} but actual state has shape "
+                        f"{ctx.state.shape}. Refusing to act (no silent dimension inference)."
+                    )
                 state_dim = ctx.state.shape[0]
                 mission_dir = np.zeros(state_dim)
 
                 ctx.selected_action = pipeline.config.adapter.intent_to_action(
                     ctx.selected_intent, ctx.state, mission_dir
                 )
+                # Honest one-step prediction: the model's own landing prediction
+                # for the action that will ACTUALLY execute, computed through the
+                # real transition. The council/runtime MD and the reality gap then
+                # compare one-step-ahead predictions against the next observation -
+                # a true per-step prediction error (not a horizon-distance artifact
+                # that would permanently veto ACT in any moving world).
+                try:
+                    sim_ = getattr(pipeline.config, 'simulator', None)
+                    if sim_ is not None and ctx.selected_action is not None                             and not isinstance(sim_, type):
+                        # MagicMock leak guard: a mock simulator returns a
+                        # shape-(0,) array that would poison the causal
+                        # annotation broadcast below — only real transitions
+                        # with the correct state shape may set the prediction.
+                        landing = sim_.transition(
+                            ctx.state.copy(), np.asarray(ctx.selected_action, dtype=float))
+                        if landing is not None and not isinstance(landing, type):
+                            larr = np.asarray(landing, dtype=float)
+                            if larr.shape == ctx.state.shape:
+                                ctx.predicted_state = larr
+                except Exception as e:
+                    logger.warning(f"act: predicted_state computation failed: {e}")
                 # P1 D1: Causal annotations for the selected action
                 predicted = getattr(ctx, 'predicted_state', None)
                 ctx.causal_annotations = {

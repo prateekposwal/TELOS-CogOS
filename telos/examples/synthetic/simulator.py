@@ -13,6 +13,21 @@ class SyntheticWorld(DomainSimulator):
         # Pattern: one RNG authority per engine — private RandomState,
         # never global np.random in the simulation hot path.
         self._rng = np.random.RandomState(seed)
+        self.name = "synthetic"
+        self.state_dim = 2
+        self.action_dim = 2
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=self.action_dim,
+            objectives=["exploration"],
+            constraints=[],
+            observability="high",
+            capabilities=["legal_transitions", "transition", "simulate"],
+        )
 
     def initialize(self) -> None: pass
     def cleanup(self) -> None: pass

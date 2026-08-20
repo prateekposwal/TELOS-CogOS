@@ -703,3 +703,4 @@ class SelectPhase(Phase):
                     )
             except Exception as e:
                 logger.debug(f"RegretMemory recording failed: {e}")
+

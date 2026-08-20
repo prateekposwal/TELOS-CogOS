@@ -562,6 +562,7 @@ class DashboardProducer:
         from telos.core.streams.inquiry_stream import InquiryStream
         from telos.core.council.validators import (
             RealityValidator, ConstraintValidator, MemoryAdvisor, MissionDriftDetector,
+            EvidenceProvenanceValidator,
         )
         from telos.core.ledger.skill_library import SkillLibrary
         from telos.core.ledger.experience_manager import ExperienceManager, ExperienceConfig
@@ -603,6 +604,7 @@ class DashboardProducer:
         memory_advisor = MemoryAdvisor(skill_lib)
         pipeline.register_validator(memory_advisor)
         pipeline.register_validator(MissionDriftDetector(drift_threshold=5.0))
+        pipeline.register_validator(EvidenceProvenanceValidator())
         if hasattr(pipeline, "infra_manager") and pipeline.infra_manager:
             im = pipeline.infra_manager
             memory_advisor.connect(
@@ -1002,6 +1004,7 @@ class DashboardProducer:
     BROADCAST_TRACE_FIELDS = [
         "cycle_id", "timestamp", "decision_integrity", "mission_drift",
         "council_validated", "firewall_blocked", "blocking_validator",
+        "intent", "discrimination_index", "action_taken",
         "world_state", "selected_intent", "selected_action",
         "strategic_options", "stream_activations", "council_signals",
         "domain_facts", "worlds_simulated", "inquiry_omega_vector",

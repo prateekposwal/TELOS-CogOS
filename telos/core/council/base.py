@@ -71,6 +71,7 @@ class CouncilVerdict:
     validated: bool
     signals: List[ValidationSignal] = field(default_factory=list)
     decision_integrity: float = 1.0
+    evidence_integrity: float = 1.0
     mission_drift: float = 0.0
     blocking_validator: Optional[str] = None
     escalation_requested: bool = False
@@ -154,8 +155,22 @@ class Council:
 
     DISSENT_FLOOR: float = 0.3
 
-    def __init__(self):
+    # Validators that represent a genuine, non-tradeable safety boundary. A
+    # BLOCK from these vetoes the cycle REGARDLESS of the voting threshold —
+    # so resolving "single dissenter" over-conservatism never re-enables
+    # over-authority on an actual safety/authority/risk violation.
+    HARD_VETO_SUBSTRINGS: tuple = ("risk", "authority", "safety", "constraint", "reality")
+
+    def __init__(self, config: Optional[Any] = None):
         self._validators: List[Validator] = []
+        self._config: CouncilConfig = config if config is not None else CouncilConfig()
+        # Per-cycle care: evidence-provenance validators read a shared context
+        # (reality-gap + intent-history) that the pipeline threads each cycle.
+        self._evidence_context: Dict[str, Any] = {}
+
+    def _is_hard_veto(self, validator_name: str) -> bool:
+        name = (validator_name or "").lower()
+        return any(sub in name for sub in self.HARD_VETO_SUBSTRINGS)
 
     def register(self, validator: Validator) -> None:
         self._validators.append(validator)
@@ -168,14 +183,25 @@ class Council:
         """Run all validators and produce a binding verdict.
 
         Args:
+            world: the world model the decision is being validated against.
+            intent: the candidate intent under consideration.
+            domain_facts: objective facts for the current domain state.
+            predicted_state: the world model's predicted next state.
+            observed_state: the actually observed next state.
             evidence_influence_weights: Optional dict mapping validator_name →
                 evidence multiplier for DI computation.
         """
         signals: List[ValidationSignal] = []
+        ev_ctx = getattr(self, '_evidence_context', {}) or {}
 
         for validator in self._validators:
             try:
-                signal = validator.validate(world, intent, domain_facts)
+                try:
+                    signal = validator.validate(world, intent, domain_facts, context=ev_ctx)
+                except TypeError:
+                    # Validator does not accept a context kwarg (standard
+                    # 3-arg interface) - fall back to the base signature.
+                    signal = validator.validate(world, intent, domain_facts)
             except Exception as e:
                 logger.error(f"Council: validator {validator.name} raised {e}")
                 signal = ValidationSignal(
@@ -195,15 +221,27 @@ class Council:
                 signal.verdict = "PASS"
             signals.append(signal)
 
-        # Compute Decision Integrity (DI)
-        di = self._compute_decision_integrity(signals, evidence_influence_weights)
+        # Compute Decision Integrity (DI) — reported (floor-capped) + evidence (raw)
+        di, di_evidence = self._compute_decision_integrity(signals, evidence_influence_weights)
 
         # Compute Mission Drift (MD)
         md = self._compute_mission_drift(predicted_state, observed_state)
 
-        # Find blocking validators
+        # Find blocking validators.
         blockers = [s.validator_name for s in signals if not s.passed]
-        validated = len(blockers) == 0
+        # A hard-veto (safety/authority/risk/constraint/reality) BLOCK always vetoes.
+        hard_veto = any(self._is_hard_veto(name) for name in blockers)
+        # Otherwise, validate by the configured voting threshold (TELOS v6 over-
+        # conservatism fix V2): a SINGLE non-critical dissenting validator in an
+        # otherwise-healthy majority must NOT cause total refusal.
+        threshold = self._config.resolve_threshold(len(signals)) if signals else 1
+        approvals = sum(1 for s in signals if s.passed)
+        if hard_veto:
+            validated = False
+        elif not blockers:
+            validated = True
+        else:
+            validated = approvals >= threshold
         blocking_name = blockers[0] if blockers else None
 
         # Find escalation signals
@@ -218,6 +256,7 @@ class Council:
             validated=validated,
             signals=signals,
             decision_integrity=di,
+            evidence_integrity=di_evidence,
             mission_drift=md,
             blocking_validator=blocking_name,
             escalation_requested=escalation_requested,
@@ -235,10 +274,14 @@ class Council:
         When evidence_weights are provided (from StreamCalibrator), each
         validator's evidence_weight is modulated by the corresponding stream's
         evidence score, so low-evidence streams carry less weight.
-        
+
         DissentFloor: When any BLOCK exists, DI cannot exceed DISSENT_FLOOR
         (default 0.3) regardless of numerical computation. Prevents evidence-weight
         manipulation from silencing legitimate dissent.
+
+        Args:
+            signals: the validator signals collected for this decision.
+            evidence_weights: optional per-validator evidence multipliers.
         """
         total_evidence = 0.0
         ignored = 0.0
@@ -252,13 +295,18 @@ class Council:
                 has_block = True
                 ignored += ew * abs(s.confidence)
         total_evidence = total_evidence or 1e-9
-        di = float(np.clip(1.0 - ignored / total_evidence, 0.0, 1.0))
+        di_evidence = float(np.clip(1.0 - ignored / total_evidence, 0.0, 1.0))
 
-        # DissentFloor: cap DI when any BLOCK exists
+        # DissentFloor: cap the REPORTED DI when any BLOCK exists (honesty signal,
+        # prevents evidence-weight manipulation silencing dissent). The unfloored
+        # `di_evidence` is preserved separately so capability gates can distinguish
+        # a REAL low-evidence cycle from one where DI was capped purely by the floor
+        # (single dissenting validator in an otherwise-healthy majority).
+        di = di_evidence
         if has_block:
             di = min(di, self.DISSENT_FLOOR)
 
-        return di
+        return di, di_evidence
 
     def _compute_mission_drift(self, predicted: Optional[np.ndarray],
                                 observed: Optional[np.ndarray]) -> float:

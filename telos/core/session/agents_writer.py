@@ -65,11 +65,26 @@ class AgentsWriter:
         m = getattr(summary, 'metrics', {}) or {}
         cp = getattr(summary, 'checkpoint_ref', None) or m.get('checkpoint_ref', "N/A")
         tb = m.get('token_budget_pct', 0)
+        # P1 cycle-count reconciliation: the handoff now stamps WHERE the cycle
+        # figure came from, eliminating the "decision log says 5, AGENTS.md says
+        # 11" drift. `cycle_source` is the consumer that produced the number,
+        # `pipeline_cycle_id` is the last pipeline.execute() cycle, and
+        # `log_total_cycles` is the audit log's authoritative total.
+        cycle_n = m.get('cycle_count', 0)
+        cycle_source = m.get('cycle_source', 'step_count')
+        pipeline_cycle = m.get('pipeline_cycle_id', None)
+        log_total = m.get('log_total_cycles', None)
+        reconcil = f" ({cycle_source}="
+        if pipeline_cycle is not None:
+            reconcil += f"pipeline={pipeline_cycle},"
+        if log_total is not None:
+            reconcil += f"log={log_total},"
+        reconcil = reconcil.rstrip(",") + ")"
         lines.extend([
             "",
             "### Metrics",
             f"- DI: {m.get('di', 1.0):.3f} | MD: {m.get('md', 0.0):.3f} | "
-            f"Cycles: {m.get('cycle_count', 0)} | Token budget: {tb:.1f}%",
+            f"Cycles: {cycle_n}{reconcil} | Token budget: {tb:.1f}%",
             "",
             "### Checkpoint",
             f"- {cp}",
@@ -93,6 +108,31 @@ class AgentsWriter:
             summary_or_pipeline = SessionSummary(
                 metrics={"di": 1.0, "md": 0.0, "cycle_count": cycle_count},
             )
+        # P1 cycle reconciliation: stamp provenance for the cycle figure so the
+        # handoff explains WHY it differs from the decision log / pipeline.
+        metrics = getattr(summary_or_pipeline, 'metrics', None)
+        if not isinstance(metrics, dict):
+            metrics = {}
+            summary_or_pipeline.metrics = metrics
+        metrics.setdefault('cycle_source', 'step_count')
+        if pipeline is not None:
+            p_cycle = getattr(pipeline, '_cycle_count', None)
+            if isinstance(p_cycle, int):
+                metrics['pipeline_cycle_id'] = p_cycle
+            # Best-effort: read the persisted audit decision log's authoritative
+            # total (the same source the dashboard /audit readers use), so the
+            # handoff can reconcile "AGENTS.md Cycles" vs "decision_log total".
+            try:
+                import json as _json
+                log_path = os.path.join(
+                    os.path.dirname(__file__), '..', '..', '..',
+                    'telos', 'audit', 'runtime', 'decision_log.json')
+                if os.path.exists(log_path):
+                    with open(log_path) as f:
+                        metrics['log_total_cycles'] = int(
+                            _json.load(f).get('total_cycles', 0))
+            except Exception:
+                pass
         # Extract checkpoint from pipeline if available
         if pipeline is not None:
             chk = getattr(pipeline, '_checkpointer', None)
@@ -122,7 +162,12 @@ class AgentsWriter:
 
 
 def build_handoff(pipeline, metrics: Dict) -> str:
-    """Build a session handoff block from pipeline state."""
+    """Build a session handoff block from pipeline state.
+
+    Args:
+        pipeline: the running pipeline whose experience/skills are summarised.
+        metrics: curated session metrics rendered into the handoff.
+    """
     learnings = []
     if pipeline is not None:
         em = getattr(pipeline, '_experience_manager', None)

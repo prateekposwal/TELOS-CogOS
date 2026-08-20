@@ -45,6 +45,7 @@ class DecisionTrace:
     budget_total_ms: float
     worlds_simulated: int
     cycle_duration_ms: float
+    budget_carryover_ms: float = 0.0  # carried-over credit from the previous cycle
     health_score: float = 1.0
     council_validated: bool = True
     decision_integrity: float = 1.0
@@ -156,9 +157,18 @@ class DecisionTrace:
                 "confidence": self.selected_intent.confidence,
             } if self.selected_intent else None,
             "selected_action": self.selected_action.tolist() if self.selected_action is not None else None,
+            # Canonical schema aliases (single source of truth for every
+            # consumer — dashboard JS reads trace.intent, audit readers read
+            # discrimination_index/action_taken): map onto the canonical
+            # fields so no downstream code invents its own names (schema drift
+            # pattern → locked by tests/core/test_trace_schema.py).
+            "intent": self.selected_intent.intent_type if self.selected_intent else None,
+            "discrimination_index": self.decision_integrity,
+            "action_taken": self.selected_action.tolist() if self.selected_action is not None else None,
             "representation": self.representation,
             "budget_consumed_ms": self.budget_consumed_ms,
             "budget_total_ms": self.budget_total_ms,
+            "budget_carryover_ms": self.budget_carryover_ms,
             "worlds_simulated": self.worlds_simulated,
             "cycle_duration_ms": self.cycle_duration_ms,
             "council_validated": self.council_validated,
