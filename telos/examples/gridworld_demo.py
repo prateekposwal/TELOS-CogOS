@@ -40,6 +40,20 @@ class DemoSimulator(DomainSimulator):
             objectives={"distance": -float(np.linalg.norm(np.array([4., 4.]) - state))},
             risks=0.0,
         )
+    name = "gridworld_demo"
+    state_dim = 2
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=2,
+            objectives=["distance"],
+            constraints=[],
+            observability="high",
+            capabilities=["transition", "simulate"],
+        )
 
 
 class DemoAdapter(DomainAdapter):
@@ -51,6 +65,8 @@ class DemoAdapter(DomainAdapter):
         return np.sign(np.array([4., 4.]) - state).astype(float)
     @property
     def name(self): return "demo"
+    @property
+    def state_dim(self): return 2
 
 
 def main():

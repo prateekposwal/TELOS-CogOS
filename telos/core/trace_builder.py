@@ -85,6 +85,7 @@ def build_trace(
         representation=ctx.representation,
         budget_consumed_ms=budget_manager.consumed_ms,
         budget_total_ms=budget_manager.total_budget_ms,
+        budget_carryover_ms=getattr(budget_manager, 'budget_carryover_ms', 0.0),
         worlds_simulated=ctx.worlds_generated,
         cycle_duration_ms=cycle_duration,
         health_score=health,

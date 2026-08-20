@@ -73,6 +73,9 @@ from telos.core.council.base import Council, CouncilVerdict, ValidationSignal
 from telos.core.ledger.world_ledger import WorldLedger
 from telos.core.governance.trust_manager import TrustManager
 from telos.core.governance.timing import InformationReadinessEngine, ReadinessCondition
+STAGNATION_RECOVERY_AFTER = 3  # consecutive no-action cycles before force-escape
+
+
 from telos.core.governance.firewall import (
     DecisionFirewall, FirewallConfig, RECOVERY_AFTER_LOOP_BLOCKS,
 )
@@ -156,6 +159,15 @@ class TelosV14Pipeline:
                  human_gateway: Optional[HumanGateway] = None):
         self.config = config or PipelineConfig()
         self._human_gateway = human_gateway
+        from telos.world.epistemic import RealityGapTracker
+        # TELOS v6 Phase 4/7: per-model reality-gap tracker feeding model_fidelity
+        # into capability authorization. Untested model -> fidelity None -> the
+        # model_fidelity gate cannot claim PASS without validation.
+        self._reality_gap_tracker = RealityGapTracker()
+        self._pending_reality_gap: Optional[tuple] = None  # (one-step-prediction, cycle)
+        self._council_intent_history: Dict[str, int] = {}
+        self._council_total_no_action: Dict[str, int] = {}
+        self._council_recent_blocks: int = 0
         self.budget_manager = BudgetManager(self.config.compute_budget_ms)
         self.streams: List[CognitiveStream] = []
         self.council = Council()
@@ -172,8 +184,21 @@ class TelosV14Pipeline:
         self._recovery_goal_seek_pending: bool = False
         self._recovery_looped_type: Optional[str] = None
         self._recovery_armed_cycle: Optional[int] = None
+        self._recovery_reason: Optional[str] = None
+        # Λ3.1 stagnation escape: consecutive cycles where NO action vector was
+        # emitted (governor/firewall no-action loops, not just firewall
+        # action_loop traps). Arms the same goal-seek escape with a recorded
+        # reason; resets the moment an action flows.
+        self._stagnant_no_action_cycles: int = 0
         from telos.core.infra_manager.infrastructure_manager import InfrastructureManager
-        self._infra_manager = InfrastructureManager(domain=getattr(self.config.adapter, 'name', 'gridworld'))
+        # P1: no silent 'gridworld' default — the adapter MUST declare its name.
+        # If an adapter is present it must expose `name` (now abstract on the
+        # DomainAdapter ABC); a missing name fails loudly, never defaults.
+        if self.config.adapter is not None:
+            adapter_name = self.config.adapter.name
+        else:
+            adapter_name = "unconfigured"
+        self._infra_manager = InfrastructureManager(domain=adapter_name)
         # B3: Register callbacks for council blocks and recovery events
         self._infra_manager.on_council_block(self._on_council_block)
         self._infra_manager.on_recovery_event(self._on_recovery_event)
@@ -525,6 +550,71 @@ class TelosV14Pipeline:
         else:
             self._recovery_goal_seek_pending = False
 
+    def _intent_history_for_council(self, ctx) -> Dict[str, Any]:
+        """Fold the system's falsification record into a per-cycle evidence
+        context the council's EvidenceProvenanceValidator can read.
+
+        Reports, for the SELECTED intent type: how many consecutive no-action
+        cycles it has endured (the stagnation signal), its total no-action
+        count, and its recent blocked cycles. Combined with the
+        RealityGapTracker (passed separately) this is the decision-provenance-
+        as-evidence record (Lambda 6.5).
+
+        Args:
+            ctx: the phase context for this cycle (selected intent etc.).
+        """
+        intent = ctx.selected_intent
+        i_type = intent.intent_type if intent else "unknown"
+        # Track per-cycle intent outcomes in a small rolling history.
+        history = getattr(self, '_council_intent_history', {})
+        total_no_action = getattr(self, '_council_total_no_action', {})
+        total_no_action[i_type] = total_no_action.get(i_type, 0)
+        recent_blocks = getattr(self, '_council_recent_blocks', 0)
+        if ctx.cycle_count % 2 == 0:
+            recent_blocks = max(0, recent_blocks - 1)
+        return {
+            "intent_history": {
+                "intent_type": i_type,
+                "consecutive_no_action": self._stagnant_no_action_cycles,
+                "total_no_action": int(total_no_action.get(i_type, 0)),
+                "recent_blocks": int(recent_blocks),
+            },
+            "reality_gap_tracker": self._reality_gap_tracker,
+        }
+
+    def _update_stagnation_recovery_state(self, ctx) -> None:
+        """Λ3.1 extension: arm goal-seek recovery for NO-ACTION stagnation.
+
+        The firewall-based recovery (`_update_loop_recovery_state`) only arms
+        on `action_loop` firewall blocks. A governor-driven no-action loop
+        (DI floored / MD inflated by unexecutable predictions) never triggers
+        it, so the agent can sit in `blended_inquiry` forever emitting
+        `action_taken=null`. This tracks consecutive cycles where NO action
+        vector was emitted; at the threshold it arms the SAME goal-seek escape
+        with a recorded reason so the select phase injects a differently-typed,
+        executable recovery intent. Genuine blocks are never overridden - the
+        recovery intent passes the council/firewall/governor like any other.
+
+        Args:
+            ctx: the phase context to inspect for the cycle's action outcome.
+        """
+        if ctx.selected_action is not None and not getattr(ctx, 'no_action', False):
+            self._stagnant_no_action_cycles = 0
+            return
+        self._stagnant_no_action_cycles += 1
+        if self._stagnant_no_action_cycles >= STAGNATION_RECOVERY_AFTER:
+            self._recovery_goal_seek_pending = True
+            self._recovery_armed_cycle = ctx.cycle_count
+            self._recovery_looped_type = (
+                ctx.selected_intent.intent_type if ctx.selected_intent else None
+            )
+            self._recovery_reason = "no_action_stagnation"
+            logger.warning(
+                f"Cycle {ctx.cycle_count}: {self._stagnant_no_action_cycles} consecutive "
+                f"no-action cycles on '{self._recovery_looped_type}' - goal-seek "
+                f"recovery armed for stagnation (Λ3.1)"
+            )
+
     def _maybe_inject_recovery_intent(self, ctx) -> None:
         """Select-phase recovery (Λ3.1): break a firewall action_loop trap.
 
@@ -560,9 +650,10 @@ class TelosV14Pipeline:
             confidence=0.6,
             params={
                 "recovery_mode": True,
-                "reason": "firewall_loop_recovery",
+                "reason": getattr(self, "_recovery_reason", None) or "firewall_loop_recovery",
                 "consecutive_loop_blocks": fw.consecutive_loop_blocks,
                 "escaped_loop_type": looped,
+                "stagnant_cycles": self._stagnant_no_action_cycles,
             },
             metadata={"stream": "recovery", "axiom": "3.1", "recovery": True},
         )
@@ -597,9 +688,10 @@ class TelosV14Pipeline:
             confidence=0.6,
             params={
                 "recovery_mode": True,
-                "reason": "firewall_loop_recovery_post_council",
+                "reason": f"{getattr(self, '_recovery_reason', None) or 'firewall_loop_recovery'}_post_council",
                 "consecutive_loop_blocks": self._firewall.consecutive_loop_blocks,
                 "escaped_loop_type": looped,
+                "stagnant_cycles": self._stagnant_no_action_cycles,
             },
             metadata={"stream": "recovery", "axiom": "3.1", "recovery": True},
         )
@@ -644,6 +736,7 @@ class TelosV14Pipeline:
             "energy": {
                 "consumed_ms": self.budget_manager.consumed_ms,
                 "total_ms": self.budget_manager.total_budget_ms,
+                "budget_carryover_ms": getattr(self.budget_manager, 'budget_carryover_ms', 0.0),
                 "utilization": self.budget_manager.consumed_ms / max(self.budget_manager.total_budget_ms, 1),
                 "description": "compute_budget_ms consumed this cycle",
             },
@@ -1074,6 +1167,12 @@ class TelosV14Pipeline:
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
+            if phase.name == "council":
+                try:
+                    self.council._evidence_context = self._intent_history_for_council(ctx)
+                except Exception as e:
+                    logger.warning("runtime.py: evidence-context threading failed: %r", e)
+
             # ── Λ3.1 Recovery Mode (post-council): the council's Λ4.3
             #    alternative fallback may have re-selected the looped intent
             #    type AFTER the select-phase injection hook ran. Re-check the
@@ -1103,6 +1202,20 @@ class TelosV14Pipeline:
                 except Exception as e:
                     logger.warning("runtime.py: loop-recovery state update failed: %r", e)
                     self._recovery_goal_seek_pending = False
+                try:
+                    self._update_stagnation_recovery_state(ctx)
+                    # Fold the OUTCOME into the council's falsification ledger:
+                    # only genuinely blocked cycles count as blocks; no-action
+                    # cycles (action_taken==None) accumulate per intent type.
+                    i_type = (ctx.selected_intent.intent_type
+                              if ctx.selected_intent else "unknown")
+                    total_na = self._council_total_no_action.setdefault(i_type, 0)
+                    if ctx.selected_action is None and not getattr(ctx, 'no_action', False):
+                        self._council_total_no_action[i_type] = total_na + 1
+                    if ctx.firewall_blocked or ctx.council_blocked:
+                        self._council_recent_blocks = getattr(self, '_council_recent_blocks', 0) + 1
+                except Exception as e:
+                    logger.warning("runtime.py: stagnation-recovery state update failed: %r", e)
 
             # ── Law of Attention: Record trajectory after ACT phase ──
             if phase.name == "act":
@@ -1110,6 +1223,31 @@ class TelosV14Pipeline:
                 predicted = getattr(ctx, 'predicted_state', None)
                 if predicted is not None:
                     self._attention_engine.record_trajectory_divergence(predicted, ctx.state)
+
+                # ── TELOS v6 Phase 4/7: record reality gap (predicted vs observed)
+                #    per model so model_fidelity feeds capability authorization.
+                #    Only record on a validated act cycle (an action was emitted),
+                #    mirroring the trajectory-divergence recording above. ──
+                try:
+                    # Deferred one-cycle-ahead comparison: the reality gap is the
+                    # model's prediction made LAST cycle for THIS cycle's
+                    # observation — the true per-step prediction error. Comparing
+                    # same-cycle horizon-end predictions against the pre-action
+                    # observation would inflate the gap to ~horizon-distance in
+                    # any moving world, permanently vetoing ACT (the no-action
+                    # stagnation trap). A healthy model's per-step gap -> 0;
+                    # a falsified model's gap stays high -> risk gate FAILs.
+                    pending = getattr(self, '_pending_reality_gap', None)
+                    if pending is not None:
+                        prev_pred, prev_cycle = pending
+                        if prev_cycle != ctx.cycle_count:
+                            self._reality_gap_tracker.record("world", prev_pred, ctx.state)
+                    if predicted is not None and not getattr(ctx, 'no_action', False):
+                        self._pending_reality_gap = (predicted, ctx.cycle_count)
+                    else:
+                        self._pending_reality_gap = None
+                except Exception as e:
+                    logger.warning(f"RealityGapTracker.record failed: {e}")
 
                 # Record identity entropy: action-space size = number of sim options
                 n_options = len(getattr(ctx, 'sim_options', []) or [])
@@ -1168,6 +1306,7 @@ class TelosV14Pipeline:
                     "energy": {
                         "consumed_ms": self.budget_manager.consumed_ms,
                         "total_ms": self.budget_manager.total_budget_ms,
+                        "budget_carryover_ms": getattr(self.budget_manager, 'budget_carryover_ms', 0.0),
                         "utilization": self.budget_manager.consumed_ms / max(self.budget_manager.total_budget_ms, 1),
                         "description": "compute_budget_ms consumed this cycle",
                     },

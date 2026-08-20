@@ -157,3 +157,23 @@ class IdeationSimulator(DomainSimulator):
             },
             risks=1.0 - axes["resilience"],  # fragility term (lower resilience = more risk)
         )
+
+    @property
+    def name(self) -> str:
+        return "ideation"
+
+    @property
+    def state_dim(self) -> int:
+        return len(self.context) + 2
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=1,
+            objectives=["concept_value", "market", "feasibility"],
+            constraints=[],
+            observability="high",
+            capabilities=["ideation_branch", "simulate"],
+        )

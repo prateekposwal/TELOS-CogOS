@@ -30,6 +30,7 @@ from telos.core.streams.implementations import (
 from telos.core.streams.inquiry_stream import InquiryStream
 from telos.core.council.validators import (
     RealityValidator, ConstraintValidator, MemoryAdvisor, MissionDriftDetector,
+    EvidenceProvenanceValidator,
 )
 from telos.core.ledger.skill_library import SkillLibrary
 from telos.core.ledger.experience_manager import ExperienceManager, ExperienceConfig
@@ -59,6 +60,112 @@ DEFAULT_BLOCKED: Set[Tuple[int, int]] = {(1, 1), (2, 2), (3, 1)}
 DEFAULT_REWARDS: Dict[Tuple[int, int], float] = {(0, 4): 10.0, (4, 0): 5.0, (2, 4): 3.0, (4, 2): 2.0}
 GRID_SIZE = 5
 
+# ─── Legal-motion planner (single canonical source) ───────────────────────────
+# GridSim.transition can only route CARDINAL moves; diagonal/fractional vectors
+# leave the agent stuck at the origin while simulated futures keep predicting
+# movement — an inflated predicted-vs-observed gap (MD) the governor then reads
+# as failure (BLOCK/DEFER -> action_taken=null forever). Every action the
+# pipeline emits must be a legal cardinal step or an honest no-op. Both
+# GridSim.simulate (futures) and GridAdpt.intent_to_action (execution) derive
+# from these helpers so the model and the executor can never disagree about
+# what is reachable (honesty axiom: no impossible trajectories).
+
+def legal_goal_step(state, blocked, goal, grid_size, fallback):
+    """First cardinal step of the shortest legal path toward `goal` (A*).
+
+    Deterministic: neighbors are cardinal-only, heuristic is Manhattan,
+    ties break by push-order counter so the same state always returns the
+    same step. Returns `fallback` (no move) when start IS the goal or no
+    legal path exists (genuinely immovable - the honest no-op).
+
+    Args:
+        state: current position (N-vector of floats).
+        blocked: iterable of blocked cell coordinates.
+        goal: the target coordinate.
+        grid_size: square grid side length (bounds the search).
+        fallback: the action vector returned when no legal path exists.
+    """
+    import heapq
+    start = (int(round(state[0])), int(round(state[1])))
+    gx, gy = int(round(goal[0])), int(round(goal[1]))
+    if start == (gx, gy):
+        return fallback
+    blocked_set = set(tuple(b) for b in blocked)
+
+    def manhattan(cell):
+        return abs(cell[0] - gx) + abs(cell[1] - gy)
+
+    neighbors = ((1, 0), (-1, 0), (0, 1), (0, -1))  # deterministic order
+    counter = 0
+    heap = [(manhattan(start), 0, counter, start)]
+    counter += 1
+    g_score = {start: 0}
+    came_from = {start: None}
+    closed = set()
+    while heap:
+        f, g, _, cell = heapq.heappop(heap)
+        if cell in closed:
+            continue
+        closed.add(cell)
+        if cell == (gx, gy):
+            node = cell
+            while came_from[node] is not None and came_from[node] != start:
+                node = came_from[node]
+            return np.array([node[0] - start[0], node[1] - start[1]], dtype=float)
+        for dx, dy in neighbors:
+            ncell = (cell[0] + dx, cell[1] + dy)
+            if not (0 <= ncell[0] < grid_size and 0 <= ncell[1] < grid_size):
+                continue
+            if ncell in blocked_set:
+                continue
+            ng = g + 1
+            if ng < g_score.get(ncell, float('inf')):
+                g_score[ncell] = ng
+                came_from[ncell] = cell
+                heapq.heappush(heap, (ng + manhattan(ncell), ng, counter, ncell))
+                counter += 1
+    return fallback  # no legal path - honest no-op
+
+
+def legal_cardinal_action(state, blocked, goal, grid_size, fallback,
+                          preferred=None):
+    """Best LEGAL cardinal move toward `preferred` (or the goal).
+
+    `preferred` may be any vector (diagonal/fractional, e.g. a blended
+    inquiry vector). Returns the legal cardinal step whose direction best
+    matches it (highest dot product, minimum 0.3 agreement), or the A*
+    step toward the goal when no preferred vector is given. Falls back to
+    `fallback` only when no legal move exists at all (honest no-op).
+
+    Args:
+        state: current position (N-vector of floats).
+        blocked: iterable of blocked cell coordinates.
+        goal: the target coordinate.
+        grid_size: square grid side length (bounds the search).
+        fallback: the action vector returned when no legal move exists.
+        preferred: optional preferred (possibly diagonal) action vector.
+    """
+    start = (int(round(state[0])), int(round(state[1])))
+    blocked_set = set(tuple(b) for b in blocked)
+    candidates = []
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        nc = (start[0] + dx, start[1] + dy)
+        if not (0 <= nc[0] < grid_size and 0 <= nc[1] < grid_size):
+            continue
+        if nc in blocked_set:
+            continue
+        candidates.append(np.array([dx, dy], dtype=float))
+    if not candidates:
+        return fallback
+    if preferred is not None and float(np.linalg.norm(preferred)) > 0:
+        pref = np.asarray(preferred, dtype=float)
+        pref = pref / float(np.linalg.norm(pref))
+        best = max(candidates, key=lambda c: float(np.dot(c, pref)))
+        if float(np.dot(best, pref)) > 0.3:
+            return best
+    return legal_goal_step(state, blocked, goal, grid_size, fallback)
+
+
 # Terrain types: each cell gets a terrain biome that affects movement cost
 # 'plains' = normal, 'forest' = slow, 'water' = slowest, 'desert' = sandy, 'mountain' = blocked-like
 TERRAIN: Dict[Tuple[int, int], str] = {
@@ -82,6 +189,10 @@ def ollama_chat(messages: list, cycle: int = 0) -> str:
 
     Retries up to 3 times with a 2-second delay between attempts.
     If Ollama is unavailable after all retries, returns a fallback response.
+
+    Args:
+        messages: the conversation messages to send to Ollama.
+        cycle: the current cycle index (used in the fallback response).
     """
     max_retries = 3
     retry_delay = 2.0
@@ -117,6 +228,12 @@ def prime_skill_library(experience_mgr, pipeline, checkpoint_dir: str, cycles: i
 
     Loads the latest checkpoint, extracts recent decision traces,
     and runs them through experience_mgr.observe() to build initial skills.
+
+    Args:
+        experience_mgr: the ExperienceManager that indexes skills.
+        pipeline: the running pipeline (for observation context).
+        checkpoint_dir: directory holding decision checkpoints.
+        cycles: how many recent checkpoints to index.
 
     Returns:
         Number of skills indexed.
@@ -199,15 +316,17 @@ class GridSim(DomainSimulator):
         futures = []
         pos = s.copy()
         for _ in range(h):
-            diff = GOAL - pos
-            step = np.sign(diff + np.random.randn(2) * 0.5).astype(float)
-            key = (int(round(pos[0])), int(round(pos[1])))
-            if key in self.blocked:
-                step = np.array([0, 0])
+            # Only LEGAL cardinal steps are ever predicted: a future that the
+            # real transition cannot route is a hallucination, and a model that
+            # hallucinates future positions inflates mission drift until the
+            # governor permanently blocks action (the no-action stagnation
+            # trap). The model and the executor now agree on what is reachable.
+            step = legal_cardinal_action(
+                pos, self.blocked, GOAL, GRID_SIZE,
+                fallback=np.array([0.0, 0.0]),
+                preferred=GOAL - pos,
+            )
             pos = np.clip(pos + step, 0, GRID_SIZE - 1)
-            # Avoid landing on blocked cells
-            if (int(round(pos[0])), int(round(pos[1]))) in self.blocked:
-                pos = np.clip(pos - step * 0.5, 0, GRID_SIZE - 1)
             futures.append(World(state=pos.copy()))
         return futures
 
@@ -266,19 +385,50 @@ class GridSim(DomainSimulator):
             risks=0.0,
         )
 
+    name = "gridworld"
+    state_dim = 2
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=2,
+            objectives=["proximity", "reward"],
+            constraints=["obstacle_near", "blocked"],
+            observability="partial",
+            capabilities=["transition", "simulate", "terrain_shift"],
+        )
+
 
 class GridAdpt(DomainAdapter):
     def forward(self, x): return x
     def inverse(self, x): return x
 
     def intent_to_action(self, intent, state, md):
-        if "action_vector" in intent.params:
-            return np.asarray(intent.params["action_vector"], dtype=float)
-        diff = GOAL - state
-        return np.sign(diff + np.random.randn(2) * 0.3).astype(float)
+        # The adapter is the executor: it must never emit a vector the real
+        # transition cannot route. Diagonal/fractional intents (blended
+        # inquiry, curiosity random-walks) are projected onto the best LEGAL
+        # cardinal move; goal intents use the A* first step. An honest no-op
+        # is returned only when the agent is genuinely immovable.
+        preferred = intent.params.get("action_vector", None)
+        if preferred is not None:
+            preferred = np.asarray(preferred, dtype=float)
+        blocked = getattr(getattr(intent, "metadata", None), "blocked", None)
+        if blocked is None and isinstance(intent.params.get("blocked"), (set, list)):
+            blocked = intent.params.get("blocked")
+        return legal_cardinal_action(
+            state, blocked if blocked is not None else DEFAULT_BLOCKED,
+            GOAL, GRID_SIZE,
+            fallback=np.array([0.0, 0.0]),
+            preferred=preferred,
+        )
 
     @property
     def name(self): return "gridworld"
+
+    @property
+    def state_dim(self): return 2
 
 
 
@@ -353,7 +503,14 @@ class GridAgent:
 def render_grid(state: np.ndarray, blocked: Set[Tuple[int, int]],
                 rewards: Dict[Tuple[int, int], float],
                 agent2_pos: Optional[np.ndarray] = None) -> str:
-    """Render a 5x5 grid with terrain, TELOS, goal, obstacles, rewards, and second agent."""
+    """Render a 5x5 grid with terrain, TELOS, goal, obstacles, rewards, and second agent.
+
+    Args:
+        state: current agent position.
+        blocked: set of blocked cell coordinates.
+        rewards: map of reward cell coordinates to reward values.
+        agent2_pos: optional second-agent position to render.
+    """
     lines = ["    0  1  2  3  4"]
     for y in range(GRID_SIZE):
         row = [f"  {y} "]
@@ -495,6 +652,7 @@ def main():
     memory_advisor = MemoryAdvisor(skill_lib)
     pipeline.register_validator(memory_advisor)
     pipeline.register_validator(MissionDriftDetector(drift_threshold=5.0))
+    pipeline.register_validator(EvidenceProvenanceValidator())
 
     # Wire up MemoryAdvisor to infrastructure after pipeline init
     if hasattr(pipeline, 'infra_manager') and pipeline.infra_manager:

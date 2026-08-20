@@ -138,6 +138,18 @@ class PhaseContext:
     # P0 D8: Meta-cognition
     meta_cognition: Optional[Dict] = None
 
+    # ── TELOS v6 Governance (Phases 6/7/8): additive decision-mode fields ──
+    # These are ADDITIVE: they never alter existing BLOCK/governance_blocked
+    # semantics (BenchmarkMetrics still counts 'blocks' the same way). They only
+    # extend the context so the act phase can report a richer DecisionMode.
+    decision_mode: Any = None              # DecisionMode (ACT/DEFER/ABSTAIN/ESCALATE/BLOCK)
+    no_action: bool = False                # True when act emits NO action vector
+    capability_authorization: Any = None   # CapabilityAuthorization for this cycle
+    governor_decision: Any = None          # GovernorDecision record
+    epistemic_state: Any = None            # EpistemicState for this cycle
+    _governance_override: Any = None       # Optional injected CapabilityAuthorization (tests)
+
+
     # Attention Projection (Law of Attention)
     attention_allocation: Any = None
     attention_metrics: Optional[Dict] = None
@@ -188,4 +200,8 @@ class Phase(ABC):
         `if phase.name == "X"` pattern in runtime.py execute().
         Default is no-op — phases without post-execute wiring
         do not need to override.
+
+        Args:
+            pipeline: the running pipeline (post-execute context).
+            ctx: the phase context for this cycle.
         """

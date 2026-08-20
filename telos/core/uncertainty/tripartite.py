@@ -38,12 +38,13 @@ class TripartiteUncertainty:
         self.U_W: float = 0.0  # Environmental uncertainty
         self.U_I: float = 0.0  # Identity uncertainty
         self.U_O: float = 0.0  # Other-agent uncertainty
+        self.U_M: float = 0.0  # Model-fidelity uncertainty (v6, U_M)
         self.answered_questions: int = 0  # Counter of questions answered
         self._history: List[Dict[str, float]] = []
         self._max_history: int = 50
 
     @classmethod
-    def compute_from_available(cls, prediction_error=0.0, identity_entropy=0.0, council_signals=None, relational_coherence=1.0):
+    def compute_from_available(cls, prediction_error=0.0, identity_entropy=0.0, council_signals=None, relational_coherence=1.0, model_fidelity=1.0):
         """Compute tripartite uncertainty from data available during SELECT phase.
         
         This fixes the timing issue where tripartite U was computed in ACT phase
@@ -55,6 +56,8 @@ class TripartiteUncertainty:
             identity_entropy: Identity entropy signal (0-1), from identity entropy tracker
             council_signals: List of council ValidationSignal objects from current cycle
             relational_coherence: Coherence of relational reasoning (0-1), default 1.0
+            model_fidelity: Model fidelity (0-1), default 1.0. U_M rises as fidelity
+                            falls (how adequate is the model predicting the world).
             
         Returns:
             TripartiteUncertainty instance with computed values
@@ -76,17 +79,22 @@ class TripartiteUncertainty:
             council_disagreement = 0.0
         instance.U_O = min(1.0, (1.0 - relational_coherence) * 0.7 + council_disagreement * 0.3)
         
+        # U_M: model fidelity uncertainty — rises as model fidelity falls
+        instance.U_M = min(1.0, max(0.0, 1.0 - model_fidelity))
+        
         # Record initial snapshot
         instance._history.append({
             "U_W": instance.U_W,
             "U_I": instance.U_I,
             "U_O": instance.U_O,
+            "U_M": instance.U_M,
         })
         
         logger.debug(
             f"Tripartite U computed from available data: U_W={instance.U_W:.3f} "
             f"(pe={prediction_error:.3f}), U_I={instance.U_I:.3f} "
-            f"(entropy={identity_entropy:.3f}), U_O={instance.U_O:.3f}"
+            f"(entropy={identity_entropy:.3f}), U_O={instance.U_O:.3f}, "
+            f"U_M={instance.U_M:.3f} (fidelity={model_fidelity:.3f})"
         )
         
         return instance
@@ -96,8 +104,9 @@ class TripartiteUncertainty:
                prediction_error: float = 0.0,
                identity_entropy: float = 0.0,
                council_disagreement: float = 0.0,
-               relational_coherence: float = 1.0) -> None:
-        """Update all three uncertainty dimensions from observed signals.
+               relational_coherence: float = 1.0,
+               model_fidelity: float = 1.0) -> None:
+        """Update all four uncertainty dimensions from observed signals.
         
         Args:
             observation_noise: Measured noise in perception/observation (0-1)
@@ -105,6 +114,7 @@ class TripartiteUncertainty:
             identity_entropy: Identity entropy trajectory signal (0-1)
             council_disagreement: Disagreement among council validators (0-1)
             relational_coherence: Coherence of relational reasoning (0-1), default 1.0
+            model_fidelity: Model fidelity (0-1), default 1.0. U_M = 1 - fidelity.
         """
         # U_W = observation_noise + prediction_error_clipped
         self.U_W = min(1.0, observation_noise + prediction_error * 0.5)
@@ -115,10 +125,14 @@ class TripartiteUncertainty:
         # U_O = (1 - relational_coherence) * 0.7 + council_disagreement * 0.3
         self.U_O = min(1.0, (1.0 - relational_coherence) * 0.7 + council_disagreement * 0.3)
 
+        # U_M = 1 - model fidelity — how adequate is the model predicting the world
+        self.U_M = min(1.0, max(0.0, 1.0 - model_fidelity))
+
         snapshot = {
             "U_W": self.U_W,
             "U_I": self.U_I,
             "U_O": self.U_O,
+            "U_M": self.U_M,
         }
         self._history.append(snapshot)
         if len(self._history) > self._max_history:
@@ -128,7 +142,8 @@ class TripartiteUncertainty:
             f"Tripartite U updated: U_W={self.U_W:.3f} "
             f"(noise={observation_noise:.3f}, pe={prediction_error:.3f}), "
             f"U_I={self.U_I:.3f} (entropy={identity_entropy:.3f}), "
-            f"U_O={self.U_O:.3f} (disagreement={council_disagreement:.3f}, rc={relational_coherence:.3f})"
+            f"U_O={self.U_O:.3f} (disagreement={council_disagreement:.3f}, rc={relational_coherence:.3f}), "
+            f"U_M={self.U_M:.3f} (fidelity={model_fidelity:.3f})"
         )
 
     def record_answer(self, question_type: str) -> None:
@@ -161,29 +176,35 @@ class TripartiteUncertainty:
         
         # Reset U_O: council disagreement resolved after acting on inquiry
         self.U_O = self.U_O * 0.1  # 90% reduction
+
+        # Decay U_M: model uncertainty reduces modestly with validated answers
+        self.U_M = self.U_M * math.exp(-n * 0.15)
         
         logger.info(
             f"Question answered (type={question_type}, count={n}): "
-            f"U_W→{self.U_W:.3f}, U_I→{self.U_I:.3f}, U_O→{self.U_O:.3f} "
+            f"U_W→{self.U_W:.3f}, U_I→{self.U_I:.3f}, U_O→{self.U_O:.3f}, "
+            f"U_M→{self.U_M:.3f} "
             f"(decay: W={decay_w:.3f}, I={decay_i:.3f})"
         )
 
     def get_dominant(self) -> str:
-        """Returns 'environmental', 'identity', or 'other' — the highest U dimension.
+        """Returns 'environmental', 'identity', 'other', or 'model' — the highest U dimension.
         
         If all are below 0.3, returns 'none' (low uncertainty).
         If there's a tie, the dominant dimension is the first highest.
         """
-        if self.U_W < 0.3 and self.U_I < 0.3 and self.U_O < 0.3:
+        if self.U_W < 0.3 and self.U_I < 0.3 and self.U_O < 0.3 and self.U_M < 0.3:
             return 'none'
         
-        max_val = max(self.U_W, self.U_I, self.U_O)
+        max_val = max(self.U_W, self.U_I, self.U_O, self.U_M)
         if max_val == self.U_W:
             return 'environmental'
         elif max_val == self.U_I:
             return 'identity'
-        else:
+        elif max_val == self.U_O:
             return 'other'
+        else:
+            return 'model'
 
     def to_dict(self) -> Dict[str, float]:
         """Return current uncertainty values as a dict."""
@@ -191,20 +212,21 @@ class TripartiteUncertainty:
             "U_W": self.U_W,
             "U_I": self.U_I,
             "U_O": self.U_O,
+            "U_M": self.U_M,
             "answered_questions": self.answered_questions,
             "dominant": self.get_dominant(),
         }
 
     @property
-    def vector(self) -> Tuple[float, float, float]:
-        """Return the three uncertainty values as a tuple."""
-        return (self.U_W, self.U_I, self.U_O)
+    def vector(self) -> Tuple[float, float, float, float]:
+        """Return the four uncertainty values as a tuple."""
+        return (self.U_W, self.U_I, self.U_O, self.U_M)
 
     @property
     def composite(self) -> float:
-        """Composite uncertainty: L2 norm of the three dimensions, normalized to [0,1]."""
-        raw = (self.U_W ** 2 + self.U_I ** 2 + self.U_O ** 2) ** 0.5
-        return min(1.0, raw / (3.0 ** 0.5))
+        """Composite uncertainty: L2 norm of the four dimensions, normalized to [0,1]."""
+        raw = (self.U_W ** 2 + self.U_I ** 2 + self.U_O ** 2 + self.U_M ** 2) ** 0.5
+        return min(1.0, raw / 2.0)
 
     @property
     def history(self) -> List[Dict[str, float]]:
@@ -215,7 +237,7 @@ class TripartiteUncertainty:
         """Overall trend: 'rising', 'falling', or 'stable' based on composite history."""
         if len(self._history) < 3:
             return 'stable'
-        recent = [h["U_W"] + h["U_I"] + h["U_O"] for h in self._history[-3:]]
+        recent = [h.get("U_W", 0) + h.get("U_I", 0) + h.get("U_O", 0) + h.get("U_M", 0) for h in self._history[-3:]]
         if all(recent[i] <= recent[i + 1] for i in range(len(recent) - 1)):
             return 'rising'
         if all(recent[i] >= recent[i + 1] for i in range(len(recent) - 1)):
@@ -227,5 +249,6 @@ class TripartiteUncertainty:
         self.U_W = 0.0
         self.U_I = 0.0
         self.U_O = 0.0
+        self.U_M = 0.0
         self.answered_questions = 0
         self._history.clear()

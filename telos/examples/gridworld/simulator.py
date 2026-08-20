@@ -13,6 +13,21 @@ class GridWorldSimulator(DomainSimulator):
         # across tests/simulators makes trajectories order-dependent (the
         # discrimination-collapse flake: all 5 options scored identically).
         self._rng = np.random.RandomState(seed)
+        self.name = "gridworld"
+        self.state_dim = 2
+        self.action_dim = 2
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=self.action_dim,
+            objectives=["goal_progress"],
+            constraints=["boundary"],
+            observability="high",
+            capabilities=["legal_transitions", "transition", "simulate"],
+        )
 
     def initialize(self) -> None: pass
     def cleanup(self) -> None: pass

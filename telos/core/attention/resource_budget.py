@@ -43,7 +43,14 @@ class ResourceBudgetTracker:
 
     def record(self, energy_ms: float, trace_length: int,
                identity_entropy: float, recovery_cycles: int) -> None:
-        """Record a snapshot of all resource dimensions."""
+        """Record a snapshot of all resource dimensions.
+
+        Args:
+            energy_ms: compute budget (ms) remaining.
+            trace_length: length of the current decision trace.
+            identity_entropy: entropy of the identity representation.
+            recovery_cycles: count of recovery cycles run this session.
+        """
         self.energy_budget_ms = energy_ms
         self.memory_trace_length = trace_length
         self.identity_entropy = identity_entropy
@@ -159,11 +166,17 @@ class BudgetManager:
     """
     total_budget_ms: float
     consumed_ms: float = 0.0
+    budget_carryover_ms: float = 0.0  # carried-over credit from the previous cycle (>= 0)
     phase_costs: Dict[str, float] = field(default_factory=dict)
     _reservations: Dict[str, float] = field(default_factory=dict)
 
     def reserve(self, stream_name: str, amount_ms: float) -> None:
-        """Reserve a budget slice exclusively for stream_name."""
+        """Reserve a budget slice exclusively for stream_name.
+
+        Args:
+            stream_name: the stream that owns the reservation.
+            amount_ms: the budget slice (ms) set aside for that stream.
+        """
         self._reservations[stream_name] = amount_ms
 
     def check_budget(self, phase_name: str, estimated_cost: float) -> bool:
@@ -171,20 +184,36 @@ class BudgetManager:
 
         Accounts for reservations made for other streams: a stream can only
         consume from the unreserved pool plus its own reservation.
+
+        Args:
+            phase_name: the phase/stream asking to proceed.
+            estimated_cost: the projected cost (ms) of the phase.
         """
         my_reservation = self._reservations.get(phase_name, 0.0)
         others_reserved = sum(v for k, v in self._reservations.items() if k != phase_name)
-        available = self.total_budget_ms - self.consumed_ms - others_reserved + my_reservation
+        available = (self.total_budget_ms - self.consumed_ms
+                     + self.budget_carryover_ms - others_reserved + my_reservation)
         return estimated_cost <= available
 
     def consume(self, phase_name: str, cost: float):
-        """Register the actual cost of a phase."""
+        """Register the actual cost of a phase.
+
+        Args:
+            phase_name: the phase whose cost is recorded.
+            cost: the measured cost (ms) of that phase.
+        """
         self.consumed_ms += cost
         self.phase_costs[phase_name] = self.phase_costs.get(phase_name, 0.0) + cost
 
     def reset(self, carryover_ms: float = 0.0):
         clamped = max(0.0, min(carryover_ms, self.total_budget_ms * 0.5))
-        self.consumed_ms = -clamped
+        # The carryover is a separate, explicitly-tracked credit: `consumed_ms`
+        # NEVER goes negative, so every serialized budget trace reads as a real
+        # (non-negative) consumption figure. The credit is applied in
+        # check_budget() so a fresh cycle still gets its carried-over budget
+        # headroom (P2 budget-carryover telemetry).
+        self.budget_carryover_ms = clamped
+        self.consumed_ms = 0.0
         self.phase_costs.clear()
         self._reservations.clear()
 
