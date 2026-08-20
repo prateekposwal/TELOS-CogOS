@@ -267,12 +267,20 @@ def serialize_knowledge(kg: Any) -> Dict[str, list]:
     files. Nodes: id/label/domain/importance. Edges: source/target/
     weight/edge_type — only what the graph actually holds.
 
+    As of the lessons-drill feature, nodes that have been ARCHIVED (moved
+    out of the active set by attention decay / capacity eviction) are also
+    returned in a separate "archived_nodes" list, plus a "stats" block with
+    live/archived/total counts. This makes the total learned knowledge
+    legible instead of hiding it behind the live-set ceiling.
+
     Args:
         kg: the KnowledgeGraph instance (may be None).
     """
     if kg is None:
-        return {"nodes": [], "edges": []}
+        return {"nodes": [], "edges": [], "archived_nodes": [],
+                "stats": {"live": 0, "archived": 0, "total": 0}}
     nodes_raw = getattr(kg, "_nodes", {}) or {}
+    archived_raw = getattr(kg, "_archived_nodes", {}) or {}
     edges_raw = getattr(kg, "_edges", {}) or {}
     nodes = []
     for nid, ndata in nodes_raw.items():
@@ -291,6 +299,23 @@ def serialize_knowledge(kg: Any) -> Dict[str, list]:
             "domain": domain,
             "importance": importance,
         })
+    archived_nodes = []
+    for nid, ndata in archived_raw.items():
+        label = getattr(ndata, "approach", None) or getattr(ndata, "domain", None) or nid[:8]
+        domain = getattr(ndata, "domain", "general") or "general"
+        if "/" in domain:
+            domain = domain.split("/")[0]
+        importance = getattr(ndata, "outcome", 0.5)
+        if isinstance(importance, (int, float)):
+            importance = max(0.1, min(1.0, float(importance)))
+        else:
+            importance = 0.5
+        archived_nodes.append({
+            "id": nid,
+            "label": str(label).replace("_", " ").title(),
+            "domain": domain,
+            "importance": importance,
+        })
     edges = []
     for eid, edata in edges_raw.items():
         src = getattr(edata, "src", None)
@@ -303,7 +328,16 @@ def serialize_knowledge(kg: Any) -> Dict[str, list]:
             "weight": getattr(edata, "weight", 0.5),
             "edge_type": getattr(edata, "edge_type", "related"),
         })
-    return {"nodes": nodes, "edges": edges}
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "archived_nodes": archived_nodes,
+        "stats": {
+            "live": len(nodes),
+            "archived": len(archived_nodes),
+            "total": len(nodes) + len(archived_nodes),
+        },
+    }
 
 
 class DashboardProducer:
@@ -456,9 +490,13 @@ class DashboardProducer:
         for e in payload.get("edges", []):
             t = e.get("edge_type", "related")
             edge_types[t] = edge_types.get(t, 0) + 1
+        live = len(payload.get("nodes", []))
+        archived = len(payload.get("archived_nodes", []))
         return {
-            "nodes": len(payload.get("nodes", [])),
+            "nodes": live,
             "edges": len(payload.get("edges", [])),
+            "archived_nodes": archived,
+            "total_nodes": live + archived,
             "domains": domains,
             "edge_types": edge_types,
         }
