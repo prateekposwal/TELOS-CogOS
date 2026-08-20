@@ -98,7 +98,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed.path == '/api/knowledge':
-            self.send_json(self._load_knowledge())
+            q = urlparse(self.path).query
+            include_archived = 'include_archived' in q and \
+                q.split('include_archived=')[1].split('&')[0].lower() == 'true'
+            self.send_json(self._load_knowledge(include_archived=include_archived))
             return
 
         if parsed.path == '/api/overview':
@@ -412,20 +415,30 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # serialized traces are large (axiom_results, belief_state, ...).
         return ordered[-100:]
 
-    def _load_knowledge(self):
+    def _load_knowledge(self, include_archived: bool = False):
         """Serve the REAL knowledge graph: serialized nodes AND edges.
 
         Live producer memory first (freshest, no disk race), then the
         persisted file (cold-file fallback), then the honest empty set.
         Edges come from the graph's own edge store (typed/weighted),
         never invented.
+
+        As of the lessons-drill feature the response also carries a `stats`
+        block (live/archived/total) and — when `include_archived` is True —
+        the archived (attention-decayed / capacity-evicted) nodes, so the
+        full learning surface is legible instead of hidden behind the live
+        working-memory ceiling.
+
+        Args:
+            include_archived: whether to attach archived nodes for drill-down.
         """
+        payload = None
         prod = get_producer()
         if prod is not None:
             snap = prod.snapshot()
             payload = snap.get("knowledge_payload")
-            if payload and len(payload.get("nodes", [])) > 0:
-                return payload
+        if payload and len(payload.get("nodes", [])) > 0:
+            return self._finalize_knowledge(payload, include_archived)
         try:
             with open(KNOWLEDGE_PATH) as fp:
                 raw = json.load(fp)
@@ -465,12 +478,71 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                                 "weight": edata.get('weight', 0.5),
                                 "edge_type": edata.get('edge_type', 'related'),
                             })
-                    return {"nodes": nodes, "edges": edges}
+                    archived_nodes = []
+                    archived_raw = raw.get('archived_nodes', {})
+                    if isinstance(archived_raw, dict):
+                        for nid, ndata in archived_raw.items():
+                            if not isinstance(ndata, dict):
+                                continue
+                            label = ndata.get('approach', ndata.get('domain', nid[:8]))
+                            domain = ndata.get('domain', 'general')
+                            if '/' in domain:
+                                domain = domain.split('/')[0]
+                            importance = ndata.get('outcome', 0.5)
+                            if isinstance(importance, (int, float)):
+                                importance = max(0.1, min(1.0, importance))
+                            else:
+                                importance = 0.5
+                            archived_nodes.append({
+                                "id": nid,
+                                "label": label.replace('_', ' ').title(),
+                                "domain": domain,
+                                "importance": importance,
+                            })
+                    return self._finalize_knowledge(
+                        {"nodes": nodes, "edges": edges,
+                         "archived_nodes": archived_nodes},
+                        include_archived,
+                    )
                 elif isinstance(nodes_raw, list) and len(nodes_raw) > 0:
-                    return raw
+                    return self._finalize_knowledge(raw, include_archived)
         except (FileNotFoundError, OSError, json.JSONDecodeError):
             pass
-        return {"nodes": [], "edges": []}
+        return self._finalize_knowledge(
+            {"nodes": [], "edges": [], "archived_nodes": []}, include_archived)
+
+    def _finalize_knowledge(self, payload: dict, include_archived: bool = False) -> dict:
+        """Normalise a knowledge payload and attach honest live/archived/total
+        stats plus (optionally) the archived nodes for drill-down.
+
+        Single finalization path for both the live producer and the cold-file
+        fallback, so the API shape is identical regardless of source. Archived
+        nodes are only attached when `include_archived` is True (keeps the
+        default live graph response lean).
+
+        Args:
+            payload: dict with keys nodes/edges and optionally archived_nodes.
+            include_archived: attach archived_nodes when True.
+
+        Returns:
+            The payload augmented with a `stats` block (and archived_nodes if
+            requested). Never fabricated; counts come from the payload itself.
+        """
+        nodes = payload.get("nodes") or []
+        edges = payload.get("edges") or []
+        archived = payload.get("archived_nodes") or []
+        result = {
+            "nodes": nodes,
+            "edges": edges,
+            "stats": {
+                "live": len(nodes),
+                "archived": len(archived),
+                "total": len(nodes) + len(archived),
+            },
+        }
+        if include_archived:
+            result["archived_nodes"] = archived
+        return result
 
     def _run_telos(self, message: str) -> dict:
         """Run TELOS with the user's message and return the response."""

@@ -28,7 +28,13 @@ def handler(tmp_path, monkeypatch):
 
 def test_knowledge_empty_when_no_producer_no_files(handler):
     h, _ = handler
-    assert h._load_knowledge() == {"nodes": [], "edges": []}
+    payload = h._load_knowledge()
+    # The honest empty set now also carries a `stats` block (live/archived/
+    # total) from the single _finalize_knowledge canonical source — nodes and
+    # edges stay [] (nothing fabricated), and the counts are exactly zero.
+    assert payload["nodes"] == []
+    assert payload["edges"] == []
+    assert payload["stats"] == {"live": 0, "archived": 0, "total": 0}
     assert h._load_checkpoints() == []
     assert h._load_overview()["decisions"] == 0
     assert h._load_overview()["producer"]["running"] is False
