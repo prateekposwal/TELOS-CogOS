@@ -280,7 +280,7 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 - **Legal-motion planner** (`telos_task.py`): `legal_goal_step`/`legal_cardinal_action` A* cardinal-only first step keeps model and executor in agreement; GridSim/simulate use the same helpers
 - **Benchmark orphans closed** (`telos/benchmarks/`): `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` each run via `python3 -m telos.benchmarks.<name>` with `main()` CLI and write provenance result JSONs
 - **Dashboard tests repaired**: 2 formerly-red dashboard DOM-contract tests fixed — suite fully green
-- **Gap-scanner guard fixed, not weakened** (`telos/tools/gap_scanner.py`): repo-root `telos_task.py` now in the reference universe (main-harness-only helpers were falsely flagged dead); dotted module refs resolve as packages; `post_execute` classified as a phase lifecycle dispatch hook. Ships with zero dead code — removed unused `_coerce_status` (act.py) and the unimported `telos/core/pipeline_helpers.py` dead module (runtime reimplements its logic as methods). Docstring Args hygiene added across staged v6 files so every check passes honestly (no `--no-verify`, no guard weakening)
+- **Gap-scanner guard fixed, not weakened** (`telos/tools/gap_scanner.py`): repo-root `telos_task.py` now in the reference universe (main-harness-only helpers were falsely flagged dead); dotted module refs resolve as packages; `post_execute` classified as a phase lifecycle dispatch hook. Ships with zero dead code — removed the unused `_coerce_status` helper (act.py) and the unimported `pipeline_helpers` dead module (runtime reimplements its logic as methods). Docstring Args hygiene added across staged v6 files so every check passes honestly (no `--no-verify`, no guard weakening)
 
 ### Open Issues
 - *(None)*

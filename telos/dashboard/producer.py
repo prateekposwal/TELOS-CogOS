@@ -1004,7 +1004,8 @@ class DashboardProducer:
     BROADCAST_TRACE_FIELDS = [
         "cycle_id", "timestamp", "decision_integrity", "mission_drift",
         "council_validated", "firewall_blocked", "blocking_validator",
-        "intent", "discrimination_index", "action_taken",
+        "intent", "discrimination_index", "action_taken", "budget_carryover_ms",
+        "budget_consumed_ms",
         "world_state", "selected_intent", "selected_action",
         "strategic_options", "stream_activations", "council_signals",
         "domain_facts", "worlds_simulated", "inquiry_omega_vector",
