@@ -142,6 +142,64 @@ def test_trace_serializes_budget_carryover():
     assert d["budget_carryover_ms"] >= 0
 
 
+def test_governor_no_action_loop_injects_stagnation_recovery():
+    """Regression: a governor-driven no-action loop (firewall NOT blocking,
+    so firewall.consecutive_loop_blocks stays 0) must STILL inject the
+    goal_seek_recovery escape via the Λ3.1 stagnation armer.
+
+    Pre-fix bug: _update_stagnation_recovery_state armed _recovery_goal_seek_pending
+    but both injection guards gated on firewall.consecutive_loop_blocks, which
+    stays 0 for governor no-action loops -> the escape was armed but never
+    injected, leaving the agent in a permanent no-action loop. This test asserts
+    the recovery intent is injected for a stagnation-only path (fw == 0).
+    """
+    import tempfile
+    tmpdir = tempfile.mkdtemp()
+    sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS))
+    # Adversarially small compute budget forces no-action cycles (governor
+    # starvation) so stagnation accumulates WITHOUT a firewall action_loop block.
+    pipeline = TelosV14Pipeline(PipelineConfig(
+        adapter=GridAdpt(), simulator=sim,
+        compute_budget_ms=5.0, state_dim=2, n_worlds=2, horizon=2,
+        checkpoint_path=os.path.join(tmpdir, "cp"),
+        knowledge_path=os.path.join(tmpdir, "kg.json"),
+        ledger_path=os.path.join(tmpdir, "ld.json"),
+        identity_path=os.path.join(tmpdir, "id.json"),
+        pattern_path=os.path.join(tmpdir, "pt.json"),
+        deterministic_seed=99,
+    ))
+    sl = SkillLibrary()
+    for s in [ReflexStream(sl), PerceptionStream(sl), MemoryStream(sl),
+              PlanningStream(sl, sim_engine=CounterfactualEngine(sim)),
+              InquiryStream(sl),
+              TheoryStream(sl, theory_builder=getattr(pipeline, "_theory_builder", None))]:
+        pipeline.register_stream(s)
+    for v in [RealityValidator(), ConstraintValidator(), MemoryAdvisor(sl),
+              MissionDriftDetector(drift_threshold=5.0), EvidenceProvenanceValidator()]:
+        pipeline.register_validator(v)
+
+    state = np.array([0.0, 0.0])
+    saw_stagnation_recovery_injected = False
+    saw_stagnation_reason = False
+    for i in range(14):
+        r = pipeline.execute(state, user_name="Prateek")
+        t = r.decision_trace
+        it = t.selected_intent.intent_type if t.selected_intent else None
+        fw = getattr(pipeline._firewall, "consecutive_loop_blocks", 0)
+        if pipeline._recovery_reason == "no_action_stagnation":
+            saw_stagnation_reason = True
+        if it == "goal_seek_recovery" and fw == 0:
+            saw_stagnation_recovery_injected = True
+        if t.selected_action is not None:
+            state = pipeline.config.simulator.transition(state, t.selected_action)
+
+    assert saw_stagnation_reason, \
+        "the stagnation armer must record reason=no_action_stagnation"
+    assert saw_stagnation_recovery_injected, \
+        "governor no-action loop (fw==0) never injected goal_seek_recovery — " \
+        "stagnation escape was armed but firewall-gated, so the loop never escaped"
+
+
 def test_handoff_stamps_cycle_reconciliation():
     """P1: the handoff writer stamps cycle_source + pipeline_cycle_id +
     log_total_cycles so AGENTS.md Cycles reconciles with the decision log."""

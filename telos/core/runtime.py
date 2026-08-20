@@ -75,6 +75,20 @@ from telos.core.governance.trust_manager import TrustManager
 from telos.core.governance.timing import InformationReadinessEngine, ReadinessCondition
 STAGNATION_RECOVERY_AFTER = 3  # consecutive no-action cycles before force-escape
 
+# Intent types that are evidence-gathering by design — their no-action cycles
+# are deliberate EXPLORATION, not a pathology. Mirrors the EvidenceProvenanceValidator's
+# `_INQUIRY_TYPES`: inquiry is never penalised (Λ6.5). The stagnation armer must
+# NOT force-escape these, or it would preempt the firewall's own action_loop
+# recovery AND stomp legitimate curiosity. The governor-starvation escape is
+# reserved for NON-inquiry types (e.g. plan_trajectory) stuck in no-action.
+STAGNATION_EXEMPT_INQUIRY_TYPES = {
+    "inquiry", "inquiry_explore", "inquiry_recalibrate", "inquiry_resolve",
+    "curiosity_explore", "perceive", "memory_miss", "blended_inquiry",
+}
+# Recovery intents must never re-trigger stagnation: a recovered cycle is the
+# system ACTING to escape, not accumulating no-action pathology.
+STAGNATION_EXEMPT_RECOVERY_TYPES = {"goal_seek_recovery"}
+
 
 from telos.core.governance.firewall import (
     DecisionFirewall, FirewallConfig, RECOVERY_AFTER_LOOP_BLOCKS,
@@ -190,6 +204,13 @@ class TelosV14Pipeline:
         # action_loop traps). Arms the same goal-seek escape with a recorded
         # reason; resets the moment an action flows.
         self._stagnant_no_action_cycles: int = 0
+        # Flag that records whether the CURRENTLY armed recovery was triggered
+        # by no-action STAGNATION (governor-driven) rather than a firewall
+        # action_loop trap. The injection guards must honour this independently
+        # of the firewall counter — a governor no-action loop never increments
+        # firewall.consecutive_loop_blocks, so gating injection on the firewall
+        # counter would arm-but-never-inject the stagnation escape.
+        self._recovery_stagnation_armed: bool = False
         from telos.core.infra_manager.infrastructure_manager import InfrastructureManager
         # P1: no silent 'gridworld' default — the adapter MUST declare its name.
         # If an adapter is present it must expose `name` (now abstract on the
@@ -600,10 +621,25 @@ class TelosV14Pipeline:
         """
         if ctx.selected_action is not None and not getattr(ctx, 'no_action', False):
             self._stagnant_no_action_cycles = 0
+            # An action flowed, so no stagnation loop is active — clear the
+            # stagnation-armed flag (if a firewall trap were also active,
+            # _update_loop_recovery_state manages its own arming).
+            self._recovery_stagnation_armed = False
             return
         self._stagnant_no_action_cycles += 1
+        # Do NOT force-escape inquiry types nor recovery intents: their cycles
+        # are deliberate exploration / an active escape, not a no-action
+        # pathology (Λ6.5, mirrors the EvidenceProvenanceValidator exemption).
+        # Force-escaping them would stomp curiosity, re-arm stagnation right
+        # after a recovery, and preempt the firewall's own action_loop path.
+        cur_type = ctx.selected_intent.intent_type if ctx.selected_intent else None
+        if cur_type in STAGNATION_EXEMPT_INQUIRY_TYPES or \
+                cur_type in STAGNATION_EXEMPT_RECOVERY_TYPES:
+            self._stagnant_no_action_cycles = 0
+            return
         if self._stagnant_no_action_cycles >= STAGNATION_RECOVERY_AFTER:
             self._recovery_goal_seek_pending = True
+            self._recovery_stagnation_armed = True  # governor no-action loop (not firewall) armed the escape
             self._recovery_armed_cycle = ctx.cycle_count
             self._recovery_looped_type = (
                 ctx.selected_intent.intent_type if ctx.selected_intent else None
@@ -634,8 +670,14 @@ class TelosV14Pipeline:
             return
         self._recovery_goal_seek_pending = False  # one-shot recovery
         fw = self._firewall
-        if getattr(fw, 'consecutive_loop_blocks', 0) < RECOVERY_AFTER_LOOP_BLOCKS:
+        # Escape when EITHER a firewall action_loop trap is at threshold OR the
+        # escape was armed by no-action STAGNATION (governor-driven loop). The
+        # firewall counter stays 0 for governor no-action loops, so gating on it
+        # alone would arm-but-never-inject the stagnation escape.
+        if not self._recovery_stagnation_armed and \
+                getattr(fw, 'consecutive_loop_blocks', 0) < RECOVERY_AFTER_LOOP_BLOCKS:
             return  # authoritative counter says recovery is not needed
+        self._recovery_stagnation_armed = False  # consumed one-shot
         looped = self._recovery_looped_type
         current = ctx.selected_intent.intent_type if ctx.selected_intent else None
         if current is not None and looped is not None and current != looped:
@@ -680,8 +722,14 @@ class TelosV14Pipeline:
         final = ctx.selected_intent.intent_type if ctx.selected_intent else None
         if final is None or looped is None or final != looped:
             return  # the system escaped naturally - no injection
-        if getattr(self._firewall, 'consecutive_loop_blocks', 0) < RECOVERY_AFTER_LOOP_BLOCKS:
+        # Allow the post-council escape for BOTH armer types: a firewall
+        # action_loop trap AT threshold, or a governor no-action STAGNATION
+        # (firewall counter stays 0 for the latter, so gating on it alone would
+        # arm-but-never-inject).
+        if not self._recovery_stagnation_armed and \
+                getattr(self._firewall, 'consecutive_loop_blocks', 0) < RECOVERY_AFTER_LOOP_BLOCKS:
             return  # authoritative counter says recovery is not needed
+        self._recovery_stagnation_armed = False  # consumed one-shot
         from telos.intent_ir import IntentIR
         ctx.selected_intent = IntentIR(
             intent_type="goal_seek_recovery",
