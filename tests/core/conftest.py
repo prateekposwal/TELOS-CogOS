@@ -21,6 +21,22 @@ from telos.core.contracts.domain_model import DomainSimulator
 class MockSimulator(DomainSimulator):
     """Minimal simulator for testing the core runtime."""
 
+    name = "mock"
+    state_dim = 2
+    action_dim = 2
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=self.action_dim,
+            objectives=["utility"],
+            constraints=["bounds"],
+            observability="high",
+            capabilities=["transition", "simulate"],
+        )
+
     def initialize(self) -> None:
         pass
 

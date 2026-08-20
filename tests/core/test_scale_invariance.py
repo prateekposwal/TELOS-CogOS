@@ -51,6 +51,13 @@ class TinySim(DomainSimulator):
     def evaluate(self, s):
         return EvaluationReport(objectives={}, risks=0.0)
 
+    name = "tiny"
+    state_dim = 2
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(name=self.name, state_dim=self.state_dim, action_dim=2)
+
 
 class TinyAdapter(DomainAdapter):
     def forward(self, x): return x
@@ -65,6 +72,8 @@ class TinyAdapter(DomainAdapter):
         return np.sign(np.array([4.0, 4.0]) - state).astype(float)
     @property
     def name(self): return "tiny"
+    @property
+    def state_dim(self): return 2
 
 
 def _build_pipeline(sim=None, adapter=None, budget_ms=30.0, n_worlds=5, horizon=3):

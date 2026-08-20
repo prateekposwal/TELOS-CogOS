@@ -37,6 +37,9 @@ class QuickSim(DomainSimulator):
     def evaluate(self, s):
         return EvaluationReport(objectives={}, risks=0.0)
 
+    name = "quick"
+    state_dim = 2
+
 
 class QuickAdpt(DomainAdapter):
     def forward(self, x): return x
@@ -51,6 +54,8 @@ class QuickAdpt(DomainAdapter):
         return np.sign(np.array([4, 4]) - state).astype(float)
     @property
     def name(self): return "quick"
+    @property
+    def state_dim(self): return 2
 
 
 def test_build_subpipeline():
