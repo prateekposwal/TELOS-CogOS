@@ -1,0 +1,79 @@
+{
+  "benchmark": "devdomain_v61",
+  "version": "1.0",
+  "tasks": {
+    "task_a": {
+      "decisions": [
+        "ACT"
+      ],
+      "authority": [
+        0.93
+      ],
+      "authority_direction": "STABLE",
+      "final_decision": "ACT"
+    },
+    "task_b": {
+      "decisions": [
+        "ACT",
+        "ACT"
+      ],
+      "authority": [
+        0.5,
+        0.85
+      ],
+      "authority_direction": "INCREASED",
+      "final_decision": "ACT"
+    },
+    "task_c": {
+      "decisions": [
+        "DEFER"
+      ],
+      "authority": [
+        0.5
+      ],
+      "authority_direction": "STABLE",
+      "final_decision": "DEFER"
+    },
+    "task_d": {
+      "decisions": [
+        "ACT",
+        "BLOCK"
+      ],
+      "authority": [
+        0.5,
+        0.0
+      ],
+      "authority_direction": "DECREASED",
+      "final_decision": "BLOCK"
+    },
+    "task_e": {
+      "decisions": [
+        "ACT",
+        "BLOCK",
+        "ACT"
+      ],
+      "authority": [
+        0.9,
+        0.0,
+        0.5
+      ],
+      "authority_direction": "DECREASED",
+      "final_decision": "ACT"
+    }
+  },
+  "metrics": {
+    "correct_act_rate": 0.4,
+    "false_act_rate": 0.0,
+    "correct_defer_rate": 0.6,
+    "false_defer_rate": 0.0,
+    "correct_abstain_rate": 0.0,
+    "false_abstain_rate": 0.0,
+    "correct_escalate_rate": 0.0,
+    "over_authority_rate": 0.0,
+    "under_authority_rate": 0.0,
+    "authority_calibration": 0.6,
+    "checkpoint_pass_rate": 1.0,
+    "reality_gap_calibration": 0.8,
+    "correct_action_rate": 1.0
+  }
+}
