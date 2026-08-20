@@ -28,6 +28,7 @@ from telos.core.contracts.domain_model import DomainSimulator, DomainAdapter, Ev
 from telos.world.facts import DomainFacts
 from telos.world.world import World
 from telos.intent_ir import IntentIR
+from telos.adapters.dev_validation import validate_project
 
 # Feature dimensions for the state vector
 # [0]: dep_count (total dependencies)
@@ -219,6 +220,8 @@ class DevDomainSim(DomainSimulator):
         # never global np.random in the simulation hot path.
         self._rng = np.random.RandomState(seed)
         self._last_snapshot: Optional[CodebaseSnapshot] = None
+        self._last_evidence = None
+        self._last_validation_runs = []
 
     def initialize(self) -> None:
         pass
@@ -244,11 +247,29 @@ class DevDomainSim(DomainSimulator):
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 pass
 
+        # ── TELOS v6 Phase 9: REPLACE fabricated test_pass_ratio=1.0 with
+        #    real, measured evidence from a sandboxed validation run. If no
+        #    test command can run, we keep a conservative default AND stamp
+        #    NON-measured evidence — we never claim a run that did not happen.
+        measured_ratio, measured_ts, measured_lint, runs, evidence = validate_project(
+            self.project_path)
+        if measured_ratio is not None:
+            test_pass_ratio = measured_ratio
+        else:
+            # no test command ran -> keep conservative default, mark evidence
+            # as UNVALIDATED/SIMULATION (evidence-must-not-lie).
+            test_pass_ratio = 1.0
+        # Only overwrite measured TS/lint counts when we actually measured them.
+        if measured_ts > 0 or any(r.name.startswith("typecheck") for r in runs):
+            ts_errors = measured_ts
+        if measured_lint > 0 or any(r.name == "lint" for r in runs):
+            lint_errors = measured_lint
+
         self._last_snapshot = CodebaseSnapshot(
             dep_count=deps,
             dep_outdated_count=outdated,
             test_count=test_files,
-            test_pass_ratio=1.0,  # assume pass unless we run tests
+            test_pass_ratio=test_pass_ratio,
             ts_error_count=ts_errors,
             lint_error_count=lint_errors,
             file_count=files,
@@ -258,6 +279,8 @@ class DevDomainSim(DomainSimulator):
             missing_peer_deps=missing_peer,
             findings=findings,
         )
+        self._last_evidence = evidence
+        self._last_validation_runs = runs
 
         return self._last_snapshot.to_vector()
 
@@ -293,6 +316,21 @@ class DevDomainSim(DomainSimulator):
             futures.append(World(state=s.copy(), metadata={"simulated": True}))
         return futures
 
+    name = "devdomain"
+    state_dim = STATE_DIM
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=self.state_dim,
+            objectives=["code_quality", "dep_health", "ts_health"],
+            constraints=[],
+            observability="high",
+            capabilities=["snapshot", "transition", "simulate"],
+        )
+
     def get_facts(self, state: np.ndarray) -> DomainFacts:
         findings = self._last_snapshot.findings if self._last_snapshot else []
         return DomainFacts(
@@ -309,7 +347,13 @@ class DevDomainSim(DomainSimulator):
                 "test_health": float(state[3]),
                 "doc_health": float(state[8]),
             },
-            metadata={"project_path": self.project_path},
+            metadata={
+                "project_path": self.project_path,
+                "validation_runs": [r.to_dict() for r in (self._last_validation_runs or [])],
+            },
+            # TELOS v6: attach the measured/unvalidated evidence stamp so
+            # downstream can never mistake an assumed value for a measurement.
+            evidence=self._last_evidence,
         )
 
     def terminal(self, state: np.ndarray) -> bool:
@@ -347,3 +391,7 @@ class DevDomainAdpt(DomainAdapter):
     @property
     def name(self) -> str:
         return "devdomain"
+
+    @property
+    def state_dim(self) -> int:
+        return STATE_DIM

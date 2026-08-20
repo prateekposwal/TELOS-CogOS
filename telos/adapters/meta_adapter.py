@@ -89,6 +89,26 @@ class MetaDomainSimulator(DomainSimulator):
     def evaluate(self, state: np.ndarray) -> EvaluationReport:
         return EvaluationReport(objectives={"self_awareness": 1.0}, risks=0.0)
 
+    @property
+    def name(self) -> str:
+        return "meta"
+
+    @property
+    def state_dim(self) -> int:
+        return 2
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=2,
+            objectives=["self_awareness"],
+            constraints=["self_analysis"],
+            observability="high",
+            capabilities=["self_analysis"],
+        )
+
     def _scan_codebase(self) -> Dict[str, Any]:
         base = self.config.codebase_path or os.path.dirname(
             os.path.dirname(os.path.abspath(__file__))
@@ -121,6 +141,14 @@ class MetaDomainAdapter(DomainAdapter):
 
     @property
     def action_dim(self) -> int:
+        return 2
+
+    @property
+    def name(self) -> str:
+        return "meta"
+
+    @property
+    def state_dim(self) -> int:
         return 2
 
     def forward(self, domain_state: np.ndarray) -> np.ndarray:

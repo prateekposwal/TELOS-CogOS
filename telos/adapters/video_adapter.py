@@ -70,6 +70,26 @@ class VideoDomainSimulator(DomainSimulator):
     def domain(self) -> str:
         return self.DOMAIN
 
+    @property
+    def name(self) -> str:
+        return self.DOMAIN
+
+    @property
+    def state_dim(self) -> int:
+        return 3
+
+    def world_spec(self):
+        from telos.core.contracts.domain_model import WorldSpec
+        return WorldSpec(
+            name=self.name,
+            state_dim=self.state_dim,
+            action_dim=2,
+            objectives=["quality"],
+            constraints=[],
+            observability="high",
+            capabilities=["track", "proxy_track", "reflex"],
+        )
+
 
 class VideoDomainAdapter(DomainAdapter):
 
@@ -96,3 +116,7 @@ class VideoDomainAdapter(DomainAdapter):
     @property
     def name(self) -> str:
         return "video"
+
+    @property
+    def state_dim(self) -> int:
+        return 3
