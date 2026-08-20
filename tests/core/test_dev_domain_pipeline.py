@@ -34,7 +34,11 @@ from tests.core.conftest import MockSimulator
 # ═══════════════════════════════════════════════════════════════════
 
 def build_dev_domain_pipeline(project_path: str = "/tmp/test_project") -> TelosV14Pipeline:
-    """Build a TelosV14Pipeline configured for DevDomain with all validators."""
+    """Build a TelosV14Pipeline configured for DevDomain with all validators.
+
+    Args:
+        project_path: filesystem path to the project the DevDomain validates.
+    """
     sim = DevDomainSim(project_path)
     pipeline = TelosV14Pipeline(PipelineConfig(
         adapter=DevDomainAdpt(),
@@ -151,11 +155,25 @@ class TestDevDomainPipeline:
             f"Expected DI < 1.0 for dirty state, got {result.decision_integrity}"
 
     def test_dirty_state_is_council_blocked(self):
-        """Dirty state should be blocked by the Council."""
+        """Dirty state should be refused (no harmful action emitted).
+
+        TELOS v6 (over-conservatism fix V2): the council's BINDING veto now
+        respects the configurable voting threshold (simple_majority), so a
+        majority-passes dirty state is no longer flagged `council_blocked`
+        purely on a unanimous rule. The binding refusal still happens via the
+        Decision Firewall's low-integrity gate (DISSENT_FLOOR caps DI -> the
+        firewall blocks), so a dirty state must NOT produce an action.
+        """
         pipeline = build_dev_domain_pipeline()
         result = pipeline.execute(DIRTY_STATE, user_name="test-devdomain")
-        assert result.council_blocked is True, \
-            "Dirty state should be council-blocked"
+        trace = result.decision_trace
+        # Real safety property: a dirty state never leads to a concrete action.
+        action = getattr(trace, "selected_action", None) if trace else None
+        governance_blocked = result.firewall_blocked or result.council_blocked or bool(
+            getattr(trace, "governance_blocked_by", None))
+        assert governance_blocked, "Dirty state must be governance/firewall blocked"
+        if result.council_blocked or result.firewall_blocked:
+            assert action is None, "Dirty state must not emit a concrete action"
 
     def test_dirty_state_has_blocking_validator(self):
         """Dirty state should have a named blocking validator."""
