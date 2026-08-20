@@ -18,13 +18,19 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (648 tests)
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (830 tests)
 - **Gap scanner:** `PYTHONPATH=. python3 telos/tools/gap_scanner.py`
 - **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
-## Status (EVOLVED + SHIPPED — 2026-08-14)
-- **648/648 tests passing** across 73 test files (5 consecutive green runs)
+## Status (SHIPPED — v6.1 — 2026-08-20)
+- **830 tests passing** (2 formerly-red dashboard DOM-contract tests repaired; 4 trace-schema contract tests; 6 v6 test files)
 - **31/31 self-audit checks passing**
+- **v6 modules wired & tested**: governance (`telos/core/governance/` — `governor.py`, `capability_authorization.py`), epistemic/evidence/acquisition (`telos/world/` — `epistemic.py`, `evidence.py`, `acquisition.py`), theory experiment (`telos/core/reasoning/theory/experiment.py`), 3 domain adapters (`dev_validation.py`, `logistics_simulator.py`, `robotics_simulator.py`), 3 benchmarks (`telos/benchmarks/` `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` with `main()` CLI + provenance result JSONs)
+- **Decision trace schema contract**: canonical aliases `intent`/`discrimination_index`/`action_taken` + `budget_carryover_ms` in `to_dict()` (`telos/core/types.py`) — no consumer invents its own names (locked by `tests/core/test_trace_schema.py`)
+- **EvidenceProvenanceValidator** (`telos/core/council/validators/evidence.py`): council advisor scoring candidate intents against the falsification record (RealityGapTracker + no-action history) — decision-provenance-as-evidence (Λ6.5)
+- **Λ3.1 stagnation recovery**: consecutive no-action cycles arm goal-seek escape with recorded reason (`_update_stagnation_recovery_state` in `runtime.py`)
+- **RealityGapTracker → CapabilityAuthorization feed**: per-model model_fidelity feeds the act-phase capability gate (`telos/core/phases/act.py`)
+- **Legal-motion planner**: `legal_goal_step`/`legal_cardinal_action` in `telos_task.py` — A* cardinal-only first step so model and executor agree on what is reachable
 - **42 axioms** across 6 layers — verified by AxiomProver every cycle and self-audit check [25]
 - **KnowledgeGraph edge layer** (`telos/core/knowledge/graph.py`): typed/weighted `Edge` dataclass, activation spreads along edges (Λ4.7 Law of Attention and Trajectory), `bfs`/`dfs`/`find_path` traversal, edges serialized in checkpoints and served by `/api/knowledge`
 - **KnowledgeLinker** (`telos/core/knowledge/links.py`): one canonical registry binding KnowledgeGraph ↔ TheoryGenealogy ↔ SCM ↔ **Identity nodes**; promotion hook auto-links every promoted theory to its knowledge nodes (Λ6.7)
@@ -153,3 +159,131 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 ### Metrics
 - DI: 1.000 | MD: 0.000 | Cycles: 5
 
+
+## Session Handoff — 2026-08-20 01:08:43
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.387 | Cycles: 2
+
+
+## Session Handoff — 2026-08-20 01:09:59
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 3
+
+
+## Session Handoff — 2026-08-20 01:28:46
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.600 | Cycles: 8
+
+
+## Session Handoff — 2026-08-20 01:28:53
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.600 | Cycles: 8
+
+
+## Session Handoff — 2026-08-20 01:29:30
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.600 | Cycles: 8
+
+
+## Session Handoff — 2026-08-20 01:45:25
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 11
+
+
+## Session Handoff — 2026-08-20 01:52:51
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 11
+
+
+## Session Handoff — 2026-08-20 (EXECUTED FULL ROADMAP — COMPLETE v6 SHIP)
+
+### Current State
+- Session mood: deliberate
+- Shipped: **the entire v6 roadmap, committed** — trace-schema aliases, dashboard test repair, stagnation recovery, RealityGap→Capability feed, evidence validator, 3 domain benchmarks, budget carryover telemetry, AGENTS.md map update
+- Test count: 830 passing (100% green, verified 2026-08-20)
+
+### Decisions Made
+- **Trace schema lock** (`telos/core/types.py`): `to_dict()` emits canonical aliases `intent`/`discrimination_index`/`action_taken` + `budget_carryover_ms`; contract locked by `tests/core/test_trace_schema.py` — no consumer invents names (schema-drift pattern dead)
+- **Λ3.1 stagnation recovery** (`telos/core/runtime.py`): `_update_stagnation_recovery_state` arms goal-seek escape after 3 consecutive no-action cycles with recorded reason `no_action_stagnation` — kills the `blended_inquiry` null-action loop pathology
+- **EvidenceProvenanceValidator** (`telos/core/council/validators/evidence.py`): council advisor scores candidate intents against RealityGapTracker falsification record + intent-type no-action history; inquiry types never penalised; dissents force differently-typed escape (Λ6.5)
+- **RealityGap→Capability feed** (`telos/core/phases/act.py`): act-phase reads `_reality_gap_tracker.model_fidelity()` — validated models <0.5 fidelity gate FAIL
+- **Legal-motion planner** (`telos_task.py`): `legal_goal_step`/`legal_cardinal_action` A* cardinal-only first step keeps model and executor in agreement; GridSim/simulate use the same helpers
+- **Benchmark orphans closed** (`telos/benchmarks/`): `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` each run via `python3 -m telos.benchmarks.<name>` with `main()` CLI and write provenance result JSONs
+- **Dashboard tests repaired**: 2 formerly-red dashboard DOM-contract tests fixed — suite fully green
+- **Gap-scanner guard fixed, not weakened** (`telos/tools/gap_scanner.py`): repo-root `telos_task.py` now in the reference universe (main-harness-only helpers were falsely flagged dead); dotted module refs resolve as packages; `post_execute` classified as a phase lifecycle dispatch hook. Ships with zero dead code — removed unused `_coerce_status` (act.py) and the unimported `telos/core/pipeline_helpers.py` dead module (runtime reimplements its logic as methods). Docstring Args hygiene added across staged v6 files so every check passes honestly (no `--no-verify`, no guard weakening)
+
+### Open Issues
+- *(None)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: build+ship session (6 logical commits)
