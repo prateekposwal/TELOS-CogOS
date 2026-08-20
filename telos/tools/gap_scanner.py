@@ -538,13 +538,25 @@ def check_agents_md():
         # Try to find as a file
         candidate = "/".join(parts) + ".py"
         full = BASE_DIR / candidate
-        if not full.exists():
-            # Try as a module within telos
-            if parts[0] == "telos":
-                candidate2 = "/".join(parts[1:]) + ".py"
-                full2 = TELOS_DIR / candidate2
-                if not full2.exists():
-                    missing_modules.append(m)
+        # Guard improvement: a dotted reference may name a PACKAGE (directory
+        # with __init__.py) rather than a flat .py file — e.g. telos.benchmarks.
+        # Resolve packages so AGENTS.md `python3 -m telos.benchmarks.demo` style
+        # references do not false-positive as missing modules.
+        if full.is_file():
+            continue
+        pkg_dir = BASE_DIR / "/".join(parts)
+        if (pkg_dir / "__init__.py").is_file():
+            continue
+        # Try as a module within telos
+        if parts[0] == "telos":
+            candidate2 = "/".join(parts[1:]) + ".py"
+            full2 = TELOS_DIR / candidate2
+            if full2.is_file():
+                continue
+            pkg_dir2 = TELOS_DIR / "/".join(parts[1:])
+            if (pkg_dir2 / "__init__.py").is_file():
+                continue
+            missing_modules.append(m)
 
     passed = True
     if missing_files:
