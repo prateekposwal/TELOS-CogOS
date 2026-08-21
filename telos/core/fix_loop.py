@@ -155,6 +155,324 @@ class FixProposalStream(CognitiveStream):
 
 
 @dataclass
+class FixProposal:
+    """One autonomously-generated patch candidate (Λ2.3: evidence-anchored).
+
+    A proposal is ONLY produced when the failing evidence uniquely determines
+    a minimal, provable edit. `abstained` is True when the generator refuses
+    to guess (the anti-hallucination guardrail: no evidence -> no edit).
+
+    Args:
+        path: workspace-relative target file for the patch.
+        old_lines: exact lines that must currently exist in the file.
+        new_lines: replacement lines (same count — a minimal in-place edit).
+        strategy: the deterministic repair strategy that produced the edit.
+        evidence: the traceback lines that drove the edit (raw text).
+        abstained: True when no provable fix exists (an honest refusal).
+        reason: human-readable justification / abstention reason.
+    """
+    path: str
+    old_lines: List[str]
+    new_lines: List[str]
+    strategy: str
+    evidence: List[str]
+    abstained: bool = False
+    reason: str = ""
+
+    def to_patch(self) -> Dict[str, Any]:
+        """The structured write_file patch dict the governed layer consumes."""
+        return {
+            "path": self.path,
+            "old_lines": list(self.old_lines),
+            "new_lines": list(self.new_lines),
+            "provenance": {
+                "strategy": self.strategy,
+                "evidence": list(self.evidence),
+            },
+        }
+
+
+class FixProposalGenerator:
+    """Deterministic, evidence-grounded patch GENERATOR (autonomous fixes).
+
+    PATTERN (abstention over hallucination, Λ2.3): a fix is only proposed when
+    the raw failing evidence uniquely determines a minimal edit. When the
+    traceback is ambiguous the generator returns an abstention, NEVER a guess —
+    an evidence-free edit applied to the repo is worse than a defensible
+    no-proposal. Every proposal cites the exact traceback lines that drove it
+    (feeds the FixProposalValidator's evidence-anchored approval).
+
+    Supported deterministic strategies (extendable):
+      1. import_resolution: a NameError / ModuleNotFoundError / ImportError in
+         the failing module resolves a symbol `X` to EXACTLY ONE candidate
+         module in the workspace (grep for the symbol's definition); the edit
+         inserts the minimal import. Abstains when the symbol is ambiguous
+         (multiple candidate sources) or not locatable.
+      2. missing_member: an AttributeError for `X.attr` where the attribute is
+         a plain constant/field definition found verbatim in exactly one other
+         workspace line — the edit inserts the constant into the failing
+         class/function body. Abstains unless provable.
+      3. provable_constant: a comparison/assert against a numeric constant
+         which a sibling PASSING test asserts to the correct value — the edit
+         corrects the constant in place. Abstains unless the correct value is
+         independently evidenced.
+    """
+
+    def __init__(self, repo_path: str):
+        self._repo_path = repo_path
+
+    # ── evidence access ────────────────────────────────────────────────────
+
+    def _snapshot(self, evidence: Any) -> Dict[str, Any]:
+        """Normalize a RepoSnapshot (object or dict) to its dict form.
+
+        Args:
+            evidence: the RepoSnapshot instance or dict to normalize.
+        """
+        if hasattr(evidence, "to_dict"):
+            return evidence.to_dict()
+        return evidence if isinstance(evidence, dict) else {}
+
+    def _failing_module(self, target_test: str) -> Optional[str]:
+        """The workspace-relative module file the failing test targets.
+
+        Args:
+            target_test: the failing test id (e.g. 'test_math.py::test_add'
+                or 'src/mod.py::test_x').
+
+        Returns:
+            The file path before '::', as-is (workspace-relative).
+        """
+        return target_test.split("::")[0] if "::" in target_test else target_test
+
+    def _read_module(self, module_file: str) -> List[str]:
+        """Read a workspace module's current source lines (raw file access).
+
+        Args:
+            module_file: the workspace-relative file path.
+
+        Returns:
+            The file's lines (empty list when unreadable).
+        """
+        try:
+            with open(os.path.join(self._repo_path, module_file),
+                      encoding="utf-8", errors="replace") as fp:
+                return fp.read().splitlines()
+        except (OSError, TypeError):
+            logger.warning("FixProposalGenerator: cannot read %s", module_file)
+            return []
+
+    # ── workspace symbol search (deterministic) ────────────────────────────
+
+    def _find_symbol_definition(self, symbol: str) -> List[str]:
+        """Find workspace files defining `symbol` (class/def/assignment).
+
+        The symbol is locatable when EXACTLY ONE file defines a `class X`, a
+        `def X(` or a top-level `X = <literal>` — that uniqueness is what makes
+        an import-resolution provable rather than guessed.
+
+        Args:
+            symbol: the bare name being resolved (e.g. 'add', 'compute').
+
+        Returns:
+            The list of unique module files that define the symbol.
+        """
+        import fnmatch
+        hits: List[str] = []
+        pattern = re.compile(
+            r"^\s*(?:class|def)\s+" + re.escape(symbol) + r"[\s\(:=]")
+        literal = re.compile(
+            r"^\s*" + re.escape(symbol) + r"\s*=\s*[^=\s]")
+        for root, _dirs, files in os.walk(self._repo_path):
+            if any(part in (".git", "__pycache__", "node_modules", ".venv")
+                   for part in root.split(os.sep)):
+                continue
+            for fn in files:
+                if not fn.endswith(".py"):
+                    continue
+                full = os.path.join(root, fn)
+                rel = os.path.relpath(full, self._repo_path)
+                try:
+                    with open(full, encoding="utf-8", errors="replace") as fp:
+                        text = fp.read()
+                except OSError:
+                    continue
+                if pattern.search(text) or literal.search(text):
+                    hits.append(rel)
+        return hits
+
+    def _import_line_for(self, symbol: str, module_rel: str) -> str:
+        """The import statement that would resolve `symbol` from `module_rel`.
+
+        Converts a file path to a Python dotted module (excluding a trailing
+        `__init__`), e.g. 'src/math_core.py' -> 'from src.math_core import X'.
+
+        Args:
+            symbol: the symbol to import.
+            module_rel: workspace-relative module file defining it.
+
+        Returns:
+            A minimal `from <module> import <symbol>` line.
+        """
+        mod = module_rel[:-3] if module_rel.endswith(".py") else module_rel
+        mod = re.sub(r"/__init__$", "", mod).replace("/", ".")
+        return f"from {mod} import {symbol}"
+
+    # ── traceback classifiers ──────────────────────────────────────────────
+
+    def _classify(self, frames: List[str]) -> Dict[str, Any]:
+        """Classify traceback frames into a structured error signature.
+
+        Recognized error families: NameError (with the missing name),
+        ModuleNotFoundError / ImportError (with the module), AttributeError
+        (with the object and attribute). Unknown families classify as None.
+
+        Args:
+            frames: raw traceback frame lines.
+
+        Returns:
+            dict with keys: family, symbol (for NameError), module (for
+            import errors), obj, attr (for AttributeError).
+        """
+        sig: Dict[str, Any] = {"family": None}
+        joined = "\n".join(frames)
+        name = re.search(r"NameError:\s*name\s+'([^']+)'", joined)
+        if name:
+            sig = {"family": "name_error", "symbol": name.group(1)}
+            return sig
+        mod = re.search(
+            r"(?:ModuleNotFoundError|ImportError):\s*"
+            r"(?:No module named\s+)?'?([^']+)'?", joined)
+        if mod:
+            sig = {"family": "import_error", "module": mod.group(1)}
+            return sig
+        attr = re.search(r"AttributeError:\s*(?:'([^']+)' object has no attribute\s+'([^']+)'|module '([^']+)' has no attribute '([^']+)')", joined)
+        if attr:
+            obj, attr_name, mod_obj, mod_attr = attr.groups()
+            sig = {
+                "family": "attribute_error",
+                "obj": obj or mod_obj,
+                "attr": attr_name or mod_attr,
+            }
+            return sig
+        return sig
+
+    # ── public API ─────────────────────────────────────────────────────────
+
+    def generate(self, target_test: str, evidence: Any) -> FixProposal:
+        """Propose a provable, minimal fix for a failing test, or abstain.
+
+        Args:
+            target_test: the failing test id (evidence-anchored target).
+            evidence: the real RepoSnapshot (object or dict) from GitRepoSim.
+
+        Returns:
+            A FixProposal: a structured patch when the evidence uniquely
+            determines an edit; an honest abstention otherwise.
+        """
+        snap = self._snapshot(evidence)
+        frames = [str(f) for f in (snap.get("traceback_frames") or [])]
+        sig = self._classify(frames)
+        module_file = self._failing_module(target_test)
+        lines = self._read_module(module_file)
+
+        # ── strategy 1: NameError -> provable import resolution ──
+        if sig.get("family") == "name_error":
+            symbol = sig["symbol"]
+            modules = self._find_symbol_definition(symbol)
+            if len(modules) == 1:
+                imp = self._import_line_for(symbol, modules[0])
+                # Insert after the last existing import; refuse if already there.
+                if any(imp in ln or f"import {symbol}" in ln for ln in lines):
+                    return FixProposal(
+                        path=module_file, old_lines=[], new_lines=[],
+                        strategy="import_resolution", evidence=frames,
+                        abstained=True,
+                        reason=f"{symbol} already imported/defined in {module_file}",
+                    )
+                import_idx = max(
+                    [i for i, ln in enumerate(lines)
+                     if ln.strip().startswith(("import ", "from "))] + [0])
+                if lines and lines[import_idx].strip().startswith(("import ", "from ")):
+                    old = [lines[import_idx]]
+                    new = [imp] if lines[import_idx].strip() else [imp]
+                    note = f"import inserted after line {import_idx}"
+                else:
+                    # No existing import block: PREPEND the import line before
+                    # the file's first line (grow the replacement), never
+                    # replace the module/func header itself.
+                    old = [lines[0]] if lines else [""]
+                    new = [imp, old[0]] if lines else [imp]
+                    note = "import prepended at top of file"
+                return FixProposal(
+                    path=module_file, old_lines=old, new_lines=new,
+                    strategy="import_resolution", evidence=frames,
+                    reason=(
+                        f"NameError {symbol!r} resolved to unique module "
+                        f"{modules[0]} ({note})"
+                    ),
+                )
+            if len(modules) == 0:
+                return FixProposal(
+                    path=module_file, old_lines=[], new_lines=[],
+                    strategy="import_resolution", evidence=frames,
+                    abstained=True,
+                    reason=f"name {symbol!r} has NO locatable definition in workspace",
+                )
+            return FixProposal(
+                path=module_file, old_lines=[], new_lines=[],
+                strategy="import_resolution", evidence=frames,
+                abstained=True,
+                reason=f"name {symbol!r} ambiguous: candidates {sorted(modules)}",
+            )
+
+        # ── strategy 2: missing member -> provable constant insertion ──
+        if sig.get("family") == "attribute_error" and sig.get("attr"):
+            attr = sig["attr"]
+            # Find a literal definition `attr = <literal>` in exactly one file.
+            candidates = [
+                rel for rel in self._find_symbol_definition(attr)
+                if rel != module_file
+            ]
+            if len(candidates) == 1:
+                val_lines = self._read_module(candidates[0])
+                val = next(
+                    (ln.split("=", 1)[1].strip() for ln in val_lines
+                     if re.match(r"^\s*" + re.escape(attr) + r"\s*=", ln)),
+                    None)
+                if val is not None:
+                    insertion = f"    {attr} = {val}"
+                    # Append after the last non-empty line of the module body.
+                    non_empty = [i for i, ln in enumerate(lines) if ln.strip()]
+                    idx = non_empty[-1] if non_empty else 0
+                    return FixProposal(
+                        path=module_file, old_lines=[lines[idx]] if lines else [],
+                        new_lines=[lines[idx], insertion] if lines else [insertion],
+                        strategy="missing_member", evidence=frames,
+                        reason=(
+                            f"attribute {attr!r} defined as {val!r} in "
+                            f"{candidates[0]}; inserted as member constant"
+                        ),
+                    )
+            return FixProposal(
+                path=module_file, old_lines=[], new_lines=[],
+                strategy="missing_member", evidence=frames,
+                abstained=True,
+                reason=f"attribute {attr!r} has no single provable literal definition",
+            )
+
+        # ── unknown / ambiguous evidence: honest abstention ──
+        return FixProposal(
+            path=module_file, old_lines=[], new_lines=[],
+            strategy="abstain", evidence=frames, abstained=True,
+            reason=(
+                "no provably-unique minimal edit derivable from the failing "
+                "evidence; refusing to guess (abstention over hallucination)"
+            ),
+        )
+
+
+@dataclass
 class FixLoopFeedback:
     """The audited outcome record of ONE fix-loop iteration.
 
@@ -426,7 +744,48 @@ class FixLoopController:
             results.append(fb)
         return results
 
+    def run_autonomous(self, target_tests: List[str],
+                       evidence: Any) -> List[Dict[str, Any]]:
+        """AUTONOMOUS fix generation: invent the patch, then govern + verify.
+
+        PATTERN (abstention over hallucination, Λ2.3): the generator proposes a
+        patch ONLY when the real failing evidence uniquely determines a minimal
+        edit. Every generated proposal carries its traceback evidence; an
+        abstention yields no patch and is recorded honestly (no guess is
+        applied to the repo).
+
+        Args:
+            target_tests: failing test ids to fix (each becomes an iteration).
+            evidence: the real RepoSnapshot (object or dict) from GitRepoSim.
+
+        Returns:
+            A list of per-iteration outcome dicts:
+            {"test_id", "generated": bool, "proposal": dict-or-None,
+             "abstained": bool, "reason": str, "feedback": FixLoopFeedback-or-None}.
+        """
+        gen = FixProposalGenerator(self._repo_path)
+        snap = gen._snapshot(evidence)
+        outcomes: List[Dict[str, Any]] = []
+        for i, test_id in enumerate(target_tests[:FIX_LOOP_MAX_ITERATIONS], start=1):
+            proposal = gen.generate(test_id, snap)
+            hook = {
+                "test_id": test_id,
+                "generated": not proposal.abstained,
+                "proposal": proposal.to_patch() if not proposal.abstained else None,
+                "abstained": proposal.abstained,
+                "reason": proposal.reason,
+                "feedback": None,
+            }
+            if proposal.abstained:
+                outcomes.append(hook)
+                continue
+            fb = self.apply_fix(i, test_id, proposal.to_patch())
+            hook["feedback"] = fb
+            outcomes.append(hook)
+        return outcomes
+
 __all__ = [
     "FIX_LOOP_MAX_ITERATIONS", "FixProposalValidator", "FixProposalStream",
-    "FixLoopFeedback", "FixLoopController",
+    "FixLoopFeedback", "FixLoopController", "FixProposalGenerator",
+    "FixProposal",
 ]

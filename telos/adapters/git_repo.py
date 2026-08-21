@@ -369,9 +369,13 @@ def parse_test_output(source_path: str, text: str) -> TestRunEvidence:
 def parse_traceback_frames(text: str, max_frames: int = TRACEBACK_FRAMES) -> List[str]:
     """Extract the first frames + exception line from traceback blocks.
 
-    A traceback block starts with 'Traceback (most recent call last):'; the
-    first `max_frames` '  File "...' frame lines and the trailing exception
-    line (e.g. 'AssertionError: ...') are captured verbatim.
+    Supports BOTH pytest formats:
+      - long form:  'Traceback (most recent call last):' then
+        '  File "...", line N, in func' frame lines, then an exception line;
+      - short form: 'test_file.py:N: in func' frame lines followed by an
+        'E   NameError: ...' / 'E AssertionError: ...' (pytest `--tb=short`).
+    The first `max_frames` frame lines and the trailing exception line are
+    captured verbatim (raw text — never reinterpreted).
 
     Args:
         text: raw output possibly containing one or more tracebacks.
@@ -383,13 +387,15 @@ def parse_traceback_frames(text: str, max_frames: int = TRACEBACK_FRAMES) -> Lis
     frames: List[str] = []
     in_traceback = False
     frame_count = 0
+    # NameError vs AttributeError source distinction for the short-form parser.
+    short_candidates: List[str] = []
     for line in text.splitlines():
+        stripped = line.strip()
         if "Traceback (most recent call last):" in line:
             in_traceback = True
             frame_count = 0
             continue
         if in_traceback:
-            stripped = line.strip()
             if stripped.startswith('File "'):
                 if frame_count < max_frames:
                     frames.append(line.rstrip())
@@ -400,6 +406,24 @@ def parse_traceback_frames(text: str, max_frames: int = TRACEBACK_FRAMES) -> Lis
                 in_traceback = False
             elif stripped == "":
                 in_traceback = False
+            continue
+        # pytest `--tb=short` frame line: 'path.py:N: in func'
+        short_frame = re.match(r"^[^\s:]+\.py:\d+: in \S", stripped)
+        if short_frame:
+            short_candidates.append(line.rstrip())
+            continue
+        # pytest short-form exception line: 'E   NameError: ...' or
+        # 'E AssertionError: ...' after one or more short frame lines.
+        short_exc = re.match(r"^E\s+([A-Za-z_][A-Za-z0-9_.]*Error|Exception|Warning):", stripped)
+        if short_exc and short_candidates:
+            for fr in short_candidates[-max_frames:]:
+                if fr not in frames:
+                    frames.append(fr)
+            if line.rstrip() not in frames:
+                frames.append(line.rstrip())
+            short_candidates = []
+        elif not stripped and short_candidates:
+            short_candidates = []
     return frames
 
 
@@ -544,6 +568,12 @@ class GitRepoSim(DomainSimulator):
                 run = parse_test_output(str(path), text)
                 snap.test_runs.append(run)
                 prov["test_output"] = "measured"
+                # Real failing-test evidence also feeds the raw traceback
+                # channel (long-form AND pytest `--tb=short` formats), so the
+                # council / fix-generator read the ACTUAL exception lines.
+                for fr in parse_traceback_frames(text):
+                    if fr not in snap.traceback_frames:
+                        snap.traceback_frames.append(fr)
             else:
                 prov["test_output"] = f"unavailable:missing {path}"
         for path in self._traceback_paths:
