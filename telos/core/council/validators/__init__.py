@@ -6,8 +6,10 @@ from telos.core.council.validators.evidence import EvidenceProvenanceValidator
 from telos.core.council.validators.health import (
     DepHealthValidator, TestCoverageValidator, CodeQualityValidator,
 )
+from telos.core.council.validators.repo_evidence import RepoEvidenceValidator
 __all__ = [
     "RealityValidator", "ConstraintValidator", "ConstraintScript",
     "MemoryAdvisor", "MissionDriftDetector", "EvidenceProvenanceValidator",
     "DepHealthValidator", "TestCoverageValidator", "CodeQualityValidator",
+    "RepoEvidenceValidator",
 ]
