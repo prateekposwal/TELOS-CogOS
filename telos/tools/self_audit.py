@@ -329,6 +329,32 @@ def run_audit(verbose=True) -> Dict:
                    if ok else
                    f"AXIOMS.md has {md_count} but genesis.py declares {genesis_count} "
                    f"and system_self.py declares {identity_count}")
+        # Ph5 (Λ5.2): the registry must account for every declared axiom with an
+        # honest enforcement status — the historical "39/42 enforced" drift can
+        # never recur invisibly. Aspirational axioms are deliberately accounted
+        # and fail-closed in the prover (never silently pass).
+        try:
+            from telos.core.axioms.registry import accounted_count, accounting
+            reg_count = accounted_count()
+            acct = accounting()
+            reg_ok = (reg_count == md_count
+                      and acct["total"] == md_count
+                      and acct["total"] == acct["enforced"] + acct["scaffold"]
+                      + acct["aspirational"])
+            if ok and reg_ok:
+                details += (f"; registry accounted {reg_count} "
+                            f"(+{acct['enforced']} enforced, "
+                            f"{acct['scaffold']} scaffold, "
+                            f"{acct['aspirational']} aspirational)")
+            elif not reg_ok:
+                ok = False
+                details += (f"; REGISTRY DRIFT — accounted {reg_count} != declared "
+                            f"{md_count} (enforced={acct['enforced']}, "
+                            f"scaffold={acct['scaffold']}, "
+                            f"aspirational={acct['aspirational']})")
+        except Exception as ee:
+            ok = False
+            details += f"; registry check failed: {ee}"
         checks.append((ok, "Axiom count verified across AXIOMS.md, genesis.py, system_self.py",
                        details))
     except Exception as e:
