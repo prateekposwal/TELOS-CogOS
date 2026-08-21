@@ -414,7 +414,7 @@
       "name": "P-01",
       "title": "Gates red on clean tree / health not self-certifying",
       "root_cause": "Gate definitions are strict but pre-existing debt makes them permanently red; no staged-scope or threshold",
-      "structural_fix": "Make gap-scanner staged-scope or thresholded; fix or archive legacy dead code (meal_library, dev_domain_adapter); let M4 run naturally; reconnect stale spool source",
+      "structural_fix": "Make gap-scanner staged-scope or thresholded; fix or archive legacy dead code (dev_domain_adapter; meal_library archived 2026-08-21); let M4 run naturally; reconnect stale spool source",
       "gaps": [
         "G-01",
         "G-03",
