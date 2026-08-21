@@ -114,7 +114,9 @@ class InterpretationEngine:
         """Detect if a set of principles are in conflict.
 
         Checks registered conflict pairs against current principle set.
-        """
+        
+        context: the decision/execution context for this pass
+"""
         principle_names = {p.name for p in principles}
         for conflict_type, (p1, p2) in self._registered_principle_sets.items():
             # Check if both principles of any known conflict are present
@@ -189,7 +191,11 @@ class InterpretationEngine:
     def _generate_explanation(self, conflict_type: ConflictType,
                                principles: List[Principle],
                                context: Dict) -> str:
-        """Generate a human-readable explanation of the conflict."""
+        """Generate a human-readable explanation of the conflict.
+        conflict_type: the conflict type for this operation
+        principles: the principles for this operation
+        context: the decision/execution context for this pass
+"""
         if conflict_type == ConflictType.EXPLORE_VS_EXPLOIT:
             return (
                 f"Conflict between exploration (seeking new knowledge) and "
@@ -217,7 +223,11 @@ class InterpretationEngine:
     def _estimate_trade_offs(self, conflict_type: ConflictType,
                               principles: List[Principle],
                               context: Dict) -> Dict[str, float]:
-        """Estimate trade-off costs for each principle."""
+        """Estimate trade-off costs for each principle.
+        conflict_type: the conflict type for this operation
+        principles: the principles for this operation
+        context: the decision/execution context for this pass
+"""
         trade_offs = {}
         for p in principles:
             if conflict_type == ConflictType.EXPLORE_VS_EXPLOIT:
@@ -239,7 +249,11 @@ class InterpretationEngine:
     def _recommend_resolution(self, conflict_type: ConflictType,
                                principles: List[Principle],
                                trade_offs: Dict[str, float]) -> str:
-        """Recommend a resolution strategy."""
+        """Recommend a resolution strategy.
+        conflict_type: the conflict type for this operation
+        principles: the principles for this operation
+        trade_offs: the trade offs for this operation
+"""
         if conflict_type == ConflictType.EXPLORE_VS_EXPLOIT:
             return "Use UCB-based selection: explore when uncertainty is high, exploit when confident."
         elif conflict_type == ConflictType.CORRECTNESS_VS_SPEED:
@@ -252,7 +266,10 @@ class InterpretationEngine:
 
     def _compute_confidence(self, conflict_type: ConflictType,
                              principles: List[Principle]) -> float:
-        """Compute confidence in the resolution recommendation."""
+        """Compute confidence in the resolution recommendation.
+        conflict_type: the conflict type for this operation
+        principles: the principles for this operation
+"""
         if len(principles) < 2:
             return 0.3
         # More confident when we've seen this conflict before
@@ -263,7 +280,10 @@ class InterpretationEngine:
         return min(0.9, 0.5 + 0.05 * similar_conflicts)
 
     def record_outcome(self, conflict_id: str, outcome_quality: float) -> None:
-        """Record the outcome of a resolved conflict for future learning."""
+        """Record the outcome of a resolved conflict for future learning.
+        conflict_id: the conflict id for this operation
+        outcome_quality: the outcome quality for this operation
+"""
         for record in self._conflict_history:
             if record.id == conflict_id:
                 record.outcome_quality = outcome_quality

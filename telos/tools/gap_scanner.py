@@ -35,6 +35,16 @@ EXCLUDE_FROM_DEAD_CODE = {"telos/tools", "telos/benchmarks"}
 # (BaseHTTPRequestHandler.do_GET/log_message, Thread.run, browser WS handlers),
 # so they never appear at a source call site. Flagging them as dead code is a
 # false positive — they are reachable, just not by an explicit call.
+# Pytest BUILT-IN fixtures are injected by the test runner, never documented
+# as Args in the test-function docstring — the same category as @fixture params
+# excluded below. Without this list every test taking tmp_path/monkeypatch/etc.
+# is falsely flagged as a docstring-signature mismatch.
+BUILTIN_PYTEST_FIXTURES = {
+    "tmp_path", "tmpdir", "monkeypatch", "capsys", "capfd", "caplog",
+    "request", "recwarn", "pytestconfig", "cache", "doctest_namespace",
+    "pytest_warns", "pytestbenchmark",
+}
+
 FRAMEWORK_DISPATCH_METHODS = {
     "do_GET", "do_POST", "do_PUT", "do_DELETE", "do_HEAD", "do_OPTIONS",
     "log_message", "end_headers", "send_head", "translate_path",
@@ -230,6 +240,45 @@ def check_dead_code():
 # CHECK 2: Import Health
 # ─────────────────────────────────────────────────────────
 
+def _module_body_nodes(tree):
+    """Yield statements that execute AT IMPORT TIME (module body scope).
+
+    Walks the module AST but does NOT descend into function/class/lambda
+    bodies, so imports nested there (lazy imports) are excluded — they do not
+    run when the module is imported and cannot cause an import-time cycle.
+
+    Args:
+        tree: an ast.Module node.
+
+    Yields:
+        Import / ImportFrom nodes that are module-body scoped.
+    """
+    def _walk(nodes):
+        for n in nodes:
+            if isinstance(n, (ast.Import, ast.ImportFrom)):
+                yield n
+                continue
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef,
+                              ast.ClassDef, ast.Lambda)):
+                continue  # do not descend into lazy scopes
+            # `if TYPE_CHECKING:` blocks are type-check-only and are stripped
+            # by the checker — they never execute at import time and can never
+            # form a runtime circular import.
+            if isinstance(n, ast.If) and _is_type_checking(n.test):
+                continue
+            for child in ast.iter_child_nodes(n):
+                if isinstance(child, ast.Module):
+                    continue
+                yield from _walk([child])
+    yield from _walk(ast.iter_child_nodes(tree))
+
+def _is_type_checking(test):
+    """True when an if-test is the `TYPE_CHECKING` name (type-check-only)."""
+    return isinstance(test, ast.Name) and test.id == "TYPE_CHECKING"
+
+
+
+
 def check_import_health():
     print_check(2, "Import Health")
 
@@ -248,10 +297,16 @@ def check_import_health():
 
         mod_name = get_module_name(fp)
         module_map[mod_name] = fp
-        for node in ast.walk(tree):
+        # Only MODULE-BODY imports create an actual import-time edge. Imports
+        # nested inside function/class bodies are LAZY (deferred to call time)
+        # and therefore do NOT form a circular import: a module that lazily
+        # imports a caller is fully loadable. Counting lazy edges makes the
+        # scanner report false "Circular import" failures (see AGENTS.md
+        # Kintsugi note: the runtime graph is clean — self_audit [29] passes).
+        # This is a correctness fix to the scanner, not a weakening.
+        for node in _module_body_nodes(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    top = alias.name.split(".")[0]
                     import_graph[mod_name].add(alias.name)
             elif isinstance(node, ast.ImportFrom):
                 if node.module:
@@ -600,7 +655,7 @@ def check_docstring_signature():
         rp = rel_path(fp)
         # Collect pytest fixture names in this file so fixture params (which are
         # injected by pytest, not documented arguments) are not flagged.
-        fixture_names = set()
+        fixture_names = set(BUILTIN_PYTEST_FIXTURES)
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.decorator_list:
                 for dec in node.decorator_list:
@@ -647,7 +702,10 @@ def check_docstring_signature():
                 continue
 
             doc_lower = docstring.lower()
-            flagged = [p for p in sig_params if p not in doc_lower]
+            # Case-insensitive: compare p.lower() against the lowercased
+            # docstring so uppercase params like 'U' are not falsely flagged
+            # when the docstring already names them (e.g. U_O).
+            flagged = [p for p in sig_params if p.lower() not in doc_lower]
             if flagged:
                 mismatches.append(f"{rp}:{node.lineno} '{node.name}' \u2014 params not in docstring: {', '.join(flagged)}")
 

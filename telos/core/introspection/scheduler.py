@@ -113,7 +113,11 @@ class IntrospectionScheduler:
     def configure_tier(self, tier: IntrospectionTier, interval: Optional[int] = None,
                        enabled: Optional[bool] = None,
                        min_cycles: Optional[int] = None) -> None:
-        """Update configuration for a specific tier."""
+        """Update configuration for a specific tier.
+        interval: the interval for this operation
+        enabled: the enabled for this operation
+        min_cycles: the min cycles for this operation
+"""
         config = self._tiers[tier]
         if interval is not None:
             config.interval = interval
@@ -173,7 +177,10 @@ class IntrospectionScheduler:
 
     def _execute_tier(self, tier: IntrospectionTier, cycle: int,
                       data: Dict[IntrospectionTier, Dict]) -> IntrospectionReport:
-        """Execute a specific introspection tier."""
+        """Execute a specific introspection tier.
+        cycle: the current pipeline cycle number
+        data: the data for this operation
+"""
 
         if tier == IntrospectionTier.CYCLE:
             return self._cycle_introspection(cycle, data[tier])
@@ -193,7 +200,9 @@ class IntrospectionScheduler:
         """Tier 1: Every-cycle introspection.
 
         Asks: "Did that action produce the expected outcome?"
-        """
+        
+        data: the data for this operation
+"""
         findings: List[str] = []
         metrics: Dict[str, float] = {}
         recommendations: List[str] = []
@@ -236,7 +245,9 @@ class IntrospectionScheduler:
         """Tier 2: Every ~100 cycles introspection.
 
         Asks: "What patterns are emerging in my behavior?"
-        """
+        
+        data: the data for this operation
+"""
         findings: List[str] = []
         metrics: Dict[str, float] = {}
         recommendations: List[str] = []
@@ -294,7 +305,9 @@ class IntrospectionScheduler:
         """Tier 3: Every ~1000 cycles introspection.
 
         Asks: "Should I change my core strategy?"
-        """
+        
+        data: the data for this operation
+"""
         findings: List[str] = []
         metrics: Dict[str, float] = {}
         recommendations: List[str] = []

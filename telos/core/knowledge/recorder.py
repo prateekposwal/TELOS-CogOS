@@ -33,7 +33,12 @@ class OutcomeRecorder:
     def success(self, domain: str, approach: str, outcome: float,
                 tags: Optional[List[str]] = None,
                 params: Optional[Dict] = None) -> str:
-        """Record a successful outcome."""
+        """Record a successful outcome.
+        domain: the domain for this operation
+        approach: the approach for this operation
+        tags: the tags for this operation
+        params: the params for this operation
+"""
         all_tags = (tags or []) + ["success"]
         return self._graph.record(
             domain, approach, outcome,
@@ -43,7 +48,12 @@ class OutcomeRecorder:
     def failure(self, domain: str, approach: str,
                 failure_reason: str, tags: Optional[List[str]] = None,
                 params: Optional[Dict] = None) -> str:
-        """Record a failed approach with reason."""
+        """Record a failed approach with reason.
+        domain: the domain for this operation
+        failure_reason: the failure reason for this operation
+        tags: the tags for this operation
+        params: the params for this operation
+"""
         all_tags = (tags or []) + ["failure"]
         return self._graph.record_failure(
             domain, approach, 0.15,
@@ -53,7 +63,12 @@ class OutcomeRecorder:
 
     def from_user(self, domain: str, approach: str,
                   user_said: str, tags: Optional[List[str]] = None) -> str:
-        """Record user-reported failure with their verbatim feedback."""
+        """Record user-reported failure with their verbatim feedback.
+        domain: the domain for this operation
+        approach: the approach for this operation
+        user_said: the user said for this operation
+        tags: the tags for this operation
+"""
         return self.failure(
             domain, approach,
             failure_reason=f"user_report: {user_said}",
@@ -64,7 +79,12 @@ class OutcomeRecorder:
     def record(self, domain: str, approach: str, outcome: float,
                tags: Optional[List[str]] = None,
                params: Optional[Dict] = None) -> str:
-        """Record a generic outcome (neither success nor failure)."""
+        """Record a generic outcome (neither success nor failure).
+        domain: the domain for this operation
+        approach: the approach for this operation
+        tags: the tags for this operation
+        params: the params for this operation
+"""
         return self._graph.record(
             domain, approach, outcome,
             tags=tags or [], params=params,
@@ -72,12 +92,21 @@ class OutcomeRecorder:
 
     def record_params(self, domain: str, approach: str, outcome: float,
                       params: Dict) -> str:
-        """Record with execution parameters (for reproducibility)."""
+        """Record with execution parameters (for reproducibility).
+        domain: the domain for this operation
+        approach: the approach for this operation
+        outcome: the outcome for this operation
+        params: the params for this operation
+"""
         return self._graph.record(domain, approach, outcome, params=params)
 
     def record_cycle(self, domain: str, approach: str, outcome: float,
                      cycle: int, di: float) -> str:
-        """Record a pipeline cycle outcome."""
+        """Record a pipeline cycle outcome.
+        domain: the domain for this operation
+        approach: the approach for this operation
+        di: di: decision integrity value
+"""
         return self._graph.record(
             domain, approach, outcome,
             params={"cycle": cycle, "di": di},

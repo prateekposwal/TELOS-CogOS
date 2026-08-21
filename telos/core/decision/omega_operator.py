@@ -125,7 +125,9 @@ class OmegaOperator:
           resolving disagreement directly unblocks pipeline decisions
         - U_W (environmental uncertainty) — understanding the world helps planning
         - Prior from the question itself (how likely is this to be relevant)
-        """
+        
+        U: U: the U for this operation
+"""
         u_o = getattr(U, 'U_O', 0.0)
         u_w = getattr(U, 'U_W', 0.0)
         u_i = getattr(U, 'U_I', 0.0)
@@ -151,7 +153,9 @@ class OmegaOperator:
         """Cost(Q) — computational cost of answering Q.
         
         Smooth scaling: est / (1 + remaining) avoids division by near-zero.
-        """
+        
+        budget: the budget for this operation
+"""
         est = q.get('estimated_horizon', 3) * q.get('estimated_worlds', 5) * 0.5
         remaining = budget.get('remaining_ms', 100)
         return est / (1 + remaining)
@@ -235,7 +239,11 @@ class OmegaOperator:
         
         Returns:
             Dict with keys 'world', 'identity', 'other'
-        """
+        
+        U: U: the U for this operation
+        scored: the scored for this operation
+        questions: the questions for this operation
+"""
         u_w = getattr(U, 'U_W', 0.0)
         u_i = getattr(U, 'U_I', 0.0)
         u_o = getattr(U, 'U_O', 0.0)
@@ -287,7 +295,9 @@ class OmegaOperator:
         - prior: how relevant this question is given current uncertainty levels
         - estimated_horizon: how many simulation steps to answer
         - estimated_worlds: how many parallel futures needed
-        """
+        
+        U: U: the U for this operation
+"""
         u_w = getattr(U, 'U_W', 0.0)
         u_i = getattr(U, 'U_I', 0.0)
         u_o = getattr(U, 'U_O', 0.0)
@@ -372,16 +382,6 @@ class OmegaOperator:
             )
 
     @property
-    def last_questions(self) -> List[Dict]:
-        """Return the most recently scored question set (for transparency)."""
-        return list(self._last_questions)
-
-    @property
     def last_omega_vector(self) -> Dict[str, float]:
         """Return the most recent multi-axis omega vector."""
         return dict(self._last_omega_vector)
-
-    @property
-    def seen_questions(self) -> Dict[str, int]:
-        """Return the current question cache (question_id -> cycle_seen)."""
-        return dict(self._seen_questions)

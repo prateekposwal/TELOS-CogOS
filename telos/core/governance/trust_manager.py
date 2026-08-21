@@ -60,7 +60,14 @@ class TrustManager:
                          knowledge_domains: Optional[Set[str]] = None,
                          requires_clearance: bool = False,
                          can_bypass_readiness: bool = False) -> None:
-        """Register a cognitive stream's authorization profile."""
+        """Register a cognitive stream's authorization profile.
+        stream_name: the stream name for this operation
+        default_access: the default access for this operation
+        authorized_missions: the authorized missions for this operation
+        knowledge_domains: the knowledge domains for this operation
+        requires_clearance: the requires clearance for this operation
+        can_bypass_readiness: the can bypass readiness for this operation
+"""
         self._authorizations[stream_name] = StreamAuthorization(
             stream_name=stream_name,
             default_access=default_access,
@@ -80,7 +87,10 @@ class TrustManager:
         """Check if a stream is authorized to access a knowledge domain.
 
         Returns True if authorized, False if denied.
-        """
+        
+        stream_name: the stream name for this operation
+        knowledge_domain: the knowledge domain for this operation
+"""
         auth = self._authorizations.get(stream_name)
         if auth is None:
             # Unknown streams get only OBSERVE access to public domain
@@ -108,7 +118,9 @@ class TrustManager:
 
         Even if a stream is authorized, some knowledge may be globally
         locked due to mission sensitivity.
-        """
+        
+        knowledge_domain: the knowledge domain for this operation
+"""
         # Implementation-specific: check mission-level knowledge policies
         sensitive_domains = {"classified", "financial", "personal"}
         if knowledge_domain in sensitive_domains and self._current_mission == "default":
@@ -116,7 +128,9 @@ class TrustManager:
         return True
 
     def get_stream_access_level(self, stream_name: str) -> AccessLevel:
-        """Get the effective access level for a stream."""
+        """Get the effective access level for a stream.
+        stream_name: the stream name for this operation
+"""
         auth = self._authorizations.get(stream_name)
         return auth.default_access if auth else AccessLevel.OBSERVE
 

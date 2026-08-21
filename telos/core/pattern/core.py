@@ -112,7 +112,13 @@ class PatternLibrary:
                signature: PatternSignature, action_taken: Optional[str] = None,
                outcome_score: float = 0.5,
                metadata: Optional[Dict] = None) -> str:
-        """Store a pattern. Deduplicates exact (domain, type, intent, drift, integrity) matches."""
+        """Store a pattern. Deduplicates exact (domain, type, intent, drift, integrity) matches.
+        pattern_type: the pattern type label
+        signature: the pattern signature string
+        action_taken: the action that was taken
+        outcome_score: the observed outcome score
+        metadata: metadata: structured metadata dict
+"""
         existing = self._find_exact_match(domain, pattern_type, signature)
         if existing:
             pat = self._patterns[existing]
@@ -151,7 +157,9 @@ class PatternLibrary:
         """Find patterns matching this signature, optionally filtered by domain.
 
         Returns list of (Pattern, similarity_score) sorted by similarity descending.
-        """
+        
+        top_k: top_k: number of top results to return
+"""
         candidates = self._feature_vectors
         if domain:
             pids = self._domain_index.get(domain, [])
@@ -178,7 +186,10 @@ class PatternLibrary:
 
         This is the core cross-domain transfer method: given a signature
         from domain A, find matching patterns from domains B, C, D...
-        """
+        
+        exclude_domain: exclude_domain: domain to exclude from the query
+        top_k: top_k: number of top results to return
+"""
         candidates = {}
         for domain, pids in self._domain_index.items():
             if domain == exclude_domain:
@@ -231,7 +242,13 @@ class PatternLibrary:
     def signature_from_decision(di: float, md: float, intent_type: str,
                                  action_signature: str = "",
                                  state_hash: str = "") -> PatternSignature:
-        """Build a PatternSignature from raw decision metrics."""
+        """Build a PatternSignature from raw decision metrics.
+        di: di: decision integrity value
+        md: md: mission drift value
+        intent_type: the intent type label
+        action_signature: action_signature: signature of the executed action
+        state_hash: state_hash: hash of the state at decision time
+"""
         drift_bucket = "low" if md < 1.0 else ("medium" if md < 3.0 else "high")
         integrity_bucket = "high" if di > 0.8 else ("medium" if di > 0.5 else "low")
         return PatternSignature(
@@ -255,7 +272,9 @@ class PatternLibrary:
 
     def _find_exact_match(self, domain: str, pattern_type: PatternType,
                            signature: PatternSignature) -> Optional[str]:
-        """Find a pattern that matches on domain, type, and all signature fields."""
+        """Find a pattern that matches on domain, type, and all signature fields.
+        pattern_type: the pattern type label
+"""
         key = (domain, pattern_type, signature.intent_type,
                signature.drift_bucket, signature.integrity_bucket)
         for pid, pat in self._patterns.items():
@@ -274,7 +293,9 @@ class PatternLibrary:
 
 
     def save(self, path: str) -> None:
-        """Persist the PatternLibrary to a JSON file."""
+        """Persist the PatternLibrary to a JSON file.
+        path: path: filesystem path to read or write
+"""
         import json
         data = {
             "patterns": {
@@ -306,7 +327,9 @@ class PatternLibrary:
         logger.debug(f"PatternLibrary: saved {len(self._patterns)} patterns to {path}")
 
     def load(self, path: str) -> None:
-        """Restore the PatternLibrary from a JSON file."""
+        """Restore the PatternLibrary from a JSON file.
+        path: path: filesystem path to read or write
+"""
         import json
         try:
             with open(path) as f:

@@ -100,17 +100,6 @@ class Belief:
             return 1.0
         return sum(self.examination_history) / len(self.examination_history)
 
-    @property
-    def worth_holding(self) -> float:
-        """Composite score: should we keep this belief?"""
-        if self.archived or not self.active:
-            return 0.0
-        # Blend: confidence + recent use + evidential balance
-        recency = math.exp(-self.staleness / 86400.0)  # 1 day decay
-        return (self.confidence * 0.4 + recency * 0.3 +
-                (self.evidential_balance + 1) / 2 * 0.3)
-
-
 @dataclass
 class ForgettingRecord:
     """Record of a single forgetting decision."""
@@ -185,7 +174,12 @@ class ActiveForgetting:
     def register_belief(self, description: str, type: BeliefType,
                          confidence: float = 0.5,
                          source: str = "experience") -> str:
-        """Register a new belief."""
+        """Register a new belief.
+        description: description: human-readable description for the registered entity
+        type: the AssumptionType enum value
+        confidence: confidence: confidence value in [0, 1]
+        source: source: provenance string for the registered entity
+"""
         bid = self._make_id(description)
         if bid not in self._beliefs:
             self._beliefs[bid] = Belief(
@@ -198,7 +192,10 @@ class ActiveForgetting:
         return bid
 
     def strengthen(self, belief_id: str, amount: float = 0.05) -> bool:
-        """Increase confidence in a belief."""
+        """Increase confidence in a belief.
+        belief_id: the belief id for this operation
+        amount: the amount for this operation
+"""
         belief = self._beliefs.get(belief_id)
         if not belief or not belief.active:
             return False
@@ -208,7 +205,10 @@ class ActiveForgetting:
         return True
 
     def weaken(self, belief_id: str, amount: float = 0.1) -> bool:
-        """Decrease confidence in a belief."""
+        """Decrease confidence in a belief.
+        belief_id: the belief id for this operation
+        amount: the amount for this operation
+"""
         belief = self._beliefs.get(belief_id)
         if not belief or not belief.active:
             return False
@@ -218,7 +218,10 @@ class ActiveForgetting:
         return True
 
     def use_belief(self, belief_id: str, cycle: int = 0) -> None:
-        """Mark a belief as having been used."""
+        """Mark a belief as having been used.
+        belief_id: the belief id for this operation
+        cycle: the current pipeline cycle number
+"""
         belief = self._beliefs.get(belief_id)
         if belief:
             belief.last_used = time.time()
@@ -375,7 +378,10 @@ class ActiveForgetting:
         """Automatically select and examine a belief.
 
         Called periodically by the pipeline.
-        """
+        
+        cycle: the current pipeline cycle number
+        strategy: the strategy for this operation
+"""
         if cycle - self._last_examination_cycle < self._examination_interval:
             return None
 
@@ -385,22 +391,6 @@ class ActiveForgetting:
 
         self._last_examination_cycle = cycle
         return self.examine(belief.id, cycle)
-
-    def get_obsolete_beliefs(self, threshold_days: float = 30) -> List[Belief]:
-        """Get beliefs that haven't been used in threshold_days."""
-        cutoff = time.time() - threshold_days * 86400
-        return [
-            b for b in self._beliefs.values()
-            if b.active and not b.archived and b.last_used < cutoff
-        ]
-
-    def get_overconfident_beliefs(self, threshold: float = 0.9) -> List[Belief]:
-        """Get beliefs with very high confidence that haven't been examined recently."""
-        return [
-            b for b in self._beliefs.values()
-            if b.active and b.confidence >= threshold and
-            b.staleness > 86400 * 7  # not examined in 7 days
-        ]
 
     @property
     def total_beliefs(self) -> int:

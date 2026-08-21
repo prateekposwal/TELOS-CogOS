@@ -53,7 +53,9 @@ class WorldLedger:
         
         This is how TELOS remembers who you are across cycles.
         Call this during PERCEIVE to load known user context.
-        """
+        
+        name: name: display or lookup name
+"""
         if name in self._user_profiles:
             self._user_profiles[name].last_seen = time.time()
             return self._user_profiles[name]
@@ -72,12 +74,18 @@ class WorldLedger:
 
         The profile is upserted on first interaction so the interaction
         is never silently dropped (Kintsugi Λ2.3: no silent swallows).
-        """
+        
+        user_name: the user name key
+        intent_type: the intent type label
+        confidence: confidence: confidence value in [0, 1]
+"""
         profile = self.upsert_user(user_name)
         profile.update_from_interaction(intent_type, confidence, cycle)
 
     def get_user_profile(self, user_name: str) -> Optional[UserProfile]:
-        """Retrieve a user's identity profile, or None if unknown."""
+        """Retrieve a user's identity profile, or None if unknown.
+        user_name: the user name key
+"""
         return self._user_profiles.get(user_name)
 
     def get_known_user_summaries(self) -> List[Dict]:
@@ -112,7 +120,11 @@ class WorldLedger:
 
         Returns:
             World with entity_records metadata populated.
-        """
+        
+        perception_intent: the perception intent being enriched
+        cycle: the current pipeline cycle number
+        mission_vector: the mission direction vector
+"""
         from copy import deepcopy
         enriched_world = deepcopy(world)
 
@@ -144,7 +156,9 @@ class WorldLedger:
         return enriched_world
 
     def _get_or_create(self, entity_name: str) -> EntityRecord:
-        """Look up existing record or create a new one."""
+        """Look up existing record or create a new one.
+        entity_name: the entity name key
+"""
         if entity_name in self._records:
             return self._records[entity_name]
         now = time.time()
@@ -160,7 +174,11 @@ class WorldLedger:
 
     def _record_observation(self, record: EntityRecord, features: Dict[str, float],
                              cycle: int) -> None:
-        """Append an observation entry to an entity's history."""
+        """Append an observation entry to an entity's history.
+        record: the entity/observation record to operate on
+        features: the feature list associated with the record
+        cycle: the current pipeline cycle number
+"""
         record.last_seen = time.time()
         record.observation_count += 1
 
@@ -180,7 +198,10 @@ class WorldLedger:
         Layer 2 — Historical Context: How long observed, how many interactions
         Layer 3 — Mission Context: Relevance to current mission
         Layer 4 — Semantic Identity: Synthesized meaning
-        """
+        
+        record: the entity/observation record to operate on
+        mission_vector: the mission direction vector
+"""
         current_features = record.observed_features
 
         # Layer 2: Historical Context
@@ -222,7 +243,10 @@ class WorldLedger:
         - A "fuel source" to a fire-seeking system
         - A "tool" to a height-seeking system
         - A "obstacle" to a movement-seeking system
-        """
+        
+        record: the entity/observation record to operate on
+        mission_relevance: mission_relevance: relevance of the record to the active mission
+"""
         identity_parts = [record.name]
 
         if record.observation_count > 1:
@@ -241,17 +265,6 @@ class WorldLedger:
 
         return "_".join(identity_parts)
 
-    def record_interaction(self, entity_name: str, action_type: str,
-                           outcome: str, confidence: float, cycle: int) -> None:
-        """Record a system interaction with an entity."""
-        record = self._records.get(entity_name)
-        if record is None:
-            return
-        record.interactions.append(InteractionRecord(
-            cycle=cycle, action_type=action_type,
-            outcome=outcome, confidence=confidence,
-        ))
-
     def get_record(self, entity_name: str) -> Optional[EntityRecord]:
         return self._records.get(entity_name)
 
@@ -259,16 +272,14 @@ class WorldLedger:
     def entity_count(self) -> int:
         return len(self._records)
 
-    @property
-    def all_records(self) -> List[EntityRecord]:
-        return list(self._records.values())
-
     def clear(self) -> None:
         self._records.clear()
         self._total_observations = 0
 
     def save(self, path: str) -> None:
-        """Persist ledger state (entity records + user profiles) to JSON."""
+        """Persist ledger state (entity records + user profiles) to JSON.
+        path: path: filesystem path to read or write
+"""
         import json
         data = {
             "total_observations": self._total_observations,
@@ -315,7 +326,9 @@ class WorldLedger:
             json.dump(data, f, indent=2)
 
     def load(self, path: str) -> None:
-        """Restore ledger state from a JSON file."""
+        """Restore ledger state from a JSON file.
+        path: path: filesystem path to read or write
+"""
         import json
         try:
             with open(path) as f:

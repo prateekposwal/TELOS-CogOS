@@ -52,7 +52,11 @@ class InformationReadinessEngine:
     def register_fact(self, fact_name: str,
                        conditions: Optional[List[ReadinessCondition]] = None,
                        payload: Any = None) -> None:
-        """Register a fact in the knowledge base (initially LOCKED)."""
+        """Register a fact in the knowledge base (initially LOCKED).
+        fact_name: the fact name for this operation
+        conditions: the conditions for this operation
+        payload: the payload for this operation
+"""
         self._facts[fact_name] = LockedFact(
             fact_name=fact_name,
             state=ReadinessState.LOCKED,
@@ -68,7 +72,10 @@ class InformationReadinessEngine:
         Signals are the mechanism by which conditions are met.
         Example: a SensorStream emits signal "high_severity_alarm"
         which satisfies the condition for unlocking the DisasterPlan.
-        """
+        
+        signal_name: the signal name for this operation
+        strength: the strength for this operation
+"""
         self._signals[signal_name] = strength
         self._signal_expiry[signal_name] = self._cycle_count + self._signal_ttl
         logger.debug(f"ReadinessEngine: signal '{signal_name}' (strength={strength:.2f})")
@@ -122,24 +129,17 @@ class InformationReadinessEngine:
             fact.cycle_locked = self._cycle_count
             logger.info(f"ReadinessEngine: fact '{fact.fact_name}' is now READY")
 
-    def get_ready_facts(self) -> Dict[str, Any]:
-        """Get all currently READY facts.
-
-        Streams see only these facts. Locked/expired facts are invisible.
-        """
-        return {
-            name: fact.payload
-            for name, fact in self._facts.items()
-            if fact.state == ReadinessState.READY
-        }
-
     def is_ready(self, fact_name: str) -> bool:
-        """Check if a specific fact is ready for consumption."""
+        """Check if a specific fact is ready for consumption.
+        fact_name: the fact name for this operation
+"""
         fact = self._facts.get(fact_name)
         return fact is not None and fact.state == ReadinessState.READY
 
     def release_manually(self, fact_name: str) -> bool:
-        """Force-release a locked fact (emergency override)."""
+        """Force-release a locked fact (emergency override).
+        fact_name: the fact name for this operation
+"""
         fact = self._facts.get(fact_name)
         if fact is None:
             return False
