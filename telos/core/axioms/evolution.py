@@ -213,6 +213,24 @@ class AxiomEvolutionEngine:
                 f"AxiomEvolution: PROPOSAL APPROVED — '{proposal.name}' "
                 f"— human must implement in AXIOMS.md"
             )
+            # Ph5 (Λ5.2 write-through): an approved proposal whose spec names a
+            # NEW registry axiom is applied to the machine-readable registry
+            # (the prover + self-audit read it). The HUMAN still owns
+            # AXIOMS.md; the registry entry is the executable half, surfaced
+            # so the decision trace/audit shows the amendment diff.
+            try:
+                from telos.core.axioms.registry import AXIOMS
+                prop_id = getattr(proposal, "id", "")
+                if prop_id and prop_id not in {a["id"] for a in AXIOMS}:
+                    AXIOMS.append({"id": prop_id,
+                                   "enforcement": "scaffold"})
+                    logger.info(
+                        f"AxiomEvolution: registered approved axiom '{prop_id}' "
+                        f"in the executable registry (human owns the prose)."
+                    )
+            except Exception as e:  # Λ2.3: never a silent swallow
+                logger.error("AxiomEvolution write-through failed: %r", e)
+                return False
         else:
             logger.info(
                 f"AxiomEvolution: proposal rejected by {reviewer}: {notes}"

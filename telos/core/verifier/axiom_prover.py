@@ -296,6 +296,33 @@ class AxiomProver:
                       else "ModelCompetition not found — no model competition",
         }
 
+        # 4.9 — Relational Optimization (A_i = (U_i, Θ_i))
+        # Other agents are modeled as optimizers with utility + parameters.
+        # Scaffold predicate (Λ2.3 honest): meaningful when a RelationalContext
+        # is wired with utility/authority fields; otherwise reported as
+        # scaffold-not-verified (fail-closed — never silently passes).
+        relational = (kwargs.get('relational_context', None)
+                      or (getattr(ctx, 'relational_context', None) if hasattr(ctx, 'relational_context') else None))
+        _has_rc = relational is not None and hasattr(relational, 'relational_coherence')
+        results['4.9'] = {
+            "passed": _has_rc,
+            "reason": ("RelationalContext present — other agents modeled as optimizers"
+                       if _has_rc else "RelationalContext scaffold absent — axiom not verified"),
+        }
+
+        # 4.11 — Cooperative Intelligence (U_group > ΣU_i − C_align)
+        # Multi-agent architecture is long-term/aspirational (AXIOMS.md marks
+        # it "aspirational"). FAIL-CLOSED: without multi-agent wiring this
+        # axiom is reported as scaffold-not-verifiable — it NEVER silently
+        # passes, it is honestly accounted as not-yet-implemented.
+        coop = kwargs.get('cooperative_intelligence', None)
+        results['4.11'] = {
+            "passed": coop is not None,
+            "reason": ("Cooperative intelligence wired — collective > isolated"
+                       if coop is not None
+                       else "multi-agent aspiration — declared NOT yet implemented (Λ2.3 fail-closed)"),
+        }
+
         # 4.10 — Recursive World Models
         ss = kwargs.get('system_self', None) or (getattr(kwargs.get('pipeline'), '_system_self', None) if kwargs.get('pipeline') else None)
         tb = kwargs.get('theory_builder', None) or (getattr(kwargs.get('pipeline'), '_theory_builder', None) if kwargs.get('pipeline') else None)
@@ -361,6 +388,18 @@ class AxiomProver:
             "passed": passed,
             "reason": "CognitiveMomentum present — decision inertia tracked" if passed
                       else "CognitiveMomentum missing",
+        }
+
+        # 6.3 — Interpretation Energy (E_I = D(P_i, P_j) · C)
+        # Axiom conflicts have computational cost; interpretation is not free.
+        # Real predicate: the InterpretationEngine (present in the codebase,
+        # archive-rationale) must be wired for this axiom to be satisfiable.
+        ie = kwargs.get('interpretation_engine', None)
+        results['6.3'] = {
+            "passed": ie is not None,
+            "reason": ("InterpretationEngine present — conflict interpretation "
+                       "energetically accounted" if ie is not None
+                       else "InterpretationEngine absent — interpretation energy not modeled"),
         }
 
         # 6.4 — Identity Compression (I = Φ(E_{1:n}))
