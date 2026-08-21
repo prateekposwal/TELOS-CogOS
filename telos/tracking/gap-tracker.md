@@ -51,7 +51,7 @@ After any bug/fix/misdiagnosis that took **>2 rounds**, write the lesson to `tel
 | G-30 | THE META-GAP: data-capture lessons learned in conversation were NEVER persisted into TELOS — FIXED structurally | L-00 |
 
 ## Patterns (9)
-- **P-01 Gates red on clean tree / health not self-certifying** → Make gap-scanner staged-scope or thresholded; fix or archive legacy dead code (meal_library, dev_domain_adapter); let M4 run naturally; reconnect stale spool source
+- **P-01 Gates red on clean tree / health not self-certifying** → Make gap-scanner staged-scope or thresholded; fix or archive legacy dead code (dev_domain_adapter; meal_library archived 2026-08-21); let M4 run naturally; reconnect stale spool source
 - **P-02 Derived artifacts / docs out of sync** → model-spec.json single source (done); extend provenance to backtest.py; reconcile axiom-count references; DNS cleanup
 - **P-03 Research written but not consolidated/published** → Write the working paper; publish brief-52; then resource legs extend the same paper
 - **P-04 Work accumulates unshipped / no canonical tracking** → This tracker (done); commit TELOS work; auto-check tracker in self-audit; DONE=SHIPPED gate

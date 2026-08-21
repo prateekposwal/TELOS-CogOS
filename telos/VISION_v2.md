@@ -181,6 +181,11 @@ REFLECT                 →  IntrospectionScheduler (tiered introspection)
 | 🗑️ ARCHIVED | `telos/adapters/mealdrama_adapter.py` | Pruned per Prateek's instruction |
 | 🗑️ ARCHIVED | `tests/test_mealdrama.py` | Moved with adapter |
 | 🗑️ ARCHIVED | `tests/test_meal_messaging.py` | Moved with adapter |
+| 🗑️ ARCHIVED | `telos/adapters/meal_library.py` | Dead MealDrama data module — archived 2026-08-21 |
+| 🗑️ ARCHIVED | `telos/adapters/meal_messaging.py` | Dead MealDrama messaging module — archived 2026-08-21 |
+| 🗑️ ARCHIVED | `telos/server_bridge.py` | Dead MealDrama AI Bridge entrypoint — archived 2026-08-21 |
+| 🗑️ ARCHIVED | `telos_mdapp.py` | Dead MealDrama CLI demo — archived 2026-08-21 |
+| 🗑️ ARCHIVED | `telos_household_demo.py` | Dead MealDrama household demo — archived 2026-08-21 |
 | ✨ CREATED | `telos/core/council/reflector.py` | Council meta-learning |
 | ✨ CREATED | `telos/core/meta/error_attribution.py` | Subsystem error attribution |
 | ✨ CREATED | `telos/core/curiosity/assumption_auditor.py` | Assumption auditing |
