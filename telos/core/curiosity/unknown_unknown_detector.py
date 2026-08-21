@@ -145,7 +145,9 @@ class UnknownUnknownDetector:
         self._total_new_questions: int = 0
 
     def _make_pattern_key(self, feature: str, residual: float) -> str:
-        """Create a key for known pattern matching using discretized residual."""
+        """Create a key for known pattern matching using discretized residual.
+        feature: the feature identifier being processed
+"""
         bucket = round(residual * 10) / 10  # discretize to 0.1 buckets
         return f"{feature}:{bucket}"
 
@@ -208,7 +210,10 @@ class UnknownUnknownDetector:
         return residuals
 
     def _classify_residual(self, feature: str, magnitude: float) -> ResidualClass:
-        """Classify a residual against known error patterns."""
+        """Classify a residual against known error patterns.
+        feature: the feature identifier being processed
+        magnitude: the residual magnitude value
+"""
         pattern_key = self._make_pattern_key(feature, magnitude)
 
         if pattern_key in self._known_patterns:
@@ -238,7 +243,9 @@ class UnknownUnknownDetector:
         - The residual class is unknown unknown (no model exists)
         - The magnitude is large relative to known patterns
         - The feature has never been seen before
-        """
+        
+        rclass: the ResidualClass of the residual
+"""
         if rclass == ResidualClass.UNKNOWN_UNKNOWN:
             base = 0.8
         elif rclass == ResidualClass.UNKNOWN_KNOWN:
@@ -262,7 +269,9 @@ class UnknownUnknownDetector:
 
     def _cluster_unknown_unknowns(self, cycle: int,
                                    residuals: List[Residual]) -> None:
-        """Cluster unknown unknown residuals by feature proximity."""
+        """Cluster unknown unknown residuals by feature proximity.
+        cycle: the current pipeline cycle number
+"""
         for residual in residuals:
             # Try to match to existing cluster
             matched = False
@@ -349,7 +358,9 @@ class UnknownUnknownDetector:
         """Register a residual pattern as a known (learned) pattern.
 
         Called when a previously unknown pattern has been explained.
-        """
+        
+        feature: the feature identifier being processed
+"""
         pattern_key = self._make_pattern_key(feature, residual)
 
         if pattern_key not in self._known_patterns:
@@ -371,50 +382,92 @@ class UnknownUnknownDetector:
             pat['variance'] = math.sqrt((old_var**2 * n + (residual - pat['expected_magnitude'])**2) / (n + 1))
             pat['samples'] = n + 1
 
-    def answer_question(self, question_id: str, summary: str) -> bool:
-        """Mark a question as answered with a summary."""
-        for q in self._questions:
-            if q.id == question_id:
-                q.answered = True
-                q.answer_summary = summary
-                # Pattern is now known — remove corresponding cluster
-                cid = q.source_cluster_id
-                if cid in self._clusters:
-                    # Learn the pattern from cluster residuals
-                    for r in self._clusters[cid].residuals:
-                        self.learn_pattern(r.feature_name, r.magnitude)
-                    del self._clusters[cid]
-                logger.info(f"UnknownUnknownDetector: Question '{q.id}' answered")
-                return True
-        return False
-
-    def dismiss_question(self, question_id: str, reason: str = "false positive") -> bool:
-        """Dismiss a question as a false positive."""
-        for q in self._questions:
-            if q.id == question_id:
-                q.dismissed = True
-                q.dismissal_reason = reason
-                logger.info(f"UnknownUnknownDetector: Question '{q.id}' dismissed: {reason}")
-                return True
-        return False
-
     def get_unanswered_questions(self) -> List[NewQuestion]:
         return [q for q in self._questions if not q.answered and not q.dismissed]
-
-    def get_active_clusters(self) -> List[NoveltyCluster]:
-        return [c for c in self._clusters.values() if not c.elevated_to_question]
 
     @property
     def unknown_unknown_count(self) -> int:
         return self._total_unknown_unknowns
 
     @property
-    def new_question_count(self) -> int:
-        return self._total_new_questions
-
-    @property
     def known_pattern_count(self) -> int:
         return len(self._known_patterns)
+
+
+    def detect(self, observation: Any, cycle: int) -> Optional[Dict[str, Any]]:
+        """Run one blind-spot detection pass over an observed state.
+
+        This is the pipeline-facing entry point (called from the PERCEIVE
+        phase hook). It projects the supplied World's state vector onto named
+        feature residuals, records them against known patterns/clusters, and
+        promotes persistent novel clusters to questions. It returns the FIRST
+        newly-formed question as a serializable dict, or None when no novelty
+        crossed threshold this pass.
+
+        Args:
+            observation: a World (or any object exposing .state and metadata)
+                whose current state is scanned for blind spots.
+            cycle: the current pipeline cycle number.
+
+        Returns:
+            A dict with keys question/id/features/residual-magnitude for the
+            first newly-promoted question, or None when none formed.
+
+        Raises:
+            The detector never raises on malformed observation input: features
+            that cannot be projected are skipped (honest no-op), matching the
+            Lambda 2.3 no-fabrication discipline.
+        """
+        state = getattr(observation, 'state', None)
+        if state is None:
+            return None
+        try:
+            vec = np.asarray(state, dtype=float)
+        except Exception:
+            return None
+        if vec.ndim == 0 or vec.size == 0:
+            return None
+        flat = vec.reshape(-1)
+        predictions: Dict[str, float] = {}
+        observations: Dict[str, float] = {}
+        for i, val in enumerate(flat):
+            feat = f"state_dim_{i}"
+            if not np.isfinite(val):
+                observations[feat] = 0.0
+                continue
+            observations[feat] = float(val)
+            predictions[feat] = self._baseline_prediction(feat)
+        if not predictions:
+            return None
+        self.record_observation(cycle, predictions, observations)
+        new_questions = self.promote_to_questions(cycle)
+        if not new_questions:
+            return None
+        q = new_questions[0]
+        return {
+            "question": q.question_text,
+            "id": q.id,
+            "features": q.feature_names,
+            "residual_magnitude": q.residual_magnitude,
+        }
+
+    def _baseline_prediction(self, feature: str) -> float:
+        """Best-guess prediction for a feature from its learned residuals.
+
+        Args:
+            feature: the feature name to predict.
+
+        Returns:
+            A float prediction (defaults to 0.0 for unseen features).
+        """
+        for pk, pat in self._known_patterns.items():
+            if pk.startswith(f"{feature}:"):
+                return float(pat.get('expected_magnitude', 0.0))
+        samples = [r.observed for r in self._residual_history
+                   if r.feature_name == feature]
+        if samples:
+            return float(sum(samples) / len(samples))
+        return 0.0
 
     def to_dict(self) -> Dict:
         return {
