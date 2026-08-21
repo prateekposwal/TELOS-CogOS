@@ -93,4 +93,4 @@ grounded on, you are looping — stop and ground.
 
 - `telos_task.py`: GridWorld navigation + local LLM explanations
 - `run_demo.py`: Original GridWorld demo
-- Tests: 648/648 passing across 73 files
+- Tests: 846/846 passing across 72 files

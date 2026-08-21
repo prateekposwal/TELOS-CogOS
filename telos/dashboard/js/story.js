@@ -59,7 +59,12 @@ function _normalize(d) {
   return {
     decisions: d.decisions || 0,
     domains: d.domains || k.domains || {},
-    lessons: d.lessons !== undefined ? d.lessons : (k.nodes || 0),
+    // Honest name: `knowledge_nodes` (live KG nodes). `lessons` is a
+    // deprecated alias (was a naming collision with ExperienceManager
+    // lessons). k.nodes is the producer knowledge payload's own count.
+    lessons: d.knowledge_nodes !== undefined
+      ? d.knowledge_nodes
+      : (d.lessons !== undefined ? d.lessons : (k.nodes || 0)),
     edges: d.edges !== undefined ? d.edges : (k.edges || 0),
     edge_types: d.edge_types || k.edge_types || {},
     world_states: d.world_states || 0,
@@ -333,7 +338,7 @@ function renderInsight(n, lessons, edges, domainsObj, recent) {
   // Dominance: what the graph is mostly about (real share).
   var idCount = domainsObj['identity'] || 0;
   if (lessons > 0 && idCount / lessons >= 0.4) {
-    parts.push('The knowledge graph is identity-heavy (' + idCount + '/' + lessons + ' lessons) — right now TELOS is mostly learning about itself.');
+    parts.push('The knowledge graph is identity-heavy (' + idCount + '/' + lessons + ' knowledge nodes) — right now TELOS is mostly learning about itself.');
   }
 
   // Most active non-identity domain (real top-N pick).
@@ -342,7 +347,7 @@ function renderInsight(n, lessons, edges, domainsObj, recent) {
     if (domainsObj[dn] > topN) { topN = domainsObj[dn]; top = dn; }
   }
   if (top && topN > 0 && top !== 'identity') {
-    parts.push('Its most active knowledge domain is ' + top + ' (' + topN + ' lesson' + (topN === 1 ? '' : 's') + ').');
+    parts.push('Its most active knowledge domain is ' + top + ' (' + topN + ' knowledge node' + (topN === 1 ? '' : 's') + ').');
   }
 
   if (parts.length === 0) {
@@ -433,7 +438,7 @@ function renderMood(n, decisions, lessons, worldsSim, recent) {
     goalsBit = ', ' + epMood.completed + ' goal' + (epMood.completed === 1 ? '' : 's') + ' reached';
   }
   moodEl.innerHTML = 'Right now TELOS feels <b>' + n.mood + '</b> — ' + decisions +
-    ' decisions in, ' + lessons + ' lessons learned, ' + worldsSim +
+    ' decisions in, ' + lessons + ' knowledge nodes learned, ' + worldsSim +
     ' worlds simulated' + goalsBit + lastBit + '.';
 }
 

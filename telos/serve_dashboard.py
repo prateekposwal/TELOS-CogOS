@@ -320,6 +320,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "producer": snap.get("producer", {"running": False, "cycles": 0}),
                 "decisions": snap.get("decisions", 0),
                 "domains": snap.get("knowledge", {}).get("domains", {}),
+                "knowledge_nodes": snap.get("knowledge", {}).get("nodes", 0),
+                "archived_nodes": snap.get("knowledge", {}).get("archived_nodes", 0),
+                "knowledge_nodes_total": snap.get("knowledge", {}).get("total_nodes", 0),
+                # Deprecated alias for backward compatibility — the honest name
+                # is `knowledge_nodes` (these values are LIVE KG nodes, NOT
+                # ExperienceManager lessons). See tests/core/test_dashboard_api.py.
                 "lessons": snap.get("knowledge", {}).get("nodes", 0),
                 "edges": snap.get("knowledge", {}).get("edges", 0),
                 "edge_types": snap.get("knowledge", {}).get("edge_types", {}),
@@ -363,6 +369,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             "producer": {"running": False, "cycles": len(traces), "last_error": "producer not running"},
             "decisions": len(traces),
             "domains": domains,
+            "knowledge_nodes": len(knowledge.get("nodes", [])),
+            "archived_nodes": len(knowledge.get("archived_nodes", [])),
+            "knowledge_nodes_total": (len(knowledge.get("nodes", []))
+                                      + len(knowledge.get("archived_nodes", []))),
+            # Deprecated alias (see producer-path comment above).
             "lessons": len(knowledge.get("nodes", [])),
             "edges": len(knowledge.get("edges", [])),
             "edge_types": edge_types,
@@ -385,7 +396,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             # is honestly None (the UI renders '—'), never invented.
             "episodes": None,
             "recent_decisions": recent,
-            "knowledge": {"nodes": len(knowledge.get("nodes", [])), "edges": len(knowledge.get("edges", [])),
+            "knowledge": {"nodes": len(knowledge.get("nodes", [])),
+                          "edges": len(knowledge.get("edges", [])),
+                          "archived_nodes": len(knowledge.get("archived_nodes", [])),
+                          "total_nodes": (len(knowledge.get("nodes", []))
+                                          + len(knowledge.get("archived_nodes", []))),
                           "domains": domains, "edge_types": edge_types},
         }
 

@@ -284,10 +284,14 @@
       for (var dn in domains) {
         if (domains[dn] > topN) { topN = domains[dn]; top = dn; }
       }
-      if (d.lessons > 0) {
-        var topBit = top ? ' — ' + top + ' leads with ' + topN + ' lessons' : '';
+      // Honest name: `knowledge_nodes` (live KG nodes); `lessons` is a
+      // deprecated alias. These are KnowledgeGraph active concepts, NOT
+      // ExperienceManager lessons.
+      var kn = d.knowledge_nodes !== undefined ? d.knowledge_nodes : d.lessons;
+      if (kn > 0) {
+        var topBit = top ? ' — ' + top + ' leads with ' + topN + ' knowledge nodes' : '';
         mq.querySelector('.pq-body').textContent =
-          d.lessons + ' lessons, ' + d.edges + ' connections drawn between them' + topBit + '.';
+          kn + ' knowledge nodes, ' + d.edges + ' connections drawn between them' + topBit + '.';
       } else {
         mq.querySelector('.pq-body').textContent = 'The graph is empty until TELOS records its first real observation.';
       }

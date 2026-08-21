@@ -18,12 +18,12 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (831 tests)
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (846 tests)
 - **Gap scanner:** `PYTHONPATH=. python3 telos/tools/gap_scanner.py`
 - **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
 ## Status (SHIPPED — v6.1 — 2026-08-20)
-- **831 tests passing** (2 formerly-red dashboard DOM-contract tests repaired; 4 trace-schema contract tests; 6 v6 test files)
+- **846 tests passing** (2 formerly-red dashboard DOM-contract tests repaired; 4 trace-schema contract tests; 6 v6 test files; +4 honest-naming / DI-faithfulness / trap-diagnostic tests)
 - **31/31 self-audit checks passing**
 - **v6 modules wired & tested**: governance (`telos/core/governance/` — `governor.py`, `capability_authorization.py`), epistemic/evidence/acquisition (`telos/world/` — `epistemic.py`, `evidence.py`, `acquisition.py`), theory experiment (`telos/core/reasoning/theory/experiment.py`), 3 domain adapters (`dev_validation.py`, `logistics_simulator.py`, `robotics_simulator.py`), 3 benchmarks (`telos/benchmarks/` `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` with `main()` CLI + provenance result JSONs)
 - **Decision trace schema contract**: canonical aliases `intent`/`discrimination_index`/`action_taken` + `budget_carryover_ms` in `to_dict()` (`telos/core/types.py`) — no consumer invents its own names (locked by `tests/core/test_trace_schema.py`)

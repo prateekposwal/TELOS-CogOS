@@ -1005,3 +1005,21 @@ def test_v7_story_js_wires_gate_naming_and_worlds_rate():
     assert "ep.completed === 0" in story, "honest empty state must persist"
     # No fabricated wording survives.
     assert "futures simulated" not in story, "old mood wording must be gone"
+
+
+def test_v7_honest_knowledge_nodes_naming_contract():
+    """LEFT ITEM 2: the dashboard labels live KnowledgeGraph nodes as
+    'knowledge nodes' (honest), never as ExperienceManager 'lessons'. The
+    JS consumers must read the honest `knowledge_nodes` payload field and
+    render prose with the honest term — not the misnomer."""
+    story = open(os.path.join(JS_DIR, "story.js")).read()
+    hero = open(os.path.join(JS_DIR, "hero.js")).read()
+    # Consumers must prefer the honest field name (story.js normalize).
+    assert "d.knowledge_nodes" in story, "story.js must read the honest field"
+    assert "d.knowledge_nodes !== undefined" in story
+    # hero.js reads the honest count and renders the honest term.
+    assert "d.knowledge_nodes" in hero, "hero.js must read the honest knowledge_nodes count"
+    assert "knowledge nodes" in hero, "hero.js must render 'knowledge nodes', not 'lessons'"
+    # The misnomer must not survive as user-facing prose in the consumers.
+    assert " lessons learned" not in story, "story.js must not render 'lessons' as the KG count"
+    assert " lessons," not in hero, "hero.js must not render the misnomer 'lessons' as the KG count"
