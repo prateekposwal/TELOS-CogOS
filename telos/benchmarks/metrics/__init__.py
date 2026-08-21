@@ -70,6 +70,8 @@ def classify_trend(values: List[float], window: int = 5, threshold: float = 0.03
 
     Uses linear regression slope over the last `window` points.
     If |slope| < threshold, classified as stable.
+    Args:
+        values: the values argument for this call.
     """
     if len(values) < 3:
         return Trend.INSUFFICIENT_DATA
@@ -316,7 +318,10 @@ class BenchmarkSnapshot:
 # Level 4: Mission Score (system score re-weighted for current mission)
 
 def compute_subsystem_scores(snapshot: BenchmarkSnapshot) -> Dict[str, float]:
-    """Compute 7 subsystem scores from raw metrics. (Level 2)"""
+    """Compute 7 subsystem scores from raw metrics. (Level 2)
+        Args:
+            snapshot: the snapshot being processed
+    """
 
     # 1. Perception Score
     # Low estimation error = good, low surprise = good (but some is healthy),
@@ -457,6 +462,8 @@ def compute_system_score(subsystem_scores: Dict[str, float]) -> float:
     are already normalized composites. Weights reflect architectural
     priority: Identity and Knowledge are foundational; Perception and
     Learning are operational; Resources, Projects, Social are contextual.
+    Args:
+        subsystem_scores: the subsystem_scores argument for this call.
     """
     weights = {
         "perception": 0.15,
@@ -481,6 +488,8 @@ def compute_mission_score(system_score: float,
     system_score is used directly.
 
     mission_context: dict of subsystem → importance weight (0-1).
+    Args:
+        subsystem_scores: the subsystem_scores argument for this call.
     """
     if not mission_context:
         return system_score

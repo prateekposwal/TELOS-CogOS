@@ -46,7 +46,10 @@ def main():
 
 
 def _cmd_consult(args):
-    """Query the KnowledgeGraph for relevant knowledge."""
+    """Query the KnowledgeGraph for relevant knowledge.
+        Args:
+            args: the args argument for this call.
+    """
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
     from telos.core.infra_manager.knowledge_manager import KnowledgeManager
@@ -128,7 +131,10 @@ def _cmd_status():
 
 
 def _cmd_run(args):
-    """Execute a single pipeline cycle."""
+    """Execute a single pipeline cycle.
+        Args:
+            args: the args argument for this call.
+    """
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
     import numpy as np

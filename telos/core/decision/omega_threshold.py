@@ -136,7 +136,12 @@ class OmegaThresholdLearner:
         return base_threshold
 
     def record_outcome(self, omega_value: float, di_improved: bool, was_blocked: bool) -> None:
-        """Record whether an inquiry at this omega level was beneficial."""
+        """Record whether an inquiry at this omega level was beneficial.
+            Args:
+                omega_value: the omega_value argument for this call.
+                di_improved: the di_improved argument for this call.
+                was_blocked: the was_blocked argument for this call.
+        """
         bucket = self._bucket_key(omega_value)
         if bucket not in self.buckets:
             self.buckets[bucket] = {'alpha': 1, 'beta': 1, 'count': 0}

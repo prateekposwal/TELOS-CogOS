@@ -271,14 +271,20 @@ class SurpriseBudget:
         return allocation
 
     def get_surprising_channels(self, threshold: float = 0.3) -> List[Tuple[str, float]]:
-        """Get observation channels sorted by current surprise level."""
+        """Get observation channels sorted by current surprise level.
+            Args:
+                threshold: the threshold argument for this call.
+        """
         channels = [(ch, surp) for ch, surp in self._channel_surprise.items()
                     if surp >= threshold]
         channels.sort(key=lambda x: -x[1])
         return channels
 
     def get_surprise_trend(self, window: int = 10) -> str:
-        """Describe the trend of surprise over recent cycles."""
+        """Describe the trend of surprise over recent cycles.
+            Args:
+                window: the window argument for this call.
+        """
         if len(self._surprise_history) < window:
             return "insufficient_data"
         recent = [s.surprise_level for s in self._surprise_history[-window:]]

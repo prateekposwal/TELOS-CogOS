@@ -215,6 +215,11 @@ class CommitmentOptimizer:
 
         Identity is no longer a penalty term in J(τ). It is a
         pre-condition that determines admissible optimization space.
+        Args:
+            intent_type: the intent_type argument for this call.
+            project_id: the project_id argument for this call.
+            mission_id: the mission_id argument for this call.
+            identity_core_values: the identity_core_values argument for this call.
         """
         from telos.core.identity.system_self import IdentityCore
         core = identity_core_values if identity_core_values else IdentityCore()
@@ -263,6 +268,21 @@ class CommitmentOptimizer:
           - alignment_cost: constitutional alignment penalty
           - interpretation_energy: conflict resolution cost
           - identity_violation: out-of-character penalty
+        Args:
+            expected_reward: the expected_reward argument for this call.
+            maintenance_cost: the maintenance_cost argument for this call.
+            recovery_cost: the recovery_cost argument for this call.
+            identity_cost: the identity_cost argument for this call.
+            future_option_value: the future_option_value argument for this call.
+            identity_entropy: the identity_entropy argument for this call.
+            recovery_ratio: the recovery_ratio argument for this call.
+            counterfactual_diversity: the counterfactual_diversity argument for this call.
+            horizon: the horizon argument for this call.
+            terminal_value: the terminal_value argument for this call.
+            prediction_error: the prediction_error argument for this call.
+            opportunity_cost: the opportunity_cost argument for this call.
+            project_coherence_gain: the project_coherence_gain argument for this call.
+            aesthetic_value: the aesthetic_value argument for this call.
         """
         M = maintenance_cost
         Rec = recovery_cost

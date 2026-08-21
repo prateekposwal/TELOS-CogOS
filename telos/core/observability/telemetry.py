@@ -39,7 +39,13 @@ class TelemetryCollector:
     def record(self, name: str, value: float,
                cycle: int = 0,
                tags: Optional[Dict[str, str]] = None) -> None:
-        """Record a single metric point."""
+        """Record a single metric point.
+            Args:
+                name: the name/key of the item
+                value: the value argument for this call.
+                cycle: the current cycle count
+                tags: the tags argument for this call.
+        """
         point = MetricPoint(
             cycle=cycle,
             timestamp=time.time(),
@@ -52,7 +58,10 @@ class TelemetryCollector:
             self._points = self._points[-self._max_points:]
 
     def record_cycle(self, cycle: int, trace: Any) -> None:
-        """Record all metrics from a DecisionTrace."""
+        """Record all metrics from a DecisionTrace.
+            Args:
+                cycle: the current cycle count
+        """
         if trace is None:
             return
 
@@ -139,7 +148,10 @@ class TelemetryCollector:
 
     def get_series(self, name: str,
                    limit: Optional[int] = None) -> List[MetricPoint]:
-        """Get all points for a metric name, newest first."""
+        """Get all points for a metric name, newest first.
+            Args:
+                limit: the limit argument for this call.
+        """
         points = [p for p in self._points if p.name == name]
         points.sort(key=lambda p: p.cycle, reverse=True)
         if limit:

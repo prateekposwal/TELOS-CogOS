@@ -60,7 +60,10 @@ class Project:
     regret_memory: Any = None
 
     def set_cognitive_context(self, pipeline) -> None:
-        """Wire all cognitive processes into this project context."""
+        """Wire all cognitive processes into this project context.
+            Args:
+                pipeline: the pipeline argument for this call.
+        """
         self.curiosity_drive = getattr(pipeline, '_curiosity_drive', None)
         self.theory_builder = getattr(pipeline, '_theory_builder', None)
         self.unknown_unknown_detector = getattr(pipeline, '_unknown_unknown_detector', None)
@@ -138,24 +141,7 @@ class ProjectPortfolio:
         logger.info(f"ProjectPortfolio: '{p.name}' → {lifecycle.value}")
         return True
 
-    def add_notebook_entry(self, project_id: str, cycle: int,
-                           content: str, entry_type: str = "reflection") -> bool:
-        p = self._projects.get(project_id)
-        if p is None:
-            return False
-        p.add_note(cycle, content, entry_type)
-        return True
 
-    def get_project_ids(self, lifecycle: Optional[ProjectLifecycle] = None,
-                        mission_id: Optional[str] = None) -> List[str]:
-        results = []
-        for pid, p in self._projects.items():
-            if lifecycle and p.lifecycle != lifecycle:
-                continue
-            if mission_id and p.mission_id != mission_id:
-                continue
-            results.append(pid)
-        return results
 
     @property
     def active_project(self) -> Optional[Project]:

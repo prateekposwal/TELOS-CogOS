@@ -13,7 +13,11 @@ class KGInferenceEngine:
         self.kg = kg
 
     def find_similar_outcomes(self, current_params: Dict[str, Any], top_k: int = 3) -> List[ProjectNode]:
-        """Find related past outcomes using Euclidean distance on params."""
+        """Find related past outcomes using Euclidean distance on params.
+            Args:
+                current_params: the current_params argument for this call.
+                top_k: the top_k argument for this call.
+        """
         scored = []
         for node in self.kg._nodes.values():
             if not node.params:

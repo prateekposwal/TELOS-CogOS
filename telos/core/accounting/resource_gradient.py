@@ -183,7 +183,10 @@ class ResourceGradientTracker:
         return reallocated
 
     def _extract_resource_values(self, budgets: Dict) -> Dict[str, float]:
-        """Extract numeric values from resource budget dict."""
+        """Extract numeric values from resource budget dict.
+            Args:
+                budgets: the budget mappings to read
+        """
         values = {}
         if not budgets:
             return values
@@ -217,7 +220,11 @@ class ResourceGradientTracker:
 
     def _compute_reference_score(self, optimizer: Any,
                                   resource_values: Dict[str, float]) -> Optional[float]:
-        """Compute a reference commitment score from resource values."""
+        """Compute a reference commitment score from resource values.
+            Args:
+                optimizer: the optimizer instance
+                resource_values: the resource values to score
+        """
         try:
             score = optimizer.evaluate(
                 expected_reward=0.5,

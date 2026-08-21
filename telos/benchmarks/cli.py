@@ -36,7 +36,10 @@ def header(text: str) -> None:
 
 
 def show_report(report: BenchmarkReport, verbose: bool = False) -> None:
-    """Print a formatted benchmark report to stdout."""
+    """Print a formatted benchmark report to stdout.
+        Args:
+            verbose: the verbose argument for this call.
+    """
     header(f"TELOS Benchmark Report — {report.session_id}")
     print(f"  Cycles: {report.cycle_count}")
     print(f"  Duration: {report.total_duration_seconds:.1f}s")

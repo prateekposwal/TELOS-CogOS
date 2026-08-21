@@ -30,12 +30,18 @@ AVG_CHARS_PER_TOKEN = 4.0  # rough heuristic for fast estimation
 
 
 def estimate_tokens(text: str) -> int:
-    """Fast token-count estimate without calling a tokenizer."""
+    """Fast token-count estimate without calling a tokenizer.
+        Args:
+            text: the text argument for this call.
+    """
     return int(len(text) / AVG_CHARS_PER_TOKEN + 0.5)
 
 
 def estimate_message_tokens(msg: Dict) -> int:
-    """Estimate tokens for a chat message dict (role + content)."""
+    """Estimate tokens for a chat message dict (role + content).
+        Args:
+            msg: the msg argument for this call.
+    """
     # role adds ~4 tokens, content + overhead per message ~8 tokens
     overhead = 12
     content = msg.get('content', '') or ''
@@ -214,7 +220,12 @@ class TokenBudgetManager:
     @staticmethod
     def make_trace(di: float = 1.0, md: float = 0.0,
                    blocked: bool = False, escalated: bool = False) -> Dict:
-        """Helper to build a trace dict from pipeline values."""
+        """Helper to build a trace dict from pipeline values.
+            Args:
+                md: the md argument for this call.
+                blocked: the blocked argument for this call.
+                escalated: the escalated argument for this call.
+        """
         return {
             'di': di,
             'md': md,

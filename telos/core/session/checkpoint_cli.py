@@ -15,7 +15,10 @@ def _auto_session_name() -> str:
 
 
 def cmd_save(args: Optional[List[str]] = None) -> None:
-    """CLI handler for `telos session save [--name NAME]`."""
+    """CLI handler for `telos session save [--name NAME]`.
+        Args:
+            args: the args argument for this call.
+    """
     import argparse
     parser = argparse.ArgumentParser(description="Save session checkpoint")
     parser.add_argument("--name", "-n", default=None, help="Session name")
@@ -33,7 +36,10 @@ def cmd_save(args: Optional[List[str]] = None) -> None:
 
 
 def cmd_list(args: Optional[List[str]] = None) -> None:
-    """CLI handler for `telos session list`."""
+    """CLI handler for `telos session list`.
+        Args:
+            args: the args argument for this call.
+    """
     cli = CheckpointCLI()
     sessions = cli.list_sessions()
     if not sessions:
@@ -54,6 +60,8 @@ def cmd_load(args: Optional[List[str]] = None) -> None:
     """CLI handler for `telos session load --name NAME`.
 
     Prints restore instructions + outputs AGENTS.md block.
+    Args:
+        args: the args argument for this call.
     """
     import argparse
     parser = argparse.ArgumentParser(description="Load session checkpoint")
@@ -73,6 +81,8 @@ def cmd_restore(args: Optional[List[str]] = None) -> None:
     """CLI handler for `telos session restore --name NAME`.
 
     Restores checkpoint + writes a continuation prompt to stdout.
+    Args:
+        args: the args argument for this call.
     """
     cmd_load(args)
 

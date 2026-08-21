@@ -69,16 +69,20 @@ class AuditController:
         self._component_maturities: Dict[str, ComponentMaturity] = {}
 
     def register_component(self, name: str) -> ComponentMaturity:
-        """Register an infrastructure component for maturity tracking."""
+        """Register an infrastructure component for maturity tracking.
+            Args:
+                name: the name/key of the item
+        """
         mat = ComponentMaturity(component_name=name)
         self._component_maturities[name] = mat
         return mat
 
-    def get_component_maturity(self, name: str) -> Optional[ComponentMaturity]:
-        return self._component_maturities.get(name)
 
     def evaluate_component_maturity(self, name: str) -> float:
-        """Score a component's maturity based on cycles, coverage, and calibration."""
+        """Score a component's maturity based on cycles, coverage, and calibration.
+            Args:
+                name: the name/key of the item
+        """
         mat = self._component_maturities.get(name)
         if not mat:
             return 0.0
@@ -96,7 +100,10 @@ class AuditController:
         return float(np.mean(scores)) if scores else 0.0
 
     def observe(self, result: Any) -> None:
-        """Record infrastructure metrics from a single decision cycle."""
+        """Record infrastructure metrics from a single decision cycle.
+            Args:
+                result: the observation result
+        """
         self._cycle_count += 1
         trace = result.decision_trace
         if trace is None:
@@ -113,7 +120,11 @@ class AuditController:
 
     def generate_report(self, calibrated_streams: int = 0,
                          total_streams: int = 0) -> InfrastructureReport:
-        """Generate a snapshot of infrastructure health."""
+        """Generate a snapshot of infrastructure health.
+            Args:
+                calibrated_streams: streams that are calibrated
+                total_streams: the total stream count
+        """
         avg_di = float(np.mean(self._di_history[-50:])) if self._di_history else 1.0
         avg_md = float(np.mean(self._md_history[-50:])) if self._md_history else 0.0
         avg_health = float(np.mean(self._health_history[-50:])) if self._health_history else 1.0

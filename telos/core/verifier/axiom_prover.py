@@ -442,14 +442,22 @@ class AxiomProver:
         return results
 
     def summary(self, trace: Any, ctx: Any, **kwargs) -> Tuple[int, int, List[str]]:
-        """Returns (total_passed, total_failed, failed_axioms)."""
+        """Returns (total_passed, total_failed, failed_axioms).
+            Args:
+                trace: the decision trace for this cycle
+                ctx: the phase context for this cycle
+        """
         results = self.verify(trace, ctx, **kwargs)
         failed = [aid for aid, r in results.items() if not r["passed"]]
         total_passed = len(results) - len(failed)
         return total_passed, len(failed), failed
 
     def all_passed(self, trace: Any, ctx: Any, **kwargs) -> bool:
-        """Quick check: returns True if all axioms are satisfied."""
+        """Quick check: returns True if all axioms are satisfied.
+            Args:
+                trace: the decision trace for this cycle
+                ctx: the phase context for this cycle
+        """
         _, total_failed, _ = self.summary(trace, ctx, **kwargs)
         return total_failed == 0
 

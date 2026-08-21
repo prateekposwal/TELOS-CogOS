@@ -41,6 +41,8 @@ class TheoryGenealogy:
 
         Cycle-guarded: a visited set bounds the walk so a corrupt
         parent cycle can never loop forever.
+        Args:
+            node_id: the node_id argument for this call.
         """
         ancestors = []
         seen: Set[str] = {node_id}
@@ -65,6 +67,8 @@ class TheoryGenealogy:
         """All descendants of a node (recursive children walk).
 
         Visited-set guarded: shared or cyclic children are visited once.
+        Args:
+            node_id: the node_id argument for this call.
         """
         result = []
         visited: Set[str] = set()

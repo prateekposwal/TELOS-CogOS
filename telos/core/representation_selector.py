@@ -94,7 +94,14 @@ class RepresentationSelector:
         return best_type, best_confidence
 
     def _score_spatial(self, state, resources, constraints, meta, metrics) -> float:
-        """Score how well data fits a spatial representation."""
+        """Score how well data fits a spatial representation.
+            Args:
+                state: the world/domain state for this call
+                resources: the available resources
+                constraints: the active constraints
+                meta: the meta/mapping context
+                metrics: metrics to fold into the result
+        """
         score = 0.1  # baseline
         # State with position coordinates → strong spatial signal
         if state is not None:
@@ -128,7 +135,13 @@ class RepresentationSelector:
         return min(1.0, score)
 
     def _score_graph(self, facts, constraints, meta, resources) -> float:
-        """Score how well data fits a graph/relational representation."""
+        """Score how well data fits a graph/relational representation.
+            Args:
+                facts: the domain facts to use
+                constraints: the active constraints
+                meta: the meta/mapping context
+                resources: the available resources
+        """
         score = 0.1  # baseline
 
         # Blocked cells → graph connectivity constraints
@@ -157,7 +170,12 @@ class RepresentationSelector:
         return min(1.0, score)
 
     def _score_temporal(self, events, resources, metrics) -> float:
-        """Score how well data fits a temporal sequence representation."""
+        """Score how well data fits a temporal sequence representation.
+            Args:
+                events: the events/state sequence
+                resources: the available resources
+                metrics: metrics to fold into the result
+        """
         score = 0.1  # baseline
 
         # Events suggest temporal ordering
@@ -191,7 +209,12 @@ class RepresentationSelector:
 
     def _score_symbolic(self, all_scores: Dict[str, float],
                         metrics: Dict, resources: Dict) -> float:
-        """Score for symbolic representation — the fallback."""
+        """Score for symbolic representation — the fallback.
+            Args:
+                all_scores: the per-representation scores
+                metrics: metrics to fold into the result
+                resources: the available resources
+        """
         # Symbolic is the default: start at 0.4
         score = 0.4
 
@@ -214,22 +237,8 @@ class RepresentationSelector:
 
         return max(0.1, min(1.0, score))
 
-    @property
-    def current_preference(self) -> Tuple[str, float]:
-        """Return the most recent selection."""
-        if self._selection_history:
-            return self._selection_history[-1]
-        return ("symbolic", 0.5)
 
     @property
     def history(self) -> List[Tuple[str, float]]:
         return list(self._selection_history)
 
-    @property
-    def diversity_score(self) -> float:
-        """How many different representations have been selected recently (last 20)."""
-        recent = [t for t, _ in self._selection_history[-20:]]
-        if not recent:
-            return 0.0
-        unique = len(set(recent))
-        return unique / len(self.SUPPORTED_TYPES)

@@ -37,7 +37,12 @@ class ModelProvider(ABC):
     def ask(self, messages: List[Dict[str, str]],
             temperature: float = 0.7, max_tokens: int = 256,
             **kwargs) -> ModelResponse:
-        """Send a chat completion request and return the response."""
+        """Send a chat completion request and return the response.
+            Args:
+                messages: the messages argument for this call.
+                temperature: the temperature argument for this call.
+                max_tokens: the max_tokens argument for this call.
+        """
 
     @abstractmethod
     def name(self) -> str:

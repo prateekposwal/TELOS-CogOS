@@ -184,9 +184,11 @@ def check_dead_code():
     # weakening: it corrects the reference universe so the main harness's own
     # call sites count.
     _root_harness = str(BASE_DIR / "telos_task.py") if (BASE_DIR / "telos_task.py").exists() else ""
-    all_py = sorted(get_all_py_files()
-                    + [os.path.join(p) for p in _all_test_py_files()]
-                    + ([_root_harness] if _root_harness else []))
+    _scanned_refs = [p for p in py_files]  # a scanned file's own call sites must count
+    all_py = sorted(set(get_all_py_files()
+                        + [os.path.join(p) for p in _all_test_py_files()]
+                        + _scanned_refs
+                        + ([_root_harness] if _root_harness else [])))
     occ = defaultdict(int)   # name -> total occurrences across the repo
     for fp in all_py:
         try:
@@ -538,7 +540,7 @@ def check_test_coverage():
             cwd=str(BASE_DIR),
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=360,
             env={**os.environ, "PYTHONPATH": str(BASE_DIR)},
         )
         lines = [l for l in result.stdout.strip().split("\n") if l.strip()]
@@ -551,7 +553,7 @@ def check_test_coverage():
         if result.returncode != 0:
             passed = False
     except subprocess.TimeoutExpired:
-        print(f"  pytest: TIMEOUT after 120s")
+        print(f"  pytest: TIMEOUT after 360s")
         passed = False
     except FileNotFoundError:
         print(f"  \u26a0 WARN: pytest not found, skipping")

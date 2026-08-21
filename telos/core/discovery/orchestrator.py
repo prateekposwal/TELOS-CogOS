@@ -37,7 +37,14 @@ class DiscoveryOrchestrator:
 
     def cycle(self, cycle: int, identity_active: bool, mission_active: bool,
               project_active: bool, n_theories: int, n_bridges: int) -> str:
-        """Run one cycle of the discovery pipeline."""
+        """Run one cycle of the discovery pipeline.
+            Args:
+                identity_active: the identity_active argument for this call.
+                mission_active: the mission_active argument for this call.
+                project_active: the project_active argument for this call.
+                n_theories: the n_theories argument for this call.
+                n_bridges: the n_bridges argument for this call.
+        """
         self._state.identity_ready = identity_active
         self._state.mission_ready = mission_active
         self._state.project_ready = project_active

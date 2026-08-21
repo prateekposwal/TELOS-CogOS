@@ -121,6 +121,11 @@ class InquiryStream(CognitiveStream):
         Replaces the old hardcoded thresholds with structured question generation.
         Each candidate has an id, type, domain, and prior that feeds into
         the Ω operator scoring.
+        Args:
+            u_w: the u_w argument for this call.
+            u_i: the u_i argument for this call.
+            u_o: the u_o argument for this call.
+            council_signals: the council_signals argument for this call.
         """
         candidates = []
         

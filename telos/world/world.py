@@ -26,9 +26,6 @@ class World:
     # Causal context
     parent_action: Optional[np.ndarray] = None
     
-    def to_latent(self, adapter: Any) -> np.ndarray:
-        """Projects the world state into the RTE latent space."""
-        return adapter.forward(self.state)
 
     def is_valid(self) -> bool:
         """Runtime-level sanity check."""

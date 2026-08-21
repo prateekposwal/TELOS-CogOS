@@ -35,7 +35,10 @@ class SessionLearnings:
 
 
 def save_learnings(pipeline, metrics: Dict) -> bool:
-    """Extract learnings from pipeline state and persist to disk."""
+    """Extract learnings from pipeline state and persist to disk.
+        Args:
+            metrics: metrics to fold into the result
+    """
     try:
         em = getattr(pipeline, '_experience_manager', None)
         tb = getattr(pipeline, '_theory_builder', None)

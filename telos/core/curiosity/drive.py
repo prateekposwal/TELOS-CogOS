@@ -173,7 +173,10 @@ class CuriosityDrive:
         return self.get_report()
 
     def set_compression(self, compression_rate: float) -> None:
-        """Inject current compression rate for compression-seeking curiosity."""
+        """Inject current compression rate for compression-seeking curiosity.
+            Args:
+                compression_rate: the compression_rate argument for this call.
+        """
         self._current_compression = compression_rate
 
     def set_assumption_auditor(self, auditor) -> None:

@@ -82,6 +82,8 @@ class TransparencyMonitor:
         1. Latent Cognition: stream activations, budget allocation, decision trace
         2. Epistemic Integrity: Council verdicts, DI, MD, blocking validators
         3. Infrastructure Health: calibrator, failures, policy, audit (if provided)
+        Args:
+            infra_stats: the infra_stats argument for this call.
         """
         if not self._traces:
             return "# Transparency Report\n\nNo decision cycles recorded."
@@ -237,7 +239,10 @@ class TransparencyMonitor:
         return report
 
     def _format_cycle_detail(self, trace: DecisionTrace) -> List[str]:
-        """Format a single decision cycle for the report."""
+        """Format a single decision cycle for the report.
+            Args:
+                trace: the decision trace for this cycle
+        """
         council_badge = "✅ APPROVED" if trace.council_validated else "❌ BLOCKED"
         lines = [
             f"### Cycle {trace.cycle_id}",

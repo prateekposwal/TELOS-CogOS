@@ -217,6 +217,9 @@ class MetaCognitionModule:
 
         Returns:
             MetaCognitionReport with current state, triggers, and flags
+        Args:
+            resource_depletion: the resource_depletion argument for this call.
+            time_pressure: the time_pressure argument for this call.
         """
         self._di_history.append(decision_integrity)
         if len(self._di_history) > self._max_history:
@@ -315,6 +318,9 @@ class MetaCognitionModule:
         REMOVED. Exploration is now driven by the InquiryStream + Ω Operator.
         If inquiry_active is True and we're not already in a more severe state,
         we enter EXPLORING.
+        Args:
+            uncertainties: the uncertainties argument for this call.
+            di: the di argument for this call.
         """
 
         # Rule 3: DI drops below 0.5 → epistemic repair (highest priority)
@@ -357,7 +363,12 @@ class MetaCognitionModule:
     def _get_trigger_reason(self, new_state: MetaState,
                             uncertainties: Dict[str, float],
                             di: float) -> str:
-        """Generate a human-readable trigger reason."""
+        """Generate a human-readable trigger reason.
+            Args:
+                new_state: the new_state argument for this call.
+                uncertainties: the uncertainties argument for this call.
+                di: the di argument for this call.
+        """
         if new_state == MetaState.EXPLORING:
             return "InquiryStream: question worth asking (Ω > 0.5)"
         elif new_state == MetaState.RECOVERING:

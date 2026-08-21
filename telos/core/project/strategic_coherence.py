@@ -44,6 +44,11 @@ class StrategicCoherence:
         - The action is irrelevant to the active project
         - The project is already terminated
         - The action repeats a failed method on a stagnant project
+        Args:
+            action_type: the action_type argument for this call.
+            project_id: the project_id argument for this call.
+            project_value: the project_value argument for this call.
+            project_stagnation: the project_stagnation argument for this call.
         """
         project_dead = project_value <= 0.0
 
@@ -87,15 +92,3 @@ class StrategicCoherence:
 
         return result
 
-    def project_coherence_trend(self, project_id: str,
-                                 window: int = 10) -> str:
-        recent = [h for h in self._history[-window:]
-                  if h["project_id"] == project_id]
-        if len(recent) < 3:
-            return "insufficient_data"
-        scores = [h["coherence"] for h in recent]
-        if scores[-1] > scores[0] * 1.1:
-            return "improving"
-        if scores[-1] < scores[0] * 0.9:
-            return "declining"
-        return "stable"

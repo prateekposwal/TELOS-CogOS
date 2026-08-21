@@ -22,7 +22,10 @@ logger = logging.getLogger('telos_merkle')
 
 
 def _hash(data: Any) -> str:
-    """SHA-256 hash of a JSON-serializable object."""
+    """SHA-256 hash of a JSON-serializable object.
+        Args:
+            data: the data to process
+    """
     raw = json.dumps(data, default=str, sort_keys=True).encode()
     return hashlib.sha256(raw).hexdigest()
 

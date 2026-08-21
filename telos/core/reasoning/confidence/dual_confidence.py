@@ -270,7 +270,10 @@ class DualConfidence:
         return report
 
     def get_recent_gap_trend(self, window: int = 10) -> str:
-        """Describe how the DC-EC gap is trending."""
+        """Describe how the DC-EC gap is trending.
+            Args:
+                window: the window argument for this call.
+        """
         if len(self._report_history) < window:
             return "insufficient_data"
         recent = [r.gap for r in self._report_history[-window:]]

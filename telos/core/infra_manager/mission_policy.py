@@ -199,7 +199,13 @@ class MissionPolicyManager:
                      f"(risk={policy.risk_tolerance}, explore={policy.exploration_budget})")
 
     def adjust_risk_tolerance(self, delta: float, reason: str = "", caller: str = "", cycle: int = 0) -> None:
-        """Adjust risk tolerance within [0.0, 1.0]."""
+        """Adjust risk tolerance within [0.0, 1.0].
+            Args:
+                delta: the change value
+                reason: the reason string to record
+                caller: the calling component name
+                cycle: the current cycle count
+        """
         new_val = max(0.0, min(1.0, self._current.risk_tolerance + delta))
         self._parameter_budget.check_drift('risk_tolerance', new_val)
         if new_val != self._current.risk_tolerance:
@@ -242,6 +248,8 @@ class MissionPolicyManager:
           - readiness < 0.3: cap risk at 0.2, exploration at 0.15
           - readiness < 0.5: cap risk at 0.3, exploration at 0.25
           - readiness >= 0.5: no forced cap
+        Args:
+            infra_readiness: the infra_readiness argument for this call.
         """
         old_risk = self._current.risk_tolerance
         old_explore = self._current.exploration_budget
@@ -259,7 +267,10 @@ class MissionPolicyManager:
             )
 
     def adjust_risk_by_uncertainty(self, stream_uncertainties: Dict[str, float]) -> None:
-        """Tighten risk tolerance when streams have high uncertainty."""
+        """Tighten risk tolerance when streams have high uncertainty.
+            Args:
+                stream_uncertainties: per-stream uncertainty values
+        """
         if not stream_uncertainties:
             return
         avg_uncertainty = sum(stream_uncertainties.values()) / max(len(stream_uncertainties), 1)
@@ -269,7 +280,13 @@ class MissionPolicyManager:
             self.adjust_risk_tolerance(delta)
 
     def adjust_exploration_budget(self, delta: float, reason: str = "", caller: str = "", cycle: int = 0) -> None:
-        """Adjust exploration budget within [0.0, 1.0]."""
+        """Adjust exploration budget within [0.0, 1.0].
+            Args:
+                delta: the change value
+                reason: the reason string to record
+                caller: the calling component name
+                cycle: the current cycle count
+        """
         new_val = max(0.0, min(1.0, self._current.exploration_budget + delta))
         self._parameter_budget.check_drift('exploration_budget', new_val)
         if new_val != self._current.exploration_budget:
@@ -333,25 +350,6 @@ class MissionPolicyManager:
         bonus = math.sqrt(2 * math.log(total + 1) / n)
         return min(1.0, mean + bonus)
 
-    def thompson_sample(self, domain: str) -> float:
-        """Compute Thompson sampling score for a domain.
-
-        Uses a Beta(alpha, beta) posterior where:
-          alpha = total_reward + 1    (pseudo-count prior)
-          beta  = pulls - total_reward + 1
-
-        Samples from the posterior for Bayesian explore/exploit.
-        Never-tried domains sample from Beta(1, 1) = Uniform(0, 1).
-
-        Returns:
-            A value in [0.0, 1.0] — a single Thompson sample.
-            Higher = more likely to be optimal under current beliefs.
-        """
-        n = self._domain_pulls.get(domain, 0)
-        total_reward = self._domain_rewards.get(domain, 0.0)
-        alpha = total_reward + 1.0
-        beta = float(n) - total_reward + 1.0
-        return float(random.betavariate(alpha, beta))
 
     @property
     def current(self) -> MissionPolicy:

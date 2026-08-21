@@ -52,6 +52,9 @@ def build_pipeline_components(config, infra_manager=None, skill_library=None):
     """Build all pipeline component instances from config.
 
     Returns a dict of component_name -> instance for use by TelosV14Pipeline.
+    Args:
+        infra_manager: the infra_manager argument for this call.
+        skill_library: the skill_library argument for this call.
     """
     components = {}
 

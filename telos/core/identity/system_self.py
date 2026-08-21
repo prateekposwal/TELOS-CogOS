@@ -263,6 +263,10 @@ class SystemSelf:
 
         Transforms the full identity tuple (G_t, M_t, B_t, C_t, K_t, V_t)
         as a function of the action taken, resulting state, and new observation.
+        Args:
+            cycle: the current cycle count
+            di: the di argument for this call.
+            md: the md argument for this call.
         """
         obs_lower = observation.lower()
         is_success = "success" in obs_lower or "reward" in obs_lower
@@ -367,6 +371,8 @@ class SystemSelf:
         Args:
             identity_markers_to_add: Optional markers from Kintsugi failure integration.
             cycle_number: Current pipeline cycle (for mood cooldown enforcement).
+        Args:
+            was_blocked: the was_blocked argument for this call.
         """
         self._di_window.append(di)
         self._md_window.append(md)
@@ -416,6 +422,8 @@ class SystemSelf:
         Enforces MOOD_CHANGE_COOLDOWN: mood can only change every N cycles.
         Resilience modulates thresholds: higher resilience means more failures
         needed to trigger negative mood changes.
+        Args:
+            current_cycle: the current_cycle argument for this call.
         """
         if len(self._di_window) < 3:
             return

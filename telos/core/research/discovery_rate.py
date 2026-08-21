@@ -47,8 +47,6 @@ class DiscoveryRateTracker:
         return self.marginal_rate > 0.05
 
     @property
-    def total_discoveries(self) -> int:
-        return self._cumulative_insights
 
     def to_dict(self) -> dict:
         return {

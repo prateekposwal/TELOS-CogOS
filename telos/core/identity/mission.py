@@ -84,12 +84,16 @@ class MissionPortfolio:
     def active_missions(self) -> List[Mission]:
         return [m for m in self._missions.values() if m.is_active]
 
-    def all_missions(self) -> List[Mission]:
-        return list(self._missions.values())
 
     def spawn_project(self, mission_id: str, project_portfolio,
                       name: str, cycle: int) -> Optional[object]:
-        """Mission -> spawns a Project. Connects Layer 3 to Layer 4."""
+        """Mission -> spawns a Project. Connects Layer 3 to Layer 4.
+            Args:
+                mission_id: the mission_id argument for this call.
+                project_portfolio: the project_portfolio argument for this call.
+                name: the name/key of the item
+                cycle: the current cycle count
+        """
         mission = self._missions.get(mission_id)
         if not mission or not mission.is_active:
             return None
@@ -101,26 +105,6 @@ class MissionPortfolio:
         logger.info(f"Mission '{mission.name}' spawned project '{name}'")
         return project
 
-    def get_project_discoveries(self, mission_id: str,
-                                 project_portfolio) -> List[Dict]:
-        """Mission Ecology: share discoveries across sibling projects."""
-        mission = self._missions.get(mission_id)
-        if not mission:
-            return []
-        results = []
-        for pid in mission.project_ids:
-            proj = getattr(project_portfolio, '_projects', {}).get(pid)
-            if proj:
-                for note in proj.notebooks:
-                    if note.entry_type in ("insight", "discovery", "finding"):
-                        results.append({
-                            "project_id": pid,
-                            "project_name": proj.name,
-                            "cycle": note.cycle,
-                            "content": note.content,
-                            "type": note.entry_type,
-                        })
-        return results
 
     def generate_missions_from_narrative(self, narrative_role: str,
                                           cycle: int,
@@ -130,6 +114,11 @@ class MissionPortfolio:
 
         Uses a weighted generative model combining role, markers, and curiosity.
         Far beyond 3 if-statements — scores each candidate mission type.
+        Args:
+            narrative_role: the narrative_role argument for this call.
+            cycle: the current cycle count
+            identity_markers: the identity_markers argument for this call.
+            curiosity_level: the curiosity_level argument for this call.
         """
         markers = identity_markers or set()
         candidates = []
