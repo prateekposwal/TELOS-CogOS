@@ -89,6 +89,13 @@ class AxiomEvolutionEngine:
         """Observe a pipeline cycle and detect potential axiom gaps.
 
         Returns an AxiomProposal if a gap is detected, None otherwise.
+        Args:
+            di: the di argument for this call.
+            md: the md argument for this call.
+            was_blocked: the was_blocked argument for this call.
+            council_signals: the council_signals argument for this call.
+            stream_activations: the stream_activations argument for this call.
+            identity_state: the identity_state argument for this call.
         """
         observation = {
             "cycle": cycle,
@@ -154,7 +161,16 @@ class AxiomEvolutionEngine:
                 evidence: List[str],
                 implementation_suggestion: str,
                 confidence: float = 0.5) -> AxiomProposal:
-        """Manually propose a new axiom."""
+        """Manually propose a new axiom.
+            Args:
+                name: the name/key of the item
+                description: the description argument for this call.
+                layer: the layer argument for this call.
+                rationale: the rationale argument for this call.
+                evidence: the evidence record being scored
+                implementation_suggestion: the implementation_suggestion argument for this call.
+                confidence: the confidence argument for this call.
+        """
         pid = self._generate_id("axiom_manual")
         proposal = AxiomProposal(
             id=pid,
@@ -176,7 +192,13 @@ class AxiomEvolutionEngine:
 
     def review(self, proposal_id: str, approved: bool,
                reviewer: str = "human", notes: Optional[str] = None) -> bool:
-        """Review and approve/reject an axiom proposal."""
+        """Review and approve/reject an axiom proposal.
+            Args:
+                proposal_id: the proposal_id argument for this call.
+                approved: the approved argument for this call.
+                reviewer: the reviewer argument for this call.
+                notes: the notes argument for this call.
+        """
         proposal = self._proposals.get(proposal_id)
         if proposal is None:
             logger.warning(f"AxiomEvolution: unknown proposal '{proposal_id}'")

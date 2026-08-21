@@ -46,7 +46,14 @@ class SuggestionChannel:
 
     def push(self, category: str, title: str, message: str,
              severity: int = 1, domain: str = "codebase"):
-        """Add a new suggestion."""
+        """Add a new suggestion.
+            Args:
+                category: the category argument for this call.
+                title: the title argument for this call.
+                message: the message to process
+                severity: the severity argument for this call.
+                domain: the domain name
+        """
         self._suggestions.append(Suggestion(
             category=category, title=title, message=message,
             severity=severity, domain=domain,
@@ -55,17 +62,12 @@ class SuggestionChannel:
         if len(self._suggestions) > self._max_history:
             self._suggestions = self._suggestions[-self._max_history:]
 
-    def push_findings(self, findings: List[str]):
-        """Push multiple findings from the DevDomainAdapter."""
-        for f in findings:
-            severity = 2 if any(w in f for w in ['❌', 'Missing', 'error']) else 1
-            cat = '✅' if '✅' in f else '⚠️' if '⚠️' in f else '📋'
-            title = f.split(':')[0] if ':' in f else "Finding"
-            message = f
-            self.push(cat, title, message, severity)
 
     def get_pending(self, min_severity: int = 1) -> List[Suggestion]:
-        """Get all non-dismissed suggestions above a severity threshold."""
+        """Get all non-dismissed suggestions above a severity threshold.
+            Args:
+                min_severity: the min_severity argument for this call.
+        """
         return [s for s in self._suggestions
                 if not s.dismissed and s.severity >= min_severity]
 
@@ -76,7 +78,10 @@ class SuggestionChannel:
                 s.dismissed = True
 
     def display(self, min_severity: int = 1) -> str:
-        """Format all pending suggestions as a human-readable block."""
+        """Format all pending suggestions as a human-readable block.
+            Args:
+                min_severity: the min_severity argument for this call.
+        """
         pending = self.get_pending(min_severity)
         if not pending:
             return "✅ No active suggestions."

@@ -145,7 +145,11 @@ class SystemHealthManager:
         return failure
 
     def _check_degradation(self, failure, trace):
-        """Predictive degradation — enter watchful mode before full recovery."""
+        """Predictive degradation — enter watchful mode before full recovery.
+            Args:
+                failure: the failure record
+                trace: the decision trace for this cycle
+        """
         di_history = self.audit.get_di_history()
         md_history = self.audit.get_md_history()
         if len(di_history) < 8:
@@ -233,7 +237,10 @@ class SystemHealthManager:
         return failure
 
     def _adjust_horizon(self, trace):
-        """Adaptive horizon adjustment based on DI/MD trends (Lambda 2.5)."""
+        """Adaptive horizon adjustment based on DI/MD trends (Lambda 2.5).
+            Args:
+                trace: the decision trace for this cycle
+        """
         if not trace or self.audit.stats.get("cycles_observed", 0) <= 3:
             return
 

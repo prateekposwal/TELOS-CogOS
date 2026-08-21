@@ -78,11 +78,18 @@ class InfrastructureManager:
         self.audit.register_component("cost_tracker")
 
     def search_knowledge(self, domain: str, top_k: int = 5) -> List[Any]:
-        """Search the knowledge graph for proven solutions in a domain."""
+        """Search the knowledge graph for proven solutions in a domain.
+            Args:
+                top_k: the top_k argument for this call.
+        """
         return self.knowledge_mgr.search_knowledge(domain, top_k)
 
     def consult_knowledge(self, domain: str, cycle: int = 0) -> Dict:
-        """Consult KnowledgeGraph before the Pipeline executes."""
+        """Consult KnowledgeGraph before the Pipeline executes.
+            Args:
+                domain: the domain name
+                cycle: the current cycle count
+        """
         return self.knowledge_mgr.consult_knowledge(domain, cycle)
 
     @property
@@ -106,13 +113,7 @@ class InfrastructureManager:
         """Backward-compat access to the KnowledgeGraph."""
         return self.knowledge_mgr.knowledge
 
-    def record_maintenance_cost(self, cost: float) -> None:
-        """Record a maintenance (preventive) cost for attention tracking."""
-        self.cost_tracker.record_maintenance(cost)
 
-    def record_recovery_cost(self, cost: float) -> None:
-        """Record a recovery (failure repair) cost for attention tracking."""
-        self.cost_tracker.record_recovery(cost)
 
     def observe(self, result: Any, total_streams: int = 0) -> None:
         """Process a PipelineResult through all infrastructure components.
@@ -128,6 +129,8 @@ class InfrastructureManager:
         - Adjust simulation horizon (adaptive horizon)
         - Record escalations as structural knowledge
         - Track maintenance vs recovery costs (Axiom 5.1)
+        Args:
+            total_streams: the total stream count
         """
         if result is None:
             return
@@ -355,7 +358,14 @@ class InfrastructureManager:
                      exploration_budget: float = 0.3,
                      ambition_level: float = 0.5,
                      drift_tolerance: float = 5.0) -> None:
-        """Set a new mission policy."""
+        """Set a new mission policy.
+            Args:
+                mission_name: the mission_name argument for this call.
+                risk_tolerance: the risk_tolerance argument for this call.
+                exploration_budget: the exploration_budget argument for this call.
+                ambition_level: the ambition_level argument for this call.
+                drift_tolerance: the drift_tolerance argument for this call.
+        """
         self.policy.set_policy(MissionPolicy(
             mission_name=mission_name,
             risk_tolerance=risk_tolerance,

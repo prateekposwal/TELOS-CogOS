@@ -55,7 +55,13 @@ def compute_motion_hotspots(prev_gray: np.ndarray,
                             top_n: int = 5,
                             percentile: int = 85) -> List[Dict]:
     """Shared motion hotspot detection. Used by both ProxyStream and
-    batch video analyzers to avoid duplicate code."""
+        batch video analyzers to avoid duplicate code.
+        Args:
+            prev_gray: the prev_gray argument for this call.
+            current_gray: the current_gray argument for this call.
+            top_n: the top_n argument for this call.
+            percentile: the percentile argument for this call.
+    """
     if _HAS_CV2:
         import cv2
         flow = cv2.calcOpticalFlowFarneback(

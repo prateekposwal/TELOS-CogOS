@@ -85,7 +85,10 @@ class Ecosystem:
         self._relations.append(EcosystemRelation(source_id, target_id, relation, strength))
 
     def apply_competition(self, niche_id: str) -> None:
-        """Reduce discovery rate if competing niches are more productive."""
+        """Reduce discovery rate if competing niches are more productive.
+            Args:
+                niche_id: the niche_id argument for this call.
+        """
         n = self._niches.get(niche_id)
         if n is None:
             return
@@ -99,7 +102,10 @@ class Ecosystem:
                 break
 
     def niche_fitness(self, niche_id: str) -> float:
-        """Compute fitness from role-weighted metrics."""
+        """Compute fitness from role-weighted metrics.
+            Args:
+                niche_id: the niche_id argument for this call.
+        """
         n = self._niches.get(niche_id)
         if n is None:
             return 0.0

@@ -198,6 +198,8 @@ class ReflectPhase(Phase):
 
         Returns:
             int > 0 to set a new horizon, or None to leave unchanged.
+        Args:
+            pipeline: the pipeline argument for this call.
         """
         if len(self._di_history) < 3:
             return None

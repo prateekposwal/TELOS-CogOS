@@ -26,7 +26,10 @@ logger = logging.getLogger('telos_synthesis')
 
 
 def _extract_action_vector(intent: IntentIR) -> Optional[np.ndarray]:
-    """Extract action_vector param if present."""
+    """Extract action_vector param if present.
+        Args:
+            intent: the intent being evaluated
+    """
     return intent.params.get("action_vector") if intent.params else None
 
 
@@ -40,7 +43,10 @@ def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _semantic_group(intent_type: str) -> str:
-    """Map intent types to semantic groups for reconciliation."""
+    """Map intent types to semantic groups for reconciliation.
+        Args:
+            intent_type: the intent_type argument for this call.
+    """
     safety = {"halt", "emergency_stop", "avoid", "retreat", "brake"}
     navigation = {"plan_trajectory", "navigate", "move", "advance", "follow_path"}
     exploration = {"memory_miss", "plan_empty", "plan_noop", "explore", "search"}

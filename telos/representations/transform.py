@@ -63,6 +63,8 @@ class RepresentationTransform(ABC):
 
         The output is fed into the next transform in the chain or
         directly into the simulation engine.
+        Args:
+            input_data: the input_data argument for this call.
         """
         ...
 
@@ -73,6 +75,8 @@ class RepresentationTransform(ABC):
         This is the critical grounding step that prevents abstract-space
         hallucination: the optimal solution in the transformed space must
         map to an executable action in the real world.
+        Args:
+            output_data: the output_data argument for this call.
         """
         ...
 
@@ -86,26 +90,7 @@ class RepresentationTransform(ABC):
         """
         return 1.0
 
-    def estimate_information_loss(self, input_data: Any) -> float:
-        """Estimate information lost through forward → inverse round-trip.
-
-        Returns a value in [0, 1].  0 means zero loss (perfectly
-        invertible); 1 means complete loss.  The default computes
-        ``||input - inverse(forward(input))|| / ||input||`` when the
-        data is a numpy array, and returns 0 otherwise.
-        """
-        if isinstance(input_data, np.ndarray):
-            transformed = self.forward(input_data)
-            recovered = self.inverse(transformed)
-            norm_in = float(np.linalg.norm(input_data))
-            if norm_in < 1e-9:
-                return 0.0
-            diff = float(np.linalg.norm(input_data - recovered))
-            return float(np.clip(diff / norm_in, 0.0, 1.0))
-        return 0.0
-
-
-# ── Transform Chain (composable pipeline) ─────────────────────────────────
+    # ── Transform Chain (composable pipeline) ─────────────────────────────────
 
 class TransformChain:
     """An ordered sequence of transforms applied as a pipeline.
@@ -132,20 +117,6 @@ class TransformChain:
     def append(self, transform: RepresentationTransform) -> None:
         self.transforms.append(transform)
 
-    def compute_information_loss(self, input_data: Any) -> float:
-        """Aggregate information loss across the entire chain.
-
-        Each transform's round-trip loss is accumulated, giving an
-        upper bound on the total information lost through the full
-        transform → inverse cycle.
-        """
-        total = 0.0
-        data = input_data
-        for t in self.transforms:
-            loss = t.estimate_information_loss(data)
-            total += loss
-            data = t.forward(data)
-        return float(np.clip(total / max(len(self.transforms), 1), 0.0, 1.0))
 
     def __len__(self) -> int:
         return len(self.transforms)

@@ -33,8 +33,6 @@ class IdentityProjectionGate:
         self._core = identity_core or IdentityCore()
         self._narrative = identity_narrative or IdentityNarrative()
 
-    def set_narrative(self, narrative: IdentityNarrative) -> None:
-        self._narrative = narrative
 
     def is_admissible(self, intent_type: str, project_id: Optional[str] = None,
                       mission_active: bool = False, mission_ids: Optional[List[str]] = None,
@@ -46,6 +44,12 @@ class IdentityProjectionGate:
         2. Narrative role — is this intent compatible with who the system is?
         3. Active missions — does this serve a current mission?
         4. Project assignment — is this project still valid?
+        Args:
+            intent_type: the intent_type argument for this call.
+            project_id: the project_id argument for this call.
+            mission_active: the mission_active argument for this call.
+            mission_ids: the mission_ids argument for this call.
+            narrative_role: the narrative_role argument for this call.
         """
         if intent_type in ("reflex", "halt", "emergency_stop"):
             return True
@@ -91,7 +95,11 @@ class IdentityProjectionGate:
 
     def project_intents(self, intents: List[Any], mission_active: bool = False,
                         mission_ids: Optional[List[str]] = None) -> List[Any]:
-        """Filter a list of intents through F(I), returning only admissible ones."""
+        """Filter a list of intents through F(I), returning only admissible ones.
+            Args:
+                mission_active: the mission_active argument for this call.
+                mission_ids: the mission_ids argument for this call.
+        """
         admissible = []
         for intent in intents:
             intent_type = "unknown"

@@ -62,3 +62,6 @@ learnings.json
 telos/audit/runtime/decision_log.json
 telos/audit/runtime/transparency_report.md
 reports/data-engineering/daily-*.md
+
+# Dashboard/probe runtime artifacts
+*.mjs

@@ -56,6 +56,8 @@ class RelationalContext:
 
         Falls back to defaults for any missing key, enabling forward/backward
         compatibility as fields are added.
+        Args:
+            data: the data to process
         """
         return cls(
             trust=float(data.get("trust", 0.5)),

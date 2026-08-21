@@ -52,29 +52,9 @@ class ThinkingDisplay:
         self._active_phase = phase_name
         self._render()
 
-    def on_stream_result(self, stream_name: str, confidence: float):
-        self._streams.append((stream_name, confidence))
-        self._streams.sort(key=lambda x: -x[1])
-        self._render()
 
-    def on_simulation(self, worlds: int, best_score: float):
-        self._worlds = worlds
-        self._best_score = best_score
-        self._status = f"Simulating {worlds} futures... best: {best_score:.2f}"
-        self._render()
 
-    def on_council_signal(self, di: float, md: float, summary: str = ""):
-        self._di = di
-        self._md = md
-        if summary:
-            self._status = summary
-        else:
-            self._status = f"Council evaluating — DI: {di:.2f}, MD: {md:.2f}"
-        self._render()
 
-    def set_status(self, text: str):
-        self._status = text
-        self._render()
 
     def freeze(self):
         self._frozen = True

@@ -82,8 +82,6 @@ class MethodRegistry:
     def get(self, method_id: str) -> Optional[Method]:
         return self._methods.get(method_id)
 
-    def get_by_project(self, project_id: str) -> List[Method]:
-        return [m for m in self._methods.values() if m.project_id == project_id]
 
     def active_methods(self) -> List[Method]:
         return [m for m in self._methods.values()

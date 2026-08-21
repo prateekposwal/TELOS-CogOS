@@ -42,7 +42,10 @@ class PSDT:
         self.partials[partial.stream_name] = partial
 
     def finalize(self, council_verdict: str):
-        """Council signs the full assembly."""
+        """Council signs the full assembly.
+            Args:
+                council_verdict: the council_verdict argument for this call.
+        """
         content = json.dumps({k: v.signature for k, v in self.partials.items()}, sort_keys=True)
         self.council_signature = hashlib.sha256((content + council_verdict).encode()).hexdigest()[:16]
 
@@ -61,7 +64,10 @@ class PSDT:
 
     @classmethod
     def from_ctx(cls, ctx) -> 'PSDT':
-        """Extract PSDT from PhaseContext, or return empty if not present."""
+        """Extract PSDT from PhaseContext, or return empty if not present.
+            Args:
+                ctx: the phase context for this cycle
+        """
         stored = getattr(ctx, 'psdt', None)
         if isinstance(stored, cls):
             return stored

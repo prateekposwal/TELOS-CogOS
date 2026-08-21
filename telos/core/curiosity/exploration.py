@@ -35,14 +35,15 @@ class AutonomousExplorer:
         self._goals: List[ExplorationGoal] = []
         self._max_goals = 20
 
-    def set_curiosity(self, cd: CuriosityDrive) -> None:
-        self._curiosity = cd
 
     def set_unknown_unknown(self, uud: UnknownUnknownDetector) -> None:
         self._unknown_unknown = uud
 
     def generate_goals(self, cycle: int) -> List[ExplorationGoal]:
-        """Generate exploration goals from curiosity and unknown unknowns."""
+        """Generate exploration goals from curiosity and unknown unknowns.
+            Args:
+                cycle: the current cycle count
+        """
         goals = []
 
         if self._curiosity and self._curiosity.state.curiosity_level > 0.6:

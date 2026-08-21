@@ -31,7 +31,11 @@ class KnowledgeRecommender:
         return self._graph.best_approach(domain)
 
     def recommend_top(self, domain: str, top_k: int = 3) -> List[Dict]:
-        """Top-k proven approaches with scores."""
+        """Top-k proven approaches with scores.
+            Args:
+                domain: the domain name
+                top_k: the top_k argument for this call.
+        """
         nodes = self._graph.search(domain, top_k=top_k, min_outcome=0.51)
         return [
             {"approach": n.approach, "outcome": n.outcome, "tags": n.tags}
@@ -39,7 +43,11 @@ class KnowledgeRecommender:
         ]
 
     def failures(self, domain: str, top_k: int = 3) -> List[Dict]:
-        """Known failures to avoid."""
+        """Known failures to avoid.
+            Args:
+                domain: the domain name
+                top_k: the top_k argument for this call.
+        """
         nodes = self._graph.search_failures(domain, top_k=top_k)
         return [
             {"approach": n.approach, "outcome": n.outcome,
@@ -48,7 +56,10 @@ class KnowledgeRecommender:
         ]
 
     def summarize(self, domain: str) -> str:
-        """Human-readable summary of what's known."""
+        """Human-readable summary of what's known.
+            Args:
+                domain: the domain name
+        """
         proven = [f"{s['approach']} ({s['outcome']})" for s in self.recommend_top(domain)]
         failed = [f"{f['approach']} (failed: {f['failure_reason']})" for f in self.failures(domain)]
         parts = [f"Proven: {', '.join(proven)}"]

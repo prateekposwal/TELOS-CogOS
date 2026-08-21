@@ -236,7 +236,10 @@ class CouncilReflector:
         return scores
 
     def get_worst_performers(self, top_n: int = 3) -> List[Tuple[str, float]]:
-        """Return the N validators with lowest recent accuracy."""
+        """Return the N validators with lowest recent accuracy.
+            Args:
+                top_n: the top_n argument for this call.
+        """
         recent_accuracies = []
         for name, track in self._track_records.items():
             if len(track.accuracy_window) >= 5:

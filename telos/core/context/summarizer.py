@@ -80,7 +80,10 @@ class SessionEssence:
         )
 
     def merge(self, other: "SessionEssence") -> "SessionEssence":
-        """Merge two essences, combining fields and deduplicating."""
+        """Merge two essences, combining fields and deduplicating.
+            Args:
+                other: the other argument for this call.
+        """
         def _merge_list(a: list, b: list) -> list:
             seen = set()
             result = []
@@ -174,7 +177,10 @@ class ContextSummarizer:
         return essence
 
     def _generate_summary(self, chat_history: List[Dict]) -> Optional[SessionEssence]:
-        """Call ollama_chat to generate a structured summary."""
+        """Call ollama_chat to generate a structured summary.
+            Args:
+                chat_history: the chat_history argument for this call.
+        """
         # Format the recent history for the prompt
         window = chat_history[-(self.max_history_before_summary):]
 
@@ -203,7 +209,10 @@ class ContextSummarizer:
 
     @staticmethod
     def _parse_essence(raw_json: str) -> Optional[SessionEssence]:
-        """Parse the LLM response into a SessionEssence."""
+        """Parse the LLM response into a SessionEssence.
+            Args:
+                raw_json: the raw_json argument for this call.
+        """
         # Try to extract JSON from the response
         text = raw_json.strip()
 

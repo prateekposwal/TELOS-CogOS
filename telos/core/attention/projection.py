@@ -150,6 +150,8 @@ class AttentionProjectionEngine:
         Under threat-dominated cognition, |A_t| shrinks because the system
         narrows focus to defensive options. Under opportunity-dominated,
         |A_t| expands.
+        Args:
+            action_space_size: the action_space_size argument for this call.
         """
         self._action_space_sizes.append(action_space_size)
         if len(self._action_space_sizes) > self.window_size:
@@ -171,6 +173,8 @@ class AttentionProjectionEngine:
 
         High divergence indicates the simulation model is misaligned with
         reality — often because attention was fixated on the wrong signals.
+        Args:
+            predicted: the predicted value
         """
         divergence = float(np.linalg.norm(predicted - actual))
         self._trajectory_divergences.append(divergence)

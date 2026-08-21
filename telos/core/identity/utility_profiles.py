@@ -277,10 +277,6 @@ class IdentityUtilityEngine:
         utility = profile.compute(dimension_scores)
         return utility, profile
 
-    def get_profile(self, name: str) -> Optional[UtilityProfile]:
-        """Get a registered profile by name."""
-        key = name.lower().replace(" ", "_")
-        return self._profiles.get(key)
 
     @property
     def active_profile(self) -> UtilityProfile:

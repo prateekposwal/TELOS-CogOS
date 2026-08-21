@@ -82,7 +82,10 @@ def module_to_filepath(mod_name):
 
 
 def _in_type_checking_block(node, tree):
-    """Check if an AST node is inside an `if TYPE_CHECKING:` block."""
+    """Check if an AST node is inside an `if TYPE_CHECKING:` block.
+        Args:
+            tree: the tree argument for this call.
+    """
     for parent in ast.walk(tree):
         if isinstance(parent, ast.If):
             test = parent.test

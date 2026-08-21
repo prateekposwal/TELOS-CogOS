@@ -107,14 +107,3 @@ class UserProfile:
         else:
             self.relationship_summary = "deep_relationship"
 
-    def to_semantic_depth(self) -> 'SemanticDepth':
-        return SemanticDepth(
-            entity_id=f"user_{self.name.lower().replace(' ', '_')}",
-            observable_state={
-                "trust": self.trust_level,
-                "total_interactions": float(self.total_interactions),
-            },
-            historical_context=self.relationship_summary,
-            mission_context=f"last_intent:{self.last_intent}",
-            semantic_identity=f"user:{self.name}",
-        )

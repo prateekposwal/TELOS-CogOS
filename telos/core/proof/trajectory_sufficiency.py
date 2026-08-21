@@ -65,7 +65,10 @@ class ComparisonResult:
 
 
 def _make_unconstrained_policy(action_space: int = 4) -> Policy:
-    """Unconstrained policy: random exploration, no budget limits."""
+    """Unconstrained policy: random exploration, no budget limits.
+        Args:
+            action_space: the admissible action set
+    """
     def policy(state: np.ndarray) -> Any:
         # Completely random action selection — no constraints
         return np.random.randint(0, action_space)
@@ -89,6 +92,9 @@ def _make_constrained_policy(action_space: int = 4,
 
     This directly models identity preservation: the system keeps multiple
     behavioral modes 'alive' rather than collapsing to a single action.
+    Args:
+        action_space: the admissible action set
+        entropy_budget: the per-step entropy budget
     """
     # Track action distribution for behavioral entropy
     action_counter = [0] * action_space
@@ -148,6 +154,9 @@ def _make_default_env(state_dim: int = 6, action_space: int = 4) -> Environment:
     Actions: move in random direction (0=stay, 1-3=moves)
     Reward: +1 for staying near origin, -1 for going too far
     Terminal: when position norm exceeds threshold ("death")
+    Args:
+        state_dim: the state_dim argument for this call.
+        action_space: the admissible action set
     """
     death_threshold = 5.0
 

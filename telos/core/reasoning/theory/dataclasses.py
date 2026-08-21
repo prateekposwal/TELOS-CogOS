@@ -99,6 +99,8 @@ class Hypothesis:
         """Test the hypothesis against an actual outcome.
 
         Returns True if hypothesis survives (within tolerance).
+        Args:
+            actual_outcome: the actual_outcome argument for this call.
         """
         error = abs(self.predicted_outcome - actual_outcome)
         survived = error <= tolerance

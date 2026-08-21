@@ -27,7 +27,10 @@ def _get_executor():
 
 
 def _process_stream(stream, world):
-    """Process a single stream. Separated for parallel execution."""
+    """Process a single stream. Separated for parallel execution.
+        Args:
+            world: the World instance this call reads
+    """
     t0 = time.time()
     intent = stream.process(world)
     cost = (time.time() - t0) * 1000

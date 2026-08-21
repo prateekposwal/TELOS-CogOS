@@ -8,6 +8,9 @@ def _compute_tripartite_from_available(self, pipeline, ctx):
         
         This fixes the timing issue where tripartite U was computed in ACT phase
         but consumed in SELECT phase.
+        Args:
+            pipeline: the pipeline argument for this call.
+            ctx: the phase context for this cycle
         """
         # Prediction error from attention trajectory divergences
         attn = getattr(pipeline, '_attention_engine', None)

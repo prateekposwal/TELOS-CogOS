@@ -159,6 +159,9 @@ class RegretMemory:
 
         Currently uses exact hash match; could be upgraded to
         embedding-based similarity.
+        Args:
+            context_hash: the context_hash argument for this call.
+            top_k: the top_k argument for this call.
         """
         matches = [
             r for r in self._records
@@ -167,14 +170,20 @@ class RegretMemory:
         return matches[-top_k:] if matches else []
 
     def get_regret_by_type(self, decision_type: str) -> Tuple[float, int]:
-        """Get average regret and count for a decision type."""
+        """Get average regret and count for a decision type.
+            Args:
+                decision_type: the decision_type argument for this call.
+        """
         regrets = self._regret_by_type.get(decision_type, [])
         if not regrets:
             return (0.0, 0)
         return (sum(regrets) / len(regrets), len(regrets))
 
     def get_highest_regret_decisions(self, top_n: int = 5) -> List[RegretRecord]:
-        """Get the decisions with highest regret."""
+        """Get the decisions with highest regret.
+            Args:
+                top_n: the top_n argument for this call.
+        """
         sorted_records = sorted(self._records, key=lambda r: r.regret, reverse=True)
         return sorted_records[:top_n]
 

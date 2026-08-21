@@ -200,6 +200,10 @@ class ExperienceManager:
         This closes the loop: after TELOS acts, the ExperienceManager
         writes identity deltas to the WorldLedger so next cycle's
         PERCEIVE phase can retrieve the updated profile.
+        Args:
+            user_name: the user_name argument for this call.
+            intent_type: the intent_type argument for this call.
+            confidence: the confidence argument for this call.
         """
         ledger.record_user_interaction(user_name, intent_type, confidence, cycle)
         logger.debug(

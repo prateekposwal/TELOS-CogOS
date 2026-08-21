@@ -77,6 +77,8 @@ class FailureLedger:
         """Record a failure if the cycle had issues.
 
         Returns the FailureRecord if one was created, else None.
+        Args:
+            result: the observation result
         """
         trace = result.decision_trace
         if trace is None:
@@ -155,35 +157,6 @@ class FailureLedger:
         logger.info(f"Kintsugi: recorded {failure_type} (severity={severity:.2f}, cause={root_cause})")
         return record
 
-    def record_pattern_exploit(self, cycle: int, move: str, streak: int,
-                                severity: float = 0.5) -> FailureRecord:
-        """Record a pattern exploit failure — repeated losing with same move.
-
-        This addresses the scenario where an opponent adapts to TELOS's
-        predictable counter-strategy and TELOS fails to adapt.
-        Satisfies Λ2.3 (Kintsugi — failure as structural asset).
-        """
-        record = FailureRecord(
-            failure_id=f"fail_{uuid.uuid4().hex[:8]}",
-            cycle=cycle,
-            timestamp=time.time(),
-            failure_type="pattern_exploit",
-            severity=min(1.0, severity + 0.1 * (streak - 3)),
-            root_cause="pattern_lock",
-            blocked_by=move,
-            decision_integrity=0.0,
-            mission_drift=float(streak),
-            affected_entities=[],
-            metadata={
-                "move": move,
-                "streak": streak,
-                "prediction_drift_detected": True,
-                "suggestion": "switch_mix",
-            },
-        )
-        self._append(record)
-        logger.info(f"Kintsugi: recorded pattern_exploit (move={move}, streak={streak})")
-        return record
 
     def record_direct(self, record: FailureRecord) -> FailureRecord:
         """Record a pre-built FailureRecord directly, bypassing observe().

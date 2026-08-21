@@ -274,7 +274,10 @@ class IdentityCompression:
         return report
 
     def _cluster_experiences(self, buffer: List[Dict]) -> Dict[str, List[Dict]]:
-        """Cluster experiences by source and semantic keywords."""
+        """Cluster experiences by source and semantic keywords.
+            Args:
+                buffer: the buffer argument for this call.
+        """
         clusters: Dict[str, List[Dict]] = defaultdict(list)
 
         for exp in buffer:
@@ -297,6 +300,8 @@ class IdentityCompression:
 
         In production, this would use an LLM or NLP summarization.
         Here we use a keyword-based extraction.
+        Args:
+            cluster_key: the cluster_key argument for this call.
         """
         if not cluster:
             return None
@@ -328,6 +333,9 @@ class IdentityCompression:
         """Generate identity markers from a principle.
 
         Markers are short, reusable tags that encode identity-relevant traits.
+        Args:
+            principle_desc: the principle_desc argument for this call.
+            cluster_key: the cluster_key argument for this call.
         """
         words = principle_desc.lower().split()
         # Extract meaningful words as marker candidates
@@ -346,7 +354,10 @@ class IdentityCompression:
         return markers or ["compressed_insight"]
 
     def get_top_principles(self, top_n: int = 5) -> List[Principle]:
-        """Get principles sorted by compression efficiency."""
+        """Get principles sorted by compression efficiency.
+            Args:
+                top_n: the top_n argument for this call.
+        """
         sorted_principles = sorted(
             self._principles.values(),
             key=lambda p: p.compression_efficiency,

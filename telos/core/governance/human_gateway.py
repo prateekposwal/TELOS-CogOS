@@ -54,7 +54,11 @@ class HumanGateway:
 
     def should_review(self, council_validated: bool,
                       decision_integrity: float) -> bool:
-        """Determine if human review is needed."""
+        """Determine if human review is needed.
+            Args:
+                council_validated: the council_validated argument for this call.
+                decision_integrity: the decision_integrity argument for this call.
+        """
         if self._mode == "auto":
             return False
         if not council_validated:
@@ -69,7 +73,15 @@ class HumanGateway:
                mission_drift: float = 0.0,
                blocking_validator: Optional[str] = None,
                context: Optional[Dict] = None) -> HumanVerdict:
-        """Pause and ask human to review the pending action."""
+        """Pause and ask human to review the pending action.
+            Args:
+                intent: the intent being evaluated
+                council_signals: the council_signals argument for this call.
+                decision_integrity: the decision_integrity argument for this call.
+                mission_drift: the mission_drift argument for this call.
+                blocking_validator: the blocking_validator argument for this call.
+                context: the context argument for this call.
+        """
         review_data = {
             "timestamp": time.time(),
             "intent": str(intent),

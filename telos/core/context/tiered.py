@@ -229,7 +229,10 @@ class TieredContext:
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'TieredContext':
-        """Deserialize a TieredContext from a dict produced by to_dict()."""
+        """Deserialize a TieredContext from a dict produced by to_dict().
+            Args:
+                data: the data to process
+        """
         config = data.get('config', {})
         tc = cls(
             hot_limit=config.get('hot_limit', DEFAULT_HOT_LIMIT),
@@ -260,9 +263,6 @@ class TieredContext:
     # ── Properties ─────────────────────────────────────────────────────
 
     @property
-    def total_messages_added(self) -> int:
-        """Total number of messages ever added to this context."""
-        return self._total_messages_added
 
     @property
     def size(self) -> Dict[str, int]:
@@ -382,7 +382,10 @@ class TieredContext:
         }
 
     def _merge_cold(self, new_cold: Dict) -> None:
-        """Merge a new cold block into the existing one (or store it)."""
+        """Merge a new cold block into the existing one (or store it).
+            Args:
+                new_cold: the new_cold argument for this call.
+        """
         if self.cold is None:
             self.cold = new_cold
             return
@@ -427,7 +430,10 @@ class TieredContext:
 
     @staticmethod
     def _extract_keywords(text: str, max_items: int = 5) -> List[str]:
-        """Simple keyword extraction from text for essence fallback."""
+        """Simple keyword extraction from text for essence fallback.
+            Args:
+                max_items: the max_items argument for this call.
+        """
         # Very simple: find words that appear frequently
         import re
         words = re.findall(r'\b[a-zA-Z]{4,}\b', text.lower())

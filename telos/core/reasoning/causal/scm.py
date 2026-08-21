@@ -121,6 +121,8 @@ class StructuralCausalModel:
         (causes before effects). If the subgraph contains a cycle the
         remaining nodes are emitted after the acyclic prefix so
         propagation always terminates.
+        Args:
+            descendants: the descendants argument for this call.
         """
         if not descendants:
             return []
@@ -327,6 +329,8 @@ class StructuralCausalModel:
         
         Returns:
             Normalized distance in [0, 1]
+        Args:
+            other: the other argument for this call.
         """
         if not other:
             return 0.0

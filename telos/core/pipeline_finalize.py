@@ -11,7 +11,12 @@ logger = logging.getLogger('telos_pipeline')
 
 
 def run_axiom_prover(pipeline, trace, ctx) -> None:
-    """Verify all axioms against the current cycle."""
+    """Verify all axioms against the current cycle.
+        Args:
+            pipeline: the pipeline argument for this call.
+            trace: the decision trace for this cycle
+            ctx: the phase context for this cycle
+    """
     try:
         results = pipeline._axiom_prover.verify(
             trace, ctx, stream_results=getattr(ctx, 'stream_activations', []),
@@ -30,7 +35,12 @@ def run_axiom_prover(pipeline, trace, ctx) -> None:
 
 
 def run_v2_module_hooks(pipeline, ctx, trace) -> None:
-    """Run all v2/v2.5 post-cycle module hooks."""
+    """Run all v2/v2.5 post-cycle module hooks.
+        Args:
+            pipeline: the pipeline argument for this call.
+            ctx: the phase context for this cycle
+            trace: the decision trace for this cycle
+    """
     was_blocked = getattr(ctx, 'council_blocked', False) or getattr(ctx, 'firewall_blocked', False)
     di = trace.decision_integrity if trace else 0.0
     md = trace.mission_drift if trace else 0.0
@@ -227,7 +237,11 @@ def run_v2_module_hooks(pipeline, ctx, trace) -> None:
 
 
 def record_resource_accounting(pipeline, ctx) -> None:
-    """Record resource costs and enforce budget limits."""
+    """Record resource costs and enforce budget limits.
+        Args:
+            pipeline: the pipeline argument for this call.
+            ctx: the phase context for this cycle
+    """
     try:
         ra = pipeline._resource_accounting
         ra.set_cycle(ctx.cycle_count)

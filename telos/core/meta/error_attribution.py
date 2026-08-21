@@ -256,7 +256,13 @@ class ErrorAttributionEngine:
     def _find_contributors(self, primary: Subsystem,
                            sim_error: float, perception_quality: float,
                            was_blocked: bool) -> List[Subsystem]:
-        """Find subsystems that contributed to the error."""
+        """Find subsystems that contributed to the error.
+            Args:
+                primary: the primary argument for this call.
+                sim_error: the sim_error argument for this call.
+                perception_quality: the perception_quality argument for this call.
+                was_blocked: the was_blocked argument for this call.
+        """
         contributors: List[Subsystem] = []
         if sim_error > 2.0 and primary != Subsystem.SIMULATION:
             contributors.append(Subsystem.SIMULATION)

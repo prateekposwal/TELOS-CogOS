@@ -40,6 +40,8 @@ def extract_exported_classes(filepath: Path) -> List[Tuple[str, int]]:
     """
     Extract top-level class definitions from a Python file.
     Returns list of (class_name, line_number).
+    Args:
+        filepath: the filepath argument for this call.
     """
     try:
         with open(filepath, "r") as f:
@@ -66,6 +68,8 @@ def extract_imported_names(filepath: Path) -> Set[str]:
     """
     Extract all names imported in a file (from ... import ..., import ...).
     Helps find which classes are consumed.
+    Args:
+        filepath: the filepath argument for this call.
     """
     try:
         with open(filepath, "r") as f:
@@ -92,6 +96,8 @@ def extract_all_references(filepath: Path) -> Set[str]:
     """
     Extract all name references in a file.
     Helps find which classes are consumed.
+    Args:
+        filepath: the filepath argument for this call.
     """
     try:
         with open(filepath, "r") as f:
@@ -109,7 +115,10 @@ def extract_all_references(filepath: Path) -> Set[str]:
 
 
 def get_module_path(filepath: Path) -> str:
-    """Convert file path to dotted module path."""
+    """Convert file path to dotted module path.
+        Args:
+            filepath: the filepath argument for this call.
+    """
     rel = filepath.relative_to(TELOS_ROOT.parent if TELOS_ROOT.name == "telos" else TELOS_ROOT)
     parts = list(rel.parts)
     if parts[-1] == "__init__.py":
@@ -184,7 +193,10 @@ def run_integrity_check() -> Dict[str, List[str]]:
 
 
 def print_report(orphans: Dict[str, List[str]]) -> None:
-    """Print a formatted integrity report."""
+    """Print a formatted integrity report.
+        Args:
+            orphans: the orphans argument for this call.
+    """
     print("=" * 72)
     print("  TELOS INTEGRITY CHECK — Class Consumer Analysis")
     print("=" * 72)

@@ -218,7 +218,11 @@ class PlanningStream(CognitiveStream):
         self.n_worlds = n_worlds if n_worlds is not None else 30
 
     def configure(self, horizon: int = None, n_worlds: int = None) -> None:
-        """Update simulation parameters from pipeline config mid-cycle."""
+        """Update simulation parameters from pipeline config mid-cycle.
+            Args:
+                horizon: the horizon argument for this call.
+                n_worlds: the n_worlds argument for this call.
+        """
         if horizon is not None:
             self.horizon = horizon
         if n_worlds is not None:
@@ -315,8 +319,6 @@ class TheoryStream(CognitiveStream):
         self._last_proposal_cycle: int = 0
         self._abstraction_level: str = "none"
 
-    def set_builder(self, builder: TheoryBuilder) -> None:
-        self._builder = builder
 
     @property
     def builder(self) -> TheoryBuilder:

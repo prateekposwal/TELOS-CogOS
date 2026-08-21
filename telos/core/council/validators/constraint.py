@@ -147,7 +147,12 @@ class ConstraintScript:
         self._results = []
 
     def execute(self, world, intent, domain_facts=None):
-        """Execute all opcodes in order. Returns (passed, combined_reason, combined_weight)."""
+        """Execute all opcodes in order. Returns (passed, combined_reason, combined_weight).
+            Args:
+                world: the World instance this call reads
+                intent: the intent being evaluated
+                domain_facts: the domain evidence channel
+        """
         self._results = []
         all_passed = True
         reasons = []
@@ -190,7 +195,10 @@ class ConstraintScript:
 
     @classmethod
     def from_opcode_names(cls, names, skill_library=None):
-        """Create a script from string opcode names."""
+        """Create a script from string opcode names.
+            Args:
+                skill_library: the skill_library argument for this call.
+        """
         opcodes = []
         for name in names:
             try:

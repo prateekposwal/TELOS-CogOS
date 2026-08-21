@@ -80,6 +80,8 @@ class ConversationKnowledgeIngestion:
           - past_approaches: list of past intent approaches used
           - past_failures: list of past blockers/failures
           - consultation: knowledge consultation report
+        Args:
+            user_name: the user_name argument for this call.
         """
         context: Dict[str, Any] = {
             "known_user": False,
@@ -256,6 +258,8 @@ class ConversationKnowledgeIngestion:
 
         Returns:
             Dict with preferences, past intents, blockers.
+        Args:
+            user_name: the user_name argument for this call.
         """
         prefs = self._search(domain=f"{DOMAIN_USER_PREFERENCE}/{user_name}", top_k=10)
         convs = self._search(domain=f"{DOMAIN_CONVERSATION}/{user_name}", top_k=10)
