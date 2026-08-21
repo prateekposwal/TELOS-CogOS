@@ -442,3 +442,41 @@ def test_producer_persists_counter_state_after_cycles(isolated_paths, monkeypatc
         assert state["worlds_simulated_total"] == p.snapshot()["worlds_simulated"]
     finally:
         p.stop()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# LEFT ITEM 1 — faithful DI aggregation. The dashboard's health mood/DI must
+# be a FAITHFUL read of the real recent decision trace — never a misleading
+# aggregate (e.g. an average that only counts blocked cycles, or numpy-float
+# pollution, or a stale/other-cycle value). This locks the "aggregation is
+# honest" half of the DI investigation.
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_producer_health_di_matches_last_real_trace(isolated_paths):
+    """The headline DI surfaced by /api/health and /api/overview must equal
+    the LAST real decision trace's `decision_integrity` — a direct, faithful
+    read of the actually-executed cycle. It must NEVER be an average of
+    blocked/no-op cycles, a stale cycle, or a numpy scalar that cannot
+    serialize. If the last trace really was low-DI, the dashboard is
+    HONESTLY showing real degradation — not an artifact to paper over."""
+    p = DashboardProducer(cycle_interval_s=0.05, burst_cycles=4)
+    p.start()
+    try:
+        deadline = time.time() + 12
+        while time.time() < deadline and p.snapshot()["decisions"] < 5:
+            time.sleep(0.1)
+        snap = p.snapshot()
+        assert snap["traces"], "producer must have real traces"
+        last = snap["traces"][-1]
+        # Health/overview DI is the last trace's DI, JSON-clean (plain float).
+        assert snap["di"] == last["decision_integrity"],             "health DI must equal the last real trace DI (faithful)"
+        assert isinstance(snap["di"], float), "DI must be a plain float, never numpy"
+        ov = p.overview_payload()
+        assert ov["di"] == last["decision_integrity"],             "overview DI must equal the last real trace DI (faithful)"
+        # The trace sequence itself is the ground truth: the headlines aggregate
+        # the actual recent DIs we expose, not a different/fabricated window.
+        recent = snap["recent_decisions"]
+        assert recent, "story recent-decisions must be present"
+        assert recent[-1]["di"] == last["decision_integrity"]
+    finally:
+        p.stop()

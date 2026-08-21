@@ -58,6 +58,41 @@ def test_knowledge_from_persisted_file_with_edges(handler):
     }]
 
 
+def test_overview_history_path_exposes_honest_knowledge_nodes(handler, tmp_path):
+    """LEFT ITEM 2: in the no-producer (persisted history) path, /api/overview
+    must expose the live KG node count under the honest name `knowledge_nodes`
+    (never the misnomer `lessons`), plus archived + total so the number is not
+    misleading. `lessons` survives only as a deprecated alias equal to it —
+    schema-drift guard mirroring test_trace_schema.py.
+
+    Args:
+        handler: the bare DashboardHandler fixture.
+        tmp_path: is injected by pytest via the handler fixture's tmp_path,
+            and stays for API symmetry / future persistence asserts.
+    """
+    h, tmp = handler
+    kp = tmp / "knowledge.json"
+    kp.write_text(json.dumps({
+        "nodes": {
+            "n1": {"node_id": "n1", "domain": "navigation",
+                   "approach": "move_to_1_0", "outcome": 0.9},
+            "n2": {"node_id": "n2", "domain": "navigation",
+                   "approach": "move_to_2_0", "outcome": 0.8},
+        },
+    }))
+    sd.KNOWLEDGE_PATH = str(kp)
+    ov = h._load_overview()
+    assert ov["knowledge_nodes"] == 2, "honest name must expose live node count"
+    assert ov["lessons"] == 2, "deprecated alias must equal the honest name"
+    assert ov["archived_nodes"] == 0
+    assert ov["knowledge_nodes_total"] == 2
+    # The nested producer `knowledge` payload already uses honest keys
+    # (nodes / archived_nodes / total_nodes), never `lessons`.
+    assert "knowledge_nodes" not in ov["knowledge"]
+    assert ov["knowledge"]["nodes"] == 2
+    assert ov["knowledge"]["total_nodes"] == 2
+
+
 def test_checkpoints_merge_producer_and_disk(handler, tmp_path, monkeypatch):
     h, tmp = handler
     # Producer with 2 real cycles
@@ -102,7 +137,17 @@ def test_checkpoints_merge_producer_and_disk(handler, tmp_path, monkeypatch):
         # Overview reflects the live producer
         ov = h._load_overview()
         assert abs(ov["decisions"] - fresh()) <= 1
-        assert ov["lessons"] == snap["knowledge"]["nodes"]
+        # Honest naming contract: the overview's KG-node count is exposed as
+        # `knowledge_nodes` (live KnowledgeGraph nodes), NOT `lessons` (which
+        # would collide with ExperienceManager lessons). `lessons` is kept
+        # only as a deprecated alias with the SAME value — never a different,
+        # misleading number. See LEFT ITEM 2.
+        assert ov["knowledge_nodes"] == snap["knowledge"]["nodes"], \
+            "overview must expose live KG nodes under the honest name"
+        assert ov["lessons"] == snap["knowledge"]["nodes"], \
+            "deprecated `lessons` alias must equal the honest knowledge_nodes"
+        assert ov["archived_nodes"] == snap["knowledge"].get("archived_nodes", 0)
+        assert ov["knowledge_nodes_total"] == snap["knowledge"].get("total_nodes", 0)
         assert ov["edges"] == snap["knowledge"]["edges"]
     finally:
         p.stop()
