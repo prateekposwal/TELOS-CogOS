@@ -309,3 +309,78 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 
 ### Metrics
 - DI: 1.000 | MD: 0.000 | Cycles: audit + ship session (coordinated-fix AGENTS.md reconciliation)
+
+## Session Handoff — 2026-08-21 17:39:44
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.100 | Cycles: 5
+
+
+## Session Handoff — 2026-08-21 17:40:55
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.100 | Cycles: 5
+
+
+## Session Handoff — 2026-08-21 (WRITE-LOOP + SWALLOWED-ERRORS + GAP SCANNER SHIP)
+
+### Current State
+- Session mood: deliberate
+- Shipped: the governed write-side fix loop, root-cause swallowed-error fixes,
+  extended real toolchain allowlist, and a repo-wide gap-scanner reduction.
+- Test count: 952 passing (100% green). Self-audit 31/31. Working tree clean.
+
+### Decisions Made
+- **Write-side fix loop** (`telos/core/fix_loop.py`): the fix-and-verify loop.
+  `FixProposalValidator` reads the RAW RepoSnapshot and approves a `write_file`
+  ONLY when its patch targets a genuinely failing test's module; the governed
+  executor applies it; the allowlisted pytest rerun must prove green for
+  `gap_closed` (Λ2.3: fix is DONE only when verified); outcome feeds the
+  RealityGapTracker. Bounded by `FIX_LOOP_MAX_ITERATIONS=3` (iteration ceiling).
+- **Swallowed-error root causes** (Λ2.3 Kintsugi): UnknownUnknownDetector gained
+  a real `detect` (the method did not exist -> AttributeError every cycle);
+  AssumptionAuditor.auto_audit got its missing curiosity_level arg; the
+  InternalDebate.debate call dropped a bogus intent_type kwarg; StrategicOption
+  dict-style `.get()` (dataclass) replaced with real attribute access; the
+  CouncilReflector.record_decision phantom call routed to the real `reflect`.
+  Bonus: trace_builder None-system_self guard, real regret/attribution call
+  sites, and self_audit now verifies REAL wired APIs.
+- **ActionExecutor** (`telos/core/actions/`): audited real tool-use channel.
+  `write_file` accepts a STRUCTURED minimal patch (path+old_lines+new_lines),
+  exact-once match, block-first (a blocked write writes nothing), no patch-file
+  targets, atomic temp-file write. Extended real toolchain: tsc/eslint/npm
+  (--prefix)/make/go with cwd containment. Every gate: allowlist + firewall
+  re-audit + operator permission + path containment + bounded capture.
+- **Gap scanner 4/6 -> 3/6 FAILED (honest)**: check_import_health now models only
+  MODULE-BODY import edges (lazy + `if TYPE_CHECKING:` imports are not circular)
+  -> 15 static 'cycles' (all runtime-clean) -> 0. Docstring check exempts pytest
+  built-in fixtures and is case-insensitive; ~108 docstring-vs-signature
+  mismatches closed + 10 honest test files added. Check 1 (dead code) still 75
+  (17 genuinely-dead methods in touched files REMOVED); Check 4 (test coverage)
+  still 119 missing; Check 6 remains 148.
+
+### Open Issues
+- gap_scanner checks 1/4/6 remain FAILED at repo level (dead code 75, missing
+  test files 119, docstring mismatches 148) — an honest, staged reduction from
+  the initial 4/6; full closure requires another session.
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: write-loop + swallowed-errors + gaps ship
