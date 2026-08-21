@@ -127,6 +127,13 @@ class DecisionTrace:
     curiosity_state: Optional[Dict] = None           # CuriosityDrive.get_report()
     curiosity_bonus: float = 1.0                     # CuriosityDrive.get_curiosity_bonus()
 
+    # ── Real tool-use channel (ActionExecutor audit record) ────────────────
+    # One ActionExecution.to_dict() per cycle that invoked a real allowlisted
+    # command through ACT (or attempted one and was blocked). None when no
+    # tool channel was configured/requested. Lambda 2.3: real command, real
+    # output, or a real block — never fabricated.
+    tool_audit: Optional[Dict] = None
+
     # ── Axiom Compliance Prover results ────────────────────────────────────
     axiom_results: Optional[Dict[str, Dict]] = None          # AxiomProver.verify() output
 
@@ -224,6 +231,7 @@ class DecisionTrace:
             "inquiry_summary": self.inquiry_summary,
             "curiosity_state": self.curiosity_state,
             "curiosity_bonus": self.curiosity_bonus,
+            "tool_audit": self.tool_audit,
             "axiom_results": self.axiom_results,
         }
 
@@ -259,6 +267,16 @@ class PipelineConfig:
     # council): enabled toggle + cadence (run every N cycles).
     distributed_council_enabled: bool = True
     distributed_council_interval: int = 1
+    # Real tool-use channel (audited ActionExecutor). When set, the ACT phase
+    # may invoke allowlisted, firewall-audited commands IF a tool intent is
+    # council-selected AND the operator granted per-cycle permission
+    # (operator_tool_permission=True) or a HumanGateway approval exists this
+    # cycle. Default: NO executor -> NO real command can ever run.
+    action_executor: Optional[Any] = None
+    # Explicit operator grant for tool intents (HumanGateway discipline): the
+    # operator configures the channel ON; an arbitrary shell command can never
+    # self-authorize.
+    operator_tool_permission: bool = False
 
 
 @dataclass

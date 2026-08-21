@@ -516,6 +516,20 @@ class ActPhase(Phase):
                 f"DI={ctx.verdict.decision_integrity:.3f}"
             )
 
+        # ── Real tool-use channel (audited ActionExecutor) ──────────────────
+        # Runs AFTER the cycle's governance outcome is final. The authoritative
+        # gate lives in _maybe_execute_tool's in-method guard: a council block,
+        # firewall block, or governor hard-stop records a governance_blocked_cycle
+        # audit and NO command runs; only a fully-cleared cycle reaches the
+        # executor, which re-audits through the firewall + hard allowlist. Every
+        # outcome — executed or blocked — lands in the DecisionTrace as
+        # tool_audit and in the firewall's governance signals (audit-first:
+        # blocked attempts are visible, never silent).
+        try:
+            self._maybe_execute_tool(pipeline, ctx)
+        except Exception as e:
+            logger.warning(f"Cycle {ctx.cycle_count}: act tool execution failed: {e}")
+
         # Emit readiness signal based on action outcome
         if ctx.governance_blocked:
             pipeline.readiness_engine.emit_signal("action_blocked", strength=0.5)
@@ -532,3 +546,110 @@ class ActPhase(Phase):
                     "mission_context": d.mission_context,
                     "semantic_identity": d.semantic_identity,
                 })
+
+
+    def _maybe_execute_tool(self, pipeline, ctx) -> None:
+        """Invoke the audited ActionExecutor when a tool intent was selected.
+
+        Gates (ALL must hold, else nothing runs and a block record is made):
+          1. pipeline.config.action_executor is configured (operator opted in);
+          2. the selected intent is a tool intent (execute_tool) whose params
+             carry a tool_permission spec the council has seen;
+          3. per-cycle operator permission exists (config operator_tool_permission
+             or a genuine HumanGateway approval this cycle).
+        The executor itself re-audits through DecisionFirewall.inspect and
+        validates the request against its hard allowlist before any subprocess
+        runs. The full audit record is written to ctx.tool_audit and appended
+        to the firewall's governance signals.
+
+        Args:
+            pipeline: the running pipeline (config.action_executor, firewall).
+            ctx: the phase context for this cycle.
+        """
+        executor = getattr(getattr(pipeline, 'config', None), 'action_executor', None)
+        if executor is None or not callable(getattr(executor, 'execute', None)):
+            return
+        intent = ctx.selected_intent
+        if intent is None or intent.intent_type != "execute_tool":
+            return
+        # Defense in depth: NEVER run a real command on a cycle the council,
+        # firewall, or governor blocked (belt-and-braces beyond the gate the
+        # act phase already enforces at the call site).
+        if getattr(ctx, 'governance_blocked', False) \
+                or getattr(ctx, 'council_blocked', False) \
+                or getattr(ctx, 'firewall_blocked', False):
+            from telos.core.actions.executor import ActionExecution
+            block = ActionExecution(
+                tool_name=intent.params.get("tool_name") or "unknown",
+                command="", allowed=False,
+                blocked_reason="governance_blocked_cycle",
+                permitted_by="",
+            )
+            ctx.tool_audit = block.to_dict()
+            logger.warning(
+                f"Cycle {ctx.cycle_count}: tool intent {block.tool_name} BLOCKED — "
+                "cycle is governance-blocked (council/firewall/governor)"
+            )
+            return
+        operator_grant = bool(getattr(
+            getattr(pipeline, 'config', None), 'operator_tool_permission', False))
+        operator_grant = operator_grant or bool(getattr(ctx, 'human_authorized', False))
+        if not operator_grant:
+            from telos.core.actions.executor import ToolPermission, ActionExecution
+            block = ActionExecution(
+                tool_name=intent.params.get("tool_name") or "unknown",
+                command="", allowed=False,
+                blocked_reason="no_operator_permission",
+                permitted_by="",
+            )
+            ctx.tool_audit = block.to_dict()
+            if ctx.firewall_verdict is not None:
+                ctx.firewall_verdict.governance_signals.append({
+                    "check": "tool_audit",
+                    "passed": False,
+                    "blocked_reason": "no_operator_permission",
+                })
+            logger.warning(
+                f"Cycle {ctx.cycle_count}: tool intent {block.tool_name} BLOCKED — "
+                "no operator permission this cycle (HumanGateway discipline)"
+            )
+            return
+
+        from telos.core.actions.executor import ToolPermission
+        spec = intent.params.get("tool_permission")
+        if not isinstance(spec, dict) or not spec.get("tool_name"):
+            from telos.core.actions.executor import ActionExecution
+            block = ActionExecution(
+                tool_name=intent.params.get("tool_name") or "unknown",
+                command="", allowed=False,
+                blocked_reason="missing_tool_permission_spec",
+                permitted_by="",
+            )
+            ctx.tool_audit = block.to_dict()
+            logger.warning(
+                f"Cycle {ctx.cycle_count}: tool intent BLOCKED — no tool_permission spec"
+            )
+            return
+
+        permission = ToolPermission(
+            tool_name=spec["tool_name"],
+            args=list(spec.get("args", []) or []),
+            cwd=spec.get("cwd") or getattr(executor, 'workspace_root', None),
+            permitted_by="human_gateway" if getattr(ctx, 'human_authorized', False) else "operator",
+            approved_message=spec.get("approved_message"),
+            permission_id=spec.get("permission_id") or f"cycle_{ctx.cycle_count}",
+        )
+        execution = executor.execute(
+            permission,
+            firewall=pipeline._firewall,
+        )
+        ctx.tool_audit = execution.to_dict()
+        if ctx.firewall_verdict is not None:
+            ctx.firewall_verdict.governance_signals.append(
+                executor.audit_entry(execution)
+            )
+        status = "EXECUTED" if execution.allowed else f"BLOCKED ({execution.blocked_reason})"
+        logger.info(
+            f"Cycle {ctx.cycle_count}: tool audit — {execution.tool_name} {status} "
+            f"({execution.command[-80:]})"
+        )
