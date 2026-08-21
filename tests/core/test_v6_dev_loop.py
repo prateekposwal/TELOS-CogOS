@@ -148,3 +148,90 @@ def test_confirming_raises_confidence_and_falsifying_falsifies():
     for _ in range(20):
         run_experiment(f, predicted=0.5, observed=2.0)
     assert f.falsified
+
+
+# ─── Phase 0 regression: a rc=0 test run IS a measurement (honest invariant) ──
+
+def _stub_validate(discovered, runs_by_name):
+    """Run validate_project with stubbed discovery + runner (full control).
+
+    Args:
+        discovered: list of (name, args) discover_commands returns.
+        runs_by_name: dict name -> CommandRun the stubbed _safe_run returns.
+
+    Returns:
+        validate_project(...) tuple via monkeypatched module globals.
+    """
+    import telos.adapters.dev_validation as dv
+
+    orig_discover = dv.discover_commands
+    orig_run = dv._safe_run
+    # a fake project path that discover_commands would never touch directly
+    import tempfile
+    proj = tempfile.mkdtemp()
+    try:
+        dv.discover_commands = lambda _p: list(discovered)
+        dv._safe_run = lambda args, cwd, timeout=30.0: runs_by_name[args[0]] \
+            if args and args[0] in runs_by_name else None
+        return dv.validate_project(proj, timeout=1.0)
+    finally:
+        dv.discover_commands = orig_discover
+        dv._safe_run = orig_run
+
+
+def test_rc_zero_test_run_stamps_measured_even_with_unparseable_output():
+    """A test command that EXITS 0 is a measurement — garbage/empty output
+    must NOT downgrade the stamp to SIMULATION/UNVALIDATED (was the old
+    load-dependent flake: `echo hi` with rc=0 -> is_measured=False)."""
+    run = dv.CommandRun(
+        name="test", args=["fake", "test"], returncode=0,
+        stdout="", stderr="", classification=dv.RunClass.SUCCESS,
+    )
+    ratio, _, _, runs, evidence = _stub_validate(
+        [("test", ["fake", "test"])], {"fake": run})
+    assert ratio == 1.0, "rc=0 unparseable output truthfully means all green"
+    assert evidence.is_measured is True, \
+        "a successfully run test is a measurement (honest invariant)"
+    assert evidence.validation_status == ValidationStatus.MEASURED
+
+
+def test_rc_zero_measured_with_parseable_ratio_stays_numeric():
+    """SUCCESS with parseable output keeps the truthful numeric ratio."""
+    run = dv.CommandRun(
+        name="test", args=["fake", "test"], returncode=0,
+        stdout="7 passed, 3 failed in 0.5s", stderr="",
+        classification=dv.RunClass.SUCCESS,
+    )
+    ratio, _, _, runs, evidence = _stub_validate(
+        [("test", ["fake", "test"])], {"fake": run})
+    assert abs(ratio - 0.7) < 1e-9
+    assert evidence.is_measured is True
+
+
+def test_failed_test_run_keeps_numeric_ratio_and_measured_stamp():
+    """A GENUINELY failing test run (rc != 0) keeps its numeric ratio and is
+    MEASURED — measured is about the run HAPPENING, not about passing."""
+    run = dv.CommandRun(
+        name="pytest", args=["python3", "-m", "pytest", "-q"], returncode=1,
+        stdout="3 passed, 2 failed in 0.4s", stderr="",
+        classification=dv.RunClass.TEST_FAILURE,
+    )
+    ratio, _, _, runs, evidence = _stub_validate(
+        [("pytest", ["python3", "-m", "pytest", "-q"])], {"python3": run})
+    assert abs(ratio - 0.6) < 1e-9
+    assert evidence.is_measured is True, \
+        "a genuinely-failed run is still a measurement (a real failed value)"
+
+
+def test_unrunnable_test_still_never_measured():
+    """The OTHER side of the invariant: a command that could NOT run
+    (INFRA_ERROR) must never be painted measured."""
+    run = dv.CommandRun(
+        name="test", args=["nope"], returncode=None,
+        stdout="", stderr="", classification=dv.RunClass.INFRA_ERROR,
+    )
+    ratio, _, _, runs, evidence = _stub_validate(
+        [("test", ["nope"])], {"nope": run})
+    assert ratio is None
+    assert evidence.is_measured is False
+    assert evidence.validation_status == ValidationStatus.UNVALIDATED

@@ -256,7 +256,18 @@ class AssumptionAuditor:
             never_questioned = 0.5 if a.times_questioned == 0 else 0.0
             return staleness_factor + overconfidence + fragility + never_questioned
 
-        candidates.sort(key=score, reverse=True)
+        # DETERMINISTIC SELECTION (Λ2.3 — no clock-jitter-dependent winner):
+        # primary key = score ROUNDED to 6dp — immune to microsecond wall-clock
+        # staleness jitter between equal-confidence assumptions (e.g. two
+        # genesis assumptions tie at exactly 0.96); secondary key = assumption
+        # id, DESCENDING, so an exact rounded tie resolves by construction
+        # (highest id first), never by insertion order or by unrounded
+        # microsecond staleness. Re-running selection under any clock jitter
+        # therefore yields the SAME assumption.
+        candidates.sort(
+            key=lambda a: (round(score(a), 6), a.id),
+            reverse=True,
+        )
         return candidates[0]
 
     def audit(self, cycle: int, assumption_id: str,

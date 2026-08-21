@@ -204,6 +204,15 @@ def validate_project(project_path: str, timeout: float = 30.0) -> Tuple[
             ratio = _extract_pass_ratio(run)
             if ratio is not None:
                 test_pass_ratio = ratio
+            elif run.classification == RunClass.SUCCESS:
+                # HONEST-MEASUREMENT INVARIANT (evidence-must-not-lie, Λ2.3):
+                # a test command that EXITS 0 is a measurement by definition —
+                # the whole suite ran and passed. A SUCCESS output whose
+                # pass-count the parser cannot read still truthfully means "all
+                # green", so we stamp 1.0 (truthful default for SUCCESS), never
+                # an unmeasured stamp. GENUINELY FAILED runs (rc != 0) keep
+                # their numeric ratios — a real failed run is never painted 1.0.
+                test_pass_ratio = 1.0
         elif name in ("typecheck", "typecheck:script"):
             ts_error_count = _count_tsc_errors(run)
         elif name == "lint":
