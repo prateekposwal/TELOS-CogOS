@@ -343,9 +343,14 @@ def run_audit(verbose=True) -> Dict:
             ('_assumption_auditor', 'auto_audit'),
             ('_identity_utility', 'compute_utility'),
             ('_theory_builder', 'observe_outcome'),
-            ('_regret_memory', 'get_regret_scores'),
+            # Root-cause honest names: the old entries referenced APIs that
+            # never existed (get_regret_scores, CouncilReflector.record_decision
+            # belongs to the inner ValidatorTrackRecord) — they passed only as
+            # stale substrings. These are the REAL wired APIs after the Λ2.3
+            # swallowed-error fixes.
+            ('_regret_memory', 'get_regret_by_type'),
             ('_interpretation_engine', 'record_outcome'),
-            ('_council_reflector', 'record_decision'),
+            ('_council_reflector', 'reflect'),
             ('_error_attribution', 'attribute'),
             ('_introspection_scheduler', 'introspect'),
             ('_axiom_evolution', 'observe'),

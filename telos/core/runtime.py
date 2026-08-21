@@ -669,6 +669,36 @@ class TelosV14Pipeline:
                 f"recovery armed for stagnation (Λ3.1)"
             )
 
+    @staticmethod
+    def _option_intent_type(option: Any) -> Optional[str]:
+        """Extract a real intent-type label from a simulated StrategicOption.
+
+        StrategicOptions are dataclasses (no ``.get``), so any dict-style
+        access raises AttributeError. Reads the option's world/metadata for a
+        genuine intent label, and returns None (never a fabricated string)
+        when none is present.
+
+        Args:
+            option: a StrategicOption (or any object with world/metadata).
+
+        Returns:
+            The intent type string if present, else None.
+        """
+        if option is None:
+            return None
+        world = getattr(option, 'world', None)
+        wmd = getattr(world, 'metadata', None) or {}
+        if isinstance(wmd, dict):
+            it = wmd.get('intent') or wmd.get('intent_type')
+            if it:
+                return str(it)
+        omd = getattr(option, 'metadata', None) or {}
+        if isinstance(omd, dict):
+            it = omd.get('intent') or omd.get('intent_type')
+            if it:
+                return str(it)
+        return None
+
     def _maybe_inject_recovery_intent(self, ctx) -> None:
         """Select-phase recovery (Λ3.1): break a firewall action_loop trap.
 
@@ -1063,7 +1093,10 @@ class TelosV14Pipeline:
 
             if phase.name == "perceive":
                 try:
-                    self._assumption_auditor.auto_audit(ctx.cycle_count)
+                    self._assumption_auditor.auto_audit(
+                        ctx.cycle_count,
+                        curiosity_level=float(getattr(ctx, "curiosity_bonus", 0.5)),
+                    )
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
@@ -1150,8 +1183,15 @@ class TelosV14Pipeline:
                 try:
                     if ctx.selected_intent:
                         debate_result = self._internal_debate.debate(
-                            context=str(ctx.state)[:100],
-                            intent_type=ctx.selected_intent.intent_type,
+                            context={
+                                "intent_type": ctx.selected_intent.intent_type,
+                                "state_snapshot": str(ctx.state)[:100],
+                                "n_options": len(getattr(ctx, "sim_options", []) or []),
+                                "council_blocked": bool(getattr(ctx, "council_blocked", False)),
+                            },
+                            context_description=(
+                                f"Selection of {ctx.selected_intent.intent_type}"
+                            ),
                         )
                         if debate_result:
                             ctx._debate_result = debate_result
@@ -1193,10 +1233,20 @@ class TelosV14Pipeline:
             if phase.name == "select":
                 try:
                     if ctx.selected_intent:
-                        alts = [o.get("intent_type", "unknown") for o in getattr(ctx, 'sim_options', [])[:3]]
-                        rs = self._regret_memory.get_regret_scores(
-                            chosen_intent=ctx.selected_intent.intent_type, alternatives=alts)
-                        if rs: ctx.regret_scores = rs
+                        alts = [
+                            self._option_intent_type(o)
+                            for o in getattr(ctx, 'sim_options', [])[:3]
+                        ]
+                        alts = [a for a in alts if a]
+                        mean_regret, count = self._regret_memory.get_regret_by_type(
+                            ctx.selected_intent.intent_type)
+                        if count:
+                            ctx.regret_scores = {
+                                "chosen_intent": ctx.selected_intent.intent_type,
+                                "mean_regret": mean_regret,
+                                "n_records": count,
+                                "alternatives": alts,
+                            }
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
@@ -1228,8 +1278,23 @@ class TelosV14Pipeline:
                                             "confidence": s.confidence, "reason": s.reason,
                                             "evidence_weight": getattr(s, 'evidence_weight', 0.5)})
                     wb = getattr(ctx, 'council_blocked', False)
-                    self._council_reflector.record_decision(was_blocked=wb, predicted_block=wb,
-                                                            actual_block=wb, validator_signals=signals)
+                    di = ctx.verdict.decision_integrity if ctx.verdict else 1.0
+                    md = ctx.verdict.mission_drift if ctx.verdict else 0.0
+                    # `reflect` is the CouncilReflector's real per-decision
+                    # recording API (the old call used a method that only
+                    # exists on the inner ValidatorTrackRecord, so it raised
+                    # AttributeError and was swallowed every cycle).
+                    reflection = self._council_reflector.reflect(
+                        cycle=ctx.cycle_count,
+                        selected_intent=(ctx.selected_intent.intent_type
+                                         if ctx.selected_intent else "unknown"),
+                        validator_signals=signals,
+                        predicted_di=di, actual_di=di,
+                        predicted_md=md, actual_md=md,
+                        was_blocked=wb,
+                        outcome_success=not wb,
+                    )
+                    ctx._council_reflection = reflection
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
@@ -1337,10 +1402,24 @@ class TelosV14Pipeline:
 
                 try:
                     if ctx.selected_intent:
+                        cf_opts: List[Dict] = []
+                        for o in getattr(ctx, 'sim_options', [])[:3]:
+                            cf_opts.append({
+                                "intent_type": self._option_intent_type(o),
+                                "score": float(getattr(o, 'score', 0.0)),
+                                "metadata": dict(getattr(o, 'metadata', {}) or {}),
+                            })
+                        chosen_score = float(getattr(
+                            ctx, 'sim_options', [None])[0].score) if getattr(
+                            ctx, 'sim_options', []) else 0.0
                         self._regret_memory.record_decision(
+                            cycle=ctx.cycle_count,
                             chosen_intent=ctx.selected_intent.intent_type,
-                            alternatives=[o.get("intent_type", "unknown") for o in getattr(ctx, 'sim_options', [])[:3]],
-                            outcome=outcome_success,
+                            chosen_score=chosen_score,
+                            chosen_outcome=1.0 if outcome_success else 0.0,
+                            counterfactual_options=cf_opts,
+                            decision_type=ctx.selected_intent.intent_type,
+                            context_hash=str(ctx.state)[:64],
                         )
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
@@ -1348,8 +1427,36 @@ class TelosV14Pipeline:
                 try:
                     wb = ctx.council_blocked or ctx.firewall_blocked
                     if wb:
-                        self._error_attribution.attribute(ctx=ctx, trace=None,
-                            stream_activations=getattr(ctx, 'stream_activations', []))
+                        council_signals = [
+                            {"validator_name": s.validator_name, "passed": s.passed}
+                            for s in (ctx.verdict.signals if ctx.verdict else [])
+                        ]
+                        predicted = getattr(ctx, 'predicted_state', None)
+                        actual = getattr(ctx, 'state', None)
+                        sim_error = 0.0
+                        if predicted is not None and actual is not None:
+                            try:
+                                sim_error = float(np.linalg.norm(
+                                    np.asarray(predicted, dtype=float)
+                                    - np.asarray(actual, dtype=float)))
+                            except Exception:
+                                sim_error = 0.0
+                        pq = getattr(ctx, 'perception_quality', None)
+                        perception_quality = float(
+                            pq.get('score', 0.5)) if isinstance(pq, dict) else 0.5
+                        self._error_attribution.attribute(
+                            cycle=ctx.cycle_count,
+                            predicted_state=predicted,
+                            actual_state=actual,
+                            was_blocked=wb,
+                            should_have_blocked=bool(outcome_success) is False,
+                            council_signals=council_signals,
+                            simulation_error=sim_error,
+                            perception_quality=perception_quality,
+                            action_error=0.0,
+                            intent_type=ctx.selected_intent.intent_type
+                            if ctx.selected_intent else "unknown",
+                        )
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 

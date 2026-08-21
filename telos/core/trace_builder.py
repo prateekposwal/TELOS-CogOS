@@ -113,7 +113,9 @@ def build_trace(
         strategic_options=ctx.strategic_options_data,
         perception_quality=last_quality_report.to_dict() if last_quality_report else None,
         perception_explanation=perception_explanation,
-        system_mood=infra_manager.system_self.mood if hasattr(infra_manager, 'system_self') else None,
+        system_mood=(infra_manager.system_self.mood
+                    if getattr(infra_manager, 'system_self', None) is not None
+                    else None),
         knowledge_report=ctx.perceive.knowledge_report if ctx.perceive else None,
         gate_verdict=ctx.world.metadata.get("gate_verdict") if ctx.world else None,
         attention_metrics=ctx.attention_metrics,
@@ -137,7 +139,8 @@ def build_trace(
         # Fix 3: Terminal value
         terminal_value=getattr(ctx, 'terminal_value', 0.0),
         # Fix 4: Belief state from identity
-        belief_state=getattr(infra_manager.system_self, 'get_belief_state', lambda: {})(),
+        belief_state=(getattr(infra_manager.system_self, 'get_belief_state', lambda: {})()
+                    if getattr(infra_manager, 'system_self', None) is not None else {}),
         # Fix 5: Capabilities K_t from identity state
         capabilities_k=(getattr(ctx, 'identity_state', {}) or {}).get('K_t'),
         j_term_breakdown=getattr(ctx, "j_term_breakdown", None),
@@ -159,6 +162,8 @@ def build_trace(
         # ── Curiosity Drive ──────────────────────────────────────────────
         curiosity_state=getattr(ctx, 'curiosity_state', None),
         curiosity_bonus=getattr(ctx, 'curiosity_bonus', 1.0),
+        # ── Real tool-use channel audit record ─────────────────────────────
+        tool_audit=getattr(ctx, 'tool_audit', None),
     )
 
     # ── Merkle Proof of Reasoning (Bitcoin-inspired) ──────────────────────
