@@ -13,7 +13,7 @@ import tempfile
 import numpy as np
 
 from telos_task import GridAdpt, GridSim, DEFAULT_BLOCKED, DEFAULT_REWARDS
-from telos.core.runtime import PipelineConfig, TelosV14Pipeline
+from telos.core.runtime import PipelineConfig, TelosV14Pipeline, STAGNATION_RECOVERY_AFTER
 from telos.core.streams.implementations import (
     ReflexStream, PerceptionStream, MemoryStream, PlanningStream, TheoryStream,
 )
@@ -143,3 +143,103 @@ def test_post_council_injection_fires_on_final_looped_intent():
     pipeline._maybe_inject_recovery_intent_post_council(ctx3)
     assert ctx3.selected_intent.intent_type == "explore_curiosity", \
         "stale arming must not inject"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# LEFT ITEM 1 — REAL degradation diagnosis (not an aggregation artifact).
+# Live evidence: the producer sat in an infinite `blended_inquiry` loop where
+# every cycle got DI floored to 0.3 (DISSENT_FLOOR) and the firewall blocked
+# it at `low_integrity` (threshold raised to 0.94 by Λ3.1 risk tightening),
+# so mood/DI honestly read 0.3 / cautious for hundreds of cycles. THIS test
+# locks the two defeat-mechanisms that make that loop terminal — proving the
+# dashboard was faithfully reporting REAL degradation, and giving a future
+# recovery fix a red test to make green.
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_low_integrity_inquiry_loop_escapes_via_stagnation_recovery():
+    """A `blended_inquiry` intent DI-floored below a raised firewall threshold
+    is a STUCK RETRY, not a deliberate explore-pause (Λ6.5). The firewall
+    blocks it at `low_integrity` (Check 2, BEFORE loop detection), whose
+    `_block` RESETS `_consecutive_loop_blocks`, so the action_loop recovery
+    can never arm. The stagnation recovery previously exempted ALL inquiry
+    types, leaving this no-op loop with NO escape (DI 0.3 forever). The fix:
+    stagnation keeps the inquiry exemption for genuine unblocked exploration
+    AND for `action_loop` traps (the firewall owns those), but arms the
+    goal-seek escape for a `low_integrity`-STALLED inquiry retry."""
+    # ── (a) Firewall still blocks at low_integrity; loop recovery stays dead ──
+    from telos.core.governance.firewall import DecisionFirewall, FirewallConfig, RECOVERY_AFTER_LOOP_BLOCKS
+    from telos.intent_ir import IntentIR
+    from telos.world.world import World
+
+    fw = DecisionFirewall(FirewallConfig(min_decision_integrity=0.94, domain="gridworld"))
+    world = World(state=np.zeros(2))
+    for _ in range(RECOVERY_AFTER_LOOP_BLOCKS + 3):
+        intent = IntentIR(intent_type="blended_inquiry", confidence=0.5)
+        verdict = fw.inspect(
+            world=world, intent=intent, council_validated=True,
+            decision_integrity=0.3,  # exactly the live DI-floored value
+            domain="gridworld",
+        )
+        assert not verdict.passed, "DI 0.3 below threshold 0.94 must block"
+        assert verdict.blocked_by == "low_integrity", f"got {verdict.blocked_by}"
+        assert fw.consecutive_loop_blocks == 0, (
+            "low_integrity _block resets the loop counter, so the firewall "
+            "action_loop recovery alone can never free this loop"
+        )
+
+    # ── (b) Stagnation recovery NOW arms for the low_integrity stall ──
+    import tempfile
+    from telos_task import GridAdpt, GridSim, DEFAULT_BLOCKED, DEFAULT_REWARDS
+    from telos.core.phases.base import PhaseContext
+
+    tmpdir = tempfile.mkdtemp()
+    pipe = TelosV14Pipeline(PipelineConfig(
+        adapter=GridAdpt(), simulator=GridSim(blocked=set(DEFAULT_BLOCKED),
+                                              rewards=dict(DEFAULT_REWARDS)),
+        compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
+        checkpoint_path=tmpdir + "/cp", knowledge_path=tmpdir + "/kg.json",
+        ledger_path=tmpdir + "/ld.json", identity_path=tmpdir + "/id.json",
+        pattern_path=tmpdir + "/pt.json", deterministic_seed=42,
+    ))
+    for i in range(STAGNATION_RECOVERY_AFTER + 2):
+        ctx = PhaseContext(cycle_count=i, state=np.zeros(2), user_name="t")
+        ctx.selected_action = None             # no action flowed (blocked)
+        ctx.no_action = True
+        ctx.firewall_blocked = True            # stalled retry — the real live shape
+        ctx.firewall_verdict = type("V", (), {"blocked_by": "low_integrity"})()
+        ctx.selected_intent = IntentIR(intent_type="blended_inquiry", confidence=0.5)
+        pipe._update_stagnation_recovery_state(ctx)
+        if i < STAGNATION_RECOVERY_AFTER - 1:
+            assert not pipe._recovery_stagnation_armed, (
+                "stall must accumulate towards the threshold first"
+            )
+    assert pipe._recovery_stagnation_armed, (
+        "stagnation recovery MUST arm for a low_integrity-STALLED inquiry "
+        "retry — this is the escape the loop previously had no access to"
+    )
+    assert pipe._recovery_looped_type == "blended_inquiry"
+    assert pipe._recovery_reason == "no_action_stagnation"
+
+    # ── (c) Genuine unblocked inquiry exploration stays exempt ──
+    pipe2 = TelosV14Pipeline(PipelineConfig(
+        adapter=GridAdpt(), simulator=GridSim(blocked=set(DEFAULT_BLOCKED),
+                                              rewards=dict(DEFAULT_REWARDS)),
+        compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
+        checkpoint_path=tmpdir + "/cp2", knowledge_path=tmpdir + "/kg2.json",
+        ledger_path=tmpdir + "/ld2.json", identity_path=tmpdir + "/id2.json",
+        pattern_path=tmpdir + "/pt2.json", deterministic_seed=42,
+    ))
+    for i in range(STAGNATION_RECOVERY_AFTER + 2):
+        ctx = PhaseContext(cycle_count=i, state=np.zeros(2), user_name="t")
+        ctx.selected_action = None
+        ctx.no_action = True
+        ctx.firewall_blocked = False           # deliberate explore — not blocked
+        ctx.selected_intent = IntentIR(intent_type="blended_inquiry", confidence=0.5)
+        pipe2._update_stagnation_recovery_state(ctx)
+    assert not pipe2._recovery_stagnation_armed, (
+        "genuine unblocked inquiry exploration stays exempt (Λ6.5) — do NOT "
+        "force-escape deliberate curiosity"
+    )
+    assert pipe2._stagnant_no_action_cycles == 0, (
+        "the unblocked inquiry exemption must keep resetting the no-action counter"
+    )

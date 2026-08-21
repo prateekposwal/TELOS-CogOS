@@ -635,8 +635,26 @@ class TelosV14Pipeline:
         cur_type = ctx.selected_intent.intent_type if ctx.selected_intent else None
         if cur_type in STAGNATION_EXEMPT_INQUIRY_TYPES or \
                 cur_type in STAGNATION_EXEMPT_RECOVERY_TYPES:
-            self._stagnant_no_action_cycles = 0
-            return
+            # Distinguish a DELIBERATE explore-pause from a BLOCKED retry
+            # (Λ6.5): the exemption applies to a genuinely approved exploration
+            # dwell, NOT to a cycle that was actively STALLED by a non-loop
+            # firewall block (e.g. `low_integrity`). A `low_integrity` block
+            # happens at Check 2, BEFORE the firewall's loop detection, so its
+            # `_block` resets `_consecutive_loop_blocks` and the action_loop
+            # recovery can NEVER arm — an inquiry type stalled that way is a
+            # stuck retry with NO other escape path, so stagnation must arm
+            # the goal-seek escape for it instead. Blocks at `action_loop`
+            # (or genuine unblocked exploration) keep the exemption: the
+            # firewall itself owns that escape path.
+            verdict = getattr(ctx, 'firewall_verdict', None)
+            blocked_by = getattr(verdict, 'blocked_by', None) if verdict is not None else None
+            stalled_by_block = (
+                getattr(ctx, 'firewall_blocked', False)
+                and blocked_by is not None and blocked_by != "action_loop"
+            )
+            if not stalled_by_block:
+                self._stagnant_no_action_cycles = 0
+                return
         if self._stagnant_no_action_cycles >= STAGNATION_RECOVERY_AFTER:
             self._recovery_goal_seek_pending = True
             self._recovery_stagnation_armed = True  # governor no-action loop (not firewall) armed the escape
