@@ -138,6 +138,7 @@ class SystemSelf:
         self._di_window: List[float] = []
         self._md_window: List[float] = []
         self._block_window: List[bool] = []
+        self._closure_window: List[bool] = []  # verified-closure facts (Λ2.3)
         self._max_history = 100
         # Fix 4: Initialize belief_state with standard domains as uniform distributions
         self._init_beliefs()
@@ -363,24 +364,34 @@ class SystemSelf:
 
     def observe(self, di: float, md: float, was_blocked: bool,
                  identity_markers_to_add: Optional[Set[str]] = None,
-                 cycle_number: int = 0) -> None:
+                 cycle_number: int = 0,
+                 verified_closures: int = 0) -> None:
         """Record a decision cycle outcome and update self-model.
         
         Fix 4: Also updates belief_state based on observed DI/MD values.
         
+        Verified-closure channel (Ph3, Λ2.3): `verified_closures` counts real,
+        subprocess-verified gap-close events (FixLoopFeedback.gap_closed=True)
+        recorded this cycle. It is a MEASURED soundness signal — never a
+        claimed achievement. It can only ever ADD a guarded calm-down path
+        inside _update_mood; it can never mask a low-DI block or a block-rate
+        spike (the DI/MD/block logic stays authoritative).
+
         Args:
             identity_markers_to_add: Optional markers from Kintsugi failure integration.
             cycle_number: Current pipeline cycle (for mood cooldown enforcement).
-        Args:
-            was_blocked: the was_blocked argument for this call.
+            was_blocked: whether the cycle was firewall/council-blocked.
+            verified_closures: number of PROVEN gap-closes this cycle (>=0).
         """
         self._di_window.append(di)
         self._md_window.append(md)
         self._block_window.append(was_blocked)
+        self._closure_window.append(verified_closures > 0)
         if len(self._di_window) > 20:
             self._di_window.pop(0)
             self._md_window.pop(0)
             self._block_window.pop(0)
+            self._closure_window.pop(0)
 
         self._update_mood(cycle_number)
         self._update_trend()
@@ -468,6 +479,28 @@ class SystemSelf:
                 self._state.mood, new_mood, avg_di, avg_md, block_rate
             )
             self._state.mood = new_mood
+            self._last_mood_change_cycle = current_cycle
+            self._state.cycles_since_mood_change = 0
+            return
+
+        # ── Verified-closure calm-down (Ph3, Λ2.3 — measured soundness only) ──
+        # Separately from the DI/MD paths: if the recent window holds enough
+        # PROVEN gap-closes (real subprocess-verified reruns) AND the DI/MD
+        # base is sound AND nothing was blocked, a watchful cautious mood may
+        # legitimately soften toward curious — it never jumps more than one
+        # step, never overrides a fresh negative signal, and never fabricates.
+        recent_closures = sum(self._closure_window[-5:])
+        if (self._state.mood == "cautious"
+                and recent_closures >= 3
+                and avg_di >= 0.7
+                and block_rate == 0.0
+                and avg_md < 1.0
+                and self._state.cycles_since_mood_change > 3):
+            logger.info(
+                "SystemSelf: mood cautious -> curious on verified closures "
+                "(closures=%d, di=%.2f)", recent_closures, avg_di
+            )
+            self._state.mood = "curious"
             self._last_mood_change_cycle = current_cycle
             self._state.cycles_since_mood_change = 0
 
