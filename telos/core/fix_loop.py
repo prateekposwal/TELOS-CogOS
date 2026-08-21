@@ -775,14 +775,83 @@ class FixLoopController:
                 "abstained": proposal.abstained,
                 "reason": proposal.reason,
                 "feedback": None,
+                # PRODUCTIVE ABSTENTION (Λ6.5): an abstention is never an empty
+                # refusal — it always emits a named Hypothesis + a bounded
+                # experiment record so the system learns from WHY it refused.
+                "abstention_hypothesis": None,
             }
             if proposal.abstained:
+                hypothesis = self._abstain_to_hypothesis(test_id, proposal)
+                if hypothesis is not None:
+                    hook["abstention_hypothesis"] = {
+                        "id": hypothesis.id,
+                        "description": hypothesis.description,
+                        "test_id": test_id,
+                        "strategy": proposal.strategy,
+                    }
                 outcomes.append(hook)
                 continue
             fb = self.apply_fix(i, test_id, proposal.to_patch())
             hook["feedback"] = fb
             outcomes.append(hook)
         return outcomes
+
+    def _abstain_to_hypothesis(self, test_id: str,
+                               proposal: Any) -> Optional[Any]:
+        """Turn one abstention into a falsifiable Hypothesis + Experience.
+
+        PATTERN: abstention = hypothesis + experiment, never an empty refusal.
+        The generator's structured abstention REASON already is a hypothesis
+        ("name X has no locatable definition" / "ambiguous: candidates ...").
+        We record it as a first-class Λ6.5 Experience so the theory-builder
+        can later falsify or confirm the refusal — the system learns from why
+        it refused, instead of silently refusing forever.
+
+        Args:
+            test_id: the failing test the abstention concerns.
+            proposal: the FixProposal with abstained=True and a structured
+                reason.
+
+        Returns:
+            A Hypothesis (from the theory dataclasses) representing the
+            abstention, or None if no builder is available.
+        """
+        if proposal is None or not getattr(proposal, "abstained", False):
+            return None
+        builder = getattr(self, "_theory_builder", None)
+        if builder is None:
+            try:
+                from telos.core.reasoning.theory.builder import TheoryBuilder
+                builder = TheoryBuilder()
+                self._theory_builder = builder
+            except Exception as e:  # Λ2.3: no silent swallow
+                logger.warning("FixLoop abstention builder unavailable: %r", e)
+                return None
+        reason = getattr(proposal, "reason", "") or "abstained"
+        strategy = getattr(proposal, "strategy", "abstain")
+        from telos.core.reasoning.theory.dataclasses import Hypothesis
+        hyp = Hypothesis(
+            id=f"abstention:{strategy}:{abs(hash(test_id)) % 100000}",
+            description=(f"abstention on {test_id}: {reason}"),
+            context_signature={"test_id": test_id, "strategy": strategy},
+            action="measure_evidence",
+            predicted_outcome=1.0,
+            confidence=0.3,
+            supporting_patterns=[],
+        )
+        self._last_abstention_hypothesis = hyp
+        # Λ6.5: record the refusal as a low-confidence experience so the
+        # pattern layer sees it. INCONCLUSIVE is a legal outcome (Λ2.3).
+        try:
+            builder.observe_outcome(
+                outcome=0.0,
+                context=f"fix_loop_abstention:{test_id}:{strategy}",
+                action="abstain_measure",
+                domain="fix_loop",
+            )
+        except Exception as e:
+            logger.warning("FixLoop abstention experience record failed: %r", e)
+        return hyp
 
 __all__ = [
     "FIX_LOOP_MAX_ITERATIONS", "FixProposalValidator", "FixProposalStream",

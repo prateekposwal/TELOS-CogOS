@@ -251,3 +251,39 @@ def gen_path_none(prop):
         True when no lines are proposed.
     """
     return not prop.old_lines and not prop.new_lines
+
+class TestProductiveAbstention:
+    """Phase 2 — abstention = hypothesis + experiment, never an empty refusal."""
+
+    def test_ambiguous_abstention_emits_hypothesis_and_no_patch(self, tmp_path):
+        repo = _init_repo(tmp_path / "r", {
+            "a.py": "def solve():\n    return 1\n",
+            "b.py": "def solve():\n    return 2\n",
+            "test_ambig.py": (
+                "def test_p():\n"
+                "    return solve()\n"
+            ),
+        })
+        assert _pytest_output(repo, "test_ambig.py")[0] == 1
+        executor = ActionExecutor(workspace_root=repo)
+        writes_attempted = []
+        orig_write = executor.execute
+        controller = FixLoopController(repo, executor)
+        sim = GitRepoSim(repo, test_output_paths=[
+            _write_evidence(repo, "test_ambig.py",
+                            _pytest_output(repo, "test_ambig.py")[1])])
+        outcome = controller.run_autonomous(
+            ["test_ambig.py::test_p"], sim.gather_snapshot())[0]
+
+        assert outcome["generated"] is False
+        assert outcome["abstained"] is True
+        assert outcome["proposal"] is None
+        # PRODUCTIVE: the abstention emitted a falsifiable hypothesis.
+        hypothesis = outcome["abstention_hypothesis"]
+        assert hypothesis is not None, "abstention must emit a hypothesis"
+        assert "test_ambig.py" in hypothesis["description"]
+        # No write is ever attempted for an abstention (bounded experiment only).
+        assert writes_attempted == []
+        # Nothing was written to the repo.
+        with open(os.path.join(repo, "test_ambig.py")) as f:
+            assert "import" not in f.read()
