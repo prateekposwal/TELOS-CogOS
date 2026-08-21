@@ -115,6 +115,35 @@ class InfrastructureManager:
 
 
 
+    def _verified_closures(self, result: Any, trace: Any) -> int:
+        """Count PROVEN gap-closes in this cycle's audit trail (Λ2.3).
+
+        The ONLY source of a verified closure is FixLoopFeedback.gap_closed
+        (a real allowlisted subprocess-verified rerun), which the fix loop
+        records in the decision trace's tool audit. No other signal may
+        claim a closure — a fabricated achievement feed would violate Λ2.3.
+
+        Args:
+            result: the PipelineResult being observed.
+            trace: the DecisionTrace for this cycle (may be None).
+
+        Returns:
+            Number of verified gap-closes recorded this cycle (>= 0).
+        """
+        try:
+            if trace is None:
+                return 0
+            audit = getattr(trace, "tool_audit", None)
+            if isinstance(audit, dict) and audit.get("gap_closed"):
+                return 1
+            audits = getattr(trace, "tool_audits", None)
+            if isinstance(audits, list):
+                return sum(1 for a in audits
+                           if isinstance(a, dict) and a.get("gap_closed"))
+        except Exception as e:  # Λ2.3: never a silent swallow
+            logger.warning("SystemSelf closure-feed read failed: %r", e)
+        return 0
+
     def observe(self, result: Any, total_streams: int = 0) -> None:
         """Process a PipelineResult through all infrastructure components.
 
@@ -332,6 +361,7 @@ class InfrastructureManager:
                 result.council_blocked or result.firewall_blocked,
                 identity_markers_to_add=markers,
                 cycle_number=trace.cycle_id if trace else 0,
+                verified_closures=self._verified_closures(result, trace),
             )
             self._kintsugi_repair()
 
@@ -343,6 +373,7 @@ class InfrastructureManager:
                 result.decision_integrity, result.mission_drift,
                 result.council_blocked or result.firewall_blocked,
                 cycle_number=trace.cycle_id if trace else 0,
+                verified_closures=self._verified_closures(result, trace),
             )
 
     def enter_recovery(self) -> None:

@@ -75,7 +75,8 @@ class IdentityBridge:
     # ── Snapshot: one identity node per cycle ───────────────────
 
     def sync(self, cycle: int = 0, di: float = 1.0, md: float = 0.0,
-             selected_intent: str = "none") -> str:
+             selected_intent: str = "none",
+             verified_closures: int = 0) -> str:
         """Record this cycle's mutable identity state as an identity-domain
         knowledge node + refresh semantic marker links.
 
@@ -85,6 +86,8 @@ class IdentityBridge:
                 outcome stored on the node
             md: mission drift of this cycle
             selected_intent: intent_type chosen this cycle (or "none")
+            verified_closures: count of PROVEN gap-closes this cycle (Λ2.3 —
+                a measured soundness signal, piped from the fix loop audit).
 
         Returns:
             The node id (or "" if rate-limited/denied). Best-effort — never raises."""
@@ -105,6 +108,7 @@ class IdentityBridge:
             "di": round(float(di), 4),
             "md": round(float(md), 4),
             "selected_intent": selected_intent,
+            "verified_closures": int(max(0, verified_closures)),
             "role": getattr(state, 'role', None) if hasattr(state, 'role') else None,
         }
         tags = ["identity", "self", mood] + sorted(markers)
