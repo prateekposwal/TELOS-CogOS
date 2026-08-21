@@ -185,7 +185,12 @@ class AssumptionAuditor:
     def register_assumption(self, description: str, type: AssumptionType,
                             confidence: float = 0.5,
                             source: str = "experience") -> str:
-        """Register a new assumption for tracking."""
+        """Register a new assumption for tracking.
+        description: description: human-readable description for the registered entity
+        type: the AssumptionType enum value
+        confidence: confidence: confidence value in [0, 1]
+        source: source: provenance string for the registered entity
+"""
         import hashlib
         aid = f"asm_{hashlib.md5(description.encode()).hexdigest()[:8]}"
         assumption = Assumption(
@@ -207,7 +212,10 @@ class AssumptionAuditor:
           1. Curiosity above threshold
           2. Periodic interval reached
           3. An assumption is very stale (never questioned)
-        """
+        
+        cycle: the current pipeline cycle number
+        curiosity_level: the current curiosity level in [0, 1]
+"""
         # Curiosity trigger
         if curiosity_level >= self._curiosity_threshold:
             return True
@@ -233,7 +241,9 @@ class AssumptionAuditor:
           1. High confidence + long unqueried (overconfident assumptions)
           2. Low confidence (fragile assumptions)
           3. Never questioned
-        """
+        
+        cycle: the current pipeline cycle number
+"""
         candidates = [a for a in self._assumptions.values() if a.active]
         if not candidates:
             return None
@@ -306,7 +316,10 @@ class AssumptionAuditor:
         """Automatically select and audit an assumption.
 
         Called by the pipeline when curiosity is high or periodically.
-        """
+        
+        cycle: the current pipeline cycle number
+        curiosity_level: the current curiosity level in [0, 1]
+"""
         if not self.should_audit(cycle, curiosity_level):
             return None
 
@@ -322,20 +335,6 @@ class AssumptionAuditor:
             survived=True,  # default: assumption survives auto-audit
             triggered_by_curiosity=triggered,
         )
-
-    def get_overconfident_assumptions(self, threshold: float = 0.9) -> List[Assumption]:
-        """Get assumptions with high confidence that haven't been questioned recently."""
-        return [
-            a for a in self._assumptions.values()
-            if a.confidence >= threshold and a.staleness > 600 and a.active
-        ]
-
-    def get_fragile_assumptions(self, threshold: float = 0.3) -> List[Assumption]:
-        """Get assumptions with low confidence."""
-        return [
-            a for a in self._assumptions.values()
-            if a.confidence <= threshold and a.active
-        ]
 
     @property
     def total_audits(self) -> int:

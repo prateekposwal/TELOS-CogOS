@@ -73,16 +73,6 @@ class Perspective:
     confidence: float = 0.5  # How confident this perspective is in its assessment
     bias_strength: float = 0.7  # How strongly it holds its perspective bias
 
-    def generate_arguments(self, context: Dict[str, Any]) -> List[Argument]:
-        """Generate arguments based on this perspective's viewpoint.
-
-        To be extended with actual reasoning. Base implementation provides
-        perspective-appropriate generic arguments.
-        """
-        # Stub — in production, each perspective would analyze the context
-        return []
-
-
 # ── Built-in perspective definitions ────────────────────────
 
 OPTIMIST = Perspective(
@@ -321,7 +311,9 @@ class InternalDebate:
 
         This is the core reasoning method. In production, this would use
         LLM calls or structured reasoning. Here we provide a template.
-        """
+        
+        role: the perspective role to generate arguments for
+"""
         args: List[Argument] = []
         base_id = f"arg_{int(time.time()*1000)}_{role.value}"
 
@@ -404,7 +396,9 @@ class InternalDebate:
         An argument is accepted if:
         - It has no rebuttals, OR
         - It has rebuttals but its strength exceeds the rebuttal strength
-        """
+        
+        rebuttal_map: rebuttal_map: mapping of argument id to its rebuttal ids
+"""
         accepted: List[Argument] = []
 
         for arg_id, arg in arguments.items():
@@ -434,7 +428,11 @@ class InternalDebate:
         """Merge accepted arguments into a coherent synthesis.
 
         The winning perspective is the one with the most accepted arguments.
-        """
+        
+        accepted_args: accepted_args: arguments accepted during the debate round
+        perspectives: the list of participating perspectives
+        context: the decision/execution context for this pass
+"""
         if not accepted_args:
             return ("No consensus reached. All arguments rebutted.", None)
 
@@ -461,7 +459,9 @@ class InternalDebate:
 
     def _compute_consensus(self, perspectives: List[Perspective],
                             accepted_args: List[Argument]) -> float:
-        """Compute consensus level. 1.0 = all perspectives agree. 0.0 = total disagreement."""
+        """Compute consensus level. 1.0 = all perspectives agree. 0.0 = total disagreement.
+        accepted_args: accepted_args: arguments accepted during the debate round
+"""
         if not perspectives or not accepted_args:
             return 0.5
 

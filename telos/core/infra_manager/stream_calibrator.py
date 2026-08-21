@@ -151,7 +151,11 @@ class StreamCalibrator:
         self._last_escape_to: Optional[str] = None
 
     def observe(self, result: Any) -> None:
-        """Update stream calibrations from a single decision cycle."""
+        """Update stream calibrations from a single decision cycle.
+
+        Args:
+            result: the pipeline result carrying the decision trace.
+        """
         trace = result.decision_trace
         if trace is None:
             return
@@ -284,7 +288,13 @@ class StreamCalibrator:
         return best_stream
 
     def record_escape(self, cycle: int, escaped_from: str, escaped_to: str) -> None:
-        """Λ4.5: Record a local-optima-escape event for telemetry."""
+        """Λ4.5: Record a local-optima-escape event for telemetry.
+
+        Args:
+            cycle: the current pipeline cycle number.
+            escaped_from: the loop/intent the agent broke free from.
+            escaped_to: the escape intent selected.
+        """
         self._escape_count += 1
         self._last_escape_cycle = cycle
         self._last_escape_from = escaped_from
@@ -298,6 +308,9 @@ class StreamCalibrator:
     def get_influence_weight(self, stream_name: str) -> float:
         """Get the evidence-weighted influence for a stream.
 
+        Args:
+            stream_name: the stream whose influence weight is queried.
+
         Influence = Evidence . Confidence . HistoricalReliability
         Used by the Pipeline to weight stream intents during selection.
         """
@@ -309,6 +322,10 @@ class StreamCalibrator:
 
     def record_waste(self, stream_name: str, cost_ms: float) -> None:
         """P2.10: Record budget waste for a low-confidence intent.
+
+        Args:
+            stream_name: the stream that wasted budget.
+            cost_ms: compute cost consumed in milliseconds.
 
         A stream that consistently produces low-confidence intents (waste ratio > 0.5)
         has its influence weight reduced, creating natural selection pressure.
@@ -349,7 +366,10 @@ class StreamCalibrator:
         return em.get_confidence(context)
 
     def get_evidence_weighted_influence(self, stream_name: str) -> Dict[str, float]:
-        """Returns the full evidence-weighted influence triplet for a stream.
+        """Query the full evidence-weighted influence triplet for a stream.
+
+        Args:
+            stream_name: the stream whose evidence-weighted influence is queried.
         
         Returns:
             {evidence, confidence, reliability, influence_weight}

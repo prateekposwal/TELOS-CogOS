@@ -50,7 +50,9 @@ __all__ = [
 # ── Shared helpers ──────────────────────────────────────────────────────────
 
 def _fingerprint(state: np.ndarray) -> str:
-    """Mirror SkillLibrary.find_relevant_skills fingerprint computation."""
+    """Mirror SkillLibrary.find_relevant_skills fingerprint computation.
+    state: the state for this operation
+"""
     return hashlib.md5(state.tobytes()).hexdigest()[:12]
 
 
@@ -75,7 +77,9 @@ def build_capital_guardian_seed(utility: float = 0.5) -> Skill:
     The Capital Guardian skill governs every capital deployment decision:
     how much risk per trade, where stops live, when the kill-switch fires,
     and how edge is measured (expectancy / R-multiples).
-    """
+    
+    utility: the utility for this operation
+"""
     canonical_state = np.array([1.0, 0.0, 0.5], dtype=np.float64)  # equity, drawdown, risk posture
     source_books = [
         _source_book(
@@ -197,7 +201,9 @@ def build_microstructure_seed(utility: float = 0.5) -> Skill:
 
     How orders, spreads, liquidity, and adverse selection actually work,
     and why naive market orders pay a hidden tax (half-spread + impact).
-    """
+    
+    utility: the utility for this operation
+"""
     canonical_state = np.array([0.0, 1.0, 0.0, 1.0], dtype=np.float64)  # book, side, spread, depth
     metadata = {
         "kind": "knowledge_seed",
@@ -305,7 +311,9 @@ def build_crypto_framing_seed(utility: float = 0.5) -> Skill:
 
     Valuation under extreme uncertainty: NVT, adoption S-curves, network
     effects, and the regulatory/legacy risk layer that equities don't have.
-    """
+    
+    utility: the utility for this operation
+"""
     canonical_state = np.array([1.0, 1.0, 0.0], dtype=np.float64)  # network, adoption, regulatory
     metadata = {
         "kind": "knowledge_seed",
@@ -412,7 +420,9 @@ def build_position_sizing_seed(utility: float = 0.5) -> Skill:
 
     Fixed-fractional sizing, optimal f, and the core doctrine: sizing,
     not entry, determines survival.
-    """
+    
+    utility: the utility for this operation
+"""
     canonical_state = np.array([0.5, 0.5, 0.0], dtype=np.float64)  # win prob, payoff, drawdown
     metadata = {
         "kind": "knowledge_seed",
@@ -547,7 +557,10 @@ _SEED_BUILDERS: Dict[str, callable] = {
 
 
 def seed_by_id(skill_id: str, utility: float = 0.5) -> Skill:
-    """Return a single seed skill by id."""
+    """Return a single seed skill by id.
+    skill_id: the skill id for this operation
+    utility: the utility for this operation
+"""
     if skill_id not in _SEED_BUILDERS:
         raise KeyError(
             f"Unknown seed skill_id {skill_id!r}; known seeds: {SEED_SKILL_IDS}"

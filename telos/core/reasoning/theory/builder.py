@@ -48,7 +48,13 @@ class TheoryBuilder:
                        action: str, outcome: float,
                        confidence: float = 0.8,
                        domain: str = "unknown") -> str:
-        """Add a new experience to the builder."""
+        """Add a new experience to the builder.
+        context: the decision/execution context for this pass
+        action: the action for this operation
+        outcome: the outcome for this operation
+        confidence: confidence: confidence value in [0, 1]
+        domain: the domain for this operation
+"""
         eid = f"exp_{hashlib.md5(f'{context}{action}{time.time()}'.encode()).hexdigest()[:12]}"
         experience = Experience(
             id=eid,
@@ -78,7 +84,11 @@ class TheoryBuilder:
         Records a lightweight experience so patterns, hypotheses, and
         theories can be abstracted from repeated pipeline outcomes.
         Returns the experience id.
-        """
+        
+        context: the decision/execution context for this pass
+        action: the action for this operation
+        domain: the domain for this operation
+"""
         self._cycle += 1
         return self.add_experience(
             context={"state_preview": str(context)[:80]},
@@ -95,7 +105,9 @@ class TheoryBuilder:
         self._promotion_hook = hook
 
     def _find_parent_theory_id(self, theory_id: str) -> Optional[str]:
-        """Most recently promoted theory with the same action becomes the parent."""
+        """Most recently promoted theory with the same action becomes the parent.
+        theory_id: the theory id for this operation
+"""
         theory = self._theories.get(theory_id)
         if theory is None:
             return None
@@ -230,7 +242,11 @@ class TheoryBuilder:
         """Test all active hypotheses against a new experience.
 
         Returns list of (hypothesis_id, survived) tuples.
-        """
+        
+        context: the decision/execution context for this pass
+        action: the action for this operation
+        actual_outcome: the actual outcome for this operation
+"""
         results: List[Tuple[str, bool]] = []
 
         for hid, hypothesis in self._hypotheses.items():
@@ -351,7 +367,13 @@ class TheoryBuilder:
         """Full pipeline: add experience → cluster → hypothesize → test → promote.
 
         Returns a summary of what was built.
-        """
+        
+        context: the decision/execution context for this pass
+        action: the action for this operation
+        outcome: the outcome for this operation
+        confidence: confidence: confidence value in [0, 1]
+        domain: the domain for this operation
+"""
         # 1. Add experience
         eid = self.add_experience(context, action, outcome, confidence, domain)
 

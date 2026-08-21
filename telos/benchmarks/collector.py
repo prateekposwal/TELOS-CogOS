@@ -54,7 +54,13 @@ class BenchmarkCollector:
         return snapshot
 
     def _build_snapshot(self, pipeline: Any, trace: Any, ctx: Any) -> BenchmarkSnapshot:
-        """Extract all metrics from pipeline subsystems — projections of X(t)."""
+        """Extract all metrics from pipeline subsystems — projections of X(t).
+
+        Args:
+            pipeline: the running pipeline being measured.
+            trace: the decision trace for the current cycle.
+            ctx: the pipeline phase context for the current cycle.
+        """
         cycle = getattr(ctx, 'cycle_count', 0)
 
         # ═══════════════════════════════════════════════════════════
@@ -370,7 +376,9 @@ class BenchmarkCollector:
     # ── Report Generation ───────────────────────────────────────
 
     def get_report(self, baseline_path: Optional[str] = None) -> BenchmarkReport:
-        """Generate a complete benchmark report on demand."""
+        """Generate a complete benchmark report on demand.
+        baseline_path: the baseline path for this operation
+"""
         snapshots = self._snapshots
         now = datetime.now().isoformat()
 
@@ -444,7 +452,9 @@ class BenchmarkCollector:
         return report
 
     def _compare_baseline(self, baseline_path: str) -> Optional[BaselineComparison]:
-        """Compare current session metrics against a saved baseline."""
+        """Compare current session metrics against a saved baseline.
+        baseline_path: the baseline path for this operation
+"""
         baseline = load_baseline(baseline_path)
         if baseline is None or not self._snapshots:
             return None
@@ -499,13 +509,17 @@ class BenchmarkCollector:
     # ── Persistence ─────────────────────────────────────────────
 
     def save_baseline(self, path: str) -> None:
-        """Save current state as baseline for future comparisons."""
+        """Save current state as baseline for future comparisons.
+        path: path: filesystem path to read or write
+"""
         report = self.get_report()
         save_baseline(report, path)
         self._baseline_path = path
 
     def save_snapshot_data(self, path: Optional[str] = None) -> str:
-        """Persist all snapshot data to JSON for offline analysis."""
+        """Persist all snapshot data to JSON for offline analysis.
+        path: path: filesystem path to read or write
+"""
         path = path or os.path.join(self.output_dir, f"{self._session_id}.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         data = {
@@ -520,7 +534,9 @@ class BenchmarkCollector:
         return path
 
     def load_snapshot_data(self, path: str) -> int:
-        """Load previously saved snapshot data for continued analysis."""
+        """Load previously saved snapshot data for continued analysis.
+        path: path: filesystem path to read or write
+"""
         if not os.path.exists(path):
             logger.warning(f"No snapshot data found at {path}")
             return 0
@@ -540,7 +556,9 @@ class BenchmarkCollector:
         return loaded
 
     def _dict_to_snapshot(self, sd: Dict) -> Optional[BenchmarkSnapshot]:
-        """Convert a serialized dict back to a BenchmarkSnapshot."""
+        """Convert a serialized dict back to a BenchmarkSnapshot.
+        sd: the sd for this operation
+"""
         try:
             # Navigate the nested dict structure
             perception = sd.get("perception", {})
@@ -664,5 +682,7 @@ def compute_health_score(snapshot: BenchmarkSnapshot) -> float:
 
     Previously computed a weighted harmonic mean; now returns the
     hierarchical system_score for backward API compatibility.
-    """
+    
+    snapshot: the snapshot for this operation
+"""
     return snapshot.system_score

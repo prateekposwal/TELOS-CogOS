@@ -132,7 +132,9 @@ class ExplanationCompression:
         return min(1.0, jaccard)
 
     def _try_form_rule(self, seed_instance: ExplanationInstance) -> None:
-        """Check if enough similar instances exist to form a rule."""
+        """Check if enough similar instances exist to form a rule.
+        seed_instance: the seed instance for this operation
+"""
         # Find all instances similar to the seed
         similar: List[ExplanationInstance] = []
         for inst in self._instances.values():
@@ -203,7 +205,9 @@ class ExplanationCompression:
 
     def _instances_similar(self, a: ExplanationInstance,
                             b: ExplanationInstance) -> bool:
-        """Check if two instances are similar enough to cluster."""
+        """Check if two instances are similar enough to cluster.
+        b: the b for this operation
+"""
         a_words = set(f"{a.phenomenon} {a.cause}".lower().split())
         b_words = set(f"{b.phenomenon} {b.cause}".lower().split())
         if not a_words or not b_words:
@@ -212,7 +216,10 @@ class ExplanationCompression:
         return jaccard > 0.3
 
     def _pattern_similar(self, pattern_a: str, pattern_b: str) -> bool:
-        """Check if two condition patterns are semantically similar."""
+        """Check if two condition patterns are semantically similar.
+        pattern_a: the pattern a for this operation
+        pattern_b: the pattern b for this operation
+"""
         words_a = set(pattern_a.lower().split())
         words_b = set(pattern_b.lower().split())
         if not words_a or not words_b:
@@ -238,7 +245,9 @@ class ExplanationCompression:
 
     def _extract_explanation_template(self,
                                        instances: List[ExplanationInstance]) -> str:
-        """Extract a generalized explanation template."""
+        """Extract a generalized explanation template.
+        instances: the instances for this operation
+"""
         if not instances:
             return ""
         # Generalize: replace specific values with placeholders
@@ -358,7 +367,10 @@ class ExplanationCompression:
         """Try to explain a phenomenon using compressed rules.
 
         Returns the best matching rule's explanation, or None.
-        """
+        
+        cause: the cause for this operation
+        context: the decision/execution context for this pass
+"""
         # Create a temporary instance for matching
         temp = ExplanationInstance(
             id="_temp",
@@ -389,7 +401,9 @@ class ExplanationCompression:
             }
 
     def get_top_rules(self, top_n: int = 10) -> List[CompressedRule]:
-        """Get the highest-scoring active rules."""
+        """Get the highest-scoring active rules.
+        top_n: the top n for this operation
+"""
         active = [
             r for r in self._rules.values()
             if r.status in (RuleStatus.ACTIVE, RuleStatus.REFINING)

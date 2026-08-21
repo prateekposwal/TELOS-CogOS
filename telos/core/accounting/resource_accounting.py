@@ -63,7 +63,9 @@ class ResourceLedgerBackend(ABC):
 
     @abstractmethod
     def query(self, action_id: str) -> Optional[Dict]:
-        """Retrieve cost for a specific action."""
+        """Retrieve cost for a specific action.
+        action_id: the action id for this operation
+"""
 
     @abstractmethod
     def get_cycle_costs(self, cycle: int) -> List[Dict]:
@@ -125,7 +127,10 @@ class ResourceAccountingLayer:
 
     def record_action(self, action_id: str, cost: ResourceCost,
                       metadata: Optional[Dict] = None) -> None:
-        """Record a cognitive action's resource cost for the current cycle."""
+        """Record a cognitive action's resource cost for the current cycle.
+        action_id: the action id for this operation
+        metadata: metadata: structured metadata dict
+"""
         record = {
             "action_id": action_id,
             "cycle": self._current_cycle,
@@ -146,7 +151,11 @@ class ResourceAccountingLayer:
 
     def record_stream_activation(self, stream_name: str, compute_ms: float,
                                   memory_traces: int = 0) -> None:
-        """Convenience: record a stream's resource usage."""
+        """Convenience: record a stream's resource usage.
+        stream_name: the stream name for this operation
+        compute_ms: the compute ms for this operation
+        memory_traces: the memory traces for this operation
+"""
         cost = ResourceCost(
             compute_ms=compute_ms,
             memory_traces=memory_traces,
@@ -168,7 +177,12 @@ class ResourceAccountingLayer:
 
         Implements Axiom 1.4 (Computational Conservation): ΣR_i ≤ R_max.
         Returns dict with within_budget bool and exceeded_dimensions list.
-        """
+        
+        max_compute_ms: the max compute ms for this operation
+        max_memory_traces: the max memory traces for this operation
+        max_bandwidth_bytes: the max bandwidth bytes for this operation
+        max_storage_entries: the max storage entries for this operation
+"""
         tc = self.total_cost
         exceeded = []
         if tc.compute_ms > max_compute_ms:

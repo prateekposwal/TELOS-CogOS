@@ -75,11 +75,6 @@ class Model:
             log_evidence += math.log(max(lh, 1e-10))
         return math.exp(log_evidence)
 
-    def compute_posterior(self, evidence_likelihood: float) -> float:
-        """Compute P(M|E) = P(E|M) * P(M) / normalize later."""
-        return evidence_likelihood * self.probability
-
-
 @dataclass
 class EvidenceRecord:
     """A piece of evidence used to update model probabilities."""
@@ -185,32 +180,15 @@ class ModelCompetition:
         return model_id
 
     def record_prediction(self, model_id: str, correct: bool) -> None:
-        """Record a prediction outcome for Theory Market pricing."""
+        """Record a prediction outcome for Theory Market pricing.
+        model_id: the model id for this operation
+        correct: the correct for this operation
+"""
         model = self._models.get(model_id)
         if model:
             model.predictions_total += 1
             if correct:
                 model.predictions_correct += 1
-
-    def record_bridge(self, model_id: str) -> None:
-        """Record a bridge formation for Theory Market pricing."""
-        model = self._models.get(model_id)
-        if model:
-            model.bridges_formed += 1
-
-    def market_report(self) -> Dict:
-        """Report Theory Market prices for all models."""
-        return {
-            mid: {
-                "name": m.name,
-                "price": m.market_price,
-                "accuracy": m.accuracy,
-                "parsimony": m.parsimony,
-                "probability": m.probability,
-                "bridges": m.bridges_formed,
-            }
-            for mid, m in self._models.items()
-        }
 
     def submit_evidence(self, description: str,
                          likelihoods: Dict[str, float],
@@ -259,7 +237,9 @@ class ModelCompetition:
         return evidence
 
     def _bayesian_update(self, evidence: EvidenceRecord) -> None:
-        """Apply Bayes' rule: P(M|E) = P(E|M) * P(M) / normalize."""
+        """Apply Bayes' rule: P(M|E) = P(E|M) * P(M) / normalize.
+        evidence: the evidence for this operation
+"""
         if not self._models:
             return
 
@@ -304,7 +284,9 @@ class ModelCompetition:
             model.probability /= total
 
     def _snapshot(self, cycle: int) -> None:
-        """Record current state of the competition."""
+        """Record current state of the competition.
+        cycle: the current pipeline cycle number
+"""
         snapshot = CompetitionSnapshot(
             cycle=cycle,
             models={mid: m.probability for mid, m in self._models.items()},
@@ -353,38 +335,6 @@ class ModelCompetition:
             return None
         sorted_models = sorted(self._models.values(), key=lambda m: m.probability, reverse=True)
         return sorted_models[1]
-
-    def get_model(self, model_id: str) -> Optional[Model]:
-        return self._models.get(model_id)
-
-    def get_models_by_probability(self, top_n: Optional[int] = None) -> List[Tuple[str, float]]:
-        sorted_models = sorted(
-            [(m.id, m.name, m.probability) for m in self._models.values()],
-            key=lambda x: -x[2],
-        )
-        if top_n:
-            return sorted_models[:top_n]
-        return sorted_models
-
-    def retire_model(self, model_id: str, reason: str = "no longer relevant") -> bool:
-        """Retire a model, redistributing its probability.
-
-        Unlike killing, this preserves the probability mass.
-        """
-        if model_id not in self._models:
-            return False
-        retired_prob = self._models[model_id].probability
-        del self._models[model_id]
-
-        if self._models:
-            # Redistribute proportionally
-            total_remaining = sum(m.probability for m in self._models.values())
-            for model in self._models.values():
-                model.probability += retired_prob * (model.probability / total_remaining)
-            self._renormalize()
-
-        logger.info(f"ModelCompetition: retired model '{model_id}': {reason}")
-        return True
 
     def get_winner(self) -> Optional[Model]:
         """Get the model that has won the competition (dominant for most updates)."""
