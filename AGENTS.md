@@ -384,3 +384,81 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 
 ### Metrics
 - DI: 1.000 | MD: 0.000 | Cycles: write-loop + swallowed-errors + gaps ship
+
+## Session Handoff — 2026-08-22 07:11:02
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 3.167 | Cycles: 1
+
+
+## Session Handoff — 2026-08-22 07:16:00
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 2.393 | Cycles: 18072
+
+
+## Session Handoff — 2026-08-22 07:16:40
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 3.144 | Cycles: 3
+
+
+## Session Handoff — 2026-08-22 16:47:12
+
+### Current State
+*(No current state captured)*
+
+### Decisions Made
+*(No decisions recorded)*
+
+### Open Issues
+*(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0 (step_count=pipeline=19314,log=5) | Token budget: 0.0%
+
+### Checkpoint
+- /tmp/telos_checkpoints/checkpoint_19314.json
+
+
+## Session Handoff — 2026-08-22 16:47:13
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 19314
+
