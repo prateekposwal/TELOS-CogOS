@@ -261,7 +261,7 @@ class MealDramaDomainSimulator(DomainSimulator):
         self.diet = diet
         self.preferred_regions = preferred_regions or []
         self.pantry = set(pantry) if pantry else set()
-        self.capacity = capacity
+        self.capacity = 5  # Default: 5 dishes per plan (was 6)
 
     # ── Lifecycle ──
     def initialize(self) -> None: pass
