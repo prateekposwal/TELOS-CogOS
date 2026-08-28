@@ -81,13 +81,13 @@ STAGNATION_RECOVERY_AFTER = 3  # consecutive no-action cycles before force-escap
 # NOT force-escape these, or it would preempt the firewall's own action_loop
 # recovery AND stomp legitimate curiosity. The governor-starvation escape is
 # reserved for NON-inquiry types (e.g. plan_trajectory) stuck in no-action.
-STAGNATION_EXEMPT_INQUIRY_TYPES = {
-    "inquiry", "inquiry_explore", "inquiry_recalibrate", "inquiry_resolve",
-    "curiosity_explore", "perceive", "memory_miss", "blended_inquiry",
-}
-# Recovery intents must never re-trigger stagnation: a recovered cycle is the
-# system ACTING to escape, not accumulating no-action pathology.
-STAGNATION_EXEMPT_RECOVERY_TYPES = {"goal_seek_recovery"}
+# Canonical intent-type sets (Λ6.5 — one source of truth; the council's
+# evidence advisor reads the same module).
+from telos.core.governance.recovery_types import (
+    STAGNATION_EXEMPT_INQUIRY_TYPES,
+    STAGNATION_EXEMPT_RECOVERY_TYPES,
+    GOVERNANCE_SUPPRESSION_REASONS,
+)
 
 
 from telos.core.governance.firewall import (
@@ -601,6 +601,7 @@ class TelosV14Pipeline:
                 "recent_blocks": int(recent_blocks),
             },
             "reality_gap_tracker": self._reality_gap_tracker,
+            "cycle_count": ctx.cycle_count,
         }
 
     def _update_stagnation_recovery_state(self, ctx) -> None:
@@ -1372,7 +1373,7 @@ class TelosV14Pipeline:
                     if pending is not None:
                         prev_pred, prev_cycle = pending
                         if prev_cycle != ctx.cycle_count:
-                            self._reality_gap_tracker.record("world", prev_pred, ctx.state)
+                            self._reality_gap_tracker.record("world", prev_pred, ctx.state, cycle=ctx.cycle_count)
                     if predicted is not None and not getattr(ctx, 'no_action', False):
                         self._pending_reality_gap = (predicted, ctx.cycle_count)
                     else:

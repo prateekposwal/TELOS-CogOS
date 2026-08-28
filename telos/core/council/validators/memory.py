@@ -30,6 +30,8 @@ from telos.core.ledger.skill_library import SkillLibrary
 
 from typing import Callable, List as ListType
 
+from telos.core.governance.recovery_types import GOVERNANCE_SUPPRESSION_REASONS
+
 # Type alias for constraint check functions
 CheckFn = Callable[[Any, Any, Any], tuple]
 
@@ -106,7 +108,7 @@ class MemoryAdvisor(Validator):
         if self.failure_ledger is not None:
             recent = self.failure_ledger.get_recent_failures(n=20)
             for i, f in enumerate(recent):
-                if f.root_cause in ("governance_intervention", "simulation_divergence"):
+                if f.root_cause in GOVERNANCE_SUPPRESSION_REASONS:
                     continue
                 blocked_tokens = set(
                     token.strip().lower()
@@ -174,6 +176,11 @@ class MemoryAdvisor(Validator):
                 current_approach = intent.intent_type or "unknown"
                 for fnode in failed:
                     if fnode.approach == current_approach:
+                        if (fnode.failure_reason or "") in GOVERNANCE_SUPPRESSION_REASONS:
+                            # Suppression is not approach failure (mirrors the
+                            # failure-ledger filter above): a vetoed attempt was
+                            # never tested, so it cannot falsify the approach.
+                            continue
                         return ValidationSignal(
                             validator_name=self.name,
                             passed=False,

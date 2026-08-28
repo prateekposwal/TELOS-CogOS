@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 from telos.core.council.base import Validator, ValidationSignal
 from telos.world.world import World
 from telos.intent_ir import IntentIR
+from telos.core.governance.recovery_types import STAGNATION_EXEMPT_RECOVERY_TYPES
 
 logger = logging.getLogger('telos_council_validators')
 
@@ -74,12 +75,16 @@ class EvidenceProvenanceValidator(Validator):
 
         # Falsification record of the WORLD MODEL (reality gap).
         tracker = ctx.get("reality_gap_tracker")
+        now_cycle = ctx.get("cycle_count") or 0
         model_falsified = False
         model_gap = None
         if tracker is not None:
             try:
                 m = tracker.model("world")
-                model_falsified = bool(m.is_falsified)
+                # CURRENT falsification only (Λ6.5): a stale gap history is
+                # frozen, not fresh — absence of validation is uncertainty,
+                # mirroring the act-phase fidelity gate's act-then-learn rule.
+                model_falsified = bool(m.currently_falsified(now_cycle=now_cycle or None))
                 if m.gap_history:
                     model_gap = float(m.recent_mean_gap)
             except Exception:
@@ -101,6 +106,20 @@ class EvidenceProvenanceValidator(Validator):
                        "not scored as falsified",
                 evidence_weight=0.2,
                 metadata={"intent_type": intent_type, "inquiry": True},
+            )
+
+        if intent_type in STAGNATION_EXEMPT_RECOVERY_TYPES:
+            # Designed escape types are the ANSWER to falsification — never
+            # scored falsified by the arming counter their suppressed attempts
+            # accumulate (mirrors the stagnation exemption: a vetoed recovery
+            # is governance suppression, not a loop pathology; the type must be
+            # able to pass the council or the trap is permanent).
+            return ValidationSignal(
+                validator_name=self.name, passed=True, confidence=0.4,
+                reason=f"recovery type '{intent_type}' is the designed escape "
+                       "from falsification; never scored as falsified",
+                evidence_weight=0.2,
+                metadata={"intent_type": intent_type, "recovery": True},
             )
 
         reasons = []

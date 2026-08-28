@@ -67,12 +67,9 @@ reports/data-engineering/daily-*.md
 *.mjs
 
 # macOS junk
-.DS_Store
 
 # pytest cache
 .pytest_cache/
 
 # Live decision-log + transparency report (runtime artifacts regenerated
 # every producer cycle — never a stable source of truth in git)
-telos/audit/runtime/decision_log.json
-telos/audit/runtime/transparency_report.md

@@ -25,6 +25,53 @@ from telos.core.contracts.domain_model import WorldSpec
 logger = logging.getLogger('telos_pipeline')
 
 
+def _md_with_staleness(md_raw: float, prev: float, alpha: float,
+                        catastrophe_ceiling: float, now_cycle: int,
+                        last_validation_cycle) -> tuple:
+    """Smooth mission-drift with stale-gap honesty (Λ6.5).
+
+    The risk signal ``md_raw`` is the model's own per-step prediction error
+    (recent_mean_gap). It is ONLY current when the model actually validated
+    last cycle (an action flowed — the runtime records a prediction-vs-
+    observation per acted cycle). During a governance-blocked streak NO
+    records arrive, so recent_mean_gap FREEZES at its last acted value and a
+    plain EWMA asymptotes to a permanent veto — frozen evidence presented as
+    sustained divergence, the same misattribution that locked the 30K-cycle
+    DI=0.3 plateau. Stale = no validation since before the previous cycle:
+    decay the EWMA toward 0 (absence of validation is uncertainty, mirroring
+    the act-then-learn doctrine) and suppress the frozen catastrophe read.
+
+    Args:
+        md_raw: raw recent-mean-gap this cycle.
+        prev: previous filtered MD (EWMA carry).
+        alpha: EWMA smoothing (0..1).
+        catastrophe_ceiling: instantaneous veto threshold for md_raw.
+        now_cycle: current pipeline cycle (0/None-safe).
+        last_validation_cycle: cycle of the model's last REAL validation
+            (None = never validated — fresh/untested).
+
+    Returns:
+        (md_filtered, catastrophe) — the EWMA value and the instantaneous
+        catastrophe flag, staleness-adjusted.
+    """
+    filtered = alpha * md_raw + (1.0 - alpha) * prev
+    catastrophe = md_raw > catastrophe_ceiling
+    if last_validation_cycle is not None and now_cycle             and last_validation_cycle < (now_cycle - 1):
+        # Frozen evidence is not current: decay, drop the frozen catastrophe.
+        filtered = (1.0 - alpha) * prev
+        catastrophe = False
+    return filtered, catastrophe
+
+
+# How many cycles without a REAL validation before the act gate treats the
+# model as currently-unvalidated (act-then-learn). The per-step gap is only
+# current for a few cycles in a world that shifts terrain every cycle — a
+# 300-cycle truth window (council recency) would lock ACT out for ~300 cycles
+# after ONE divergent step. The model's falsification record is untouched;
+# this only stops a FROZEN gap from being presented as CURRENT truth.
+ACT_FIDELITY_STALE_CYCLES = 5
+
+
 class ActPhase(Phase):
     name = "act"
 
@@ -64,7 +111,7 @@ class ActPhase(Phase):
             tracker = getattr(pipeline, '_reality_gap_tracker', None)
             if tracker is not None and not isinstance(tracker, type):
                 try:
-                    mf = tracker.model_fidelity(model_id)
+                    mf = tracker.model_fidelity(model_id, now_cycle=getattr(ctx, "cycle_count", None), stale_window=ACT_FIDELITY_STALE_CYCLES)
                     if isinstance(mf, (int, float)) and not isinstance(mf, bool):
                         model_fidelity = float(mf)
                         tested = True
@@ -111,9 +158,20 @@ class ActPhase(Phase):
                 prev = float(prev)
             except (TypeError, ValueError):
                 prev = 0.0
-            md = alpha * md_raw + (1.0 - alpha) * prev
+            try:
+                _m = tracker.model("world")
+                _last_v = _m.last_validation_cycle
+            except Exception:
+                _last_v = None
+            md, catastrophe = _md_with_staleness(
+                md_raw=md_raw,
+                prev=prev,
+                alpha=alpha,
+                catastrophe_ceiling=float(getattr(self, '_md_catastrophe_ceiling', 2.0)),
+                now_cycle=int(getattr(ctx, 'cycle_count', 0) or 0),
+                last_validation_cycle=_last_v,
+            )
             self._md_filtered = md
-            catastrophe = md_raw > getattr(self, '_md_catastrophe_ceiling', 2.0)
             raw_verdict_md = 0.0
             verdict = getattr(ctx, 'verdict', None)
             if verdict is not None:

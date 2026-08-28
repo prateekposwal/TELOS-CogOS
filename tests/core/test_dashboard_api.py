@@ -182,3 +182,37 @@ def test_checkpoints_are_strict_json_serializable(handler, tmp_path, monkeypatch
         json.dumps(h._load_overview(), allow_nan=False)
     finally:
         p.stop()
+
+
+def test_checkpoints_cached_until_files_change(handler, tmp_path):
+    """The persisted-file portion of /api/checkpoints is cached on the file
+    set's (dir, name, mtime, size): an in-place content change that preserves
+    stat fields must NOT be re-read; a real mtime change must invalidate."""
+    import os as _os
+    h, _ = handler
+    cp = tmp_path / "checkpoints"
+    cp.mkdir()
+    f = cp / "checkpoint_0001.json"
+    f.write_text(json.dumps(
+        {"cycle": 1, "decision_trace": {"cycle_id": 1, "decision_integrity": 0.9}}))
+    first = h._load_checkpoints()
+    assert [t["cycle_id"] for t in first] == [1]
+    assert first[0]["decision_integrity"] == 0.9
+    # Corrupt content in place, preserving the ORIGINAL mtime+size (same
+    # digit count): key unchanged -> cache must serve the first read, not
+    # re-parse.
+    st_before = _os.stat(f)
+    f.write_text(json.dumps(
+        {"cycle": 1, "decision_trace": {"cycle_id": 1, "decision_integrity": 0.1}}))
+    _os.utime(f, ns=(st_before.st_atime_ns, st_before.st_mtime_ns))
+    second = h._load_checkpoints()
+    assert second[0]["decision_integrity"] == 0.9, (
+        "cache must serve the key-unchanged read (no re-parse)"
+    )
+    # A real mtime change (new write) invalidates and re-reads.
+    f.write_text(json.dumps(
+        {"cycle": 2, "decision_trace": {"cycle_id": 2, "decision_integrity": 0.5}}))
+    third = h._load_checkpoints()
+    assert third[0]["cycle_id"] == 2 and third[0]["decision_integrity"] == 0.5, (
+        "file-set change must invalidate the cache"
+    )

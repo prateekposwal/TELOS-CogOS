@@ -404,6 +404,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                           "domains": domains, "edge_types": edge_types},
         }
 
+    # /api/checkpoints persisted-file cache (Λ4.7 — don't re-read what hasn't
+    # changed): building the file portion JSON-parses up to 10 × ~2MB
+    # checkpoints per request. The set changes only when the producer writes
+    # (~1 file per 20 cycles), so cache the file-merged dict keyed on the
+    # full file set's (dir, name, mtime_ns, size) and invalidate on ANY file
+    # change. The live producer traces still merge in fresh every call (they
+    # are in-memory and cheap).
+    _checkpoints_file_cache: dict = {}
+    _checkpoints_file_cache_key: tuple = None
+
     def _load_checkpoints(self):
         """Full serialized traces from the live producer first; persisted
         history (checkpoint files) as fallback. Deduplicated by cycle_id."""
@@ -414,17 +424,31 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             for t in snap.get("traces", []):
                 if isinstance(t, dict) and t.get("cycle_id") is not None:
                     merged[t["cycle_id"]] = t
-        for f in sorted(glob.glob(os.path.join(CHECKPOINT_DIR, 'checkpoint_*.json'))):
-            try:
-                with open(f) as fp:
-                    data = json.load(fp)
-                    if 'decision_trace' in data and isinstance(data['decision_trace'], dict):
-                        dt = data['decision_trace']
-                        cid = dt.get('cycle_id')
-                        if cid is not None and cid not in merged:
-                            merged[cid] = dt
-            except (OSError, json.JSONDecodeError):
-                pass
+        files = sorted(glob.glob(os.path.join(CHECKPOINT_DIR, 'checkpoint_*.json')))
+        try:
+            cache_key = (CHECKPOINT_DIR,) + tuple(
+                (os.path.basename(f), os.stat(f).st_mtime_ns, os.stat(f).st_size)
+                for f in files
+            )
+        except OSError:
+            cache_key = None
+        if cache_key is not None and cache_key != self._checkpoints_file_cache_key:
+            file_merged: Dict = {}
+            for f in files:
+                try:
+                    with open(f) as fp:
+                        data = json.load(fp)
+                        if 'decision_trace' in data and isinstance(data['decision_trace'], dict):
+                            dt = data['decision_trace']
+                            cid = dt.get('cycle_id')
+                            if cid is not None and cid not in file_merged:
+                                file_merged[cid] = dt
+                except (OSError, json.JSONDecodeError):
+                    pass
+            self._checkpoints_file_cache = file_merged
+            self._checkpoints_file_cache_key = cache_key
+        for cid, dt in (self._checkpoints_file_cache or {}).items():
+            merged.setdefault(cid, dt)
         ordered = [merged[k] for k in sorted(merged.keys())]
         # Cap the response: the client charts only recent history, and full
         # serialized traces are large (axiom_results, belief_state, ...).
