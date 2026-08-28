@@ -1,0 +1,13 @@
+{
+  "cold_startup_s": 0.24142813682556152,
+  "health_endpoint_ms": 11.065006256103516,
+  "cycle_mean_ms": 12.19752550125122,
+  "cycle_p95_ms": 18.64314079284668,
+  "trace_serializations_per_cycle": 1.0033333333333334,
+  "memory_idle_mb": 95.453125,
+  "memory_growth_1000": 95.453125,
+  "checkpoint_ms": 28.194904327392578,
+  "global_rng_calls": 12.0,
+  "tests": 2590.0,
+  "axioms": 42.0
+}
