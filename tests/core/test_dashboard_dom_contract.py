@@ -427,6 +427,15 @@ page.on('pageerror', e => errors.push(String(e)));
 await page.goto('http://localhost:' + port + '/dashboard.html',
   { waitUntil: 'networkidle', timeout: 20000 }).catch(() => {});
 await page.waitForTimeout(1500);
+// Render-gate: the story strip is filled after API fetch/fallback-retry
+// (~3s backoff in dashboard.js). A fixed 1.5s wait races that retry under
+// load (flake: clientHeight mid-collapse). Wait for the REAL rendered state
+// before measuring — if it never renders, the assertion below still fails
+// honestly with the true clientHeight (no weakened contract).
+await page.waitForFunction(() => {
+  const strip = document.getElementById('story-strip');
+  return strip && strip.clientHeight >= 400;
+}, { timeout: 10000 }).catch(() => {});
 const r = await page.evaluate(() => {
   const strip = document.getElementById('story-strip');
   const hero = document.getElementById('story-decisions');

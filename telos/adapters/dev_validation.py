@@ -18,7 +18,7 @@ import os
 import shlex
 import subprocess
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Any
 
 from telos.world.evidence import (
     EvidenceInfo, EvidenceSource, ValidationStatus, measured,
@@ -65,6 +65,28 @@ _PROJECT_PREFIXES_COMMON = ["pyproject.toml", "setup.py", "setup.cfg",
                             "requirements.txt", "go.mod", "Cargo.toml"]
 
 
+def _coerce_text(value: Any) -> str:
+    """Normalize subprocess capture to str.
+
+    Pattern fix (Λ2.3 Kintsugi): on py3.9, TimeoutExpired carries RAW bytes
+    in stdout/stderr even with text=True, so the timeout path can hand
+    consumers bytes while the success path hands str — and every consumer
+    concatenates stdout + stderr. Normalize at the ONE source so no concat
+    site can crash on a mixed type again.
+
+    Args:
+        value: captured output (bytes, str, or None).
+
+    Returns:
+        Decoded str (lossy for invalid bytes), "" for None.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return str(value)
+
+
 def _safe_run(args: List[str], cwd: str, timeout: float = 30.0) -> CommandRun:
     """Run a subprocess in list-form (no shell) with bounded capture.
     
@@ -80,14 +102,14 @@ def _safe_run(args: List[str], cwd: str, timeout: float = 30.0) -> CommandRun:
             args, cwd=cwd, capture_output=True, text=True, timeout=timeout,
         )
         run.returncode = proc.returncode
-        run.stdout = proc.stdout[:OUTPUT_LIMIT]
-        run.stderr = proc.stderr[:OUTPUT_LIMIT]
+        run.stdout = _coerce_text(proc.stdout)[:OUTPUT_LIMIT]
+        run.stderr = _coerce_text(proc.stderr)[:OUTPUT_LIMIT]
         run.timed_out = False
     except subprocess.TimeoutExpired as e:
         run.returncode = None
         run.timed_out = True
-        run.stdout = (e.stdout or "")[:OUTPUT_LIMIT]
-        run.stderr = (e.stderr or "")[:OUTPUT_LIMIT]
+        run.stdout = _coerce_text(e.stdout)[:OUTPUT_LIMIT]
+        run.stderr = _coerce_text(e.stderr)[:OUTPUT_LIMIT]
         run.classification = RunClass.TIMEOUT
         return run
     except FileNotFoundError:

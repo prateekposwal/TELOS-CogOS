@@ -30,6 +30,7 @@ def isolated_paths(tmp_path, monkeypatch):
     monkeypatch.setattr(prod_mod, "LEDGER_PATH", str(tmp_path / "ledger.json"))
     monkeypatch.setattr(prod_mod, "IDENTITY_PATH", str(tmp_path / "identity.json"))
     monkeypatch.setattr(prod_mod, "PATTERN_PATH", str(tmp_path / "patterns.json"))
+    monkeypatch.setattr(prod_mod, "DECISION_LOG_PATH", str(tmp_path / "decision_log.json"))
     return tmp_path
 
 
@@ -480,3 +481,91 @@ def test_producer_health_di_matches_last_real_trace(isolated_paths):
         assert recent[-1]["di"] == last["decision_integrity"]
     finally:
         p.stop()
+
+
+# ── Persistence throttling (pattern fix: no per-cycle 20MB churn) ─────
+
+class TestPersistenceThrottle:
+    def test_knowledge_payload_cached_not_reserialized_every_cycle(
+            self, isolated_paths, monkeypatch):
+        """The 56K-edge KG must NOT be re-serialized every 2s cycle: count
+        serialize_knowledge calls and prove they are << cycles."""
+        calls = {"n": 0}
+        real = prod_mod.serialize_knowledge
+
+        def counting(kg):
+            calls["n"] += 1
+            return real(kg)
+
+        monkeypatch.setattr(prod_mod, "serialize_knowledge", counting)
+        p = DashboardProducer(cycle_interval_s=0.25, burst_cycles=3,
+                              checkpoint_every_n=100,
+                              knowledge_serialize_interval=100)
+        p.start()
+        try:
+            time.sleep(3.0)
+            snap = p.snapshot()
+            n_cycles = snap["decisions"]
+            assert n_cycles >= 4, "producer must run real cycles"
+            # cached: serialize once (first cycle) at most twice; never per-cycle
+            assert calls["n"] <= 2, (
+                f"serialize_knowledge called {calls['n']}x for {n_cycles} cycles"
+            )
+            assert snap["knowledge"]["edges"] >= 0
+        finally:
+            p.stop()
+
+    def test_checkpoints_written_sparsely_not_per_cycle(self, isolated_paths):
+        """Checkpoint writes follow checkpoint_every_n: cycle 1 seed + every N,
+        never one 20MB file per 2s cycle."""
+        p = DashboardProducer(cycle_interval_s=0.25, burst_cycles=3,
+                              checkpoint_every_n=5,
+                              knowledge_serialize_interval=100)
+        p.start()
+        try:
+            time.sleep(4.5)
+            snap = p.snapshot()
+            n_cycles = snap["decisions"]
+            cps = sorted(
+                f for f in os.listdir(prod_mod.CHECKPOINT_DIR)
+                if f.startswith("checkpoint_") and f.endswith(".json")
+            )
+            assert cps, "at least the cycle-1 seed checkpoint must exist"
+            # sparse: expected = 1 seed + every 5 after
+            expected = 1 + ((n_cycles - 1) // 5) if n_cycles > 1 else 1
+            assert len(cps) <= expected, (
+                f"{len(cps)} checkpoints for {n_cycles} cycles "
+                f"(expected <= {expected}) — per-cycle writes are back"
+            )
+            # every checkpoint must be valid JSON with chain fields
+            import json as _json
+            for f in cps:
+                raw = _json.load(open(os.path.join(prod_mod.CHECKPOINT_DIR, f)))
+                assert "hmac" in raw
+                assert "prev_checkpoint_hash" in raw
+        finally:
+            p.stop()
+
+    def test_decision_log_wired_and_bounded(self, isolated_paths):
+        """Producer feeds decision_log.json with real live traces (item 5:
+        log=5 vs pipeline 28K+ gap closed) — bounded, lean, atomic."""
+        p = DashboardProducer(cycle_interval_s=0.25, burst_cycles=3,
+                              checkpoint_every_n=1,
+                              knowledge_serialize_interval=1)
+        p.start()
+        try:
+            time.sleep(3.0)
+            assert os.path.exists(prod_mod.DECISION_LOG_PATH), (
+                "decision log must be written by the producer"
+            )
+            with open(prod_mod.DECISION_LOG_PATH) as f:
+                raw = json.load(f)
+            assert raw["total_cycles"] > 0, "real entries recorded"
+            assert len(raw["traces"]) == raw["total_cycles"]
+            t = raw["traces"][0]
+            # canonical schema contract (test_trace_schema aliases)
+            assert "intent" in t or "selected_intent" in t
+            assert "cycle_id" in t
+            assert "decision_integrity" in t or "discrimination_index" in t
+        finally:
+            p.stop()

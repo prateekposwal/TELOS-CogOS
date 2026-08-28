@@ -1,0 +1,87 @@
+{
+  "benchmark": "mealdrama_v71",
+  "version": "1.0",
+  "tasks": {
+    "task_legal_motion": {
+      "property": "legal_transitions",
+      "passed": true,
+      "final_decision": "PASS",
+      "detail": "legal=True regions=True dishes=['aloo-paratha', 'poha']",
+      "data": {
+        "dish_ids": [
+          "aloo-paratha",
+          "poha"
+        ],
+        "diet": "vegetarian",
+        "preferred_regions": [
+          "north_indian"
+        ]
+      }
+    },
+    "task_honesty": {
+      "property": "honest_metrics",
+      "passed": true,
+      "final_decision": "PASS",
+      "detail": "provenance=True value=1.000 macro_support=True",
+      "data": {
+        "provenance": {
+          "value": 1.0,
+          "source": "derived",
+          "inputs": [
+            "aloo-paratha",
+            "poha"
+          ],
+          "formula": "sum(protein) / (sum(calories) / 100)"
+        },
+        "dish_count": 2
+      }
+    },
+    "task_honesty_unsupported": {
+      "property": "honest_metrics",
+      "passed": true,
+      "final_decision": "PASS",
+      "detail": "unsupported_balance=None == True",
+      "data": {
+        "unsupported_balance": null
+      }
+    },
+    "task_determinism": {
+      "property": "deterministic_policy",
+      "passed": true,
+      "final_decision": "PASS",
+      "detail": "identical_under_poisoned_global=True",
+      "data": {
+        "dish_ids": [
+          "aloo-paratha",
+          "poha"
+        ]
+      }
+    },
+    "task_reachability": {
+      "property": "no_dead_code",
+      "passed": true,
+      "final_decision": "PASS",
+      "detail": "public surface reachable",
+      "data": {
+        "reachable": true
+      }
+    }
+  },
+  "metrics": {
+    "symptom1_legal_transitions": 1.0,
+    "symptom2_honest_metrics": 1.0,
+    "symptom4_deterministic_policy": 1.0,
+    "no_dead_code": 1.0,
+    "overall_pass_rate": 1.0
+  },
+  "provenance": {
+    "session": 1,
+    "fixes": [
+      "symptom1_legal_transitions",
+      "symptom2_honest_metrics",
+      "symptom4_deterministic_policy"
+    ],
+    "symptom3_whatsapp_loop": "deferred_to_session_2",
+    "seam": "MealDramaDomainSimulator.outcome_feedback"
+  }
+}

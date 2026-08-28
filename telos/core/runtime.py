@@ -1989,7 +1989,18 @@ class TelosV14Pipeline:
                 ctx.selected_intent.confidence, self._cycle_count,
             )
 
-        if self._checkpointer:
+        # Checkpoint cadence (checkpoint_every_n): the write is the expensive
+        # part, not the cycle. Save on cycle 1 (fast restore seed) and every
+        # N cycles after; sparse numbering is chain-safe (prev_checkpoint_hash
+        # links the last SAVED checkpoint) and the shutdown final save below
+        # is always unconditional. Λ4.7: persistence must not dominate the
+        # cycle loop of a long-lived run.
+        _checkpoint_due = (
+            self._cycle_count == 1
+            or (self.config.checkpoint_every_n > 1
+                and self._cycle_count % self.config.checkpoint_every_n == 0)
+        )
+        if self._checkpointer and _checkpoint_due:
             try:
                 self._checkpointer.save(
                     cycle=self._cycle_count,

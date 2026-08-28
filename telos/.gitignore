@@ -1,0 +1,26 @@
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / npm
+node_modules/
+dist/
+build/
+*.log
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+
+# OS
+Thumbs.db

@@ -516,3 +516,65 @@ class CounterfactualEngine:
             "rolling_diversity": self.rolling_diversity,
             "variance_history": self._variance_history[-10:] if self._variance_history else [],
         }
+
+import hashlib
+from typing import Any, Dict, Optional, Tuple
+
+class DeterministicCounterfactualEngine:
+    """Wrapper that proves reproducibility of counterfactual simulations.
+    
+    Guarantee: Same inputs (initial state, model/config, RNG seed) → same
+    trajectories. Does NOT prevent randomness; it proves it is controlled.
+    """
+    
+    def __init__(self, engine: CounterfactualEngine):
+        self._engine = engine
+    
+    def run_two_from_same_seed(
+        self, initial_state: np.ndarray, horizon: int, rng_seed: int
+    ) -> Dict[str, Any]:
+        """Run simulation twice from the exact same saved RNG state.
+        
+        Returns a dict with determinism verification result and trajectory hashes.
+        """
+        # 1. Capture the RNG state at seed s
+        import numpy as np
+        rng_state = self._engine._rng.get_state()
+        
+        # 2. Run Counterfactual A from saved state
+        # We need to reset the engine's RNG to the saved seed state
+        self._engine._rng = np.random.RandomState(rng_seed)
+        worlds_a = self._engine.simulator.simulate(initial_state, horizon)
+        traj_a = self._serialize_trajectory(worlds_a)
+        hash_a = hashlib.sha256(traj_a.encode('utf-8')).hexdigest() if traj_a else ""
+        
+        # 3. Restore RNG state to the saved seed s again
+        self._engine._rng = np.random.RandomState(rng_seed)
+        # 4. Run Counterfactual B from the same saved state
+        worlds_b = self._engine.simulator.simulate(initial_state, horizon)
+        traj_b = self._serialize_trajectory(worlds_b)
+        hash_b = hashlib.sha256(traj_b.encode('utf-8')).hexdigest() if traj_b else ""
+        
+        return {
+            "determinism_verified": hash_a == hash_b,
+            "trajectory_hash_a": hash_a,
+            "trajectory_hash_b": hash_b,
+            "counterfactual_seed": rng_seed,
+            "rng_algorithm": "numpy.RandomState",
+        }
+    
+    def _serialize_trajectory(self, worlds: Any) -> str:
+        """Serialize a trajectory (list of world states) into a hashable string.
+
+    Args:
+        worlds: List of simulated world states from a counterfactual run.
+
+    Returns:
+        String representation of the trajectory (last world state as JSON).
+    """
+        if not worlds:
+            return ""
+        # Use the last world's state as the trajectory representative
+        last = worlds[-1]
+        state = getattr(last, 'state', last)
+        return str(state.tolist()) if hasattr(state, 'tolist') else str(state)

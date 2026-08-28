@@ -79,7 +79,8 @@ class DecisionTrace:
     resource_budgets: Optional[Dict] = None
     # P0 D8: Meta-cognition state
     meta_cognition: Optional[Dict] = None
-    # Fix 1: Causal graph from SCM
+    # P2 D1: Handoff hash from axiom verification
+    handoff_hash: Optional[str] = None    # Fix 1: Causal graph from SCM
     causal_graph: Optional[Dict] = None
     # Fix 2: Gamma discount used in commitment
     gamma_discount: float = 0.95
@@ -204,6 +205,7 @@ class DecisionTrace:
             "distributed_verdict": self.distributed_verdict,
             "resource_budgets": self.resource_budgets,
             "meta_cognition": self.meta_cognition,
+            "handoff_hash": self.handoff_hash,
             "causal_graph": self.causal_graph,
             "gamma_discount": self.gamma_discount,
             "terminal_value": self.terminal_value,
@@ -251,6 +253,12 @@ class PipelineConfig:
     debug: bool = False
     checkpoint_path: Optional[str] = None
     checkpoint_max: int = 10
+    # Checkpoint write cadence: save every N cycles (1 = every cycle, the
+    # historical behavior). Long-lived producers throttle this (e.g. 20) so
+    # a 20MB checkpoint is not written every 2s cycle; the shutdown/final
+    # save is always unconditional and the hmac chain links saved checkpoints
+    # (sparse numbering is chain-safe).
+    checkpoint_every_n: int = 1
     knowledge_path: Optional[str] = None
     quality_threshold: float = 0.35
     pattern_path: Optional[str] = None

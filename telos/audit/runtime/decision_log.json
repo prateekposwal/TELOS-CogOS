@@ -1,0 +1,4982 @@
+{
+  "version": "1.0",
+  "total_cycles": 5,
+  "traces": [
+    {
+      "cycle_id": 1,
+      "timestamp": 1787936730.369784,
+      "world_state": [
+        2.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "domain_facts": {
+        "resources": {
+          "energy": 2.23606797749979
+        },
+        "constraints": [],
+        "events": [],
+        "metrics": {
+          "distance_from_origin": 2.23606797749979,
+          "uncertainty": 0.7637626158259734
+        }
+      },
+      "stream_activations": [
+        {
+          "name": "ReflexStream",
+          "priority": 1.0,
+          "activated": true,
+          "intent_type": "reflex",
+          "cost_ms": 0.02002716064453125,
+          "budget_remaining_ms": 99.97997283935547
+        },
+        {
+          "name": "PerceptionStream",
+          "priority": 0.9,
+          "activated": true,
+          "intent_type": "perceive",
+          "cost_ms": 0.07081031799316406,
+          "budget_remaining_ms": 99.9091625213623
+        },
+        {
+          "name": "MemoryStream",
+          "priority": 0.7,
+          "activated": true,
+          "intent_type": "memory_miss",
+          "cost_ms": 0.01621246337890625,
+          "budget_remaining_ms": 99.8929500579834
+        },
+        {
+          "name": "PlanningStream",
+          "priority": 0.5,
+          "activated": true,
+          "intent_type": "plan_trajectory",
+          "cost_ms": 1.2359619140625,
+          "budget_remaining_ms": 98.6569881439209
+        }
+      ],
+      "selected_intent": {
+        "type": "perceive",
+        "confidence": 0.85
+      },
+      "selected_action": null,
+      "intent": "perceive",
+      "discrimination_index": 1.0,
+      "action_taken": null,
+      "representation": "spatial",
+      "budget_consumed_ms": 16.3430118560791,
+      "budget_total_ms": 100.0,
+      "budget_carryover_ms": 0.0,
+      "worlds_simulated": 1,
+      "cycle_duration_ms": 7.01904296875,
+      "council_validated": true,
+      "decision_integrity": 1.0,
+      "mission_drift": 0.14375503240925055,
+      "blocking_validator": null,
+      "council_signals": [],
+      "escalation_requested": false,
+      "escalation_reason": null,
+      "semantic_depths": [
+        {
+          "entity_id": "ent_55701c74",
+          "observable_state": {
+            "state_norm": 2.23606797749979,
+            "state_mean": 0.5,
+            "state_std": 0.7637626158259734,
+            "state_dim": 6,
+            "sparsity": 0.6666666666666667,
+            "energy": 5.0
+          },
+          "historical_context": "newly_discovered",
+          "mission_context": "relevance_0.31",
+          "semantic_identity": "active_region"
+        }
+      ],
+      "governance_signals": [
+        {
+          "check": "all_governance_checks",
+          "passed": true,
+          "reason": "All governance checks passed"
+        }
+      ],
+      "firewall_blocked": false,
+      "firewall_blocked_by": null,
+      "strategic_options": [
+        {
+          "rank": 1,
+          "score": 0.31733805455130487,
+          "horizon": 5,
+          "metadata": {
+            "index": 33,
+            "state_norm": 2.151213621114348
+          },
+          "variance": 0.0,
+          "probabilistic": null
+        }
+      ],
+      "perception_quality": {
+        "quality_score": 0.0,
+        "resolution": [
+          0,
+          0
+        ],
+        "target_size_px": null,
+        "notes": "Invalid frame dimensions",
+        "proxy_recommended": true
+      },
+      "gate_verdict": null,
+      "reflection": {
+        "pattern_count": 1,
+        "cross_domain_hits": 0,
+        "stable": false,
+        "adaptive_horizon": null,
+        "recommended_horizon": null,
+        "horizon_reason": "neutral",
+        "policy_mode": 0.0,
+        "recurring_blocks": []
+      },
+      "knowledge_report": {
+        "domain": "unknown",
+        "approach": null,
+        "outcome": null,
+        "avoid": [],
+        "summary": "No proven approach for 'unknown' \u2014 exploring",
+        "adjust_risk": -0.0025000000000000005,
+        "adjust_exploration": 0.0025000000000000005,
+        "quality_adjustment": 0.0
+      },
+      "perception_explanation": {
+        "explanation": {
+          "summary": "Input is very low (0x0). Quality score: 0%. Below threshold \u2014 blocked direct detection, using proxy mode.",
+          "details": [
+            {
+              "aspect": "resolution",
+              "value": "0x0",
+              "label": "very low"
+            },
+            {
+              "aspect": "gate",
+              "value": "blocked",
+              "proxy_mode": true
+            }
+          ],
+          "suggestions": [
+            {
+              "action": "higher_resolution",
+              "label": "Use a 720p+ video",
+              "reason": "0x0 limits detection to objects >= 15px",
+              "impact": "high"
+            },
+            {
+              "action": "proxy_mode",
+              "label": "Tracking motion hotspots",
+              "reason": "Proxy mode active \u2014 following movement clusters",
+              "impact": "medium"
+            },
+            {
+              "action": "super_resolution",
+              "label": "Apply 2x upscale",
+              "reason": "0px is very low \u2014 upscale may improve edge detection",
+              "impact": "low"
+            }
+          ],
+          "quality_score": 0.0,
+          "proxy_mode": true
+        },
+        "capabilities": [],
+        "best_capability": null
+      },
+      "system_mood": "curious",
+      "local_optima_escape": null,
+      "attention_metrics": {
+        "identity_entropy": 1.0,
+        "entropy_collapse_rate": 0.0,
+        "counterfactual_diversity": 4.245774284355796e-05,
+        "attention_momentum": 0.0,
+        "mean_threat_ratio": 0.25836862038478137,
+        "mean_opportunity_ratio": 0.3356235475819907,
+        "mean_maintenance_ratio": 0.4060078320332279,
+        "is_attention_locked": false,
+        "is_identity_collapse": false,
+        "trajectory_divergences": [
+          0.14375503240925055
+        ],
+        "allocation_count": 1,
+        "default_action_space": 10,
+        "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+        "identity_entropy_signal": {
+          "collapse_rate": 0.0,
+          "is_critical": true,
+          "projected_size": 1.0
+        },
+        "current_allocation": {
+          "threat_ratio": 0.25836862038478137,
+          "opportunity_ratio": 0.3356235475819907,
+          "maintenance_ratio": 0.4060078320332279
+        },
+        "cost_tracker": {
+          "total_maintenance": 0,
+          "total_recovery": 0,
+          "total_cost": 0,
+          "maintenance_ratio": 0.5,
+          "recovery_ratio": 0.5,
+          "cost_efficiency": 1.0,
+          "trend": "insufficient_data",
+          "cycles_recorded": 0,
+          "recent_maintenance": [],
+          "recent_recovery": []
+        }
+      },
+      "representation_confidence": 0.7,
+      "causal_annotations": null,
+      "identity_state": {
+        "G_t": {
+          "last_action": "perceive",
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
+        },
+        "M_t": {
+          "cycle": 0,
+          "action": "perceive",
+          "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
+          "mood": "curious"
+        },
+        "B_t": {
+          "decision_quality": {
+            "high": 0.12222222222222222,
+            "medium": 0.7555555555555555,
+            "low": 0.12222222222222222
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "C_t": {
+          "active_constraints": [
+            "risk_tolerance=0.50",
+            "exploration_budget=0.30"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
+        },
+        "K_t": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "V_t": {
+          "identity_markers": [
+            "exploring",
+            "nascent"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
+        },
+        "Res_t": {
+          "energy": {
+            "consumed_ms": 16.3430118560791,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 0.0,
+            "utilization": 0.163430118560791,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 1,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "nominal",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "R_t": {
+          "trust": 0.5,
+          "authority": 0.5,
+          "collaboration": 0.5,
+          "dependency": 0.0,
+          "responsibility": 0.5
+        }
+      },
+      "distributed_verdict": {
+        "enabled": true,
+        "cycle": 1,
+        "aggregate": {
+          "validated": true,
+          "decision_integrity": 1.0,
+          "mission_drift": 0.1438,
+          "consensus": 1.0,
+          "n_agents": 5
+        },
+        "agents": [
+          "primary:primary",
+          "skeptic:skeptic",
+          "explorer:explorer",
+          "conservative:conservative",
+          "analyst:analyst"
+        ],
+        "registered_agents": 5,
+        "voting_agents": 5
+      },
+      "resource_budgets": {
+        "energy": {
+          "consumed_ms": 16.3430118560791,
+          "total_ms": 100.0,
+          "budget_carryover_ms": 0.0,
+          "utilization": 0.163430118560791,
+          "description": "compute_budget_ms consumed this cycle"
+        },
+        "memory": {
+          "trace_history_length": 1,
+          "description": "trace_history length (number of stored traces)"
+        },
+        "identity": {
+          "identity_entropy": 0.0,
+          "identity_stability": 1.0,
+          "description": "identity entropy (1 - identity_stability)"
+        },
+        "recovery": {
+          "recovery_mode_cycles": 0,
+          "current_state": "nominal",
+          "description": "number of recovery_mode cycles active"
+        }
+      },
+      "meta_cognition": {
+        "current_state": "exploring",
+        "exploration_mode": true,
+        "recovery_mode": false,
+        "epistemic_repair": false,
+        "trigger_reason": "InquiryStream: question worth asking (\u03a9 > 0.5)",
+        "stream_uncertainties": {},
+        "consecutive_council_blocks": 0,
+        "mode": "PLAN",
+        "tripartite_u": {
+          "U_W": 0.07187751620462528,
+          "U_I": 0.0,
+          "U_O": 0.0,
+          "U_M": 0.0,
+          "answered_questions": 0,
+          "dominant": "none"
+        },
+        "U_W": 0.07187751620462528,
+        "U_I": 0.0,
+        "U_O": 0.0
+      },
+      "handoff_hash": null,
+      "causal_graph": {
+        "edges": [],
+        "variables": [
+          "energy"
+        ],
+        "interventions": 0,
+        "has_structural_equations": false
+      },
+      "gamma_discount": 0.95,
+      "terminal_value": 0.0,
+      "belief_state": {
+        "decision_quality": {
+          "high": 0.12222222222222222,
+          "medium": 0.7555555555555555,
+          "low": 0.12222222222222222
+        },
+        "environment_stability": {
+          "stable": 0.25,
+          "changing": 0.25,
+          "unpredictable": 0.25,
+          "unknown": 0.25
+        },
+        "resource_availability": {
+          "abundant": 0.25,
+          "sufficient": 0.25,
+          "limited": 0.25,
+          "critical": 0.25
+        }
+      },
+      "capabilities_k": {
+        "last_action": "perceive",
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
+      },
+      "j_term_breakdown": {
+        "expected_reward": 0.765,
+        "discounted_reward": 0.765,
+        "maintenance_cost": 0.004029035568237305,
+        "recovery_cost": 0.0,
+        "identity_cost": 0.0,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.1973139762878418,
+        "counterfactual_diversity": 0.0,
+        "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
+        "gamma": 0.95,
+        "horizon": 1,
+        "commitment": 0.9582849407196046,
+        "is_suppressed": false,
+        "is_full": true
+      },
+      "inquiry_skipped": false,
+      "selected_question": null,
+      "inquiry_omega_value": 0.0,
+      "inquiry_omega_vector": null,
+      "inquiry_blend": 0.0,
+      "relational_coherence": 1.0,
+      "spent_ctx_id": null,
+      "produced_ctx_id": "ctx_1_1787936730369",
+      "merkle_root": "22187048c870a4f0c2fbd081f812aed86a44cf72b4c4f08cc02dcc02bd292e4b",
+      "psdt": {
+        "partials": {
+          "ReflexStream": {
+            "intent": "reflex",
+            "confidence": 0.0,
+            "signature": "290938a4342ba36a"
+          },
+          "PerceptionStream": {
+            "intent": "perceive",
+            "confidence": 0.85,
+            "signature": "eab1cb43028de476"
+          },
+          "MemoryStream": {
+            "intent": "memory_miss",
+            "confidence": 0.3,
+            "signature": "caccab5349c170d7"
+          },
+          "PlanningStream": {
+            "intent": "plan_trajectory",
+            "confidence": 0.3143095205107875,
+            "signature": "7004ccfe94523ac6"
+          }
+        },
+        "council_signature": "a76defe0155410f9"
+      },
+      "intent_timelock": {
+        "intent_type": "perceive",
+        "cycles_since_last_selection": 0,
+        "timelock_active": false,
+        "all_timelocks": {
+          "perceive": 1
+        }
+      },
+      "reasoning_witness": {
+        "council_signals": [],
+        "strategic_options": [
+          {
+            "rank": 1,
+            "score": 0.31733805455130487,
+            "horizon": 5,
+            "metadata": {
+              "index": 33,
+              "state_norm": 2.151213621114348
+            },
+            "variance": 0.0,
+            "probabilistic": null
+          }
+        ],
+        "stream_activations": [
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent_type": "reflex",
+            "cost_ms": 0.02002716064453125
+          },
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": true,
+            "intent_type": "perceive",
+            "cost_ms": 0.07081031799316406
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent_type": "memory_miss",
+            "cost_ms": 0.01621246337890625
+          },
+          {
+            "name": "PlanningStream",
+            "priority": 0.5,
+            "activated": true,
+            "intent_type": "plan_trajectory",
+            "cost_ms": 1.2359619140625
+          }
+        ],
+        "causal_graph": {
+          "edges": [],
+          "variables": [
+            "energy"
+          ],
+          "interventions": 0,
+          "has_structural_equations": false
+        },
+        "resource_budgets": {
+          "energy": {
+            "consumed_ms": 16.3430118560791,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 0.0,
+            "utilization": 0.163430118560791,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 1,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "nominal",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "meta_cognition": {
+          "current_state": "exploring",
+          "exploration_mode": true,
+          "recovery_mode": false,
+          "epistemic_repair": false,
+          "trigger_reason": "InquiryStream: question worth asking (\u03a9 > 0.5)",
+          "stream_uncertainties": {},
+          "consecutive_council_blocks": 0,
+          "mode": "PLAN",
+          "tripartite_u": {
+            "U_W": 0.07187751620462528,
+            "U_I": 0.0,
+            "U_O": 0.0,
+            "U_M": 0.0,
+            "answered_questions": 0,
+            "dominant": "none"
+          },
+          "U_W": 0.07187751620462528,
+          "U_I": 0.0,
+          "U_O": 0.0
+        },
+        "psdt": {
+          "partials": {
+            "ReflexStream": {
+              "intent": "reflex",
+              "confidence": 0.0,
+              "signature": "290938a4342ba36a"
+            },
+            "PerceptionStream": {
+              "intent": "perceive",
+              "confidence": 0.85,
+              "signature": "eab1cb43028de476"
+            },
+            "MemoryStream": {
+              "intent": "memory_miss",
+              "confidence": 0.3,
+              "signature": "caccab5349c170d7"
+            },
+            "PlanningStream": {
+              "intent": "plan_trajectory",
+              "confidence": 0.3143095205107875,
+              "signature": "7004ccfe94523ac6"
+            }
+          },
+          "council_signature": "a76defe0155410f9"
+        },
+        "j_term_breakdown": {
+          "expected_reward": 0.765,
+          "discounted_reward": 0.765,
+          "maintenance_cost": 0.004029035568237305,
+          "recovery_cost": 0.0,
+          "identity_cost": 0.0,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.1973139762878418,
+          "counterfactual_diversity": 0.0,
+          "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
+          "gamma": 0.95,
+          "horizon": 1,
+          "commitment": 0.9582849407196046,
+          "is_suppressed": false,
+          "is_full": true
+        },
+        "capabilities_k": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "belief_state": {
+          "decision_quality": {
+            "high": 0.12222222222222222,
+            "medium": 0.7555555555555555,
+            "low": 0.12222222222222222
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "attention_metrics": {
+          "identity_entropy": 1.0,
+          "entropy_collapse_rate": 0.0,
+          "counterfactual_diversity": 4.245774284355796e-05,
+          "attention_momentum": 0.0,
+          "mean_threat_ratio": 0.25836862038478137,
+          "mean_opportunity_ratio": 0.3356235475819907,
+          "mean_maintenance_ratio": 0.4060078320332279,
+          "is_attention_locked": false,
+          "is_identity_collapse": false,
+          "trajectory_divergences": [
+            0.14375503240925055
+          ],
+          "allocation_count": 1,
+          "default_action_space": 10,
+          "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+          "identity_entropy_signal": {
+            "collapse_rate": 0.0,
+            "is_critical": true,
+            "projected_size": 1.0
+          },
+          "current_allocation": {
+            "threat_ratio": 0.25836862038478137,
+            "opportunity_ratio": 0.3356235475819907,
+            "maintenance_ratio": 0.4060078320332279
+          },
+          "cost_tracker": {
+            "total_maintenance": 0,
+            "total_recovery": 0,
+            "total_cost": 0,
+            "maintenance_ratio": 0.5,
+            "recovery_ratio": 0.5,
+            "cost_efficiency": 1.0,
+            "trend": "insufficient_data",
+            "cycles_recorded": 0,
+            "recent_maintenance": [],
+            "recent_recovery": []
+          }
+        },
+        "local_optima_escape": null,
+        "reflection": {
+          "pattern_count": 1,
+          "cross_domain_hits": 0,
+          "stable": false,
+          "adaptive_horizon": null,
+          "recommended_horizon": null,
+          "horizon_reason": "neutral",
+          "policy_mode": 0.0,
+          "recurring_blocks": []
+        }
+      },
+      "decision_core": {
+        "selected_intent": {
+          "type": "perceive",
+          "confidence": 0.85
+        },
+        "selected_action": null,
+        "decision_integrity": 1.0,
+        "mission_drift": 0.14375503240925055,
+        "council_validated": true,
+        "identity_state": {
+          "G_t": {
+            "last_action": "perceive",
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
+          },
+          "M_t": {
+            "cycle": 0,
+            "action": "perceive",
+            "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
+            "mood": "curious"
+          },
+          "B_t": {
+            "decision_quality": {
+              "high": 0.12222222222222222,
+              "medium": 0.7555555555555555,
+              "low": 0.12222222222222222
+            },
+            "environment_stability": {
+              "stable": 0.25,
+              "changing": 0.25,
+              "unpredictable": 0.25,
+              "unknown": 0.25
+            },
+            "resource_availability": {
+              "abundant": 0.25,
+              "sufficient": 0.25,
+              "limited": 0.25,
+              "critical": 0.25
+            }
+          },
+          "C_t": {
+            "active_constraints": [
+              "risk_tolerance=0.50",
+              "exploration_budget=0.30"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
+          },
+          "K_t": {
+            "last_action": "perceive",
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
+          },
+          "V_t": {
+            "identity_markers": [
+              "exploring",
+              "nascent"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
+          },
+          "Res_t": {
+            "energy": {
+              "consumed_ms": 16.3430118560791,
+              "total_ms": 100.0,
+              "budget_carryover_ms": 0.0,
+              "utilization": 0.163430118560791,
+              "description": "compute_budget_ms consumed this cycle"
+            },
+            "memory": {
+              "trace_history_length": 1,
+              "description": "trace_history length (number of stored traces)"
+            },
+            "identity": {
+              "identity_entropy": 0.0,
+              "identity_stability": 1.0,
+              "description": "identity entropy (1 - identity_stability)"
+            },
+            "recovery": {
+              "recovery_mode_cycles": 0,
+              "current_state": "nominal",
+              "description": "number of recovery_mode cycles active"
+            }
+          },
+          "R_t": {
+            "trust": 0.5,
+            "authority": 0.5,
+            "collaboration": 0.5,
+            "dependency": 0.0,
+            "responsibility": 0.5
+          }
+        },
+        "merkle_root": "22187048c870a4f0c2fbd081f812aed86a44cf72b4c4f08cc02dcc02bd292e4b",
+        "inquiry_summary": {
+          "selected_question": null,
+          "omega_value": 0.0,
+          "omega_vector": null,
+          "blend": 0.0,
+          "skipped": false
+        },
+        "blocking_validator": null,
+        "firewall_blocked": false
+      },
+      "inquiry_summary": {
+        "selected_question": null,
+        "omega_value": 0.0,
+        "omega_vector": null,
+        "blend": 0.0,
+        "skipped": false
+      },
+      "curiosity_state": {
+        "curiosity_level": 0.25,
+        "learning_rate": 0.024,
+        "boredom_count": 1,
+        "novelty_seeking": false,
+        "self_intent_active": false,
+        "exploration_cycles": 0,
+        "exploitation_cycles": 1,
+        "balance": "0% explore"
+      },
+      "curiosity_bonus": 1.15,
+      "tool_audit": null,
+      "axiom_results": {
+        "1.1": {
+          "passed": true,
+          "reason": "trace is not None \u2014 architecture produced an outcome"
+        },
+        "1.2": {
+          "passed": true,
+          "reason": "decision_integrity=1.000 >= 0.0 \u2014 process was measured"
+        },
+        "1.3": {
+          "passed": true,
+          "reason": "governance_blocked was checked \u2014 multi-level governance ran"
+        },
+        "1.4": {
+          "passed": true,
+          "reason": "compute 16.3ms <= 100.0ms \u2014 budget conserved"
+        },
+        "2.1": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 constitutional check happened"
+        },
+        "2.2": {
+          "passed": true,
+          "reason": "meta_cognition populated \u2014 feedback loop closed"
+        },
+        "2.3": {
+          "passed": true,
+          "reason": "infra_manager.failures exists \u2014 failures preserved as structural assets"
+        },
+        "2.4": {
+          "passed": true,
+          "reason": "trace has UTXO chain (spent=None, produced=ctx_1_1787936730369) \u2014 path dependency tracked"
+        },
+        "2.5": {
+          "passed": true,
+          "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
+        },
+        "3.1": {
+          "passed": true,
+          "reason": "recovery_mode=False \u2014 recovery mode tracked"
+        },
+        "3.2": {
+          "passed": true,
+          "reason": "resource_budgets populated \u2014 budget was reserved"
+        },
+        "3.3": {
+          "passed": true,
+          "reason": "skill_library exists and is callable"
+        },
+        "3.4": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off active"
+        },
+        "3.5": {
+          "passed": true,
+          "reason": "infra_manager.calibrator exists \u2014 calibration ran"
+        },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
+        "4.1": {
+          "passed": true,
+          "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
+        },
+        "4.2": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off made"
+        },
+        "4.3": {
+          "passed": true,
+          "reason": "strategic_options count=1 >= 1 \u2014 alternatives preserved"
+        },
+        "4.4": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 truth-anchored decision"
+        },
+        "4.5": {
+          "passed": false,
+          "reason": "local_optima_escape not set"
+        },
+        "4.6": {
+          "passed": true,
+          "reason": "4 streams activated (>= 2) \u2014 emergent intelligence"
+        },
+        "4.7": {
+          "passed": true,
+          "reason": "attention_metrics is set \u2014 attention was allocated"
+        },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.9": {
+          "passed": false,
+          "reason": "RelationalContext scaffold absent \u2014 axiom not verified"
+        },
+        "4.11": {
+          "passed": false,
+          "reason": "multi-agent aspiration \u2014 declared NOT yet implemented (\u039b2.3 fail-closed)"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
+        "5.1": {
+          "passed": true,
+          "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.3": {
+          "passed": false,
+          "reason": "InterpretationEngine absent \u2014 interpretation energy not modeled"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
+        }
+      }
+    },
+    {
+      "cycle_id": 2,
+      "timestamp": 1787936730.376696,
+      "world_state": [
+        1.8638327710027256,
+        0.9473971306989969,
+        0.0750111745675952,
+        0.036892862768085365,
+        0.011781524436095476,
+        0.12731642172637445
+      ],
+      "domain_facts": {
+        "resources": {
+          "energy": 2.0963706630061565
+        },
+        "constraints": [],
+        "events": [],
+        "metrics": {
+          "distance_from_origin": 2.0963706630061565,
+          "uncertainty": 0.6870095345760507
+        }
+      },
+      "stream_activations": [
+        {
+          "name": "PerceptionStream",
+          "priority": 0.9,
+          "activated": false,
+          "intent_type": null,
+          "cost_ms": 0.0,
+          "budget_remaining_ms": 100.0
+        },
+        {
+          "name": "ReflexStream",
+          "priority": 1.0,
+          "activated": true,
+          "intent_type": "reflex",
+          "cost_ms": 0.010013580322265625,
+          "budget_remaining_ms": 99.98998641967773
+        },
+        {
+          "name": "MemoryStream",
+          "priority": 0.7,
+          "activated": true,
+          "intent_type": "memory_recall",
+          "cost_ms": 0.010013580322265625,
+          "budget_remaining_ms": 99.97997283935547
+        }
+      ],
+      "selected_intent": {
+        "type": "perceive",
+        "confidence": 0.85
+      },
+      "selected_action": null,
+      "intent": "perceive",
+      "discrimination_index": 1.0,
+      "action_taken": null,
+      "representation": "spatial",
+      "budget_consumed_ms": 15.020027160644531,
+      "budget_total_ms": 100.0,
+      "budget_carryover_ms": 50.0,
+      "worlds_simulated": 1,
+      "cycle_duration_ms": 4.900217056274414,
+      "council_validated": true,
+      "decision_integrity": 1.0,
+      "mission_drift": 0.13929817991738797,
+      "blocking_validator": null,
+      "council_signals": [],
+      "escalation_requested": false,
+      "escalation_reason": null,
+      "semantic_depths": [],
+      "governance_signals": [
+        {
+          "check": "all_governance_checks",
+          "passed": true,
+          "reason": "All governance checks passed"
+        }
+      ],
+      "firewall_blocked": false,
+      "firewall_blocked_by": null,
+      "strategic_options": [
+        {
+          "rank": 1,
+          "score": 0.3312787970868991,
+          "horizon": 5,
+          "metadata": {
+            "index": 69,
+            "state_norm": 2.018605503260403
+          },
+          "variance": 0.0,
+          "probabilistic": null
+        }
+      ],
+      "perception_quality": {
+        "quality_score": 0.0,
+        "resolution": [
+          0,
+          0
+        ],
+        "target_size_px": null,
+        "notes": "Invalid frame dimensions",
+        "proxy_recommended": true
+      },
+      "gate_verdict": null,
+      "reflection": {
+        "pattern_count": 1,
+        "cross_domain_hits": 0,
+        "stable": false,
+        "adaptive_horizon": null,
+        "recommended_horizon": null,
+        "horizon_reason": "neutral",
+        "policy_mode": 0.0,
+        "recurring_blocks": []
+      },
+      "knowledge_report": {
+        "domain": "unknown",
+        "approach": null,
+        "outcome": null,
+        "avoid": [],
+        "adjust_risk": 0.0,
+        "adjust_exploration": 0.0,
+        "summary": "Consultation throttled for 'unknown' (last cycle 1)",
+        "quality_adjustment": 0.0,
+        "throttled": true
+      },
+      "perception_explanation": {
+        "explanation": {
+          "summary": "Input is very low (0x0). Quality score: 0%. Below threshold \u2014 blocked direct detection, using proxy mode.",
+          "details": [
+            {
+              "aspect": "resolution",
+              "value": "0x0",
+              "label": "very low"
+            },
+            {
+              "aspect": "gate",
+              "value": "blocked",
+              "proxy_mode": true
+            }
+          ],
+          "suggestions": [
+            {
+              "action": "higher_resolution",
+              "label": "Use a 720p+ video",
+              "reason": "0x0 limits detection to objects >= 15px",
+              "impact": "high"
+            },
+            {
+              "action": "proxy_mode",
+              "label": "Tracking motion hotspots",
+              "reason": "Proxy mode active \u2014 following movement clusters",
+              "impact": "medium"
+            },
+            {
+              "action": "super_resolution",
+              "label": "Apply 2x upscale",
+              "reason": "0px is very low \u2014 upscale may improve edge detection",
+              "impact": "low"
+            }
+          ],
+          "quality_score": 0.0,
+          "proxy_mode": true
+        },
+        "capabilities": [],
+        "best_capability": null
+      },
+      "system_mood": "curious",
+      "local_optima_escape": null,
+      "attention_metrics": {
+        "identity_entropy": 1.0,
+        "entropy_collapse_rate": 0.0,
+        "counterfactual_diversity": 4.010909559008657e-05,
+        "attention_momentum": 0.0,
+        "mean_threat_ratio": 0.2517511880744948,
+        "mean_opportunity_ratio": 0.35263980209415613,
+        "mean_maintenance_ratio": 0.39560900983134906,
+        "is_attention_locked": false,
+        "is_identity_collapse": false,
+        "trajectory_divergences": [
+          0.14375503240925055,
+          0.13929817991738797
+        ],
+        "allocation_count": 2,
+        "default_action_space": 10,
+        "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+        "identity_entropy_signal": {
+          "collapse_rate": 0.0,
+          "is_critical": true,
+          "projected_size": 1.0
+        },
+        "current_allocation": {
+          "threat_ratio": 0.24513375576420826,
+          "opportunity_ratio": 0.36965605660632156,
+          "maintenance_ratio": 0.3852101876294702
+        },
+        "cost_tracker": {
+          "total_maintenance": 0.1,
+          "total_recovery": 0,
+          "total_cost": 0.1,
+          "maintenance_ratio": 1.0,
+          "recovery_ratio": 0.0,
+          "cost_efficiency": 2.0,
+          "trend": "insufficient_data",
+          "cycles_recorded": 1,
+          "recent_maintenance": [
+            0.1
+          ],
+          "recent_recovery": []
+        }
+      },
+      "representation_confidence": 0.7,
+      "causal_annotations": null,
+      "identity_state": {
+        "G_t": {
+          "last_action": "perceive",
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
+        },
+        "M_t": {
+          "cycle": 0,
+          "action": "perceive",
+          "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
+          "mood": "curious"
+        },
+        "B_t": {
+          "decision_quality": {
+            "high": 0.025581395348837212,
+            "medium": 0.9488372093023257,
+            "low": 0.025581395348837212
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "C_t": {
+          "active_constraints": [
+            "risk_tolerance=0.50",
+            "exploration_budget=0.30"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
+        },
+        "K_t": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "V_t": {
+          "identity_markers": [
+            "exploring",
+            "nascent"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
+        },
+        "Res_t": {
+          "energy": {
+            "consumed_ms": 15.020027160644531,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 50.0,
+            "utilization": 0.1502002716064453,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 2,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "R_t": {
+          "trust": 0.5,
+          "authority": 0.5,
+          "collaboration": 0.5,
+          "dependency": 0.0,
+          "responsibility": 0.5
+        }
+      },
+      "distributed_verdict": {
+        "enabled": true,
+        "cycle": 2,
+        "aggregate": {
+          "validated": true,
+          "decision_integrity": 1.0,
+          "mission_drift": 0.1393,
+          "consensus": 1.0,
+          "n_agents": 5
+        },
+        "agents": [
+          "primary:primary",
+          "skeptic:skeptic",
+          "explorer:explorer",
+          "conservative:conservative",
+          "analyst:analyst"
+        ],
+        "registered_agents": 5,
+        "voting_agents": 5
+      },
+      "resource_budgets": {
+        "energy": {
+          "consumed_ms": 15.020027160644531,
+          "total_ms": 100.0,
+          "budget_carryover_ms": 50.0,
+          "utilization": 0.1502002716064453,
+          "description": "compute_budget_ms consumed this cycle"
+        },
+        "memory": {
+          "trace_history_length": 2,
+          "description": "trace_history length (number of stored traces)"
+        },
+        "identity": {
+          "identity_entropy": 0.0,
+          "identity_stability": 1.0,
+          "description": "identity entropy (1 - identity_stability)"
+        },
+        "recovery": {
+          "recovery_mode_cycles": 0,
+          "current_state": "exploring",
+          "description": "number of recovery_mode cycles active"
+        }
+      },
+      "meta_cognition": {
+        "current_state": "exploring",
+        "exploration_mode": true,
+        "recovery_mode": false,
+        "epistemic_repair": false,
+        "trigger_reason": null,
+        "stream_uncertainties": {
+          "PerceptionStream": 0.2,
+          "perception": 0.2
+        },
+        "consecutive_council_blocks": 0,
+        "mode": "PLAN",
+        "tripartite_u": {
+          "U_W": 0.27076330308165963,
+          "U_I": 0.0,
+          "U_O": 0.0,
+          "U_M": 0.0,
+          "answered_questions": 0,
+          "dominant": "none"
+        },
+        "U_W": 0.27076330308165963,
+        "U_I": 0.0,
+        "U_O": 0.0
+      },
+      "handoff_hash": null,
+      "causal_graph": {
+        "edges": [],
+        "variables": [
+          "energy"
+        ],
+        "interventions": 0,
+        "has_structural_equations": false
+      },
+      "gamma_discount": 0.95,
+      "terminal_value": 0.0,
+      "belief_state": {
+        "decision_quality": {
+          "high": 0.025581395348837212,
+          "medium": 0.9488372093023257,
+          "low": 0.025581395348837212
+        },
+        "environment_stability": {
+          "stable": 0.25,
+          "changing": 0.25,
+          "unpredictable": 0.25,
+          "unknown": 0.25
+        },
+        "resource_availability": {
+          "abundant": 0.25,
+          "sufficient": 0.25,
+          "limited": 0.25,
+          "critical": 0.25
+        }
+      },
+      "capabilities_k": {
+        "last_action": "perceive",
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
+      },
+      "j_term_breakdown": {
+        "expected_reward": 1.0,
+        "discounted_reward": 1.0,
+        "maintenance_cost": 6.008148193359375e-05,
+        "recovery_cost": 0.0,
+        "identity_cost": 0.0,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.19995994567871095,
+        "counterfactual_diversity": 0.0,
+        "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
+        "gamma": 0.95,
+        "horizon": 1,
+        "commitment": 1.0,
+        "is_suppressed": false,
+        "is_full": true
+      },
+      "inquiry_skipped": false,
+      "selected_question": null,
+      "inquiry_omega_value": 0.0,
+      "inquiry_omega_vector": null,
+      "inquiry_blend": 0.0,
+      "relational_coherence": 1.0,
+      "spent_ctx_id": "ctx_1_1787936730369",
+      "produced_ctx_id": "ctx_2_1787936730376",
+      "merkle_root": "63a82fde4d9c2f94871256ccf5c5cbc9cac07f7039da98d997469dcd38db2cce",
+      "psdt": {
+        "partials": {
+          "ReflexStream": {
+            "intent": "reflex",
+            "confidence": 0.0,
+            "signature": "1690e957c69fa97d"
+          },
+          "MemoryStream": {
+            "intent": "memory_recall",
+            "confidence": 0.836569881439209,
+            "signature": "3e410538912384c4"
+          }
+        },
+        "council_signature": "88d049c93a2e1b9f"
+      },
+      "intent_timelock": {
+        "intent_type": "perceive",
+        "cycles_since_last_selection": 0,
+        "timelock_active": false,
+        "all_timelocks": {
+          "perceive": 2
+        }
+      },
+      "reasoning_witness": {
+        "council_signals": [],
+        "strategic_options": [
+          {
+            "rank": 1,
+            "score": 0.3312787970868991,
+            "horizon": 5,
+            "metadata": {
+              "index": 69,
+              "state_norm": 2.018605503260403
+            },
+            "variance": 0.0,
+            "probabilistic": null
+          }
+        ],
+        "stream_activations": [
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": false,
+            "intent_type": null,
+            "cost_ms": 0.0
+          },
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent_type": "reflex",
+            "cost_ms": 0.010013580322265625
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent_type": "memory_recall",
+            "cost_ms": 0.010013580322265625
+          }
+        ],
+        "causal_graph": {
+          "edges": [],
+          "variables": [
+            "energy"
+          ],
+          "interventions": 0,
+          "has_structural_equations": false
+        },
+        "resource_budgets": {
+          "energy": {
+            "consumed_ms": 15.020027160644531,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 50.0,
+            "utilization": 0.1502002716064453,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 2,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "meta_cognition": {
+          "current_state": "exploring",
+          "exploration_mode": true,
+          "recovery_mode": false,
+          "epistemic_repair": false,
+          "trigger_reason": null,
+          "stream_uncertainties": {
+            "PerceptionStream": 0.2,
+            "perception": 0.2
+          },
+          "consecutive_council_blocks": 0,
+          "mode": "PLAN",
+          "tripartite_u": {
+            "U_W": 0.27076330308165963,
+            "U_I": 0.0,
+            "U_O": 0.0,
+            "U_M": 0.0,
+            "answered_questions": 0,
+            "dominant": "none"
+          },
+          "U_W": 0.27076330308165963,
+          "U_I": 0.0,
+          "U_O": 0.0
+        },
+        "psdt": {
+          "partials": {
+            "ReflexStream": {
+              "intent": "reflex",
+              "confidence": 0.0,
+              "signature": "1690e957c69fa97d"
+            },
+            "MemoryStream": {
+              "intent": "memory_recall",
+              "confidence": 0.836569881439209,
+              "signature": "3e410538912384c4"
+            }
+          },
+          "council_signature": "88d049c93a2e1b9f"
+        },
+        "j_term_breakdown": {
+          "expected_reward": 1.0,
+          "discounted_reward": 1.0,
+          "maintenance_cost": 6.008148193359375e-05,
+          "recovery_cost": 0.0,
+          "identity_cost": 0.0,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.19995994567871095,
+          "counterfactual_diversity": 0.0,
+          "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
+          "gamma": 0.95,
+          "horizon": 1,
+          "commitment": 1.0,
+          "is_suppressed": false,
+          "is_full": true
+        },
+        "capabilities_k": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "belief_state": {
+          "decision_quality": {
+            "high": 0.025581395348837212,
+            "medium": 0.9488372093023257,
+            "low": 0.025581395348837212
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "attention_metrics": {
+          "identity_entropy": 1.0,
+          "entropy_collapse_rate": 0.0,
+          "counterfactual_diversity": 4.010909559008657e-05,
+          "attention_momentum": 0.0,
+          "mean_threat_ratio": 0.2517511880744948,
+          "mean_opportunity_ratio": 0.35263980209415613,
+          "mean_maintenance_ratio": 0.39560900983134906,
+          "is_attention_locked": false,
+          "is_identity_collapse": false,
+          "trajectory_divergences": [
+            0.14375503240925055,
+            0.13929817991738797
+          ],
+          "allocation_count": 2,
+          "default_action_space": 10,
+          "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+          "identity_entropy_signal": {
+            "collapse_rate": 0.0,
+            "is_critical": true,
+            "projected_size": 1.0
+          },
+          "current_allocation": {
+            "threat_ratio": 0.24513375576420826,
+            "opportunity_ratio": 0.36965605660632156,
+            "maintenance_ratio": 0.3852101876294702
+          },
+          "cost_tracker": {
+            "total_maintenance": 0.1,
+            "total_recovery": 0,
+            "total_cost": 0.1,
+            "maintenance_ratio": 1.0,
+            "recovery_ratio": 0.0,
+            "cost_efficiency": 2.0,
+            "trend": "insufficient_data",
+            "cycles_recorded": 1,
+            "recent_maintenance": [
+              0.1
+            ],
+            "recent_recovery": []
+          }
+        },
+        "local_optima_escape": null,
+        "reflection": {
+          "pattern_count": 1,
+          "cross_domain_hits": 0,
+          "stable": false,
+          "adaptive_horizon": null,
+          "recommended_horizon": null,
+          "horizon_reason": "neutral",
+          "policy_mode": 0.0,
+          "recurring_blocks": []
+        }
+      },
+      "decision_core": {
+        "selected_intent": {
+          "type": "perceive",
+          "confidence": 0.85
+        },
+        "selected_action": null,
+        "decision_integrity": 1.0,
+        "mission_drift": 0.13929817991738797,
+        "council_validated": true,
+        "identity_state": {
+          "G_t": {
+            "last_action": "perceive",
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
+          },
+          "M_t": {
+            "cycle": 0,
+            "action": "perceive",
+            "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
+            "mood": "curious"
+          },
+          "B_t": {
+            "decision_quality": {
+              "high": 0.025581395348837212,
+              "medium": 0.9488372093023257,
+              "low": 0.025581395348837212
+            },
+            "environment_stability": {
+              "stable": 0.25,
+              "changing": 0.25,
+              "unpredictable": 0.25,
+              "unknown": 0.25
+            },
+            "resource_availability": {
+              "abundant": 0.25,
+              "sufficient": 0.25,
+              "limited": 0.25,
+              "critical": 0.25
+            }
+          },
+          "C_t": {
+            "active_constraints": [
+              "risk_tolerance=0.50",
+              "exploration_budget=0.30"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
+          },
+          "K_t": {
+            "last_action": "perceive",
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
+          },
+          "V_t": {
+            "identity_markers": [
+              "exploring",
+              "nascent"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
+          },
+          "Res_t": {
+            "energy": {
+              "consumed_ms": 15.020027160644531,
+              "total_ms": 100.0,
+              "budget_carryover_ms": 50.0,
+              "utilization": 0.1502002716064453,
+              "description": "compute_budget_ms consumed this cycle"
+            },
+            "memory": {
+              "trace_history_length": 2,
+              "description": "trace_history length (number of stored traces)"
+            },
+            "identity": {
+              "identity_entropy": 0.0,
+              "identity_stability": 1.0,
+              "description": "identity entropy (1 - identity_stability)"
+            },
+            "recovery": {
+              "recovery_mode_cycles": 0,
+              "current_state": "exploring",
+              "description": "number of recovery_mode cycles active"
+            }
+          },
+          "R_t": {
+            "trust": 0.5,
+            "authority": 0.5,
+            "collaboration": 0.5,
+            "dependency": 0.0,
+            "responsibility": 0.5
+          }
+        },
+        "merkle_root": "63a82fde4d9c2f94871256ccf5c5cbc9cac07f7039da98d997469dcd38db2cce",
+        "inquiry_summary": {
+          "selected_question": null,
+          "omega_value": 0.0,
+          "omega_vector": null,
+          "blend": 0.0,
+          "skipped": false
+        },
+        "blocking_validator": null,
+        "firewall_blocked": false
+      },
+      "inquiry_summary": {
+        "selected_question": null,
+        "omega_value": 0.0,
+        "omega_vector": null,
+        "blend": 0.0,
+        "skipped": false
+      },
+      "curiosity_state": {
+        "curiosity_level": 0.2,
+        "learning_rate": 0.0663,
+        "boredom_count": 2,
+        "novelty_seeking": false,
+        "self_intent_active": false,
+        "exploration_cycles": 0,
+        "exploitation_cycles": 2,
+        "balance": "0% explore"
+      },
+      "curiosity_bonus": 1.125,
+      "tool_audit": null,
+      "axiom_results": {
+        "1.1": {
+          "passed": true,
+          "reason": "trace is not None \u2014 architecture produced an outcome"
+        },
+        "1.2": {
+          "passed": true,
+          "reason": "decision_integrity=1.000 >= 0.0 \u2014 process was measured"
+        },
+        "1.3": {
+          "passed": true,
+          "reason": "governance_blocked was checked \u2014 multi-level governance ran"
+        },
+        "1.4": {
+          "passed": true,
+          "reason": "compute 15.0ms <= 100.0ms \u2014 budget conserved"
+        },
+        "2.1": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 constitutional check happened"
+        },
+        "2.2": {
+          "passed": true,
+          "reason": "meta_cognition populated \u2014 feedback loop closed"
+        },
+        "2.3": {
+          "passed": true,
+          "reason": "infra_manager.failures exists \u2014 failures preserved as structural assets"
+        },
+        "2.4": {
+          "passed": true,
+          "reason": "trace has UTXO chain (spent=ctx_1_1787936730369, produced=ctx_2_1787936730376) \u2014 path dependency tracked"
+        },
+        "2.5": {
+          "passed": true,
+          "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
+        },
+        "3.1": {
+          "passed": true,
+          "reason": "recovery_mode=False \u2014 recovery mode tracked"
+        },
+        "3.2": {
+          "passed": true,
+          "reason": "resource_budgets populated \u2014 budget was reserved"
+        },
+        "3.3": {
+          "passed": true,
+          "reason": "skill_library exists and is callable"
+        },
+        "3.4": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off active"
+        },
+        "3.5": {
+          "passed": true,
+          "reason": "infra_manager.calibrator exists \u2014 calibration ran"
+        },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
+        "4.1": {
+          "passed": true,
+          "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
+        },
+        "4.2": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off made"
+        },
+        "4.3": {
+          "passed": true,
+          "reason": "strategic_options count=1 >= 1 \u2014 alternatives preserved"
+        },
+        "4.4": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 truth-anchored decision"
+        },
+        "4.5": {
+          "passed": false,
+          "reason": "local_optima_escape not set"
+        },
+        "4.6": {
+          "passed": true,
+          "reason": "2 streams activated (>= 2) \u2014 emergent intelligence"
+        },
+        "4.7": {
+          "passed": true,
+          "reason": "attention_metrics is set \u2014 attention was allocated"
+        },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.9": {
+          "passed": false,
+          "reason": "RelationalContext scaffold absent \u2014 axiom not verified"
+        },
+        "4.11": {
+          "passed": false,
+          "reason": "multi-agent aspiration \u2014 declared NOT yet implemented (\u039b2.3 fail-closed)"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
+        "5.1": {
+          "passed": true,
+          "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.3": {
+          "passed": false,
+          "reason": "InterpretationEngine absent \u2014 interpretation energy not modeled"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
+        }
+      }
+    },
+    {
+      "cycle_id": 3,
+      "timestamp": 1787936730.385694,
+      "world_state": [
+        1.8113584309837851,
+        1.0694598864771474,
+        0.0491689835623616,
+        0.1713188092528356,
+        -0.10251006389367406,
+        0.09116336646006737
+      ],
+      "domain_facts": {
+        "resources": {
+          "energy": 2.115502448642387
+        },
+        "constraints": [],
+        "events": [],
+        "metrics": {
+          "distance_from_origin": 2.115502448642387,
+          "uncertainty": 0.6933063794491802
+        }
+      },
+      "stream_activations": [
+        {
+          "name": "PerceptionStream",
+          "priority": 0.9,
+          "activated": false,
+          "intent_type": null,
+          "cost_ms": 0.0,
+          "budget_remaining_ms": 100.0
+        },
+        {
+          "name": "ReflexStream",
+          "priority": 1.0,
+          "activated": true,
+          "intent_type": "reflex",
+          "cost_ms": 0.015735626220703125,
+          "budget_remaining_ms": 99.9842643737793
+        },
+        {
+          "name": "MemoryStream",
+          "priority": 0.7,
+          "activated": true,
+          "intent_type": "memory_recall",
+          "cost_ms": 0.026226043701171875,
+          "budget_remaining_ms": 99.95803833007812
+        }
+      ],
+      "selected_intent": {
+        "type": "perceive",
+        "confidence": 0.85
+      },
+      "selected_action": null,
+      "intent": "perceive",
+      "discrimination_index": 1.0,
+      "action_taken": null,
+      "representation": "spatial",
+      "budget_consumed_ms": 15.041961669921875,
+      "budget_total_ms": 100.0,
+      "budget_carryover_ms": 50.0,
+      "worlds_simulated": 1,
+      "cycle_duration_ms": 5.507230758666992,
+      "council_validated": true,
+      "decision_integrity": 1.0,
+      "mission_drift": 0.17098827137533842,
+      "blocking_validator": null,
+      "council_signals": [],
+      "escalation_requested": false,
+      "escalation_reason": null,
+      "semantic_depths": [],
+      "governance_signals": [
+        {
+          "check": "all_governance_checks",
+          "passed": true,
+          "reason": "All governance checks passed"
+        }
+      ],
+      "firewall_blocked": false,
+      "firewall_blocked_by": null,
+      "strategic_options": [
+        {
+          "rank": 1,
+          "score": 0.3400198743677671,
+          "horizon": 5,
+          "metadata": {
+            "index": 82,
+            "state_norm": 1.995691574278832
+          },
+          "variance": 0.00023077382675890036,
+          "probabilistic": {
+            "mean": 0.3400198743677671,
+            "std": 0.015191241778041068,
+            "ci_lower": 0.32756062666899155,
+            "ci_upper": 0.35987868273536444,
+            "n_samples": 3
+          }
+        }
+      ],
+      "perception_quality": {
+        "quality_score": 0.0,
+        "resolution": [
+          0,
+          0
+        ],
+        "target_size_px": null,
+        "notes": "Invalid frame dimensions",
+        "proxy_recommended": true
+      },
+      "gate_verdict": null,
+      "reflection": {
+        "pattern_count": 1,
+        "cross_domain_hits": 0,
+        "stable": false,
+        "adaptive_horizon": null,
+        "recommended_horizon": null,
+        "horizon_reason": "neutral",
+        "policy_mode": 0.0,
+        "recurring_blocks": []
+      },
+      "knowledge_report": {
+        "domain": "unknown",
+        "approach": null,
+        "outcome": null,
+        "avoid": [],
+        "adjust_risk": 0.0,
+        "adjust_exploration": 0.0,
+        "summary": "Consultation throttled for 'unknown' (last cycle 1)",
+        "quality_adjustment": 0.0,
+        "throttled": true
+      },
+      "perception_explanation": {
+        "explanation": {
+          "summary": "Input is very low (0x0). Quality score: 0%. Below threshold \u2014 blocked direct detection, using proxy mode.",
+          "details": [
+            {
+              "aspect": "resolution",
+              "value": "0x0",
+              "label": "very low"
+            },
+            {
+              "aspect": "gate",
+              "value": "blocked",
+              "proxy_mode": true
+            }
+          ],
+          "suggestions": [
+            {
+              "action": "higher_resolution",
+              "label": "Use a 720p+ video",
+              "reason": "0x0 limits detection to objects >= 15px",
+              "impact": "high"
+            },
+            {
+              "action": "proxy_mode",
+              "label": "Tracking motion hotspots",
+              "reason": "Proxy mode active \u2014 following movement clusters",
+              "impact": "medium"
+            },
+            {
+              "action": "super_resolution",
+              "label": "Apply 2x upscale",
+              "reason": "0px is very low \u2014 upscale may improve edge detection",
+              "impact": "low"
+            }
+          ],
+          "quality_score": 0.0,
+          "proxy_mode": true
+        },
+        "capabilities": [],
+        "best_capability": null
+      },
+      "system_mood": "curious",
+      "local_optima_escape": null,
+      "attention_metrics": {
+        "identity_entropy": 1.0,
+        "entropy_collapse_rate": 0.0,
+        "counterfactual_diversity": 4.004563350977056e-05,
+        "attention_momentum": 0.21341880927219123,
+        "mean_threat_ratio": 0.24992542424425093,
+        "mean_opportunity_ratio": 0.3573346233719261,
+        "mean_maintenance_ratio": 0.3927399523838229,
+        "is_attention_locked": false,
+        "is_identity_collapse": false,
+        "trajectory_divergences": [
+          0.14375503240925055,
+          0.13929817991738797,
+          0.17098827137533842
+        ],
+        "allocation_count": 3,
+        "default_action_space": 10,
+        "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+        "identity_entropy_signal": {
+          "collapse_rate": 0.0,
+          "is_critical": true,
+          "projected_size": 1.0
+        },
+        "current_allocation": {
+          "threat_ratio": 0.24627389658376317,
+          "opportunity_ratio": 0.3667242659274661,
+          "maintenance_ratio": 0.3870018374887707
+        },
+        "cost_tracker": {
+          "total_maintenance": 0.19,
+          "total_recovery": 0,
+          "total_cost": 0.19,
+          "maintenance_ratio": 1.0,
+          "recovery_ratio": 0.0,
+          "cost_efficiency": 2.0,
+          "trend": "insufficient_data",
+          "cycles_recorded": 2,
+          "recent_maintenance": [
+            0.09000000000000001,
+            0.1
+          ],
+          "recent_recovery": []
+        }
+      },
+      "representation_confidence": 0.7,
+      "causal_annotations": null,
+      "identity_state": {
+        "G_t": {
+          "last_action": "perceive",
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
+        },
+        "M_t": {
+          "cycle": 0,
+          "action": "perceive",
+          "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
+          "mood": "curious"
+        },
+        "B_t": {
+          "decision_quality": {
+            "high": 0.13870402802101575,
+            "medium": 0.8574430823117338,
+            "low": 0.003852889667250438
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "C_t": {
+          "active_constraints": [
+            "risk_tolerance=0.50",
+            "exploration_budget=0.30"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
+        },
+        "K_t": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "V_t": {
+          "identity_markers": [
+            "exploring",
+            "nascent"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
+        },
+        "Res_t": {
+          "energy": {
+            "consumed_ms": 15.041961669921875,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 50.0,
+            "utilization": 0.15041961669921874,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 3,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "R_t": {
+          "trust": 0.5,
+          "authority": 0.5,
+          "collaboration": 0.5,
+          "dependency": 0.0,
+          "responsibility": 0.5
+        }
+      },
+      "distributed_verdict": {
+        "enabled": true,
+        "cycle": 3,
+        "aggregate": {
+          "validated": true,
+          "decision_integrity": 1.0,
+          "mission_drift": 0.171,
+          "consensus": 1.0,
+          "n_agents": 5
+        },
+        "agents": [
+          "primary:primary",
+          "skeptic:skeptic",
+          "explorer:explorer",
+          "conservative:conservative",
+          "analyst:analyst"
+        ],
+        "registered_agents": 5,
+        "voting_agents": 5
+      },
+      "resource_budgets": {
+        "energy": {
+          "consumed_ms": 15.041961669921875,
+          "total_ms": 100.0,
+          "budget_carryover_ms": 50.0,
+          "utilization": 0.15041961669921874,
+          "description": "compute_budget_ms consumed this cycle"
+        },
+        "memory": {
+          "trace_history_length": 3,
+          "description": "trace_history length (number of stored traces)"
+        },
+        "identity": {
+          "identity_entropy": 0.0,
+          "identity_stability": 1.0,
+          "description": "identity entropy (1 - identity_stability)"
+        },
+        "recovery": {
+          "recovery_mode_cycles": 0,
+          "current_state": "exploring",
+          "description": "number of recovery_mode cycles active"
+        }
+      },
+      "meta_cognition": {
+        "current_state": "exploring",
+        "exploration_mode": true,
+        "recovery_mode": false,
+        "epistemic_repair": false,
+        "trigger_reason": null,
+        "stream_uncertainties": {
+          "PerceptionStream": 0.2,
+          "perception": 0.2
+        },
+        "consecutive_council_blocks": 0,
+        "mode": "PLAN",
+        "tripartite_u": {
+          "U_W": 0.27567358061699615,
+          "U_I": 0.0,
+          "U_O": 0.0,
+          "U_M": 0.0,
+          "answered_questions": 0,
+          "dominant": "none"
+        },
+        "U_W": 0.27567358061699615,
+        "U_I": 0.0,
+        "U_O": 0.0
+      },
+      "handoff_hash": null,
+      "causal_graph": {
+        "edges": [],
+        "variables": [
+          "energy"
+        ],
+        "interventions": 0,
+        "has_structural_equations": false
+      },
+      "gamma_discount": 0.95,
+      "terminal_value": 0.0,
+      "belief_state": {
+        "decision_quality": {
+          "high": 0.13870402802101575,
+          "medium": 0.8574430823117338,
+          "low": 0.003852889667250438
+        },
+        "environment_stability": {
+          "stable": 0.25,
+          "changing": 0.25,
+          "unpredictable": 0.25,
+          "unknown": 0.25
+        },
+        "resource_availability": {
+          "abundant": 0.25,
+          "sufficient": 0.25,
+          "limited": 0.25,
+          "critical": 0.25
+        }
+      },
+      "capabilities_k": {
+        "last_action": "perceive",
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
+      },
+      "j_term_breakdown": {
+        "expected_reward": 1.0,
+        "discounted_reward": 1.0,
+        "maintenance_cost": 0.000125885009765625,
+        "recovery_cost": 0.0,
+        "identity_cost": 0.0,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.19991607666015626,
+        "counterfactual_diversity": 0.0,
+        "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
+        "gamma": 0.95,
+        "horizon": 1,
+        "commitment": 1.0,
+        "is_suppressed": false,
+        "is_full": true
+      },
+      "inquiry_skipped": false,
+      "selected_question": null,
+      "inquiry_omega_value": 0.0,
+      "inquiry_omega_vector": null,
+      "inquiry_blend": 0.0,
+      "relational_coherence": 1.0,
+      "spent_ctx_id": "ctx_2_1787936730376",
+      "produced_ctx_id": "ctx_3_1787936730385",
+      "merkle_root": "3aae1dd6d5e0ee5e62fad7ac43132b166ffb846ef790c57e8d88265c1de52cf9",
+      "psdt": {
+        "partials": {
+          "ReflexStream": {
+            "intent": "reflex",
+            "confidence": 0.0,
+            "signature": "cf7ed5c0dff7d130"
+          },
+          "MemoryStream": {
+            "intent": "memory_recall",
+            "confidence": 0.8497997283935547,
+            "signature": "be176afb85d63b94"
+          }
+        },
+        "council_signature": "e4b1873b3408f67e"
+      },
+      "intent_timelock": {
+        "intent_type": "perceive",
+        "cycles_since_last_selection": 0,
+        "timelock_active": false,
+        "all_timelocks": {
+          "perceive": 3
+        }
+      },
+      "reasoning_witness": {
+        "council_signals": [],
+        "strategic_options": [
+          {
+            "rank": 1,
+            "score": 0.3400198743677671,
+            "horizon": 5,
+            "metadata": {
+              "index": 82,
+              "state_norm": 1.995691574278832
+            },
+            "variance": 0.00023077382675890036,
+            "probabilistic": {
+              "mean": 0.3400198743677671,
+              "std": 0.015191241778041068,
+              "ci_lower": 0.32756062666899155,
+              "ci_upper": 0.35987868273536444,
+              "n_samples": 3
+            }
+          }
+        ],
+        "stream_activations": [
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": false,
+            "intent_type": null,
+            "cost_ms": 0.0
+          },
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent_type": "reflex",
+            "cost_ms": 0.015735626220703125
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent_type": "memory_recall",
+            "cost_ms": 0.026226043701171875
+          }
+        ],
+        "causal_graph": {
+          "edges": [],
+          "variables": [
+            "energy"
+          ],
+          "interventions": 0,
+          "has_structural_equations": false
+        },
+        "resource_budgets": {
+          "energy": {
+            "consumed_ms": 15.041961669921875,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 50.0,
+            "utilization": 0.15041961669921874,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 3,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "meta_cognition": {
+          "current_state": "exploring",
+          "exploration_mode": true,
+          "recovery_mode": false,
+          "epistemic_repair": false,
+          "trigger_reason": null,
+          "stream_uncertainties": {
+            "PerceptionStream": 0.2,
+            "perception": 0.2
+          },
+          "consecutive_council_blocks": 0,
+          "mode": "PLAN",
+          "tripartite_u": {
+            "U_W": 0.27567358061699615,
+            "U_I": 0.0,
+            "U_O": 0.0,
+            "U_M": 0.0,
+            "answered_questions": 0,
+            "dominant": "none"
+          },
+          "U_W": 0.27567358061699615,
+          "U_I": 0.0,
+          "U_O": 0.0
+        },
+        "psdt": {
+          "partials": {
+            "ReflexStream": {
+              "intent": "reflex",
+              "confidence": 0.0,
+              "signature": "cf7ed5c0dff7d130"
+            },
+            "MemoryStream": {
+              "intent": "memory_recall",
+              "confidence": 0.8497997283935547,
+              "signature": "be176afb85d63b94"
+            }
+          },
+          "council_signature": "e4b1873b3408f67e"
+        },
+        "j_term_breakdown": {
+          "expected_reward": 1.0,
+          "discounted_reward": 1.0,
+          "maintenance_cost": 0.000125885009765625,
+          "recovery_cost": 0.0,
+          "identity_cost": 0.0,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.19991607666015626,
+          "counterfactual_diversity": 0.0,
+          "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
+          "gamma": 0.95,
+          "horizon": 1,
+          "commitment": 1.0,
+          "is_suppressed": false,
+          "is_full": true
+        },
+        "capabilities_k": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "belief_state": {
+          "decision_quality": {
+            "high": 0.13870402802101575,
+            "medium": 0.8574430823117338,
+            "low": 0.003852889667250438
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "attention_metrics": {
+          "identity_entropy": 1.0,
+          "entropy_collapse_rate": 0.0,
+          "counterfactual_diversity": 4.004563350977056e-05,
+          "attention_momentum": 0.21341880927219123,
+          "mean_threat_ratio": 0.24992542424425093,
+          "mean_opportunity_ratio": 0.3573346233719261,
+          "mean_maintenance_ratio": 0.3927399523838229,
+          "is_attention_locked": false,
+          "is_identity_collapse": false,
+          "trajectory_divergences": [
+            0.14375503240925055,
+            0.13929817991738797,
+            0.17098827137533842
+          ],
+          "allocation_count": 3,
+          "default_action_space": 10,
+          "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+          "identity_entropy_signal": {
+            "collapse_rate": 0.0,
+            "is_critical": true,
+            "projected_size": 1.0
+          },
+          "current_allocation": {
+            "threat_ratio": 0.24627389658376317,
+            "opportunity_ratio": 0.3667242659274661,
+            "maintenance_ratio": 0.3870018374887707
+          },
+          "cost_tracker": {
+            "total_maintenance": 0.19,
+            "total_recovery": 0,
+            "total_cost": 0.19,
+            "maintenance_ratio": 1.0,
+            "recovery_ratio": 0.0,
+            "cost_efficiency": 2.0,
+            "trend": "insufficient_data",
+            "cycles_recorded": 2,
+            "recent_maintenance": [
+              0.09000000000000001,
+              0.1
+            ],
+            "recent_recovery": []
+          }
+        },
+        "local_optima_escape": null,
+        "reflection": {
+          "pattern_count": 1,
+          "cross_domain_hits": 0,
+          "stable": false,
+          "adaptive_horizon": null,
+          "recommended_horizon": null,
+          "horizon_reason": "neutral",
+          "policy_mode": 0.0,
+          "recurring_blocks": []
+        }
+      },
+      "decision_core": {
+        "selected_intent": {
+          "type": "perceive",
+          "confidence": 0.85
+        },
+        "selected_action": null,
+        "decision_integrity": 1.0,
+        "mission_drift": 0.17098827137533842,
+        "council_validated": true,
+        "identity_state": {
+          "G_t": {
+            "last_action": "perceive",
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
+          },
+          "M_t": {
+            "cycle": 0,
+            "action": "perceive",
+            "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
+            "mood": "curious"
+          },
+          "B_t": {
+            "decision_quality": {
+              "high": 0.13870402802101575,
+              "medium": 0.8574430823117338,
+              "low": 0.003852889667250438
+            },
+            "environment_stability": {
+              "stable": 0.25,
+              "changing": 0.25,
+              "unpredictable": 0.25,
+              "unknown": 0.25
+            },
+            "resource_availability": {
+              "abundant": 0.25,
+              "sufficient": 0.25,
+              "limited": 0.25,
+              "critical": 0.25
+            }
+          },
+          "C_t": {
+            "active_constraints": [
+              "risk_tolerance=0.50",
+              "exploration_budget=0.30"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
+          },
+          "K_t": {
+            "last_action": "perceive",
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
+          },
+          "V_t": {
+            "identity_markers": [
+              "exploring",
+              "nascent"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
+          },
+          "Res_t": {
+            "energy": {
+              "consumed_ms": 15.041961669921875,
+              "total_ms": 100.0,
+              "budget_carryover_ms": 50.0,
+              "utilization": 0.15041961669921874,
+              "description": "compute_budget_ms consumed this cycle"
+            },
+            "memory": {
+              "trace_history_length": 3,
+              "description": "trace_history length (number of stored traces)"
+            },
+            "identity": {
+              "identity_entropy": 0.0,
+              "identity_stability": 1.0,
+              "description": "identity entropy (1 - identity_stability)"
+            },
+            "recovery": {
+              "recovery_mode_cycles": 0,
+              "current_state": "exploring",
+              "description": "number of recovery_mode cycles active"
+            }
+          },
+          "R_t": {
+            "trust": 0.5,
+            "authority": 0.5,
+            "collaboration": 0.5,
+            "dependency": 0.0,
+            "responsibility": 0.5
+          }
+        },
+        "merkle_root": "3aae1dd6d5e0ee5e62fad7ac43132b166ffb846ef790c57e8d88265c1de52cf9",
+        "inquiry_summary": {
+          "selected_question": null,
+          "omega_value": 0.0,
+          "omega_vector": null,
+          "blend": 0.0,
+          "skipped": false
+        },
+        "blocking_validator": null,
+        "firewall_blocked": false
+      },
+      "inquiry_summary": {
+        "selected_question": null,
+        "omega_value": 0.0,
+        "omega_vector": null,
+        "blend": 0.0,
+        "skipped": false
+      },
+      "curiosity_state": {
+        "curiosity_level": 0.15,
+        "learning_rate": 0.0016,
+        "boredom_count": 3,
+        "novelty_seeking": false,
+        "self_intent_active": false,
+        "exploration_cycles": 0,
+        "exploitation_cycles": 3,
+        "balance": "0% explore"
+      },
+      "curiosity_bonus": 1.1,
+      "tool_audit": null,
+      "axiom_results": {
+        "1.1": {
+          "passed": true,
+          "reason": "trace is not None \u2014 architecture produced an outcome"
+        },
+        "1.2": {
+          "passed": true,
+          "reason": "decision_integrity=1.000 >= 0.0 \u2014 process was measured"
+        },
+        "1.3": {
+          "passed": true,
+          "reason": "governance_blocked was checked \u2014 multi-level governance ran"
+        },
+        "1.4": {
+          "passed": true,
+          "reason": "compute 15.0ms <= 100.0ms \u2014 budget conserved"
+        },
+        "2.1": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 constitutional check happened"
+        },
+        "2.2": {
+          "passed": true,
+          "reason": "meta_cognition populated \u2014 feedback loop closed"
+        },
+        "2.3": {
+          "passed": true,
+          "reason": "infra_manager.failures exists \u2014 failures preserved as structural assets"
+        },
+        "2.4": {
+          "passed": true,
+          "reason": "trace has UTXO chain (spent=ctx_2_1787936730376, produced=ctx_3_1787936730385) \u2014 path dependency tracked"
+        },
+        "2.5": {
+          "passed": true,
+          "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
+        },
+        "3.1": {
+          "passed": true,
+          "reason": "recovery_mode=False \u2014 recovery mode tracked"
+        },
+        "3.2": {
+          "passed": true,
+          "reason": "resource_budgets populated \u2014 budget was reserved"
+        },
+        "3.3": {
+          "passed": true,
+          "reason": "skill_library exists and is callable"
+        },
+        "3.4": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off active"
+        },
+        "3.5": {
+          "passed": true,
+          "reason": "infra_manager.calibrator exists \u2014 calibration ran"
+        },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
+        "4.1": {
+          "passed": true,
+          "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
+        },
+        "4.2": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off made"
+        },
+        "4.3": {
+          "passed": true,
+          "reason": "strategic_options count=1 >= 1 \u2014 alternatives preserved"
+        },
+        "4.4": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 truth-anchored decision"
+        },
+        "4.5": {
+          "passed": false,
+          "reason": "local_optima_escape not set"
+        },
+        "4.6": {
+          "passed": true,
+          "reason": "2 streams activated (>= 2) \u2014 emergent intelligence"
+        },
+        "4.7": {
+          "passed": true,
+          "reason": "attention_metrics is set \u2014 attention was allocated"
+        },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.9": {
+          "passed": false,
+          "reason": "RelationalContext scaffold absent \u2014 axiom not verified"
+        },
+        "4.11": {
+          "passed": false,
+          "reason": "multi-agent aspiration \u2014 declared NOT yet implemented (\u039b2.3 fail-closed)"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
+        "5.1": {
+          "passed": true,
+          "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.3": {
+          "passed": false,
+          "reason": "InterpretationEngine absent \u2014 interpretation energy not modeled"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
+        }
+      }
+    },
+    {
+      "cycle_id": 4,
+      "timestamp": 1787936730.3946722,
+      "world_state": [
+        1.9861120062617212,
+        1.0531794603851512,
+        0.02937356876817519,
+        0.24272231014111995,
+        -0.06060416520418575,
+        0.12627131332831704
+      ],
+      "domain_facts": {
+        "resources": {
+          "energy": 2.2656615177440544
+        },
+        "constraints": [],
+        "events": [],
+        "metrics": {
+          "distance_from_origin": 2.2656615177440544,
+          "uncertainty": 0.7339928024289751
+        }
+      },
+      "stream_activations": [
+        {
+          "name": "PerceptionStream",
+          "priority": 0.9,
+          "activated": false,
+          "intent_type": null,
+          "cost_ms": 0.0,
+          "budget_remaining_ms": 100.0
+        },
+        {
+          "name": "ReflexStream",
+          "priority": 1.0,
+          "activated": true,
+          "intent_type": "reflex",
+          "cost_ms": 0.010967254638671875,
+          "budget_remaining_ms": 99.98903274536133
+        },
+        {
+          "name": "MemoryStream",
+          "priority": 0.7,
+          "activated": true,
+          "intent_type": "memory_recall",
+          "cost_ms": 0.0171661376953125,
+          "budget_remaining_ms": 99.97186660766602
+        }
+      ],
+      "selected_intent": {
+        "type": "perceive",
+        "confidence": 0.85
+      },
+      "selected_action": null,
+      "intent": "perceive",
+      "discrimination_index": 1.0,
+      "action_taken": null,
+      "representation": "spatial",
+      "budget_consumed_ms": 15.028133392333984,
+      "budget_total_ms": 100.0,
+      "budget_carryover_ms": 50.0,
+      "worlds_simulated": 1,
+      "cycle_duration_ms": 5.037069320678711,
+      "council_validated": true,
+      "decision_integrity": 1.0,
+      "mission_drift": 0.1555460975412428,
+      "blocking_validator": null,
+      "council_signals": [],
+      "escalation_requested": false,
+      "escalation_reason": null,
+      "semantic_depths": [],
+      "governance_signals": [
+        {
+          "check": "loop_detection",
+          "passed": false,
+          "reason": "Same action 'perceive' repeated 4+ consecutive cycles",
+          "action": "perceive",
+          "consecutive_loop_blocks": 1
+        }
+      ],
+      "firewall_blocked": true,
+      "firewall_blocked_by": "action_loop",
+      "strategic_options": [
+        {
+          "rank": 1,
+          "score": 0.319179832588856,
+          "horizon": 5,
+          "metadata": {
+            "index": 17,
+            "state_norm": 2.133030028523533
+          },
+          "variance": 0.0,
+          "probabilistic": null
+        }
+      ],
+      "perception_quality": {
+        "quality_score": 0.0,
+        "resolution": [
+          0,
+          0
+        ],
+        "target_size_px": null,
+        "notes": "Invalid frame dimensions",
+        "proxy_recommended": true
+      },
+      "gate_verdict": null,
+      "reflection": {
+        "pattern_count": 1,
+        "cross_domain_hits": 0,
+        "stable": false,
+        "adaptive_horizon": null,
+        "recommended_horizon": null,
+        "horizon_reason": "neutral",
+        "policy_mode": 0.0,
+        "recurring_blocks": []
+      },
+      "knowledge_report": {
+        "domain": "unknown",
+        "approach": "perceive",
+        "outcome": 0.8290117286246615,
+        "avoid": [],
+        "summary": "Knowledge: perceive scored 0.83 \u2014 moderate confidence, maintaining policy",
+        "adjust_risk": 0.0,
+        "adjust_exploration": 0.0,
+        "quality_adjustment": 0.0
+      },
+      "perception_explanation": {
+        "explanation": {
+          "summary": "Input is very low (0x0). Quality score: 0%. Below threshold \u2014 blocked direct detection, using proxy mode.",
+          "details": [
+            {
+              "aspect": "resolution",
+              "value": "0x0",
+              "label": "very low"
+            },
+            {
+              "aspect": "gate",
+              "value": "blocked",
+              "proxy_mode": true
+            }
+          ],
+          "suggestions": [
+            {
+              "action": "higher_resolution",
+              "label": "Use a 720p+ video",
+              "reason": "0x0 limits detection to objects >= 15px",
+              "impact": "high"
+            },
+            {
+              "action": "proxy_mode",
+              "label": "Tracking motion hotspots",
+              "reason": "Proxy mode active \u2014 following movement clusters",
+              "impact": "medium"
+            },
+            {
+              "action": "super_resolution",
+              "label": "Apply 2x upscale",
+              "reason": "0px is very low \u2014 upscale may improve edge detection",
+              "impact": "low"
+            }
+          ],
+          "quality_score": 0.0,
+          "proxy_mode": true
+        },
+        "capabilities": [],
+        "best_capability": null
+      },
+      "system_mood": "confident",
+      "local_optima_escape": null,
+      "attention_metrics": {
+        "identity_entropy": 1.0,
+        "entropy_collapse_rate": 0.0,
+        "counterfactual_diversity": 4.0926832640785856e-05,
+        "attention_momentum": 0.24922863197856662,
+        "mean_threat_ratio": 0.250794521320992,
+        "mean_opportunity_ratio": 0.3550998023174492,
+        "mean_maintenance_ratio": 0.39410567636155885,
+        "is_attention_locked": false,
+        "is_identity_collapse": false,
+        "trajectory_divergences": [
+          0.14375503240925055,
+          0.13929817991738797,
+          0.17098827137533842,
+          0.1555460975412428
+        ],
+        "allocation_count": 4,
+        "default_action_space": 10,
+        "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+        "identity_entropy_signal": {
+          "collapse_rate": 0.0,
+          "is_critical": true,
+          "projected_size": 1.0
+        },
+        "current_allocation": {
+          "threat_ratio": 0.2534018125512151,
+          "opportunity_ratio": 0.3483953391540183,
+          "maintenance_ratio": 0.3982028482947666
+        },
+        "cost_tracker": {
+          "total_maintenance": 0.271,
+          "total_recovery": 0,
+          "total_cost": 0.271,
+          "maintenance_ratio": 1.0,
+          "recovery_ratio": 0.0,
+          "cost_efficiency": 2.0,
+          "trend": "healthy \u2014 maintenance dominates, proactive posture",
+          "cycles_recorded": 3,
+          "recent_maintenance": [
+            0.08100000000000002,
+            0.09000000000000001,
+            0.1
+          ],
+          "recent_recovery": []
+        }
+      },
+      "representation_confidence": 0.7,
+      "causal_annotations": null,
+      "identity_state": {
+        "G_t": {
+          "last_action": "perceive",
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
+        },
+        "M_t": {
+          "cycle": 0,
+          "action": "perceive",
+          "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
+          "mood": "confident"
+        },
+        "B_t": {
+          "decision_quality": {
+            "high": 0.6469682901079891,
+            "medium": 0.35289179460435777,
+            "low": 0.00013991528765311192
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "C_t": {
+          "active_constraints": [
+            "risk_tolerance=0.50",
+            "exploration_budget=0.30"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
+        },
+        "K_t": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "V_t": {
+          "identity_markers": [
+            "exploring",
+            "nascent"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
+        },
+        "Res_t": {
+          "energy": {
+            "consumed_ms": 15.028133392333984,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 50.0,
+            "utilization": 0.15028133392333984,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 4,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "R_t": {
+          "trust": 0.5,
+          "authority": 0.5,
+          "collaboration": 0.5,
+          "dependency": 0.0,
+          "responsibility": 0.5
+        }
+      },
+      "distributed_verdict": {
+        "enabled": true,
+        "cycle": 4,
+        "aggregate": {
+          "validated": true,
+          "decision_integrity": 1.0,
+          "mission_drift": 0.1555,
+          "consensus": 1.0,
+          "n_agents": 5
+        },
+        "agents": [
+          "primary:primary",
+          "skeptic:skeptic",
+          "explorer:explorer",
+          "conservative:conservative",
+          "analyst:analyst"
+        ],
+        "registered_agents": 5,
+        "voting_agents": 5
+      },
+      "resource_budgets": {
+        "energy": {
+          "consumed_ms": 15.028133392333984,
+          "total_ms": 100.0,
+          "budget_carryover_ms": 50.0,
+          "utilization": 0.15028133392333984,
+          "description": "compute_budget_ms consumed this cycle"
+        },
+        "memory": {
+          "trace_history_length": 4,
+          "description": "trace_history length (number of stored traces)"
+        },
+        "identity": {
+          "identity_entropy": 0.0,
+          "identity_stability": 1.0,
+          "description": "identity entropy (1 - identity_stability)"
+        },
+        "recovery": {
+          "recovery_mode_cycles": 0,
+          "current_state": "exploring",
+          "description": "number of recovery_mode cycles active"
+        }
+      },
+      "meta_cognition": {
+        "current_state": "exploring",
+        "exploration_mode": true,
+        "recovery_mode": false,
+        "epistemic_repair": false,
+        "trigger_reason": null,
+        "stream_uncertainties": {
+          "PerceptionStream": 0.2,
+          "perception": 0.2
+        },
+        "consecutive_council_blocks": 0,
+        "mode": "PLAN",
+        "tripartite_u": {
+          "U_W": 0.27763875813899486,
+          "U_I": 0.0,
+          "U_O": 0.0,
+          "U_M": 0.0,
+          "answered_questions": 0,
+          "dominant": "none"
+        },
+        "U_W": 0.27763875813899486,
+        "U_I": 0.0,
+        "U_O": 0.0
+      },
+      "handoff_hash": null,
+      "causal_graph": {
+        "edges": [],
+        "variables": [
+          "energy"
+        ],
+        "interventions": 0,
+        "has_structural_equations": false
+      },
+      "gamma_discount": 0.95,
+      "terminal_value": 0.0,
+      "belief_state": {
+        "decision_quality": {
+          "high": 0.6469682901079891,
+          "medium": 0.35289179460435777,
+          "low": 0.00013991528765311192
+        },
+        "environment_stability": {
+          "stable": 0.25,
+          "changing": 0.25,
+          "unpredictable": 0.25,
+          "unknown": 0.25
+        },
+        "resource_availability": {
+          "abundant": 0.25,
+          "sufficient": 0.25,
+          "limited": 0.25,
+          "critical": 0.25
+        }
+      },
+      "capabilities_k": {
+        "last_action": "perceive",
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
+      },
+      "j_term_breakdown": {
+        "expected_reward": 1.0,
+        "discounted_reward": 1.0,
+        "maintenance_cost": 8.440017700195312e-05,
+        "recovery_cost": 0.0,
+        "identity_cost": 0.0,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.19994373321533204,
+        "counterfactual_diversity": 0.0,
+        "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
+        "gamma": 0.95,
+        "horizon": 1,
+        "commitment": 1.0,
+        "is_suppressed": false,
+        "is_full": true
+      },
+      "inquiry_skipped": false,
+      "selected_question": null,
+      "inquiry_omega_value": 0.0,
+      "inquiry_omega_vector": null,
+      "inquiry_blend": 0.0,
+      "relational_coherence": 1.0,
+      "spent_ctx_id": "ctx_3_1787936730385",
+      "produced_ctx_id": "ctx_4_1787936730394",
+      "merkle_root": "dd46f47ef88a3174853253f8ee5632413d814012fea4a8c2c3d6e09b7d94fc0d",
+      "psdt": {
+        "partials": {
+          "ReflexStream": {
+            "intent": "reflex",
+            "confidence": 0.0,
+            "signature": "381e50a6e8daf110"
+          },
+          "MemoryStream": {
+            "intent": "memory_recall",
+            "confidence": 0.8497997283935547,
+            "signature": "3068f5f6861d1d21"
+          }
+        },
+        "council_signature": "02ec679d95d5a29c"
+      },
+      "intent_timelock": {
+        "intent_type": "perceive",
+        "cycles_since_last_selection": 0,
+        "timelock_active": false,
+        "all_timelocks": {
+          "perceive": 4
+        }
+      },
+      "reasoning_witness": {
+        "council_signals": [],
+        "strategic_options": [
+          {
+            "rank": 1,
+            "score": 0.319179832588856,
+            "horizon": 5,
+            "metadata": {
+              "index": 17,
+              "state_norm": 2.133030028523533
+            },
+            "variance": 0.0,
+            "probabilistic": null
+          }
+        ],
+        "stream_activations": [
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": false,
+            "intent_type": null,
+            "cost_ms": 0.0
+          },
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent_type": "reflex",
+            "cost_ms": 0.010967254638671875
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent_type": "memory_recall",
+            "cost_ms": 0.0171661376953125
+          }
+        ],
+        "causal_graph": {
+          "edges": [],
+          "variables": [
+            "energy"
+          ],
+          "interventions": 0,
+          "has_structural_equations": false
+        },
+        "resource_budgets": {
+          "energy": {
+            "consumed_ms": 15.028133392333984,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 50.0,
+            "utilization": 0.15028133392333984,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 4,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "meta_cognition": {
+          "current_state": "exploring",
+          "exploration_mode": true,
+          "recovery_mode": false,
+          "epistemic_repair": false,
+          "trigger_reason": null,
+          "stream_uncertainties": {
+            "PerceptionStream": 0.2,
+            "perception": 0.2
+          },
+          "consecutive_council_blocks": 0,
+          "mode": "PLAN",
+          "tripartite_u": {
+            "U_W": 0.27763875813899486,
+            "U_I": 0.0,
+            "U_O": 0.0,
+            "U_M": 0.0,
+            "answered_questions": 0,
+            "dominant": "none"
+          },
+          "U_W": 0.27763875813899486,
+          "U_I": 0.0,
+          "U_O": 0.0
+        },
+        "psdt": {
+          "partials": {
+            "ReflexStream": {
+              "intent": "reflex",
+              "confidence": 0.0,
+              "signature": "381e50a6e8daf110"
+            },
+            "MemoryStream": {
+              "intent": "memory_recall",
+              "confidence": 0.8497997283935547,
+              "signature": "3068f5f6861d1d21"
+            }
+          },
+          "council_signature": "02ec679d95d5a29c"
+        },
+        "j_term_breakdown": {
+          "expected_reward": 1.0,
+          "discounted_reward": 1.0,
+          "maintenance_cost": 8.440017700195312e-05,
+          "recovery_cost": 0.0,
+          "identity_cost": 0.0,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.19994373321533204,
+          "counterfactual_diversity": 0.0,
+          "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
+          "gamma": 0.95,
+          "horizon": 1,
+          "commitment": 1.0,
+          "is_suppressed": false,
+          "is_full": true
+        },
+        "capabilities_k": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "belief_state": {
+          "decision_quality": {
+            "high": 0.6469682901079891,
+            "medium": 0.35289179460435777,
+            "low": 0.00013991528765311192
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "attention_metrics": {
+          "identity_entropy": 1.0,
+          "entropy_collapse_rate": 0.0,
+          "counterfactual_diversity": 4.0926832640785856e-05,
+          "attention_momentum": 0.24922863197856662,
+          "mean_threat_ratio": 0.250794521320992,
+          "mean_opportunity_ratio": 0.3550998023174492,
+          "mean_maintenance_ratio": 0.39410567636155885,
+          "is_attention_locked": false,
+          "is_identity_collapse": false,
+          "trajectory_divergences": [
+            0.14375503240925055,
+            0.13929817991738797,
+            0.17098827137533842,
+            0.1555460975412428
+          ],
+          "allocation_count": 4,
+          "default_action_space": 10,
+          "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+          "identity_entropy_signal": {
+            "collapse_rate": 0.0,
+            "is_critical": true,
+            "projected_size": 1.0
+          },
+          "current_allocation": {
+            "threat_ratio": 0.2534018125512151,
+            "opportunity_ratio": 0.3483953391540183,
+            "maintenance_ratio": 0.3982028482947666
+          },
+          "cost_tracker": {
+            "total_maintenance": 0.271,
+            "total_recovery": 0,
+            "total_cost": 0.271,
+            "maintenance_ratio": 1.0,
+            "recovery_ratio": 0.0,
+            "cost_efficiency": 2.0,
+            "trend": "healthy \u2014 maintenance dominates, proactive posture",
+            "cycles_recorded": 3,
+            "recent_maintenance": [
+              0.08100000000000002,
+              0.09000000000000001,
+              0.1
+            ],
+            "recent_recovery": []
+          }
+        },
+        "local_optima_escape": null,
+        "reflection": {
+          "pattern_count": 1,
+          "cross_domain_hits": 0,
+          "stable": false,
+          "adaptive_horizon": null,
+          "recommended_horizon": null,
+          "horizon_reason": "neutral",
+          "policy_mode": 0.0,
+          "recurring_blocks": []
+        }
+      },
+      "decision_core": {
+        "selected_intent": {
+          "type": "perceive",
+          "confidence": 0.85
+        },
+        "selected_action": null,
+        "decision_integrity": 1.0,
+        "mission_drift": 0.1555460975412428,
+        "council_validated": true,
+        "identity_state": {
+          "G_t": {
+            "last_action": "perceive",
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
+          },
+          "M_t": {
+            "cycle": 0,
+            "action": "perceive",
+            "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
+            "mood": "confident"
+          },
+          "B_t": {
+            "decision_quality": {
+              "high": 0.6469682901079891,
+              "medium": 0.35289179460435777,
+              "low": 0.00013991528765311192
+            },
+            "environment_stability": {
+              "stable": 0.25,
+              "changing": 0.25,
+              "unpredictable": 0.25,
+              "unknown": 0.25
+            },
+            "resource_availability": {
+              "abundant": 0.25,
+              "sufficient": 0.25,
+              "limited": 0.25,
+              "critical": 0.25
+            }
+          },
+          "C_t": {
+            "active_constraints": [
+              "risk_tolerance=0.50",
+              "exploration_budget=0.30"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
+          },
+          "K_t": {
+            "last_action": "perceive",
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
+          },
+          "V_t": {
+            "identity_markers": [
+              "exploring",
+              "nascent"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
+          },
+          "Res_t": {
+            "energy": {
+              "consumed_ms": 15.028133392333984,
+              "total_ms": 100.0,
+              "budget_carryover_ms": 50.0,
+              "utilization": 0.15028133392333984,
+              "description": "compute_budget_ms consumed this cycle"
+            },
+            "memory": {
+              "trace_history_length": 4,
+              "description": "trace_history length (number of stored traces)"
+            },
+            "identity": {
+              "identity_entropy": 0.0,
+              "identity_stability": 1.0,
+              "description": "identity entropy (1 - identity_stability)"
+            },
+            "recovery": {
+              "recovery_mode_cycles": 0,
+              "current_state": "exploring",
+              "description": "number of recovery_mode cycles active"
+            }
+          },
+          "R_t": {
+            "trust": 0.5,
+            "authority": 0.5,
+            "collaboration": 0.5,
+            "dependency": 0.0,
+            "responsibility": 0.5
+          }
+        },
+        "merkle_root": "dd46f47ef88a3174853253f8ee5632413d814012fea4a8c2c3d6e09b7d94fc0d",
+        "inquiry_summary": {
+          "selected_question": null,
+          "omega_value": 0.0,
+          "omega_vector": null,
+          "blend": 0.0,
+          "skipped": false
+        },
+        "blocking_validator": null,
+        "firewall_blocked": true
+      },
+      "inquiry_summary": {
+        "selected_question": null,
+        "omega_value": 0.0,
+        "omega_vector": null,
+        "blend": 0.0,
+        "skipped": false
+      },
+      "curiosity_state": {
+        "curiosity_level": 0.1,
+        "learning_rate": 0.0007,
+        "boredom_count": 4,
+        "novelty_seeking": false,
+        "self_intent_active": false,
+        "exploration_cycles": 0,
+        "exploitation_cycles": 4,
+        "balance": "0% explore"
+      },
+      "curiosity_bonus": 1.075,
+      "tool_audit": null,
+      "axiom_results": {
+        "1.1": {
+          "passed": true,
+          "reason": "trace is not None \u2014 architecture produced an outcome"
+        },
+        "1.2": {
+          "passed": true,
+          "reason": "decision_integrity=1.000 >= 0.0 \u2014 process was measured"
+        },
+        "1.3": {
+          "passed": true,
+          "reason": "governance_blocked was checked \u2014 multi-level governance ran"
+        },
+        "1.4": {
+          "passed": true,
+          "reason": "compute 15.0ms <= 100.0ms \u2014 budget conserved"
+        },
+        "2.1": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 constitutional check happened"
+        },
+        "2.2": {
+          "passed": true,
+          "reason": "meta_cognition populated \u2014 feedback loop closed"
+        },
+        "2.3": {
+          "passed": true,
+          "reason": "infra_manager.failures exists \u2014 failures preserved as structural assets"
+        },
+        "2.4": {
+          "passed": true,
+          "reason": "trace has UTXO chain (spent=ctx_3_1787936730385, produced=ctx_4_1787936730394) \u2014 path dependency tracked"
+        },
+        "2.5": {
+          "passed": true,
+          "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
+        },
+        "3.1": {
+          "passed": true,
+          "reason": "recovery_mode=False \u2014 recovery mode tracked"
+        },
+        "3.2": {
+          "passed": true,
+          "reason": "resource_budgets populated \u2014 budget was reserved"
+        },
+        "3.3": {
+          "passed": true,
+          "reason": "skill_library exists and is callable"
+        },
+        "3.4": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off active"
+        },
+        "3.5": {
+          "passed": true,
+          "reason": "infra_manager.calibrator exists \u2014 calibration ran"
+        },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
+        "4.1": {
+          "passed": true,
+          "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
+        },
+        "4.2": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off made"
+        },
+        "4.3": {
+          "passed": true,
+          "reason": "strategic_options count=1 >= 1 \u2014 alternatives preserved"
+        },
+        "4.4": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 truth-anchored decision"
+        },
+        "4.5": {
+          "passed": false,
+          "reason": "local_optima_escape not set"
+        },
+        "4.6": {
+          "passed": true,
+          "reason": "2 streams activated (>= 2) \u2014 emergent intelligence"
+        },
+        "4.7": {
+          "passed": true,
+          "reason": "attention_metrics is set \u2014 attention was allocated"
+        },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.9": {
+          "passed": false,
+          "reason": "RelationalContext scaffold absent \u2014 axiom not verified"
+        },
+        "4.11": {
+          "passed": false,
+          "reason": "multi-agent aspiration \u2014 declared NOT yet implemented (\u039b2.3 fail-closed)"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
+        "5.1": {
+          "passed": true,
+          "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.3": {
+          "passed": false,
+          "reason": "InterpretationEngine absent \u2014 interpretation energy not modeled"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
+        }
+      }
+    },
+    {
+      "cycle_id": 5,
+      "timestamp": 1787936730.405349,
+      "world_state": [
+        1.9822991294630063,
+        1.2811745608753167,
+        -0.05090440388276518,
+        0.05971337705749763,
+        -0.2310651109485649,
+        0.057485190330387
+      ],
+      "domain_facts": {
+        "resources": {
+          "energy": 2.373556545027549
+        },
+        "constraints": [],
+        "events": [],
+        "metrics": {
+          "distance_from_origin": 2.373556545027549,
+          "uncertainty": 0.819902862570291
+        }
+      },
+      "stream_activations": [
+        {
+          "name": "PerceptionStream",
+          "priority": 0.9,
+          "activated": false,
+          "intent_type": null,
+          "cost_ms": 0.0,
+          "budget_remaining_ms": 100.0
+        },
+        {
+          "name": "ReflexStream",
+          "priority": 1.0,
+          "activated": true,
+          "intent_type": "reflex",
+          "cost_ms": 0.010967254638671875,
+          "budget_remaining_ms": 99.98903274536133
+        },
+        {
+          "name": "MemoryStream",
+          "priority": 0.7,
+          "activated": true,
+          "intent_type": "memory_recall",
+          "cost_ms": 0.019073486328125,
+          "budget_remaining_ms": 99.9699592590332
+        }
+      ],
+      "selected_intent": {
+        "type": "perceive",
+        "confidence": 0.85
+      },
+      "selected_action": null,
+      "intent": "perceive",
+      "discrimination_index": 1.0,
+      "action_taken": null,
+      "representation": "spatial",
+      "budget_consumed_ms": 15.030040740966797,
+      "budget_total_ms": 100.0,
+      "budget_carryover_ms": 50.0,
+      "worlds_simulated": 1,
+      "cycle_duration_ms": 5.07807731628418,
+      "council_validated": true,
+      "decision_integrity": 1.0,
+      "mission_drift": 0.3622649637921703,
+      "blocking_validator": null,
+      "council_signals": [],
+      "escalation_requested": false,
+      "escalation_reason": null,
+      "semantic_depths": [],
+      "governance_signals": [
+        {
+          "check": "loop_detection",
+          "passed": false,
+          "reason": "Same action 'perceive' repeated 4+ consecutive cycles",
+          "action": "perceive",
+          "consecutive_loop_blocks": 2,
+          "recovery_requested": true,
+          "recovery": "goal_seek_escape",
+          "axiom": "3.1"
+        }
+      ],
+      "firewall_blocked": true,
+      "firewall_blocked_by": "action_loop",
+      "strategic_options": [
+        {
+          "rank": 1,
+          "score": 0.30727488630142763,
+          "horizon": 5,
+          "metadata": {
+            "index": 23,
+            "state_norm": 2.254415002920315
+          },
+          "variance": 0.0,
+          "probabilistic": null
+        }
+      ],
+      "perception_quality": {
+        "quality_score": 0.0,
+        "resolution": [
+          0,
+          0
+        ],
+        "target_size_px": null,
+        "notes": "Invalid frame dimensions",
+        "proxy_recommended": true
+      },
+      "gate_verdict": null,
+      "reflection": {
+        "pattern_count": 1,
+        "cross_domain_hits": 0,
+        "stable": "True",
+        "adaptive_horizon": 7,
+        "recommended_horizon": 7,
+        "horizon_reason": "stable",
+        "policy_mode": 0.0,
+        "recurring_blocks": []
+      },
+      "knowledge_report": {
+        "domain": "unknown",
+        "approach": null,
+        "outcome": null,
+        "avoid": [],
+        "adjust_risk": 0.0,
+        "adjust_exploration": 0.0,
+        "summary": "Consultation throttled for 'unknown' (last cycle 4)",
+        "quality_adjustment": 0.0,
+        "throttled": true
+      },
+      "perception_explanation": {
+        "explanation": {
+          "summary": "Input is very low (0x0). Quality score: 0%. Below threshold \u2014 blocked direct detection, using proxy mode.",
+          "details": [
+            {
+              "aspect": "resolution",
+              "value": "0x0",
+              "label": "very low"
+            },
+            {
+              "aspect": "gate",
+              "value": "blocked",
+              "proxy_mode": true
+            }
+          ],
+          "suggestions": [
+            {
+              "action": "higher_resolution",
+              "label": "Use a 720p+ video",
+              "reason": "0x0 limits detection to objects >= 15px",
+              "impact": "high"
+            },
+            {
+              "action": "proxy_mode",
+              "label": "Tracking motion hotspots",
+              "reason": "Proxy mode active \u2014 following movement clusters",
+              "impact": "medium"
+            },
+            {
+              "action": "super_resolution",
+              "label": "Apply 2x upscale",
+              "reason": "0px is very low \u2014 upscale may improve edge detection",
+              "impact": "low"
+            }
+          ],
+          "quality_score": 0.0,
+          "proxy_mode": true
+        },
+        "capabilities": [],
+        "best_capability": null
+      },
+      "system_mood": "confident",
+      "local_optima_escape": null,
+      "attention_metrics": {
+        "identity_entropy": 1.0,
+        "entropy_collapse_rate": 0.0,
+        "counterfactual_diversity": 4.125432284643353e-05,
+        "attention_momentum": 0.08372893851967302,
+        "mean_threat_ratio": 0.2540777345995085,
+        "mean_opportunity_ratio": 0.3466572538869782,
+        "mean_maintenance_ratio": 0.39926501151351335,
+        "is_attention_locked": false,
+        "is_identity_collapse": false,
+        "trajectory_divergences": [
+          0.14375503240925055,
+          0.13929817991738797,
+          0.17098827137533842,
+          0.1555460975412428,
+          0.3622649637921703
+        ],
+        "allocation_count": 5,
+        "default_action_space": 10,
+        "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+        "identity_entropy_signal": {
+          "collapse_rate": 0.0,
+          "is_critical": true,
+          "projected_size": 1.0
+        },
+        "current_allocation": {
+          "threat_ratio": 0.2672105877135744,
+          "opportunity_ratio": 0.3128870601650944,
+          "maintenance_ratio": 0.41990235212133126
+        },
+        "cost_tracker": {
+          "total_maintenance": 0.3439000000000001,
+          "total_recovery": 0,
+          "total_cost": 0.3439000000000001,
+          "maintenance_ratio": 1.0,
+          "recovery_ratio": 0.0,
+          "cost_efficiency": 2.0,
+          "trend": "healthy \u2014 maintenance dominates, proactive posture",
+          "cycles_recorded": 4,
+          "recent_maintenance": [
+            0.07290000000000002,
+            0.08100000000000002,
+            0.09000000000000001,
+            0.1
+          ],
+          "recent_recovery": []
+        }
+      },
+      "representation_confidence": 0.7,
+      "causal_annotations": null,
+      "identity_state": {
+        "G_t": {
+          "last_action": "perceive",
+          "progress_indicator": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "cycle": 0,
+          "goal_progress": 0.1
+        },
+        "M_t": {
+          "cycle": 0,
+          "action": "perceive",
+          "observation": "moving",
+          "di": 1.0,
+          "md": 0.0,
+          "importance": 0.3,
+          "mood": "confident"
+        },
+        "B_t": {
+          "decision_quality": {
+            "high": 0.9540801000234126,
+            "medium": 0.04591829358401453,
+            "low": 1.606392572715755e-06
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "C_t": {
+          "active_constraints": [
+            "risk_tolerance=0.50",
+            "exploration_budget=0.30"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "tightened": false,
+          "relaxed": false
+        },
+        "K_t": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "V_t": {
+          "identity_markers": [
+            "exploring",
+            "nascent",
+            "testing_boundaries"
+          ],
+          "cycle": 0,
+          "di": 1.0,
+          "md": 0.0
+        },
+        "Res_t": {
+          "energy": {
+            "consumed_ms": 15.030040740966797,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 50.0,
+            "utilization": 0.15030040740966796,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 5,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "R_t": {
+          "trust": 0.5,
+          "authority": 0.5,
+          "collaboration": 0.5,
+          "dependency": 0.0,
+          "responsibility": 0.5
+        }
+      },
+      "distributed_verdict": {
+        "enabled": true,
+        "cycle": 5,
+        "aggregate": {
+          "validated": true,
+          "decision_integrity": 1.0,
+          "mission_drift": 0.3623,
+          "consensus": 1.0,
+          "n_agents": 5
+        },
+        "agents": [
+          "primary:primary",
+          "skeptic:skeptic",
+          "explorer:explorer",
+          "conservative:conservative",
+          "analyst:analyst"
+        ],
+        "registered_agents": 5,
+        "voting_agents": 5
+      },
+      "resource_budgets": {
+        "energy": {
+          "consumed_ms": 15.030040740966797,
+          "total_ms": 100.0,
+          "budget_carryover_ms": 50.0,
+          "utilization": 0.15030040740966796,
+          "description": "compute_budget_ms consumed this cycle"
+        },
+        "memory": {
+          "trace_history_length": 5,
+          "description": "trace_history length (number of stored traces)"
+        },
+        "identity": {
+          "identity_entropy": 0.0,
+          "identity_stability": 1.0,
+          "description": "identity entropy (1 - identity_stability)"
+        },
+        "recovery": {
+          "recovery_mode_cycles": 0,
+          "current_state": "exploring",
+          "description": "number of recovery_mode cycles active"
+        }
+      },
+      "meta_cognition": {
+        "current_state": "exploring",
+        "exploration_mode": true,
+        "recovery_mode": false,
+        "epistemic_repair": false,
+        "trigger_reason": null,
+        "stream_uncertainties": {
+          "PerceptionStream": 0.2,
+          "perception": 0.2
+        },
+        "consecutive_council_blocks": 0,
+        "mode": "PLAN",
+        "tripartite_u": {
+          "U_W": 0.3147998887847919,
+          "U_I": 0.0,
+          "U_O": 0.0,
+          "U_M": 0.0,
+          "answered_questions": 0,
+          "dominant": "environmental"
+        },
+        "U_W": 0.3147998887847919,
+        "U_I": 0.0,
+        "U_O": 0.0
+      },
+      "handoff_hash": null,
+      "causal_graph": {
+        "edges": [],
+        "variables": [
+          "energy"
+        ],
+        "interventions": 0,
+        "has_structural_equations": false
+      },
+      "gamma_discount": 0.95,
+      "terminal_value": 0.0,
+      "belief_state": {
+        "decision_quality": {
+          "high": 0.9540801000234126,
+          "medium": 0.04591829358401453,
+          "low": 1.606392572715755e-06
+        },
+        "environment_stability": {
+          "stable": 0.25,
+          "changing": 0.25,
+          "unpredictable": 0.25,
+          "unknown": 0.25
+        },
+        "resource_availability": {
+          "abundant": 0.25,
+          "sufficient": 0.25,
+          "limited": 0.25,
+          "critical": 0.25
+        }
+      },
+      "capabilities_k": {
+        "last_action": "perceive",
+        "skill_relevant": true,
+        "skill_acquired": false,
+        "skill_loss": false,
+        "cumulative_successes": 0
+      },
+      "j_term_breakdown": {
+        "expected_reward": 1.0,
+        "discounted_reward": 1.0,
+        "maintenance_cost": 9.012222290039062e-05,
+        "recovery_cost": 0.0,
+        "identity_cost": 0.0,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.19993991851806642,
+        "counterfactual_diversity": 0.0,
+        "prediction_error": 0.0,
+        "information_gain": 0.0,
+        "theory_gain": 0.0,
+        "uncertainty_bonus": 0.0,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.0,
+        "project_coherence_gain": 0.0,
+        "aesthetic_value": 0.0,
+        "gamma": 0.95,
+        "horizon": 1,
+        "commitment": 1.0,
+        "is_suppressed": false,
+        "is_full": true
+      },
+      "inquiry_skipped": false,
+      "selected_question": null,
+      "inquiry_omega_value": 0.0,
+      "inquiry_omega_vector": null,
+      "inquiry_blend": 0.0,
+      "relational_coherence": 1.0,
+      "spent_ctx_id": "ctx_4_1787936730394",
+      "produced_ctx_id": "ctx_5_1787936730405",
+      "merkle_root": "5f309ddb786e8a89bd1f4ef350930d094165ba479692f3cebe7e589fbd45e33b",
+      "psdt": {
+        "partials": {
+          "ReflexStream": {
+            "intent": "reflex",
+            "confidence": 0.0,
+            "signature": "dd2cb67eba24a8dc"
+          },
+          "MemoryStream": {
+            "intent": "memory_recall",
+            "confidence": 0.8497997283935547,
+            "signature": "407c1c96face2b47"
+          }
+        },
+        "council_signature": "268cb3a0cc65111b"
+      },
+      "intent_timelock": {
+        "intent_type": "perceive",
+        "cycles_since_last_selection": 0,
+        "timelock_active": false,
+        "all_timelocks": {
+          "perceive": 5
+        }
+      },
+      "reasoning_witness": {
+        "council_signals": [],
+        "strategic_options": [
+          {
+            "rank": 1,
+            "score": 0.30727488630142763,
+            "horizon": 5,
+            "metadata": {
+              "index": 23,
+              "state_norm": 2.254415002920315
+            },
+            "variance": 0.0,
+            "probabilistic": null
+          }
+        ],
+        "stream_activations": [
+          {
+            "name": "PerceptionStream",
+            "priority": 0.9,
+            "activated": false,
+            "intent_type": null,
+            "cost_ms": 0.0
+          },
+          {
+            "name": "ReflexStream",
+            "priority": 1.0,
+            "activated": true,
+            "intent_type": "reflex",
+            "cost_ms": 0.010967254638671875
+          },
+          {
+            "name": "MemoryStream",
+            "priority": 0.7,
+            "activated": true,
+            "intent_type": "memory_recall",
+            "cost_ms": 0.019073486328125
+          }
+        ],
+        "causal_graph": {
+          "edges": [],
+          "variables": [
+            "energy"
+          ],
+          "interventions": 0,
+          "has_structural_equations": false
+        },
+        "resource_budgets": {
+          "energy": {
+            "consumed_ms": 15.030040740966797,
+            "total_ms": 100.0,
+            "budget_carryover_ms": 50.0,
+            "utilization": 0.15030040740966796,
+            "description": "compute_budget_ms consumed this cycle"
+          },
+          "memory": {
+            "trace_history_length": 5,
+            "description": "trace_history length (number of stored traces)"
+          },
+          "identity": {
+            "identity_entropy": 0.0,
+            "identity_stability": 1.0,
+            "description": "identity entropy (1 - identity_stability)"
+          },
+          "recovery": {
+            "recovery_mode_cycles": 0,
+            "current_state": "exploring",
+            "description": "number of recovery_mode cycles active"
+          }
+        },
+        "meta_cognition": {
+          "current_state": "exploring",
+          "exploration_mode": true,
+          "recovery_mode": false,
+          "epistemic_repair": false,
+          "trigger_reason": null,
+          "stream_uncertainties": {
+            "PerceptionStream": 0.2,
+            "perception": 0.2
+          },
+          "consecutive_council_blocks": 0,
+          "mode": "PLAN",
+          "tripartite_u": {
+            "U_W": 0.3147998887847919,
+            "U_I": 0.0,
+            "U_O": 0.0,
+            "U_M": 0.0,
+            "answered_questions": 0,
+            "dominant": "environmental"
+          },
+          "U_W": 0.3147998887847919,
+          "U_I": 0.0,
+          "U_O": 0.0
+        },
+        "psdt": {
+          "partials": {
+            "ReflexStream": {
+              "intent": "reflex",
+              "confidence": 0.0,
+              "signature": "dd2cb67eba24a8dc"
+            },
+            "MemoryStream": {
+              "intent": "memory_recall",
+              "confidence": 0.8497997283935547,
+              "signature": "407c1c96face2b47"
+            }
+          },
+          "council_signature": "268cb3a0cc65111b"
+        },
+        "j_term_breakdown": {
+          "expected_reward": 1.0,
+          "discounted_reward": 1.0,
+          "maintenance_cost": 9.012222290039062e-05,
+          "recovery_cost": 0.0,
+          "identity_cost": 0.0,
+          "alignment_cost": 0.0,
+          "future_option_value": 0.19993991851806642,
+          "counterfactual_diversity": 0.0,
+          "prediction_error": 0.0,
+          "information_gain": 0.0,
+          "theory_gain": 0.0,
+          "uncertainty_bonus": 0.0,
+          "interpretation_energy": 0.0,
+          "opportunity_cost": 0.0,
+          "project_coherence_gain": 0.0,
+          "aesthetic_value": 0.0,
+          "gamma": 0.95,
+          "horizon": 1,
+          "commitment": 1.0,
+          "is_suppressed": false,
+          "is_full": true
+        },
+        "capabilities_k": {
+          "last_action": "perceive",
+          "skill_relevant": true,
+          "skill_acquired": false,
+          "skill_loss": false,
+          "cumulative_successes": 0
+        },
+        "belief_state": {
+          "decision_quality": {
+            "high": 0.9540801000234126,
+            "medium": 0.04591829358401453,
+            "low": 1.606392572715755e-06
+          },
+          "environment_stability": {
+            "stable": 0.25,
+            "changing": 0.25,
+            "unpredictable": 0.25,
+            "unknown": 0.25
+          },
+          "resource_availability": {
+            "abundant": 0.25,
+            "sufficient": 0.25,
+            "limited": 0.25,
+            "critical": 0.25
+          }
+        },
+        "attention_metrics": {
+          "identity_entropy": 1.0,
+          "entropy_collapse_rate": 0.0,
+          "counterfactual_diversity": 4.125432284643353e-05,
+          "attention_momentum": 0.08372893851967302,
+          "mean_threat_ratio": 0.2540777345995085,
+          "mean_opportunity_ratio": 0.3466572538869782,
+          "mean_maintenance_ratio": 0.39926501151351335,
+          "is_attention_locked": false,
+          "is_identity_collapse": false,
+          "trajectory_divergences": [
+            0.14375503240925055,
+            0.13929817991738797,
+            0.17098827137533842,
+            0.1555460975412428,
+            0.3622649637921703
+          ],
+          "allocation_count": 5,
+          "default_action_space": 10,
+          "identity_entropy_assessment": "ESCALATE \u2014 identity entropy critically low, action-space collapsed. Initiate opportunity-seeking override to expand perceived options.",
+          "identity_entropy_signal": {
+            "collapse_rate": 0.0,
+            "is_critical": true,
+            "projected_size": 1.0
+          },
+          "current_allocation": {
+            "threat_ratio": 0.2672105877135744,
+            "opportunity_ratio": 0.3128870601650944,
+            "maintenance_ratio": 0.41990235212133126
+          },
+          "cost_tracker": {
+            "total_maintenance": 0.3439000000000001,
+            "total_recovery": 0,
+            "total_cost": 0.3439000000000001,
+            "maintenance_ratio": 1.0,
+            "recovery_ratio": 0.0,
+            "cost_efficiency": 2.0,
+            "trend": "healthy \u2014 maintenance dominates, proactive posture",
+            "cycles_recorded": 4,
+            "recent_maintenance": [
+              0.07290000000000002,
+              0.08100000000000002,
+              0.09000000000000001,
+              0.1
+            ],
+            "recent_recovery": []
+          }
+        },
+        "local_optima_escape": null,
+        "reflection": {
+          "pattern_count": 1,
+          "cross_domain_hits": 0,
+          "stable": "True",
+          "adaptive_horizon": 7,
+          "recommended_horizon": 7,
+          "horizon_reason": "stable",
+          "policy_mode": 0.0,
+          "recurring_blocks": []
+        }
+      },
+      "decision_core": {
+        "selected_intent": {
+          "type": "perceive",
+          "confidence": 0.85
+        },
+        "selected_action": null,
+        "decision_integrity": 1.0,
+        "mission_drift": 0.3622649637921703,
+        "council_validated": true,
+        "identity_state": {
+          "G_t": {
+            "last_action": "perceive",
+            "progress_indicator": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "cycle": 0,
+            "goal_progress": 0.1
+          },
+          "M_t": {
+            "cycle": 0,
+            "action": "perceive",
+            "observation": "moving",
+            "di": 1.0,
+            "md": 0.0,
+            "importance": 0.3,
+            "mood": "confident"
+          },
+          "B_t": {
+            "decision_quality": {
+              "high": 0.9540801000234126,
+              "medium": 0.04591829358401453,
+              "low": 1.606392572715755e-06
+            },
+            "environment_stability": {
+              "stable": 0.25,
+              "changing": 0.25,
+              "unpredictable": 0.25,
+              "unknown": 0.25
+            },
+            "resource_availability": {
+              "abundant": 0.25,
+              "sufficient": 0.25,
+              "limited": 0.25,
+              "critical": 0.25
+            }
+          },
+          "C_t": {
+            "active_constraints": [
+              "risk_tolerance=0.50",
+              "exploration_budget=0.30"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "tightened": false,
+            "relaxed": false
+          },
+          "K_t": {
+            "last_action": "perceive",
+            "skill_relevant": true,
+            "skill_acquired": false,
+            "skill_loss": false,
+            "cumulative_successes": 0
+          },
+          "V_t": {
+            "identity_markers": [
+              "exploring",
+              "nascent",
+              "testing_boundaries"
+            ],
+            "cycle": 0,
+            "di": 1.0,
+            "md": 0.0
+          },
+          "Res_t": {
+            "energy": {
+              "consumed_ms": 15.030040740966797,
+              "total_ms": 100.0,
+              "budget_carryover_ms": 50.0,
+              "utilization": 0.15030040740966796,
+              "description": "compute_budget_ms consumed this cycle"
+            },
+            "memory": {
+              "trace_history_length": 5,
+              "description": "trace_history length (number of stored traces)"
+            },
+            "identity": {
+              "identity_entropy": 0.0,
+              "identity_stability": 1.0,
+              "description": "identity entropy (1 - identity_stability)"
+            },
+            "recovery": {
+              "recovery_mode_cycles": 0,
+              "current_state": "exploring",
+              "description": "number of recovery_mode cycles active"
+            }
+          },
+          "R_t": {
+            "trust": 0.5,
+            "authority": 0.5,
+            "collaboration": 0.5,
+            "dependency": 0.0,
+            "responsibility": 0.5
+          }
+        },
+        "merkle_root": "5f309ddb786e8a89bd1f4ef350930d094165ba479692f3cebe7e589fbd45e33b",
+        "inquiry_summary": {
+          "selected_question": null,
+          "omega_value": 0.0,
+          "omega_vector": null,
+          "blend": 0.0,
+          "skipped": false
+        },
+        "blocking_validator": null,
+        "firewall_blocked": true
+      },
+      "inquiry_summary": {
+        "selected_question": null,
+        "omega_value": 0.0,
+        "omega_vector": null,
+        "blend": 0.0,
+        "skipped": false
+      },
+      "curiosity_state": {
+        "curiosity_level": 0.25,
+        "learning_rate": 0.0124,
+        "boredom_count": 5,
+        "novelty_seeking": true,
+        "self_intent_active": false,
+        "exploration_cycles": 0,
+        "exploitation_cycles": 5,
+        "balance": "0% explore"
+      },
+      "curiosity_bonus": 1.05,
+      "tool_audit": null,
+      "axiom_results": {
+        "1.1": {
+          "passed": true,
+          "reason": "trace is not None \u2014 architecture produced an outcome"
+        },
+        "1.2": {
+          "passed": true,
+          "reason": "decision_integrity=1.000 >= 0.0 \u2014 process was measured"
+        },
+        "1.3": {
+          "passed": true,
+          "reason": "governance_blocked was checked \u2014 multi-level governance ran"
+        },
+        "1.4": {
+          "passed": true,
+          "reason": "compute 15.0ms <= 100.0ms \u2014 budget conserved"
+        },
+        "2.1": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 constitutional check happened"
+        },
+        "2.2": {
+          "passed": true,
+          "reason": "meta_cognition populated \u2014 feedback loop closed"
+        },
+        "2.3": {
+          "passed": true,
+          "reason": "infra_manager.failures exists \u2014 failures preserved as structural assets"
+        },
+        "2.4": {
+          "passed": true,
+          "reason": "trace has UTXO chain (spent=ctx_4_1787936730394, produced=ctx_5_1787936730405) \u2014 path dependency tracked"
+        },
+        "2.5": {
+          "passed": true,
+          "reason": "trace has causal_graph attribute \u2014 delayed causality modeled"
+        },
+        "2.6": {
+          "passed": true,
+          "reason": "ctx.reflection populated \u2014 reflection ran as post-action phase"
+        },
+        "2.7": {
+          "passed": false,
+          "reason": "error_attribution not found \u2014 no subsystem attribution"
+        },
+        "3.1": {
+          "passed": true,
+          "reason": "recovery_mode=False \u2014 recovery mode tracked"
+        },
+        "3.2": {
+          "passed": true,
+          "reason": "resource_budgets populated \u2014 budget was reserved"
+        },
+        "3.3": {
+          "passed": true,
+          "reason": "skill_library exists and is callable"
+        },
+        "3.4": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off active"
+        },
+        "3.5": {
+          "passed": true,
+          "reason": "infra_manager.calibrator exists \u2014 calibration ran"
+        },
+        "3.6": {
+          "passed": true,
+          "reason": "curiosity_state populated \u2014 curiosity actively drives exploration"
+        },
+        "4.1": {
+          "passed": true,
+          "reason": "ctx.identity_state is populated \u2014 identity shaped decision"
+        },
+        "4.2": {
+          "passed": true,
+          "reason": "exploration=True, exploitation=False \u2014 trade-off made"
+        },
+        "4.3": {
+          "passed": true,
+          "reason": "strategic_options count=1 >= 1 \u2014 alternatives preserved"
+        },
+        "4.4": {
+          "passed": true,
+          "reason": "council_validated=True \u2014 truth-anchored decision"
+        },
+        "4.5": {
+          "passed": false,
+          "reason": "local_optima_escape not set"
+        },
+        "4.6": {
+          "passed": true,
+          "reason": "2 streams activated (>= 2) \u2014 emergent intelligence"
+        },
+        "4.7": {
+          "passed": true,
+          "reason": "attention_metrics is set \u2014 attention was allocated"
+        },
+        "4.8": {
+          "passed": false,
+          "reason": "ModelCompetition not found \u2014 no model competition"
+        },
+        "4.9": {
+          "passed": false,
+          "reason": "RelationalContext scaffold absent \u2014 axiom not verified"
+        },
+        "4.11": {
+          "passed": false,
+          "reason": "multi-agent aspiration \u2014 declared NOT yet implemented (\u039b2.3 fail-closed)"
+        },
+        "4.10": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
+        },
+        "5.1": {
+          "passed": true,
+          "reason": "commitment (j_term_breakdown or selected_intent) computed"
+        },
+        "5.2": {
+          "passed": true,
+          "reason": "AxiomEvolutionEngine present \u2014 axiom proposals possible"
+        },
+        "5.3": {
+          "passed": true,
+          "reason": "alignment_cost tracked in J \u2014 identity coupling measured"
+        },
+        "6.1": {
+          "passed": true,
+          "reason": "ResourceGradientTracker present \u2014 cognitive potential measurable"
+        },
+        "6.2": {
+          "passed": true,
+          "reason": "CognitiveMomentum present \u2014 decision inertia tracked"
+        },
+        "6.3": {
+          "passed": false,
+          "reason": "InterpretationEngine absent \u2014 interpretation energy not modeled"
+        },
+        "6.4": {
+          "passed": false,
+          "reason": "IdentityCompression missing"
+        },
+        "6.5": {
+          "passed": false,
+          "reason": "TheoryBuilder missing"
+        },
+        "6.6": {
+          "passed": false,
+          "reason": "ModelCompetition missing or incomplete"
+        },
+        "6.7": {
+          "passed": false,
+          "reason": "ExplanationCompression missing"
+        },
+        "6.8": {
+          "passed": false,
+          "reason": "SystemSelf or TheoryBuilder missing"
+        },
+        "6.9": {
+          "passed": false,
+          "reason": "CuriosityDrive missing"
+        },
+        "6.10": {
+          "passed": false,
+          "reason": "UnknownUnknownDetector missing"
+        },
+        "6.11": {
+          "passed": true,
+          "reason": "opportunity_cost tracked in J \u2014 foregone alternatives measured"
+        }
+      }
+    }
+  ]
+}
