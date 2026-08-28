@@ -198,3 +198,68 @@ class TestEdgeSerialization:
                  weight=0.7, metadata={"cycle": 3}, timestamp=1.0)
         d = e.to_dict()
         assert d["src"] == "a" and d["weight"] == 0.7 and d["metadata"] == {"cycle": 3}
+
+
+class TestEdgeCaps:
+    """Unbounded edge growth was the dashboard wedge (56,096 edges). The
+    graph must stay lean: per-type cap + total cap, oldest-first (Λ4.7).
+    """
+
+    def _kg(self, per_type=3, total=10):
+        return KnowledgeGraph(max_edges_per_type=per_type, max_edges_total=total)
+
+    def test_per_type_cap_prunes_oldest(self):
+        kg = self._kg(per_type=3, total=20)
+        nodes = [kg.record("d", f"n{i}", 0.5) for i in range(8)]
+        for i in range(6):  # 6 'rel' edges, cap 3
+            kg.add_edge(nodes[i], nodes[(i + 1) % 8], edge_type="rel")
+        rel = [e for e in kg._edges.values() if e.edge_type == "rel"]
+        assert len(rel) == 3, "per-type cap must hold"
+        # oldest evicted: edges 0..5 added; survivors are the newest (3,4,5)
+        ids = {e.edge_id for e in rel}
+        survivors_src = {e.src for e in rel}
+        assert nodes[3] in survivors_src and nodes[5] in survivors_src
+        # idempotent triple still re-adds after eviction
+        eid = kg.add_edge(nodes[0], nodes[1], edge_type="rel")
+        assert len([e for e in kg._edges.values() if e.edge_type == "rel"]) == 3
+        assert eid is not None
+        # adjacency consistent after churn
+        for e in kg._edges.values():
+            assert e.dst in kg._adjacency[e.src]
+            assert e.src in kg._adjacency[e.dst]
+
+    def test_total_cap_bounds_everything(self):
+        kg = self._kg(per_type=100, total=6)
+        nodes = [kg.record("d", f"n{i}", 0.5) for i in range(12)]
+        for i in range(12):
+            kg.add_edge(nodes[i], nodes[(i + 1) % 12], edge_type="tA")
+        assert len(kg._edges) <= 6, "total cap must bound the whole store"
+        # other types get evicted too once the total cap is hit
+        kg.add_edge(nodes[0], nodes[2], edge_type="tB")
+        assert len(kg._edges) <= 6
+        s = kg.stats
+        assert s["total_edges"] == len(kg._edges)
+
+    def test_caps_off_when_zero(self):
+        kg = KnowledgeGraph(max_edges_per_type=0, max_edges_total=0)
+        nodes = [kg.record("d", f"n{i}", 0.5) for i in range(10)]
+        for i in range(10):
+            kg.add_edge(nodes[i], nodes[(i + 1) % 10], edge_type="rel")
+        assert len(kg._edges) == 10, "0 = no cap (backward compat)"
+
+    def test_edge_caps_survive_serialization_roundtrip(self):
+        kg = self._kg(per_type=2, total=10)
+        nodes = [kg.record("d", f"n{i}", 0.5) for i in range(6)]
+        for i in range(6):
+            kg.add_edge(nodes[i], nodes[(i + 1) % 6], edge_type="rel")
+        import tempfile, os, json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            path = f.name
+        try:
+            kg.save(path)
+            kg2 = KnowledgeGraph(max_edges_per_type=2, max_edges_total=10)
+            kg2.load(path)
+            assert len(kg2._edges) == len(kg._edges) == 2
+            assert kg2.stats["total_edges"] == 2
+        finally:
+            os.unlink(path)

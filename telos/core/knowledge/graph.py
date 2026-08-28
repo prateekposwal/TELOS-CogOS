@@ -44,6 +44,12 @@ _HOT_DECAY_PER_CYCLE = 0.05
 _ARCHIVE_FLOOR = 0.01
 _DEFAULT_MAX_HOT = 100
 _DEFAULT_MAX_RECORDS_PER_MINUTE = 60
+# Edge-growth bounds (Λ4.7 Law of Attention: memory must stay lean).
+# Pruning is by edge_type beyond `max_edges_per_type`, then globally beyond
+# `max_edges_total` — oldest edges first (timestamp order). Defaults keep
+# normal operation untouched while bounding the long-run dashboard case.
+_DEFAULT_MAX_EDGES_PER_TYPE = 2000
+_DEFAULT_MAX_EDGES_TOTAL = 10000
 
 
 @dataclass
@@ -144,7 +150,9 @@ class KnowledgeGraph:
     })
 
     def __init__(self, max_hot_nodes: int = _DEFAULT_MAX_HOT, max_archived: int = 500,
-                 max_records_per_minute: int = _DEFAULT_MAX_RECORDS_PER_MINUTE):
+                 max_records_per_minute: int = _DEFAULT_MAX_RECORDS_PER_MINUTE,
+                 max_edges_per_type: int = _DEFAULT_MAX_EDGES_PER_TYPE,
+                 max_edges_total: int = _DEFAULT_MAX_EDGES_TOTAL):
         self._nodes: Dict[str, ProjectNode] = {}
         self._edges: Dict[str, Edge] = {}
         self._adjacency: Dict[str, Set[str]] = defaultdict(set)
@@ -156,6 +164,8 @@ class KnowledgeGraph:
         self._cycle = 0
         self._max_records_per_minute = max_records_per_minute
         self._record_timestamps: Dict[str, List[float]] = defaultdict(list)
+        self._max_edges_per_type = max_edges_per_type
+        self._max_edges_total = max_edges_total
 
     # ── Validation ───────────────────────────────────────────────
 
@@ -505,7 +515,48 @@ class KnowledgeGraph:
         )
         self._adjacency[src].add(dst)
         self._adjacency[dst].add(src)
+        self._enforce_edge_caps(edge_type)
         return edge_id
+
+    def _enforce_edge_caps(self, edge_type: str) -> None:
+        """Bound edge growth so the graph cannot serialize to unbounded size.
+
+        Prunes OLDEST edges first: per edge_type beyond the per-type cap, then
+        globally beyond the total cap. Eviction keeps the edge store (and every
+        dependent serializer: checkpoints, /api/knowledge, kg.save) bounded,
+        which is what makes per-cycle serialization cheap again. Removal is
+        symmetric via remove_edge (adjacency cleaned), and the idempotent
+        (src, dst, edge_type) hash means an evicted triple can be re-added
+        fresh later. Evictions are logged, never silent (Λ2.3 Kintsugi).
+        """
+        if self._max_edges_total and len(self._edges) > self._max_edges_total:
+            self._prune_oldest_edges(len(self._edges) - self._max_edges_total)
+        if self._max_edges_per_type:
+            overflow = sum(1 for e in self._edges.values()
+                           if e.edge_type == edge_type) - self._max_edges_per_type
+            if overflow > 0:
+                self._prune_oldest_edges(overflow, edge_type=edge_type)
+
+    def _prune_oldest_edges(self, count: int, edge_type: Optional[str] = None) -> None:
+        """Remove the `count` oldest edges (optionally of one type), oldest first.
+
+        Args:
+            count: how many edges to remove.
+            edge_type: restrict eviction to this edge type (None = any).
+        """
+        candidates = [e for e in self._edges.values()
+                      if edge_type is None or e.edge_type == edge_type]
+        candidates.sort(key=lambda e: (e.timestamp, e.edge_id))
+        removed = 0
+        for e in candidates:
+            if removed >= count:
+                break
+            if self.remove_edge(e.edge_id):
+                removed += 1
+                logger.debug(
+                    "KnowledgeGraph: pruned %s edge %s (%s -> %s)",
+                    e.edge_type, e.edge_id, e.src, e.dst,
+                )
 
     def remove_edge(self, edge_id: str) -> bool:
         """Remove the edge with the given edge_id. Returns True if it existed."""

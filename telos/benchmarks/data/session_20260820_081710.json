@@ -1,0 +1,522 @@
+{
+  "session_id": "session_20260820_081710",
+  "session_start": 1787194030.994046,
+  "total_cycles": 5,
+  "snapshots": [
+    {
+      "cycle": 1,
+      "timestamp": 1787194030.996686,
+      "perception": {
+        "state_estimation_error": 0.0,
+        "surprise_rate": 0.0,
+        "unknown_unknown_discovery_rate": 0.0,
+        "forecast_accuracy": 0.5,
+        "counterfactual_accuracy": 0.5,
+        "score": 0.65
+      },
+      "learning": {
+        "curiosity_level": 0.25,
+        "learning_rate": 0.0115,
+        "compression_rate": 0.0,
+        "boredom_count": 1,
+        "exploration_ratio": 0.0,
+        "knowledge_yield": {
+          "observations": 6,
+          "theories": 0,
+          "predictions": 0,
+          "validated": 0,
+          "principles": 0
+        },
+        "score": 0.0622
+      },
+      "identity": {
+        "identity_entropy": 0.0,
+        "identity_continuity": 0.5,
+        "relational_coherence": 1.0,
+        "propagation": {
+          "mission_alignment": 0.5,
+          "project_alignment": 0.5,
+          "decision_alignment": 0.5
+        },
+        "score": 0.725
+      },
+      "knowledge": {
+        "representation_ecology": {
+          "mean_age": 0.0,
+          "diversity": 0.0,
+          "retirement_rate": 0.0,
+          "bridge_density": 0.0,
+          "reuse_rate": 0.0,
+          "compression_achieved": 0.0
+        },
+        "epistemic_capital": {
+          "total_ideas": 0,
+          "top_capital": 0.0
+        },
+        "theory_genealogy": {
+          "nodes": 0,
+          "roots": 0
+        },
+        "bridge_potential_avg": 0.0,
+        "score": 0.03
+      },
+      "resources": {
+        "compute_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "bandwidth_utilization": 0.0,
+        "storage_utilization": 0.0,
+        "croi": 600.0,
+        "score": 0.2
+      },
+      "projects": {
+        "active_projects": 0,
+        "total_projects": 0,
+        "completed_projects": 0,
+        "abandoned_projects": 0,
+        "completion_rate": 0.0,
+        "abandonment_rate": 0.0,
+        "strategic_alignment": {
+          "mission_projects": 0.5,
+          "project_tasks": 0.5,
+          "task_actions": 0.5,
+          "overall": 0.5
+        },
+        "score": 0.4
+      },
+      "social": {
+        "niche_count": 0,
+        "exhausted_niches": 0,
+        "exhaustion_rate": 0.0,
+        "bridge_count": 0,
+        "relations": 0,
+        "collaboration_efficiency": 0.5,
+        "score": 0.4
+      },
+      "hierarchy": {
+        "subsystem_scores": {
+          "perception": 0.65,
+          "learning": 0.0622,
+          "identity": 0.725,
+          "knowledge": 0.03,
+          "resources": 0.2,
+          "projects": 0.4,
+          "social": 0.4
+        },
+        "system_score": 0.3578,
+        "mission_score": 0.3578
+      }
+    },
+    {
+      "cycle": 2,
+      "timestamp": 1787194031.001224,
+      "perception": {
+        "state_estimation_error": 0.0,
+        "surprise_rate": 0.0,
+        "unknown_unknown_discovery_rate": 0.0,
+        "forecast_accuracy": 0.5,
+        "counterfactual_accuracy": 0.5,
+        "score": 0.65
+      },
+      "learning": {
+        "curiosity_level": 0.3,
+        "learning_rate": 0.583,
+        "compression_rate": 0.0,
+        "boredom_count": 0,
+        "exploration_ratio": 0.0,
+        "knowledge_yield": {
+          "observations": 12,
+          "theories": 0,
+          "predictions": 0,
+          "validated": 0,
+          "principles": 0
+        },
+        "score": 0.2614
+      },
+      "identity": {
+        "identity_entropy": 0.0,
+        "identity_continuity": 0.5,
+        "relational_coherence": 1.0,
+        "propagation": {
+          "mission_alignment": 0.5,
+          "project_alignment": 0.5,
+          "decision_alignment": 0.5
+        },
+        "score": 0.725
+      },
+      "knowledge": {
+        "representation_ecology": {
+          "mean_age": 0.0,
+          "diversity": 0.0,
+          "retirement_rate": 0.0,
+          "bridge_density": 0.0,
+          "reuse_rate": 0.0,
+          "compression_achieved": 0.0
+        },
+        "epistemic_capital": {
+          "total_ideas": 0,
+          "top_capital": 0.0
+        },
+        "theory_genealogy": {
+          "nodes": 0,
+          "roots": 0
+        },
+        "bridge_potential_avg": 0.0,
+        "score": 0.03
+      },
+      "resources": {
+        "compute_utilization": 0.0751,
+        "memory_utilization": 0.01,
+        "bandwidth_utilization": 0.0007,
+        "storage_utilization": 0.02,
+        "croi": 47.977,
+        "score": 0.2487
+      },
+      "projects": {
+        "active_projects": 0,
+        "total_projects": 0,
+        "completed_projects": 0,
+        "abandoned_projects": 0,
+        "completion_rate": 0.0,
+        "abandonment_rate": 0.0,
+        "strategic_alignment": {
+          "mission_projects": 0.5,
+          "project_tasks": 0.5,
+          "task_actions": 0.5,
+          "overall": 0.5
+        },
+        "score": 0.4
+      },
+      "social": {
+        "niche_count": 0,
+        "exhausted_niches": 0,
+        "exhaustion_rate": 0.0,
+        "bridge_count": 0,
+        "relations": 0,
+        "collaboration_efficiency": 0.5,
+        "score": 0.4
+      },
+      "hierarchy": {
+        "subsystem_scores": {
+          "perception": 0.65,
+          "learning": 0.2614,
+          "identity": 0.725,
+          "knowledge": 0.03,
+          "resources": 0.2487,
+          "projects": 0.4,
+          "social": 0.4
+        },
+        "system_score": 0.3926,
+        "mission_score": 0.3926
+      }
+    },
+    {
+      "cycle": 3,
+      "timestamp": 1787194031.0047271,
+      "perception": {
+        "state_estimation_error": 0.0,
+        "surprise_rate": 0.0,
+        "unknown_unknown_discovery_rate": 0.0,
+        "forecast_accuracy": 0.5,
+        "counterfactual_accuracy": 0.5,
+        "score": 0.65
+      },
+      "learning": {
+        "curiosity_level": 0.35,
+        "learning_rate": 0.131,
+        "compression_rate": 0.0,
+        "boredom_count": 0,
+        "exploration_ratio": 0.0,
+        "knowledge_yield": {
+          "observations": 18,
+          "theories": 0,
+          "predictions": 0,
+          "validated": 0,
+          "principles": 0
+        },
+        "score": 0.2032
+      },
+      "identity": {
+        "identity_entropy": 0.0,
+        "identity_continuity": 0.5,
+        "relational_coherence": 1.0,
+        "propagation": {
+          "mission_alignment": 0.5,
+          "project_alignment": 0.5,
+          "decision_alignment": 0.5
+        },
+        "score": 0.725
+      },
+      "knowledge": {
+        "representation_ecology": {
+          "mean_age": 0.0,
+          "diversity": 0.0,
+          "retirement_rate": 0.0,
+          "bridge_density": 0.0,
+          "reuse_rate": 0.0,
+          "compression_achieved": 0.0
+        },
+        "epistemic_capital": {
+          "total_ideas": 0,
+          "top_capital": 0.0
+        },
+        "theory_genealogy": {
+          "nodes": 0,
+          "roots": 0
+        },
+        "bridge_potential_avg": 0.0,
+        "score": 0.03
+      },
+      "resources": {
+        "compute_utilization": -0.425,
+        "memory_utilization": 0.01,
+        "bandwidth_utilization": 0.0009,
+        "storage_utilization": 0.02,
+        "croi": 1800.0,
+        "score": 0.2113
+      },
+      "projects": {
+        "active_projects": 0,
+        "total_projects": 0,
+        "completed_projects": 0,
+        "abandoned_projects": 0,
+        "completion_rate": 0.0,
+        "abandonment_rate": 0.0,
+        "strategic_alignment": {
+          "mission_projects": 0.5,
+          "project_tasks": 0.5,
+          "task_actions": 0.5,
+          "overall": 0.5
+        },
+        "score": 0.4
+      },
+      "social": {
+        "niche_count": 0,
+        "exhausted_niches": 0,
+        "exhaustion_rate": 0.0,
+        "bridge_count": 0,
+        "relations": 0,
+        "collaboration_efficiency": 0.5,
+        "score": 0.4
+      },
+      "hierarchy": {
+        "subsystem_scores": {
+          "perception": 0.65,
+          "learning": 0.2032,
+          "identity": 0.725,
+          "knowledge": 0.03,
+          "resources": 0.2113,
+          "projects": 0.4,
+          "social": 0.4
+        },
+        "system_score": 0.3801,
+        "mission_score": 0.3801
+      }
+    },
+    {
+      "cycle": 4,
+      "timestamp": 1787194031.00848,
+      "perception": {
+        "state_estimation_error": 0.0,
+        "surprise_rate": 0.0,
+        "unknown_unknown_discovery_rate": 0.0,
+        "forecast_accuracy": 0.5,
+        "counterfactual_accuracy": 0.5,
+        "score": 0.65
+      },
+      "learning": {
+        "curiosity_level": 0.3,
+        "learning_rate": 0.0209,
+        "compression_rate": 0.0,
+        "boredom_count": 1,
+        "exploration_ratio": 0.0,
+        "knowledge_yield": {
+          "observations": 24,
+          "theories": 0,
+          "predictions": 0,
+          "validated": 0,
+          "principles": 0
+        },
+        "score": 0.0838
+      },
+      "identity": {
+        "identity_entropy": 0.0,
+        "identity_continuity": 0.5,
+        "relational_coherence": 1.0,
+        "propagation": {
+          "mission_alignment": 0.5,
+          "project_alignment": 0.5,
+          "decision_alignment": 0.5
+        },
+        "score": 0.725
+      },
+      "knowledge": {
+        "representation_ecology": {
+          "mean_age": 0.0,
+          "diversity": 0.0,
+          "retirement_rate": 0.0,
+          "bridge_density": 0.0,
+          "reuse_rate": 0.0,
+          "compression_achieved": 0.0
+        },
+        "epistemic_capital": {
+          "total_ideas": 0,
+          "top_capital": 0.0
+        },
+        "theory_genealogy": {
+          "nodes": 0,
+          "roots": 0
+        },
+        "bridge_potential_avg": 0.0,
+        "score": 0.03
+      },
+      "resources": {
+        "compute_utilization": -0.425,
+        "memory_utilization": 0.01,
+        "bandwidth_utilization": 0.0009,
+        "storage_utilization": 0.02,
+        "croi": 2400.0,
+        "score": 0.2113
+      },
+      "projects": {
+        "active_projects": 0,
+        "total_projects": 0,
+        "completed_projects": 0,
+        "abandoned_projects": 0,
+        "completion_rate": 0.0,
+        "abandonment_rate": 0.0,
+        "strategic_alignment": {
+          "mission_projects": 0.5,
+          "project_tasks": 0.5,
+          "task_actions": 0.5,
+          "overall": 0.5
+        },
+        "score": 0.4
+      },
+      "social": {
+        "niche_count": 0,
+        "exhausted_niches": 0,
+        "exhaustion_rate": 0.0,
+        "bridge_count": 0,
+        "relations": 0,
+        "collaboration_efficiency": 0.5,
+        "score": 0.4
+      },
+      "hierarchy": {
+        "subsystem_scores": {
+          "perception": 0.65,
+          "learning": 0.0838,
+          "identity": 0.725,
+          "knowledge": 0.03,
+          "resources": 0.2113,
+          "projects": 0.4,
+          "social": 0.4
+        },
+        "system_score": 0.3622,
+        "mission_score": 0.3622
+      }
+    },
+    {
+      "cycle": 5,
+      "timestamp": 1787194031.0123599,
+      "perception": {
+        "state_estimation_error": 0.0,
+        "surprise_rate": 0.0,
+        "unknown_unknown_discovery_rate": 0.0,
+        "forecast_accuracy": 0.5,
+        "counterfactual_accuracy": 0.5,
+        "score": 0.65
+      },
+      "learning": {
+        "curiosity_level": 0.35,
+        "learning_rate": 0.6158,
+        "compression_rate": 0.0,
+        "boredom_count": 0,
+        "exploration_ratio": 0.0,
+        "knowledge_yield": {
+          "observations": 30,
+          "theories": 0,
+          "predictions": 0,
+          "validated": 0,
+          "principles": 0
+        },
+        "score": 0.2736
+      },
+      "identity": {
+        "identity_entropy": 0.0,
+        "identity_continuity": 0.5,
+        "relational_coherence": 1.0,
+        "propagation": {
+          "mission_alignment": 0.5,
+          "project_alignment": 0.5,
+          "decision_alignment": 0.5
+        },
+        "score": 0.725
+      },
+      "knowledge": {
+        "representation_ecology": {
+          "mean_age": 0.0,
+          "diversity": 0.0,
+          "retirement_rate": 0.0,
+          "bridge_density": 0.0,
+          "reuse_rate": 0.0,
+          "compression_achieved": 0.0
+        },
+        "epistemic_capital": {
+          "total_ideas": 0,
+          "top_capital": 0.0
+        },
+        "theory_genealogy": {
+          "nodes": 0,
+          "roots": 0
+        },
+        "bridge_potential_avg": 0.0,
+        "score": 0.03
+      },
+      "resources": {
+        "compute_utilization": -0.425,
+        "memory_utilization": 0.01,
+        "bandwidth_utilization": 0.0009,
+        "storage_utilization": 0.02,
+        "croi": 3000.0,
+        "score": 0.2113
+      },
+      "projects": {
+        "active_projects": 0,
+        "total_projects": 0,
+        "completed_projects": 0,
+        "abandoned_projects": 0,
+        "completion_rate": 0.0,
+        "abandonment_rate": 0.0,
+        "strategic_alignment": {
+          "mission_projects": 0.5,
+          "project_tasks": 0.5,
+          "task_actions": 0.5,
+          "overall": 0.5
+        },
+        "score": 0.4
+      },
+      "social": {
+        "niche_count": 0,
+        "exhausted_niches": 0,
+        "exhaustion_rate": 0.0,
+        "bridge_count": 0,
+        "relations": 0,
+        "collaboration_efficiency": 0.5,
+        "score": 0.4
+      },
+      "hierarchy": {
+        "subsystem_scores": {
+          "perception": 0.65,
+          "learning": 0.2736,
+          "identity": 0.725,
+          "knowledge": 0.03,
+          "resources": 0.2113,
+          "projects": 0.4,
+          "social": 0.4
+        },
+        "system_score": 0.3907,
+        "mission_score": 0.3907
+      }
+    }
+  ]
+}

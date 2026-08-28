@@ -1,0 +1,5 @@
+{
+  "tests/core/test_dashboard_api.py::test_checkpoints_merge_producer_and_disk": true,
+  "tests/core/test_dashboard_api.py::test_checkpoints_are_strict_json_serializable": true,
+  "tests/core/test_dashboard_producer.py::test_producer_health_di_matches_last_real_trace": true
+}

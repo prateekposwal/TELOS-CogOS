@@ -18,12 +18,12 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (846 tests)
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (2572 tests; verified 2026-08-28)
 - **Gap scanner:** `PYTHONPATH=. python3 telos/tools/gap_scanner.py`
 - **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
 ## Status (SHIPPED — v6.1 — 2026-08-20)
-- **846 tests passing** (2 formerly-red dashboard DOM-contract tests repaired; 4 trace-schema contract tests; 6 v6 test files; +4 honest-naming / DI-faithfulness / trap-diagnostic tests)
+- **2572 tests passing** (verified 2026-08-28; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
 - **31/31 self-audit checks passing**
 - **v6 modules wired & tested**: governance (`telos/core/governance/` — `governor.py`, `capability_authorization.py`), epistemic/evidence/acquisition (`telos/world/` — `epistemic.py`, `evidence.py`, `acquisition.py`), theory experiment (`telos/core/reasoning/theory/experiment.py`), 3 domain adapters (`dev_validation.py`, `logistics_simulator.py`, `robotics_simulator.py`), 3 benchmarks (`telos/benchmarks/` `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` with `main()` CLI + provenance result JSONs)
 - **Decision trace schema contract**: canonical aliases `intent`/`discrimination_index`/`action_taken` + `budget_carryover_ms` in `to_dict()` (`telos/core/types.py`) — no consumer invents its own names (locked by `tests/core/test_trace_schema.py`)
@@ -462,3 +462,90 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 ### Metrics
 - DI: 1.000 | MD: 0.000 | Cycles: 19314
 
+
+## Session Handoff — 2026-08-26 04:49:11
+
+### Current State
+*(No current state captured)*
+
+### Decisions Made
+*(No decisions recorded)*
+
+### Open Issues
+*(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0 (step_count=pipeline=26072,log=5) | Token budget: 0.0%
+
+### Checkpoint
+- /tmp/telos_checkpoints/checkpoint_26072.json
+
+
+## Session Handoff — 2026-08-26 04:49:13
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 26072
+
+
+## Session Handoff — 2026-08-28 22:31:28
+
+### Current State
+*(No current state captured)*
+
+### Decisions Made
+*(No decisions recorded)*
+
+### Open Issues
+*(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0 (step_count=pipeline=28022,log=5) | Token budget: 0.0%
+
+### Checkpoint
+- /tmp/telos_checkpoints/checkpoint_28022.json
+
+
+## Session Handoff — 2026-08-28 22:31:30
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 28022
+
+
+## Session Handoff — 2026-08-28 (DURABLE PATTERN FIX — EDGE CAPS + SERIALIZATION THROTTLE + SHIP)
+
+### Current State
+- Session mood: deliberate
+- Shipped (committed this session): the durable wedge fix + 3 pattern fixes.
+- Test count: 2572 passing (100% green; real headless-Chromium DOM verification restored — Playwright chromium_headless_shell-1228 installed).
+- Self-audit: 31/31. Working tree: clean of unrelated edits at ship time.
+
+### Decisions Made
+- **KG edge caps** (`graph.py`): `add_edge` now enforces per-type cap (2000) + total cap (10000), oldest-first, adjacency-symmetric, hmac/checkpoint-safe. Live KG went 56,096 → ~2,005 edges and checkpoints 20.6MB → ~1.9MB within one session (measured on the live dashboard).
+- **Serialization throttle** (`producer.py`): `serialize_knowledge` + `kg.save` cached — modulo-N primary bound (default every 20 cycles), count-change freshness floored at interval/4, first cycle always initializes. Wedge root cause: 56K-edge serialization under the producer lock every 2s cycle → API requests starved (overview 15.8s, knowledge 836s+), memory thrash (2.1GB/3GB swap pinned), git `mmap failed: Operation timed out`.
+- **Checkpoint cadence** (`runtime.py` + `types.py`): `PipelineConfig.checkpoint_every_n` (default 1 = unchanged for existing consumers; producer uses 20). Save on cycle 1 (seed) + every N; shutdown final save unconditional; hmac chain links last SAVED checkpoint (sparse numbering chain-safe). Verified live: checkpoint_28560 → 28580 (every 20).
+- **Decision log wired** (`producer.py`): producer now feeds `telos/audit/runtime/decision_log.json` — bounded (500 entries, keep 250), lean canonical fields, atomic tmp+rename, flushed at knowledge-serialize cadence. The long-standing `log=5` vs pipeline 28K+ gap is CLOSED (log now shows live cycle_ids).
+- **Log rotation** (`start_dashboard.sh`): rotate oversized logs (>50MB) to `.1` on start; 122MB log truncated during recovery.
+- **bytes/str pattern fix** (`dev_validation.py`): `TimeoutExpired` carries raw bytes on py3.9 even with text=True → `_coerce_text` normalizes at the ONE source (was a latent flake: `TypeError: can't concat str to bytes` in `_extract_pass_ratio`).
+- **DOM-contract probe race** (`test_dashboard_dom_contract.py`): render-gate `waitForFunction` (strip clientHeight ≥ 400, 10s) before measuring — the fixed 1.5s wait raced dashboard.js's ~3s API retry under load (flake exposed by restoring chromium). 8/8 stable.
+- **Internal plateau (Λ3.1 honest record)**: the pipeline remains at DI=0.3 in the blocked goal_seek_recovery/blended_inquiry loop (failure_ledger full of firewall_block, belief decision_quality low=1.0, mood cautious). Recovery machinery ran untouched this session; plateau persisted — recorded truthfully, not hacked. Frontier for the next session.
+
+### Metrics
+- DI: 0.300 (plateau — recorded, unchanged) | MD: 1.94 | Swap: 2.1GB → 1.95GB draining | git mmap: still failing at session end (memory-linked; re-verify after swap drain)

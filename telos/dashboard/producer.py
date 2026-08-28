@@ -253,10 +253,23 @@ KNOWLEDGE_PATH = "/tmp/telos_knowledge.json"
 LEDGER_PATH = "/tmp/telos_ledger.json"
 IDENTITY_PATH = "/tmp/telos_identity.json"
 PATTERN_PATH = "/tmp/telos_patterns.json"
+# Decision log: the producer now feeds the SAME bounded, honest decision log
+# the handoff writer reconciles ("log=N"). Written atomically at the
+# knowledge-serialize cadence with lean canonical trace fields so it reflects
+# LIVE pipeline decisions instead of a stale interactive-only artifact.
+DECISION_LOG_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), '..', 'audit', 'runtime',
+    'decision_log.json')
+DECISION_LOG_MAX_ENTRIES = 500
 
 CYCLE_INTERVAL_S = 2.0   # live cadence between steady-state cycles
 BURST_CYCLES = 5         # warm-up cycles at boot so graphs fill within seconds
 MAX_TRACES_IN_MEMORY = 200
+# Default persistence cadence for long-lived runs: a checkpoint (~20MB with a
+# full KG) or a full-KG serialization is NOT written every 2s cycle. First
+# cycle always persists (fast restore seed); afterwards every N cycles.
+CHECKPOINT_EVERY_N_DEFAULT = 20
+KNOWLEDGE_SERIALIZE_INTERVAL_DEFAULT = 20
 
 
 def serialize_knowledge(kg: Any) -> Dict[str, list]:
@@ -351,9 +364,13 @@ class DashboardProducer:
     """
 
     def __init__(self, cycle_interval_s: float = CYCLE_INTERVAL_S,
-                 burst_cycles: int = BURST_CYCLES):
+                 burst_cycles: int = BURST_CYCLES,
+                 checkpoint_every_n: int = CHECKPOINT_EVERY_N_DEFAULT,
+                 knowledge_serialize_interval: int = KNOWLEDGE_SERIALIZE_INTERVAL_DEFAULT):
         self._cycle_interval_s = max(0.5, float(cycle_interval_s))
         self._burst_cycles = max(1, int(burst_cycles))
+        self._checkpoint_every_n = max(1, int(checkpoint_every_n))
+        self._knowledge_serialize_interval = max(1, int(knowledge_serialize_interval))
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
         self._lock = threading.RLock()
@@ -393,6 +410,14 @@ class DashboardProducer:
         self._last_cycle_at: Optional[float] = None
         self._last_error: Optional[str] = None
         self._knowledge_payload: Dict[str, list] = {"nodes": [], "edges": []}
+        # Payload cache guard: re-serialize the KG only when its node/edge
+        # counts change or the forced interval elapses (serializing 56K edges
+        # every 2s cycle was the wedge; the cache keeps the lock hold short).
+        self._knowledge_cache_guard: tuple = (-1, -1)
+        self._cycles_since_knowledge_serialize = 0
+        # Bounded live decision log (mirrors TransparencyMonitor's 500-cap
+        # 250-keep policy) so decision_log.json reflects the live pipeline.
+        self._decision_log_entries: List[Dict] = []
         # Broadcast callback injected by the serving process. Injected (not
         # imported) so there is exactly ONE module instance of the server:
         # importing telos.serve_dashboard from the producer would create a
@@ -618,6 +643,7 @@ class DashboardProducer:
             adapter=GridAdpt(), simulator=self._sim,
             compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
             checkpoint_path=CHECKPOINT_DIR,
+            checkpoint_every_n=self._checkpoint_every_n,
             knowledge_path=KNOWLEDGE_PATH,
             ledger_path=LEDGER_PATH,
             identity_path=IDENTITY_PATH,
@@ -740,14 +766,6 @@ class DashboardProducer:
             # Record REAL observations into the knowledge graph.
             self._record_knowledge(result, trace, reward, terrain_changes)
 
-            # Persist knowledge (nodes AND edges) so cold-file readers + the
-            # no-producer fallback always see the latest graph.
-            try:
-                kg = self._pipeline.infra_manager.knowledge
-                kg.save(KNOWLEDGE_PATH)
-            except Exception as e:
-                logger.warning("producer: knowledge persist failed: %r", e)
-
             # Bound the checkpoint dir: CheckpointManager prunes only
             # checkpoint_*.json; system_self_*.json and patterns_*.json
             # accumulate per-cycle. Keep the newest 20 of each.
@@ -768,8 +786,44 @@ class DashboardProducer:
                     self._traces.append(json_clean(trace_dict))
                     if len(self._traces) > MAX_TRACES_IN_MEMORY:
                         self._traces = self._traces[-MAX_TRACES_IN_MEMORY:]
+                    # Bounded live decision log (lean canonical fields —
+                    # intentional: full serialized traces live in checkpoints;
+                    # the audit log must stay small and honest).
+                    lean = self._trace_for_broadcast(trace_dict)
+                    lean["timestamp"] = trace_dict.get("timestamp", time.time())
+                    self._decision_log_entries.append(lean)
+                    if len(self._decision_log_entries) > DECISION_LOG_MAX_ENTRIES:
+                        self._decision_log_entries = self._decision_log_entries[-DECISION_LOG_MAX_ENTRIES // 2:]
 
-            self._knowledge_payload = json_clean(serialize_knowledge(self._pipeline.infra_manager.knowledge))
+            # ── Persistence throttle (Λ4.7): the expensive parts are the KG
+            # serialization, kg.save, and the decision-log write — NOT the
+            # cycle itself. Re-serialize/save only when the graph changed
+            # (node/edge counts) or the forced interval elapses; keep the
+            # cycle lock hold short and the disk churn bounded.
+            self._cycles_since_knowledge_serialize += 1
+            kg = self._pipeline.infra_manager.knowledge
+            kg_stats = kg.stats
+            kg_guard = (kg_stats["total_nodes"], kg_stats["total_edges"])
+            # Deterministic cadence: the modulo is the PRIMARY bound (serialize
+            # at most every N cycles even if the KG churns every cycle — that
+            # is the wedge-killer). A count change is a freshness trigger but
+            # floored at interval//4 so it can never degrade back to
+            # per-cycle serialization. First cycle always initializes.
+            _fresh_floor = max(1, self._knowledge_serialize_interval // 4)
+            first = self._knowledge_cache_guard == (-1, -1)
+            force = self._cycles_since_knowledge_serialize >= self._knowledge_serialize_interval
+            fresh = (kg_guard != self._knowledge_cache_guard
+                     and self._cycles_since_knowledge_serialize >= _fresh_floor)
+            if first or force or fresh:
+                self._knowledge_payload = json_clean(serialize_knowledge(kg))
+                self._knowledge_cache_guard = kg_guard
+                self._cycles_since_knowledge_serialize = 0
+                try:
+                    kg.save(KNOWLEDGE_PATH)
+                except Exception as e:
+                    logger.warning("producer: knowledge persist failed: %r", e)
+                self._flush_decision_log()
+
             self._worlds_simulated_total += int(trace.worlds_simulated if trace else 0)
             self._last_cycle_at = time.time()
 
@@ -1057,6 +1111,27 @@ class DashboardProducer:
             return {}
         return {k: trace_dict[k] for k in self.BROADCAST_TRACE_FIELDS if k in trace_dict}
 
+    def _flush_decision_log(self) -> None:
+        """Write the bounded live decision log atomically (Λ2.3: failures
+        are logged, never silent; a failed audit write must not break the
+        cycle). Schema matches TransparencyMonitor's canonical contract so
+        the handoff writer's `log_total_cycles` reconciliation reads real
+        live totals."""
+        try:
+            data = {
+                "version": "1.0",
+                "total_cycles": len(self._decision_log_entries),
+                "traces": self._decision_log_entries,
+            }
+            path = os.path.abspath(DECISION_LOG_PATH)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump(data, f, indent=2, default=str)
+            os.replace(tmp, path)
+        except Exception as e:
+            logger.warning("producer: decision log flush failed: %r", e)
+
     def _broadcast_trace(self, trace_dict: Dict) -> None:
         """Push a LEAN trace + slim overview via the injected callback.
 
@@ -1092,6 +1167,7 @@ class DashboardProducer:
     def overview_payload(self) -> Dict[str, Any]:
         """Slim overview for broadcasts — excludes the heavy traces list."""
         with self._lock:
+            trace = self._traces[-1] if self._traces else None  # last trace once, None-guarded (pattern: bind guard-conditional vars once)
             return {
                 "producer": {
                     "running": self.is_running,
@@ -1103,6 +1179,18 @@ class DashboardProducer:
                 "recent_decisions": [self._story_decision(t) for t in self._traces[-8:]],
                 "di": self._traces[-1].get("decision_integrity", 0.0) if self._traces else 0.0,
                 "md": self._traces[-1].get("mission_drift", 0.0) if self._traces else 0.0,
+                # Axiom coverage: fraction of active axioms with recent trace evidence
+                "explain_axiom_coverage": float(
+                    sum(
+                        1.0 for aid, res in (trace.get("axiom_results") or {}).items()
+                        if res.get("passed", False)
+                    )
+                    / max(len(trace.get("axiom_results") or {}), 1)
+                ) if trace else 0.0,
+                # Magnitude of the last selected action (control force)
+                "control_action_force": float(
+                    np.linalg.norm(trace.get("selected_action", [0, 0, 0])) if trace and trace.get("selected_action") else 0.0
+                ),
                 "health": float(self._traces[-1].get("health_score", 0.5)) if self._traces else 0.5,
                 "score": self._system_score,
                 "score_components": self._score_components,

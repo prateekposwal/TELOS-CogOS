@@ -17,6 +17,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PORT=8765
 PIDFILE="/tmp/telos_dashboard.pid"
 LOGFILE="/tmp/telos_dashboard.log"
+# Log rotation: keep the live log bounded so a week-long run cannot grow a
+# 122MB unbounded append (the wedge session's log was 122MB). On start, if
+# the log exceeds this size, rotate it to LOGFILE.1 (single rotated copy
+# kept) and start fresh.
+ROTATE_LOG_BYTES=52428800   # 50MB
 
 port_alive() {
   curl -sf -o /dev/null "http://localhost:${PORT}/"
@@ -98,6 +103,10 @@ cmd_start() {
     fi
   fi
   cd "$HERE"
+  if [ -f "$LOGFILE" ] && [ "$(stat -f%z "$LOGFILE" 2>/dev/null || echo 0)" -gt "$ROTATE_LOG_BYTES" ]; then
+    mv -f "$LOGFILE" "$LOGFILE.1" 2>/dev/null || true
+    echo "TELOS dashboard: rotated oversized log to $LOGFILE.1" >&2
+  fi
   nohup python3 -u serve_dashboard.py >> "$LOGFILE" 2>&1 &
   echo $! > "$PIDFILE"
   for _ in $(seq 1 40); do
