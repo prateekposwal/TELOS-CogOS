@@ -18,12 +18,12 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (2572 tests; verified 2026-08-28)
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (2590 tests; verified 2026-08-29)
 - **Gap scanner:** `PYTHONPATH=. python3 telos/tools/gap_scanner.py`
 - **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
 ## Status (SHIPPED — v6.1 — 2026-08-20)
-- **2572 tests passing** (verified 2026-08-28; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
+- **2590 tests passing** (verified 2026-08-29; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
 - **31/31 self-audit checks passing**
 - **v6 modules wired & tested**: governance (`telos/core/governance/` — `governor.py`, `capability_authorization.py`), epistemic/evidence/acquisition (`telos/world/` — `epistemic.py`, `evidence.py`, `acquisition.py`), theory experiment (`telos/core/reasoning/theory/experiment.py`), 3 domain adapters (`dev_validation.py`, `logistics_simulator.py`, `robotics_simulator.py`), 3 benchmarks (`telos/benchmarks/` `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` with `main()` CLI + provenance result JSONs)
 - **Decision trace schema contract**: canonical aliases `intent`/`discrimination_index`/`action_taken` + `budget_carryover_ms` in `to_dict()` (`telos/core/types.py`) — no consumer invents its own names (locked by `tests/core/test_trace_schema.py`)
@@ -549,3 +549,24 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 
 ### Metrics
 - DI: 0.300 (plateau — recorded, unchanged) | MD: 1.94 | Swap: 2.1GB → 1.95GB draining | git mmap: still failing at session end (memory-linked; re-verify after swap drain)
+
+
+## Session Handoff — 2026-08-29 (SELF-HEAL — PLATEAU ROOT-CAUSED + MEMORY + GIT + SHIP)
+
+### Current State
+- Session mood: deliberate → sustained relief
+- Shipped (committed this session): the plateau's root cause (misattribution of governance suppression as evidence), the final memory/fidelity staleness trap, /api/checkpoints caching, a producer memory guard, and the select.py CommitmentScore warning.
+- Test count: 2590 passing (100% green, real headless Chromium; +18 tests this session). Self-audit 31/31.
+- **The 30K-cycle DI=0.3 plateau is BROKEN through designed mechanisms**: DI is 1.0 sustained, episodes complete OPTIMALLY (8/8 moves, efficiency 1.0, ×2 verified), reward flows. Not hacked — attribution fixed.
+
+### Decisions Made
+- **Plateau root cause (Λ6.5, log-grounded)**: the loop's OWN governance blocks were misattributed as evidence. `MemoryAdvisor: BLOCK "approach 'goal_seek_recovery' failed previously (outcome=0.15) — governance_intervention"` + `EvidenceProvenanceValidator: BLOCK "...no action for 1204 consecutive cycles (falsified loop)"` every cycle. Chain: vetoed selections recorded as KG approach-failures (knowledge_manager) → MemoryAdvisor blocked the suppressed approach (its ledger path already filters governance; the KG path didn't) → the evidence advisor scored the DESIGNED escape type falsified by the arming counter its suppressed attempts accumulate → DI floored at DissentFloor 0.3 → firewall blocked low_integrity → re-recorded → permanent attractor. Plus a frozen reality-gap: 47 dissent rows all `recent_gap=2.88` with ZERO acted cycles — the tracker's single stale record vetoed ACT via model_fidelity forever.
+- **Canonical rule shipped**: governance suppression is NOT evidence; stale validation is NOT current falsification. `telos/core/governance/recovery_types.py` = one canonical source (inquiry/recovery exempt sets + GOVERNANCE_SUPPRESSION_REASONS). Sites: KnowledgeManager skips vetoed recordings; MemoryAdvisor KG path mirrors its ledger filter; EvidenceProvenanceValidator exempts recovery types (blended_inquiry dissent kept by design) and reads recency-aware currently_falsified; ModelRealityGap.last_validation_cycle stamps each real validation; act-gate fidelity returns "currently unvalidated" (act-then-learn) when the per-step gap is stale (short 5-cycle window) — the 300-cycle truth window would lock ACT out ~300 cycles after one divergent step.
+- **Risk gate staleness** (`_md_with_staleness`): the governor EWMA decayed toward a FROZEN recent_mean_gap during blocked streaks (absence of validation ≠ sustained divergence).
+- **select.py:669 fix**: CommitmentScore documented `identity_violation` but defines `identity_cost` — j_term_breakdown raised AttributeError every cycle (Kintsugi-logged). Only affects the dashboard J-breakdown display.
+- **/api/checkpoints cache** (serve_dashboard): file-merged portion cached keyed on (dir, name, mtime_ns, size); invalidates on any write. 1.47s → 0.15s.
+- **Producer memory guard**: `rss_peak_kb` logged every serialize interval + in snapshot. Verified FLAT at ~103MB across samples (bounded). Old 21MB checkpoints fully pruned (dir 18MB); decision log flowing (300+ live entries, bounded 500).
+- **git mmap resolved**: 3/3 sequential `git status` calls OK at session end (was `fatal: mmap failed` every call). Swap still ~2GB with editor+system services resident — draining, not pinned by TELOS (producer RSS flat).
+
+### Metrics
+- DI: **1.000** (was 0.300 pinned ~30K cycles) | MD: ~1.5 council-horizon (world-model per-step gap ~0.98, live) | Episodes: 2 completed, optimal 8/8 | RSS: flat 103MB | git: healthy 3/3

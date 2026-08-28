@@ -34,6 +34,14 @@ class EpistemicState(str, Enum):
     UNMODELED = "UNMODELED"
 
 
+# A model whose last REAL validation (an acted cycle's prediction-vs-observation
+# record) is older than this many cycles is "currently unvalidated" — its gap
+# history is frozen, not fresh. Stale evidence is not current falsification
+# (Λ6.5): reporting an ancient gap as today's model state is what locked the
+# no-action trap (a single 2.88 gap, never refreshed, vetoed ACT forever).
+STALE_MODEL_VALIDATION_CYCLES = 300
+
+
 @dataclass
 class ModelRealityGap:
     """Per-model reality-gap tracker.
@@ -49,6 +57,7 @@ class ModelRealityGap:
     total_gap: float = 0.0
     gap_history: List[float] = field(default_factory=list)
     ever_falsified: bool = False
+    last_validation_cycle: Optional[int] = None
     _max_history: int = 50
     _falsification_threshold: float = 0.6
 
@@ -74,16 +83,43 @@ class ModelRealityGap:
     def is_falsified(self) -> bool:
         return self.ever_falsified
 
+    def currently_falsified(self, now_cycle: Optional[int] = None) -> bool:
+        """Whether the model is falsified by CURRENT evidence.
+
+        Contrast with the sticky ``is_falsified`` (ever falsified). Honesty
+        rule (Λ6.5): a gap history that has not been refreshed within
+        STALE_MODEL_VALIDATION_CYCLES is frozen, not fresh — absence of new
+        validation is uncertainty, not ongoing falsification. Fresh evidence
+        scores on the recent window: recovered models (recent mean gap below
+        threshold) are no longer falsified.
+
+        Args:
+            now_cycle: current pipeline cycle (None = no recency judgement).
+
+        Returns:
+            True only when evidence is fresh AND the recent mean gap exceeds
+            the falsification threshold.
+        """
+        if (self.last_validation_cycle is not None and now_cycle is not None
+                and (now_cycle - self.last_validation_cycle)
+                > STALE_MODEL_VALIDATION_CYCLES):
+            return False
+        recent = self.recent_mean_gap or 0.0
+        return self.ever_falsified and recent > self._falsification_threshold
+
     @property
     def tested(self) -> bool:
         return self.validation_count > 0
 
-    def record(self, predicted: np.ndarray, observed: np.ndarray) -> float:
+    def record(self, predicted: np.ndarray, observed: np.ndarray,
+               cycle: Optional[int] = None) -> float:
         """Record one prediction-vs-observation and update gap stats.
 
         Args:
             predicted: the model's predicted vector for a step.
             observed: the observed vector the world actually produced.
+            cycle: pipeline cycle of this validation (recency stamp — lets
+                consumers distinguish CURRENT falsification from stale).
 
         Returns the MD gap for this observation.
         """
@@ -95,6 +131,8 @@ class ModelRealityGap:
         else:
             gap = float(np.linalg.norm(np.asarray(predicted) - np.asarray(observed)))
         self.validation_count += 1
+        if cycle is not None:
+            self.last_validation_cycle = cycle
         self.total_gap += gap
         self.gap_history.append(gap)
         if len(self.gap_history) > self._max_history:
@@ -110,6 +148,7 @@ class ModelRealityGap:
             "mean_gap": round(self.mean_gap, 4),
             "ever_falsified": self.ever_falsified,
             "tested": self.tested,
+            "last_validation_cycle": self.last_validation_cycle,
             "recent_gap": round(self.gap_history[-1], 4) if self.gap_history else None,
         }
 
@@ -134,17 +173,28 @@ class RealityGapTracker:
         return self._models[model_id]
 
     def record(self, model_id: str, predicted: np.ndarray,
-               observed: np.ndarray) -> float:
-        return self.model(model_id).record(predicted, observed)
+               observed: np.ndarray, cycle: Optional[int] = None) -> float:
+        return self.model(model_id).record(predicted, observed, cycle=cycle)
 
-    def model_fidelity(self, model_id: str) -> Optional[float]:
+    def model_fidelity(self, model_id: str,
+                       now_cycle: Optional[int] = None,
+                       stale_window: Optional[int] = None) -> Optional[float]:
         """0-1 fidelity estimate from the RECENT reality-gap window.
 
         Args:
             model_id: the model whose recent reality-gap window is queried.
+            now_cycle: current pipeline cycle; with a recency stamp on the
+                model this makes stale evidence "currently unvalidated" and
+                returns None instead of a frozen veto.
+            stale_window: how many cycles without a REAL validation before the
+                model counts as stale (defaults to the truth window
+                STALE_MODEL_VALIDATION_CYCLES; the act gate passes a short
+                window because a per-step gap is only current for a few cycles
+                in a dynamically-shifting world).
 
-        Returns None if the model is unfalsified (untested) — you cannot claim
-        fidelity without validation. Untested != reliable.
+        Returns None if the model is currently unvalidated (untested OR stale)
+        — you cannot claim fidelity without current validation.
+        Untested/stale != reliable.
 
         Uses the recent-window mean (not cumulative), so a past falsification
         does NOT permanently keep fidelity at zero: after sustained corrective
@@ -152,6 +202,14 @@ class RealityGapTracker:
         """
         m = self._models.get(model_id)
         if m is None or not m.tested or not m.gap_history:
+            return None
+        # Stale evidence is not current truth (Λ6.5): if the model was last
+        # REALLY validated too long ago, its recent_gap is frozen — report
+        # "currently unvalidated" (None, act-then-learn) rather than a stale
+        # veto. This is what lets a no-action trap recover once motion flows.
+        _window = stale_window or STALE_MODEL_VALIDATION_CYCLES
+        if (now_cycle is not None and m.last_validation_cycle is not None
+                and (now_cycle - m.last_validation_cycle) > _window):
             return None
         # fidelity = 1 - recent_mean_gap, clamped to [0,1]
         return float(np.clip(1.0 - m.recent_mean_gap, 0.0, 1.0))

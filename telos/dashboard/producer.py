@@ -34,6 +34,7 @@ Structural rules (v7 additions):
 """
 
 import glob as _glob
+import sys
 import heapq
 import json
 import logging
@@ -457,6 +458,7 @@ class DashboardProducer:
                     "cycles": self._cycles,
                     "last_cycle_at": self._last_cycle_at,
                     "last_error": self._last_error,
+                    "rss_peak_kb": self._rss_peak_kb(),
                 },
                 "decisions": self._cycles,
                 "traces": traces,
@@ -823,6 +825,12 @@ class DashboardProducer:
                 except Exception as e:
                     logger.warning("producer: knowledge persist failed: %r", e)
                 self._flush_decision_log()
+                rss = self._rss_peak_kb()
+                if rss is not None:
+                    logger.info(
+                        "producer: cycle=%d rss_peak_kb=%d (memory guard)",
+                        self._cycles, rss,
+                    )
 
             self._worlds_simulated_total += int(trace.worlds_simulated if trace else 0)
             self._last_cycle_at = time.time()
@@ -840,6 +848,22 @@ class DashboardProducer:
         # Broadcast OUTSIDE the lock (network I/O must not stall the cycle).
         if trace_dict is not None:
             self._broadcast_trace(trace_dict)
+
+    @staticmethod
+    def _rss_peak_kb() -> Optional[int]:
+        """Peak resident set size in KB (resource.ru_maxrss; macOS reports
+        bytes, Linux KB — normalize). The producer's honesty memory guard:
+        monotone peak RSS is logged every knowledge-serialize interval and
+        exposed via /api/status so a leak is observable, never silent."""
+        try:
+            import resource
+            raw = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            # macOS ru_maxrss is in BYTES; Linux/BSD report KB already.
+            if sys.platform == "darwin":
+                return raw // 1024
+            return raw
+        except Exception:
+            return None
 
     def _apply_action(self, state: np.ndarray, action: np.ndarray) -> np.ndarray:
         """Legal-route executor for the selected action (BFS/A*).

@@ -178,7 +178,12 @@ class KnowledgeManager:
 
         if outcome > 0.6:
             self.recorder.success(domain, approach_name, outcome, tags=[domain, "pipeline"])
-        elif failure is not None:
+        elif failure is not None and not (result.council_blocked or result.firewall_blocked):
+            # A vetoed selection (council/firewall suppression) never TESTED the
+            # approach — recording it as an approach failure is misattribution
+            # (it poisons MemoryAdvisor's search_failures with a node that
+            # blocks the exact type that was suppressed). Suppression is not
+            # evidence (Λ4.7/Λ6.5); the producer separately records the blocker.
             params = {}
             if hasattr(failure, 'blocked_by') and failure.blocked_by:
                 params["blocking_validator"] = failure.blocked_by
