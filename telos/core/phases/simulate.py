@@ -6,6 +6,29 @@ from telos.core.reasoning.causal.scm import StructuralCausalModel
 logger = logging.getLogger('telos_pipeline')
 
 
+def counterfactual_budget(mode: str, n_worlds: int, peak_confidence: float) -> int:
+    """v7 E: per-cycle counterfactual simulation budget.
+
+    Fast mode makes the budget explicit: high-confidence routine cycles
+    (peak stream confidence >= 0.8) roll a single world (C_simulate ~= 0);
+    all other fast cycles run at half the configured budget. Standard /
+    research / debug modes are UNCHANGED (full budget) — behavior-preserving.
+
+    Args:
+        mode: pipeline mode string.
+        n_worlds: configured (effective) world count.
+        peak_confidence: max confidence across this cycle's stream intents.
+
+    Returns:
+        World count for this cycle's counterfactual generation (>= 1).
+    """
+    if mode != "fast":
+        return max(1, int(n_worlds))
+    if peak_confidence >= 0.8:
+        return 1
+    return max(1, int(n_worlds) // 2)
+
+
 class SimulatePhase(Phase):
     name = "simulate"
 
@@ -38,9 +61,25 @@ class SimulatePhase(Phase):
                     "maintenance_ratio": alloc.maintenance_ratio,
                 } if alloc else None
 
+                # ── v7 E: Counterfactual budget (fast mode, confidence-gated) ──
+                # Routine high-confidence cycles do NOT need full multi-world
+                # counterfactuals: confidence >= 0.8 -> 1 world (cheap
+                # roll-ahead, C_simulate ~= 0); otherwise the configured world
+                # count stands. Standard mode is UNCHANGED (full budget).
+                sim_n_worlds = ctx.effective_n_worlds
+                if pipeline.config.is_fast_mode:
+                    peak_conf = 0.0
+                    for _intent, _conf in (getattr(ctx, "intents", None) or []):
+                        try:
+                            peak_conf = max(peak_conf, float(_conf))
+                        except (TypeError, ValueError):
+                            pass
+                    sim_n_worlds = counterfactual_budget(
+                        pipeline.config.mode, ctx.effective_n_worlds, peak_conf)
+
                 # Use SCM-based generation when possible, fallback to standard
                 ctx.sim_options = pipeline._sim_engine.generate_options(
-                    ctx.state, ctx.effective_horizon, ctx.effective_n_worlds,
+                    ctx.state, ctx.effective_horizon, sim_n_worlds,
                     attention_allocation=alloc_dict,
                     cycle=getattr(ctx, 'cycle_count', 0),
                 )

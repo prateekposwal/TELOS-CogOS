@@ -44,7 +44,8 @@ class CouncilPhase(Phase):
         deliberation_rounds = 0
         try:
             debate = getattr(pipeline, '_internal_debate', None)
-            if debate is not None and ctx.selected_intent is not None:
+            if (debate is not None and ctx.selected_intent is not None
+                    and not getattr(pipeline.config, 'skip_advisory_layers', False)):
                 debate_result = debate.debate(
                     context={
                         "uncertainty": getattr(ctx, 'inquiry_omega_value', 0.5),
