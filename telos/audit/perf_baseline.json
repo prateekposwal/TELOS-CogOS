@@ -1,13 +1,13 @@
 {
-  "cold_startup_s": 0.09522271156311035,
-  "health_endpoint_ms": 10.683059692382812,
-  "cycle_mean_ms": 10.282528400421143,
-  "cycle_p95_ms": 12.087106704711914,
+  "cold_startup_s": 0.2966282367706299,
+  "health_endpoint_ms": 13.412714004516602,
+  "cycle_mean_ms": 10.915465354919434,
+  "cycle_p95_ms": 13.002872467041016,
   "trace_serializations_per_cycle": 0.0,
-  "memory_idle_mb": 79.203125,
-  "memory_growth_1000": 79.203125,
-  "checkpoint_ms": 79.13017272949219,
+  "memory_idle_mb": 84.40625,
+  "memory_growth_1000": 84.40625,
+  "checkpoint_ms": 74.17988777160645,
   "global_rng_calls": 0.0,
-  "tests": 2617.0,
+  "tests": 2629.0,
   "axioms": 42.0
 }

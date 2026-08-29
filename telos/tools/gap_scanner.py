@@ -423,6 +423,19 @@ def check_vision_v2():
             for m in re.finditer(r"`([^`]+)`", line):
                 archived_lines.add(m.group(1))
 
+    # INTENTIONAL_EXEMPTIONS -- modules that exist but are DOCUMENTED as not
+    # imported by runtime.py / pipeline_finalize.py BY DESIGN (sibling
+    # services, external bridges). Flagging them as "not imported" would call
+    # a deliberate architectural boundary a failure -- so they are a named
+    # intentional exemption, not a skipped check (any NEW unimported module
+    # that is NOT in this list still fails).
+    INTENTIONAL_EXEMPTIONS = frozenset({
+        # telos/core/server_bridge.py -- the MD-App bridge is a SIBLING
+        # service: the parent mobile-desktop app talks to it directly; the
+        # cognitive kernel must not import the app front-end (layering).
+        "telos/core/server_bridge.py",
+    })
+
     missing_files = []
     not_imported_or_wired = []
 
@@ -434,6 +447,8 @@ def check_vision_v2():
             continue
         # skip self-reference: runtime.py does not need to import itself
         if p == "telos/core/runtime.py":
+            continue
+        if p in INTENTIONAL_EXEMPTIONS:
             continue
         mod_path = p.replace(".py", "").replace("/", ".")
         if mod_path not in runtime_content and mod_path not in pipeline_content:
