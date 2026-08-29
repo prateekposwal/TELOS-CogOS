@@ -73,12 +73,20 @@ class ResourceLedgerBackend(ABC):
 
 
 class DictLedgerBackend(ResourceLedgerBackend):
-    """In-memory storage (default backend)."""
+    """In-memory storage (default backend).
 
-    def __init__(self):
+    The committed trail is bounded (oldest-first): a long-lived run that
+    records every cycle must not retain every record forever (Λ4.7 retention
+    caps — same class as the KG edge cap). `max_records` bounds `_records`;
+    the per-cycle index is pruned in lockstep so it never holds cycles whose
+    records were evicted.
+    """
+
+    def __init__(self, max_records: int = 5000):
         self._records: List[Dict] = []
         self._by_action: Dict[str, Dict] = {}
         self._by_cycle: Dict[int, List[Dict]] = {}
+        self._max_records = max_records
 
     def commit(self, records: List[Dict]) -> None:
         for r in records:
@@ -90,6 +98,24 @@ class DictLedgerBackend(ResourceLedgerBackend):
             if cycle not in self._by_cycle:
                 self._by_cycle[cycle] = []
             self._by_cycle[cycle].append(r)
+            self._enforce_cap()
+
+    def _enforce_cap(self) -> None:
+        """Evict oldest committed records past max_records."""
+        excess = len(self._records) - self._max_records
+        if excess <= 0:
+            return
+        evicted = self._records[:excess]
+        del self._records[:excess]
+        for r in evicted:
+            cycle = r.get("cycle", -1)
+            bucket = self._by_cycle.get(cycle)
+            if bucket:
+                for rec in list(bucket):
+                    if rec is r:
+                        bucket.remove(rec)
+                if not bucket:
+                    del self._by_cycle[cycle]
 
     def query(self, action_id: str) -> Optional[Dict]:
         return self._by_action.get(action_id)

@@ -45,13 +45,18 @@ class DecisionMempool:
 
     Config:
         max_pending: Maximum number of pending entries (default: 100)
+        max_history: Maximum confirmed+rejected entries retained (default: 500).
+            Pending is bounded by max_pending; the settled trail must be
+            bounded too or a long-lived run leaks one MempoolEntry per cycle
+            (Λ4.7 retention caps — the same class as the KG edge cap).
     """
 
-    def __init__(self, max_pending: int = 100):
+    def __init__(self, max_pending: int = 100, max_history: int = 500):
         self._pending: List[MempoolEntry] = []
         self._confirmed: List[MempoolEntry] = []
         self._rejected: List[MempoolEntry] = []
         self._max_pending = max_pending
+        self._max_history = max_history
 
     def submit(self, intent: Any, stream_name: str = "unknown",
                timestamp: Optional[float] = None) -> str:
@@ -100,6 +105,7 @@ class DecisionMempool:
                 entry.status = MempoolStatus.CONFIRMED
                 self._confirmed.append(entry)
                 self._pending.pop(i)
+                self._enforce_history_cap()
                 logger.debug(f"Mempool: confirmed {intent_id}")
                 return True
         logger.warning(f"Mempool: cannot confirm unknown intent {intent_id}")
@@ -121,9 +127,24 @@ class DecisionMempool:
                 entry.rejection_reason = reason
                 self._rejected.append(entry)
                 self._pending.pop(i)
+                self._enforce_history_cap()
                 logger.debug(f"Mempool: rejected {intent_id} ({reason})")
                 return True
         return False
+
+    def _enforce_history_cap(self) -> None:
+        """Bound the settled trail (confirmed+rejected) to max_history."""
+        settled = len(self._confirmed) + len(self._rejected)
+        if settled <= self._max_history:
+            return
+        excess = settled - self._max_history
+        for lst in (self._confirmed, self._rejected):
+            drop = min(excess, len(lst))
+            if drop:
+                del lst[:drop]
+                excess -= drop
+            if excess <= 0:
+                return
 
     def get_pending(self) -> List[MempoolEntry]:
         """Get all pending decisions visible before commitment."""
