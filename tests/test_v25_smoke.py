@@ -254,6 +254,8 @@ class TestAxiomEvolutionSmoke:
         if prop:
             result = aee.review(proposal_id=prop.id, approved=True)
             assert result is True
+            from telos.core.axioms.registry import AXIOMS
+            AXIOMS[:] = [a for a in AXIOMS if a["id"] != prop.id]
 
     def test_to_dict(self):
         from telos.core.axioms.evolution import AxiomEvolutionEngine

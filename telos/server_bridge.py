@@ -96,7 +96,15 @@ def dish_region(dish):
 
 def region_rank(region, target_regions):
     """0 = exact user region, 1 = other concrete region, 2 = region-agnostic.
-    Lower is better."""
+    Lower is better.
+
+    Args:
+        region: the region to score (may be None).
+        target_regions: iterable of the user's preferred regions.
+
+    Returns:
+        int rank 0/1/2 as described.
+    """
     if not region:
         return 2
     for t in target_regions:
@@ -154,7 +162,19 @@ def health_boost(dish, goal):
 
 
 def score_dish(dish, slot, diet, regions, pantry, goal):
-    """0..1 heuristic score: diet > region > slot > pantry > health."""
+    """0..1 heuristic score: diet > region > slot > pantry > health.
+
+    Args:
+        dish: dish dict (name/tags/region/...).
+        slot: meal slot constraint (None = no constraint).
+        diet: dietary constraint string.
+        regions: preferred region list.
+        pantry: pantry-availability dict.
+        goal: health-goal string (may be None).
+
+    Returns:
+        Float score in [0, 1], or None when a hard constraint fails.
+    """
     if not dish_ok_for_diet(dish, diet):
         return None
     if not dish_ok_for_slot(dish, slot):

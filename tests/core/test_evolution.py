@@ -151,6 +151,10 @@ class TestToDict:
         engine.propose("B", "d", AxiomLayer.NEW_LAYER, "r", ["e"], "s")
         pending = engine.get_pending_proposals()[0]
         engine.review(pending.id, approved=True)
+        # hygiene: evolution write-through registers into the module-global
+        # AXIOMS — remove it so the constitution count stays 42 for later tests
+        from telos.core.axioms.registry import AXIOMS
+        AXIOMS[:] = [a for a in AXIOMS if a["id"] != pending.id]
         d = engine.to_dict()
         assert d["total_proposals"] == 2
         assert d["pending"] == 1

@@ -81,7 +81,15 @@ class TelemetryCollector:
         def _field(name, default):
             """Real DecisionTrace: pure attribute access — NEVER serialized on
             this path (the contract's <=1 hot-path serialization). Dict-backed
-            stand-ins (tests): fall back to their to_dict() shape."""
+            stand-ins (tests): fall back to their to_dict() shape.
+
+            Args:
+                name: DecisionTrace attribute key to read.
+                default: value returned when the attribute/field is absent.
+
+            Returns:
+                The field value (or ``default``).
+            """
             if _is_real:
                 v = getattr(trace, name, _missing)
                 return default if v is None else v

@@ -163,6 +163,10 @@ class TestCompiledAxioms:
 
     def test_no_axiom_source_reparse_during_run(self, tmp_path, monkeypatch):
         import builtins
+        # ensure the registry is already imported (import timing must never
+        # count inside this test's open-monkeypatch window)
+        from telos.core.axioms.registry import AXIOMS as _AX  # noqa: F401
+        assert len(_AX) >= 42
         real_open = builtins.open
         reads = {"axioms_md": 0, "registry": 0}
 
