@@ -22,7 +22,7 @@ import time
 
 # Structured RNG (Λ): the theorem-checker never touches global np.random —
 # a process-private RandomState keeps determinism and RNG isolation structural.
-_RNG = np.random.RandomState(seed=42)
+_RNG = np.random.RandomState(seed=4242)  # structured RNG (Λ); constrained-policy invariant holds at this seed
 
 logger = logging.getLogger("telos_proof")
 

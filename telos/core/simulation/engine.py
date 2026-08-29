@@ -534,8 +534,17 @@ class DeterministicCounterfactualEngine:
         self, initial_state: np.ndarray, horizon: int, rng_seed: int
     ) -> Dict[str, Any]:
         """Run simulation twice from the exact same saved RNG state.
-        
-        Returns a dict with determinism verification result and trajectory hashes.
+
+        Determinism verification helper: the same seed must produce the same
+        trajectory hashes regardless of intervening engine usage.
+
+        Args:
+            initial_state: world state to simulate from (both runs).
+            horizon: simulation horizon in steps.
+            rng_seed: the seed both runs are reset to before simulating.
+
+        Returns:
+            Dict with determinism verification result and trajectory hashes.
         """
         # 1. Capture the RNG state at seed s
         import numpy as np
