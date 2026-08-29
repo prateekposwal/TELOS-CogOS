@@ -10,6 +10,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
+from telos.core.types import DecisionTrace
 
 logger = logging.getLogger('telos_telemetry')
 
@@ -65,52 +66,100 @@ class TelemetryCollector:
         if trace is None:
             return
 
-        td = trace.to_dict() if hasattr(trace, 'to_dict') else {}
+        # Λ4.7 hot path (v7): read the trace's OWN scalar fields. The full
+        # to_dict() serialization is reserved for checkpoint/API/audit events —
+        # telemetry only needs ~12 scalars, so converting the whole DecisionTrace
+        # (belief_state, axiom_results, reasoning_witness, ...) to a dict every
+        # cycle was a wasteful hot-path rebuild (measured 1.003 serializations/
+        # cycle at baseline; should be ~0 here).
+        # Hybrid accessor: real DecisionTrace instances expose dataclass
+        # attributes (short-circuits, never serializes); dict-backed stand-ins
+        # (tests) fall back to their to_dict() shape.
+        _missing = object()
+        _is_real = isinstance(trace, DecisionTrace)
 
-        self.record("di", td.get("decision_integrity", 0), cycle)
-        self.record("md", td.get("mission_drift", 0), cycle)
-        self.record("budget_consumed", td.get("budget_consumed_ms", 0), cycle)
-        self.record("budget_total", td.get("budget_total_ms", 0), cycle)
-        self.record("worlds_simulated", td.get("worlds_simulated", 0), cycle)
-        self.record("cycle_duration", td.get("cycle_duration_ms", 0), cycle)
-        self.record("health", td.get("health_score", 1.0), cycle)
-        self.record("council_validated", 1.0 if td.get("council_validated") else 0.0,
-                    cycle)
-        self.record("firewall_blocked", 1.0 if td.get("firewall_blocked") else 0.0,
-                    cycle)
+        def _field(name, default):
+            """Real DecisionTrace: pure attribute access — NEVER serialized on
+            this path (the contract's <=1 hot-path serialization). Dict-backed
+            stand-ins (tests): fall back to their to_dict() shape."""
+            if _is_real:
+                v = getattr(trace, name, _missing)
+                return default if v is None else v
+            v = getattr(trace, name, _missing)
+            if v is _missing or v is None:
+                if hasattr(trace, "to_dict"):
+                    v = trace.to_dict().get(name, default)
+            return default if v is None else v
+
+        def _g(name, default):
+            return float(_field(name, default))
+
+        self.record("di", _g("decision_integrity", 0.0), cycle)
+        self.record("md", _g("mission_drift", 0.0), cycle)
+        self.record("budget_consumed", _g("budget_consumed_ms", 0.0), cycle)
+        self.record("budget_total", _g("budget_total_ms", 0.0), cycle)
+        self.record("worlds_simulated", _g("worlds_simulated", 0.0), cycle)
+        self.record("cycle_duration", _g("cycle_duration_ms", 0.0), cycle)
+        self.record("health", _g("health_score", 1.0), cycle)
+        self.record("council_validated",
+                    1.0 if getattr(trace, "council_validated", True) else 0.0, cycle)
+        self.record("firewall_blocked",
+                    1.0 if getattr(trace, "firewall_blocked", False) else 0.0, cycle)
 
         # P2.2: Record escalation events
-        self.record("escalation_requested", 1.0 if td.get("escalation_requested") else 0.0,
+        self.record("escalation_requested",
+                    1.0 if getattr(trace, "escalation_requested", False) else 0.0,
                     cycle)
         # P2.2: Record policy_mode (recovery mode active)
         policy_mode = 0.0
-        if trace and hasattr(trace, 'reflection') and trace.reflection:
-            policy_mode = 1.0 if trace.reflection.get("policy_mode", False) else 0.0
+        reflection = getattr(trace, "reflection", None)
+        if reflection and isinstance(reflection, dict):
+            policy_mode = 1.0 if reflection.get("policy_mode", False) else 0.0
         self.record("policy_mode", policy_mode, cycle)
 
-        # Stream-level metrics
-        for sa in td.get("stream_activations", []):
-            name = sa.get("name", "unknown")
+        # Stream-level metrics (direct attribute access on StreamActivation;
+        # dict-shaped entries from serialized stand-ins also supported)
+        _stream_acts = _field("stream_activations", None) or []
+        for sa in (_stream_acts or []):
+            name = getattr(sa, "stream_name", None)
+            if not name and isinstance(sa, dict):
+                name = sa.get("name", "unknown")
+            name = name or "unknown"
+            activated = getattr(sa, "activated", False)
+            if isinstance(sa, dict):
+                activated = sa.get("activated", False)
             self.record(f"stream.{name}.activated",
-                        1.0 if sa.get("activated") else 0.0, cycle,
+                        1.0 if activated else 0.0, cycle,
                         tags={"stream": name})
+            cost = getattr(sa, "cost_ms", 0)
+            if isinstance(sa, dict):
+                cost = sa.get("cost_ms", 0)
             self.record(f"stream.{name}.cost",
-                        sa.get("cost_ms", 0), cycle,
+                        float(cost or 0), cycle,
                         tags={"stream": name})
-            if sa.get("intent_type"):
+            intent = getattr(sa, "intent", None)
+            if isinstance(sa, dict):
+                intent = sa.get("intent")
+            if intent is not None:
+                conf = getattr(intent, "confidence", None)
+                if conf is None and isinstance(intent, dict):
+                    conf = intent.get("confidence", 0)
                 self.record(f"stream.{name}.confidence",
-                            sa.get("intent", {}).get("confidence", 0) if isinstance(sa.get("intent"), dict) else 0,
-                            cycle, tags={"stream": name})
+                            float(conf or 0), cycle,
+                            tags={"stream": name})
 
-        # Council signals
-        for sig in td.get("council_signals", []):
+        # Council signals (already plain dicts on the trace)
+        _sigs = _field("council_signals", None) or []
+        for sig in (_sigs or []):
             vname = sig.get("validator", "unknown")
             self.record(f"council.{vname}.passed",
                         1.0 if sig.get("passed") else 0.0, cycle,
                         tags={"validator": vname})
 
-        # Λ4.5: Record local-optima-escape event
-        escape = td.get("local_optima_escape")
+        # Λ4.5: Record local-optima-escape event (attribute access, no to_dict)
+        escape = _field("local_optima_escape", None)
+        if escape is not None and hasattr(escape, "get"):
+            escape = dict(escape)
         if escape:
             self.record("local_optima_escape", 1.0, cycle,
                         tags={"escaped_from": escape.get("escaped_from", "unknown"),
@@ -119,7 +168,7 @@ class TelemetryCollector:
             self.record("local_optima_escape.count", float(self._escape_count), cycle)
 
         # P2.2: Record reflection patterns
-        reflection = td.get("reflection")
+        reflection = _field("reflection", None)
         if reflection:
             self.record("reflection.cross_domain_hits",
                         float(reflection.get("cross_domain_hits", 0)), cycle)
@@ -134,7 +183,7 @@ class TelemetryCollector:
                         1.0 if reflection.get("stable") else 0.0, cycle)
 
         # P2.2: Record knowledge consultation report
-        knowledge_report = td.get("knowledge_report")
+        knowledge_report = _field("knowledge_report", None)
         if knowledge_report:
             self.record("knowledge.approach_found",
                         1.0 if knowledge_report.get("approach") else 0.0, cycle)
@@ -144,7 +193,36 @@ class TelemetryCollector:
             self.record("knowledge.known_failures",
                         float(len(known_failures)), cycle)
 
-        self._cycle_metrics[cycle] = td
+        # Bounded lean per-cycle record (v7): the full trace dict was stored
+        # here every cycle (unbounded growth + hot serialization). Consumers
+        # need only ~7 scalars — store those (reflection kept for the
+        # history view) and cap the ring so historical traces never live on
+        # as full objects (contract: memory after 1000 cycles ≈ idle).
+        lean = {
+            "decision_integrity": _g("decision_integrity", 1.0),
+            "mission_drift": _g("mission_drift", 0.0),
+            "health_score": _g("health_score", 1.0),
+            "council_validated": bool(getattr(trace, "council_validated", True)),
+            "worlds_simulated": int(_g("worlds_simulated", 0)),
+            "cycle_duration_ms": _g("cycle_duration_ms", 0.0),
+            "escalation_requested": bool(getattr(trace, "escalation_requested", False)),
+            "escalation_reason": getattr(trace, "escalation_reason", None),
+        }
+        if reflection and isinstance(reflection, dict):
+            lean["reflection"] = {
+                "cross_domain_hits": reflection.get("cross_domain_hits", 0),
+                "recurring_blocks": reflection.get("recurring_blocks", []),
+                "adaptive_horizon": reflection.get("adaptive_horizon"),
+                "pattern_count": reflection.get("pattern_count", 0),
+                "stable": reflection.get("stable", False),
+            }
+        else:
+            lean["reflection"] = None
+        self._cycle_metrics[cycle] = lean
+        if len(self._cycle_metrics) > 200:
+            # HOT ring: drop the oldest cycles (never a full-trace retain)
+            for c in sorted(self._cycle_metrics)[:-200]:
+                del self._cycle_metrics[c]
 
     def get_series(self, name: str,
                    limit: Optional[int] = None) -> List[MetricPoint]:

@@ -134,7 +134,12 @@ class ActiveForgetting:
     The curator asks: "What belief should I question TODAY?"
     """
 
-    def __init__(self, examination_interval: int = 5):
+    def __init__(self, examination_interval: int = 5,
+                 rng: Optional[np.random.RandomState] = None):
+        # Structured RNG (v7 J): the 'random' selection strategy must never
+        # touch the global random module — a private RandomState is injected
+        # (dependency-injectable for tests, process-private by default).
+        self._rng = rng if rng is not None else np.random.RandomState()
         self._beliefs: Dict[str, Belief] = {}
         self._records: List[ForgettingRecord] = []
         self._max_records = 200
@@ -251,9 +256,8 @@ class ActiveForgetting:
             # High confidence + not recently examined
             active.sort(key=lambda b: -(b.confidence * 0.7 + (1 - min(1.0, b.staleness / 604800)) * 0.3))
             return active[0]
-        else:  # random
-            import random
-            return random.choice(active)
+        else:  # random — structured RNG: private RandomState, never global
+            return self._rng.choice(active)
 
     def examine(self, belief_id: str, cycle: int,
                  counter_evidence: Optional[str] = None,

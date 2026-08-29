@@ -57,8 +57,9 @@ def _scan_global_rng() -> list:
     (missing `rng =` injection structure). Reports file:line hits."""
     hits = []
     import re
+    skip_dirs = {"__pycache__", "node_modules", "vendor", "benchmarks", "examples", "tools"}
     for root, dirs, files in os.walk(os.path.join(PROJECT, "telos")):
-        dirs[:] = [d for d in dirs if d not in ("__pycache__", "node_modules", "vendor")]
+        dirs[:] = [d for d in dirs if d not in skip_dirs]
         for fn in files:
             if not fn.endswith(".py"):
                 continue

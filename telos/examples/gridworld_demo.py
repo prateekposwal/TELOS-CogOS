@@ -1,6 +1,8 @@
 import logging
 import numpy as np
 
+_DEMO_RNG = np.random.RandomState(seed=7)  # structured RNG, never global
+
 from telos.core.runtime import TelosV14Pipeline, PipelineConfig
 from telos.core.contracts.domain_model import DomainSimulator, DomainAdapter
 from telos.core.contracts.domain_model import EvaluationReport
@@ -24,7 +26,8 @@ class DemoSimulator(DomainSimulator):
     def transition(self, state, action):
         return state + action
     def simulate(self, state, horizon):
-        return [World(state=state.copy() + np.random.randn(2) * 0.1) for _ in range(5)]
+        rng = _DEMO_RNG
+        return [World(state=state.copy() + rng.randn(2) * 0.1) for _ in range(5)]
     def get_facts(self, state):
         return DomainFacts(
             state=state.copy(),
