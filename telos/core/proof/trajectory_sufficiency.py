@@ -20,6 +20,10 @@ from typing import Dict, List, Optional, Any, Callable, Tuple
 from dataclasses import dataclass, field
 import time
 
+# Structured RNG (Λ): the theorem-checker never touches global np.random —
+# a process-private RandomState keeps determinism and RNG isolation structural.
+_RNG = np.random.RandomState(seed=42)
+
 logger = logging.getLogger("telos_proof")
 
 # Type aliases
@@ -71,7 +75,7 @@ def _make_unconstrained_policy(action_space: int = 4) -> Policy:
     """
     def policy(state: np.ndarray) -> Any:
         # Completely random action selection — no constraints
-        return np.random.randint(0, action_space)
+        return _RNG.randint(0, action_space)
     return policy
 
 
@@ -125,18 +129,18 @@ def _make_constrained_policy(action_space: int = 4,
             # Entropy critically low — force 60% exploration
             epsilon = max(epsilon, 0.6)
 
-        if np.random.random() < epsilon:
+        if _RNG.random() < epsilon:
             # Explore: choose a diverse action
             # Weight toward underrepresented actions to maximize entropy gain
             inv_probs = [1.0 / (p + 0.01) for p in probs]
             norm = sum(inv_probs)
             weights = [p / norm for p in inv_probs]
-            action = np.random.choice(action_space, p=weights)
+            action = _RNG.choice(action_space, p=weights)
         else:
             # Exploit: weighted toward action 0 (safe stay), but still diverse
             # This preserves some entropy even during exploitation
             exploit_weights = [0.4] + [0.2] * (action_space - 1)
-            action = np.random.choice(action_space, p=exploit_weights)
+            action = _RNG.choice(action_space, p=exploit_weights)
 
         action_counter[action] += 1
         if len(action_counter) > 100:
@@ -167,17 +171,17 @@ def _make_default_env(state_dim: int = 6, action_space: int = 4) -> Environment:
         if isinstance(action, (int, np.integer)):
             if action == 0:
                 # Stay — small random drift
-                drift = np.random.randn(state_dim) * 0.1
+                drift = _RNG.randn(state_dim) * 0.1
                 new_state += drift
             elif action == 1:
                 # Move in positive direction
-                new_state[0] += 0.5 + np.random.randn() * 0.2
+                new_state[0] += 0.5 + _RNG.randn() * 0.2
             elif action == 2:
                 # Move in negative direction
-                new_state[0] -= 0.5 + np.random.randn() * 0.2
+                new_state[0] -= 0.5 + _RNG.randn() * 0.2
             elif action == 3:
                 # Random exploration
-                new_state += np.random.randn(state_dim) * 0.3
+                new_state += _RNG.randn(state_dim) * 0.3
 
         # Compute reward: proximity to origin
         norm = float(np.linalg.norm(new_state))
@@ -204,7 +208,7 @@ def run_trial(policy: Policy, env: Environment,
     Returns:
         TrialResult with survival, entropy, and reward data
     """
-    state = np.random.randn(state_dim) * 0.5  # Start near origin
+    state = _RNG.randn(state_dim) * 0.5  # Start near origin
     cumulative_reward = 0.0
     entropy_history = []
     reward_history = []
