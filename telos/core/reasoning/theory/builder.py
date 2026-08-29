@@ -44,6 +44,14 @@ class TheoryBuilder:
         self._cycle = 0
         self._promotion_order: List[str] = []
 
+        # Λ4.7 hot-path indexes: hypothesize()/promote() must not rescan the
+        # whole hypotheses/theories world per pattern or per hypothesis.
+        # _covered_patterns = pattern ids that an ACTIVE (non-falsified)
+        # hypothesis already covers; _promoted_hypothesis_ids = ids already
+        # promoted to a theory. Kept in sync at the single mutation sites.
+        self._covered_patterns: Set[str] = set()
+        self._promoted_hypothesis_ids: Set[str] = set()
+
     def add_experience(self, context: Dict[str, Any],
                        action: str, outcome: float,
                        confidence: float = 0.8,
@@ -189,6 +197,8 @@ class TheoryBuilder:
                 f"(from {len(unindexed)} experiences)"
             )
 
+        self._prune_retention()
+
         return new_patterns
 
     def hypothesize(self) -> List[Hypothesis]:
@@ -200,13 +210,9 @@ class TheoryBuilder:
         new_hypotheses: List[Hypothesis] = []
 
         for pid, pattern in self._patterns.items():
-            # Check if this pattern already has a hypothesis
-            already_covered = any(
-                pid in h.supporting_patterns
-                for h in self._hypotheses.values()
-                if not h.falsified
-            )
-            if already_covered:
+            # Check if this pattern already has an ACTIVE hypothesis (O(1)
+            # index, not an O(hypotheses) rescan — Λ4.7 hot-path rule).
+            if pid in self._covered_patterns:
                 continue
 
             # Only hypothesize from well-supported patterns
@@ -228,14 +234,50 @@ class TheoryBuilder:
                 created=time.time(),
             )
             self._hypotheses[hid] = hypothesis
+            self._covered_patterns.add(pid)
             new_hypotheses.append(hypothesis)
 
         if new_hypotheses:
             logger.info(
-                f"TheoryBuilder: generated {len(new_hypotheses)} new hypotheses"
+                f"TheoryBuilder: generated {len(new_hypotheses)} new hypotheses "
+                f"(from {len(self._patterns)} patterns)"
             )
 
+        self._prune_retention()
+
         return new_hypotheses
+
+    def _prune_retention(self) -> None:
+        """Bound pattern/hypothesis memory (Λ4.7 retention caps).
+
+        Experiences already honor `_max_history`; patterns and hypotheses
+        previously grew ~1/cycle forever (memory drift + quadratic rescans).
+        Bound each to `_max_history`, evicting OLDEST first. EVICTION IS
+        SAFE because `_covered_patterns` is a set of ids (never stale after a
+        pattern/hypothesis is dropped) and falsified hypotheses are still
+        iterable; promotion only promotes ACTIVE, never-evicted hypotheses.
+        """
+        # Evict oldest patterns past the cap (an evicted pattern is simply
+        # never re-covered; covered-set ids can reference it harmlessly).
+        if len(self._patterns) > self._max_history:
+            for pid in sorted(
+                self._patterns,
+                key=lambda p: self._patterns[p].created,
+            )[:len(self._patterns) - self._max_history]:
+                del self._patterns[pid]
+
+        # Evict oldest hypotheses past the cap, releasing any pattern coverage
+        # they uniquely held so those patterns can be re-hypothesized.
+        if len(self._hypotheses) > self._max_history:
+            victims = sorted(
+                self._hypotheses,
+                key=lambda h: self._hypotheses[h].created,
+            )[:len(self._hypotheses) - self._max_history]
+            for hid in victims:
+                self._covered_patterns.difference_update(
+                    self._hypotheses[hid].supporting_patterns
+                )
+                del self._hypotheses[hid]
 
     def test_hypotheses(self, context: Dict[str, Any],
                         action: str, actual_outcome: float) -> List[Tuple[str, bool]]:
@@ -262,6 +304,14 @@ class TheoryBuilder:
 
             survived = hypothesis.test(actual_outcome)
             results.append((hid, survived))
+
+            if not survived and hypothesis.falsified:
+                # Falsified: its supporting patterns are no longer covered by
+                # an ACTIVE hypothesis — release them for re-hypothesizing
+                # (keep the coverage index in sync at the mutation site).
+                self._covered_patterns.difference_update(
+                    hypothesis.supporting_patterns
+                )
 
             log_msg = (
                 f"TheoryBuilder: hypothesis '{hypothesis.description[:30]}...' "
@@ -294,11 +344,8 @@ class TheoryBuilder:
             if hypothesis.tests_passed < self._min_tests_for_theory:
                 continue
 
-            # Check if already promoted
-            already_theory = any(
-                t.hypothesis_id == hid for t in self._theories.values()
-            )
-            if already_theory:
+            # Check if already promoted (O(1) index — Λ4.7 hot-path rule)
+            if hid in self._promoted_hypothesis_ids:
                 continue
 
             tid = f"thr_{hashlib.md5(hid.encode()).hexdigest()[:10]}"
@@ -329,6 +376,7 @@ class TheoryBuilder:
             )
             self._theories[tid] = theory
             self._promotion_order.append(tid)
+            self._promoted_hypothesis_ids.add(hid)
             new_theories.append(theory)
 
             # Register in the genealogy so lineage is live, not inert
