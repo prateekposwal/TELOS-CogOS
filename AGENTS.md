@@ -18,12 +18,12 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (2617 tests; verified 2026-08-29)
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (2629 tests; verified 2026-08-29)
 - **Gap scanner:** `PYTHONPATH=. python3 telos/tools/gap_scanner.py`
 - **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
 ## Status (SHIPPED — v6.1 — 2026-08-20)
-- **2617 tests passing** (verified 2026-08-29; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
+- **2629 tests passing** (verified 2026-08-29; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
 - **31/31 self-audit checks passing**
 - **v6 modules wired & tested**: governance (`telos/core/governance/` — `governor.py`, `capability_authorization.py`), epistemic/evidence/acquisition (`telos/world/` — `epistemic.py`, `evidence.py`, `acquisition.py`), theory experiment (`telos/core/reasoning/theory/experiment.py`), 3 domain adapters (`dev_validation.py`, `logistics_simulator.py`, `robotics_simulator.py`), 3 benchmarks (`telos/benchmarks/` `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` with `main()` CLI + provenance result JSONs)
 - **Decision trace schema contract**: canonical aliases `intent`/`discrimination_index`/`action_taken` + `budget_carryover_ms` in `to_dict()` (`telos/core/types.py`) — no consumer invents its own names (locked by `tests/core/test_trace_schema.py`)
@@ -593,3 +593,29 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 ### Metrics
 - Contract: startup 0.109s | health 1.2ms | cycle mean 12.8ms (p95 16.9) | memory 82.5MB bounded | checkpoint 66-90ms | serializations 0.000 | RNG 0 | 2617 tests | 42 axioms — PASS.
 - Live: DI 1.000 | 35 episodes optimal 8/8 before restart | RSS flat 104MB | git clean.
+
+## Session Handoff — 2026-08-29 (v7 STABILITY GATE PASS — theory scalar + memory lease + doc)
+
+### Current State
+- Session mood: deliberate
+- Shipped (committed this session): the 10,000-cycle endurance gate harness, the TheoryBuilder quadratic-rescan fix (+34×), theory retention caps, four unbounded-retention fixes (mempool / skills / resource accounting / assumption evidence), a bounded failure-ledger default, the deterministic health-probe row, the server_bridge intentional-exemption in the gap scanner, and the `TELOS_V7.md` architecture doc that freezes the kernel.
+- Test count: **2629 passing** (100% green, real headless Chromium). Self-audit **31/31**.
+- **The v7 stability gate PASSES all 14 invariants over a real 10,000-cycle fast-mode run** — this is the official baseline for the next generation.
+
+### Decisions Made
+- **Endurance gate built FIRST, then let it find degradation** (it did): `telos/tools/endurance.py` runs a REAL pipeline (no stubs) for N cycles and asserts DI stability, memory stability (one-sided: positive drift = leak, negative drift = GC/compaction passes; warm-median baseline), RNG isolation + determinism, trace/telemetry + KG + checkpoint retention, checkpoint chain (sorted by CYCLE number, not lexicographic — `checkpoint_10000` must follow 9980), axiom integrity, and firewall no-infinite-trap (max trap streak, not a block fraction).
+- **TheoryBuilder hot-path index (Λ4.7)**: `hypothesize()` was an O(patterns×hypotheses) genexpr — at cycle 3000 it did 1.85M generator evaluations in ONE call (309ms). `_covered_patterns` + `_promoted_hypothesis_ids` sets make it O(1)/pattern; falsification releases coverage via `test_hypotheses`. **279.7ms → 8.2ms at the same point.**
+- **Theory retention caps**: patterns/hypotheses grew ~1/cycle forever; bound each to `_max_history`, oldest-first, index-synced.
+- **Unbounded-retention leak class (tracemalloc-proven, 20k cycles)**: `DecisionMempool._confirmed/_rejected` (+1/cycle each), `SkillLibrary._archived` (only capped inside `prune()`, not `index_skill` overflow), `DictLedgerBackend` (committed every cycle forever — 20001 records), assumption `evidence_for/against` (+1/audit), failure-ledger default 10000→2000. All bounded oldest-first. **20k RSS 161 → 101MB bounded.**
+- **Health probe made deterministic**: the contract row now reads the producer's CACHED scalar via `/api/health` (in-process snapshot, 13ms) instead of a live-HTTP round-trip that starved under GIL load and produced a fake 168ms FAIL row. Dashboard-down → "n/a", not a hard fail.
+- **server_bridge as a documented intentional exemption**: gap-scanner `INTENTIONAL_EXEMPTIONS` frozenset — the MD-App bridge is a sibling service the kernel must not import; the check still fails any NEW unimported module.
+- **TELOS_V7.md** freezes the design: the canonical principle *"TELOS does not think deeply by default. TELOS earns the right to spend computation"*, the two first-class integrity classes (epistemic, computational), the hot/cold architecture, the performance contract, the 10k gate table, the "deliberately not built" list (lazy-loader abstraction, audit writer thread, server_bridge wiring, swap chasing), and the frozen-kernel barrier to the next generation.
+
+### Open Issues
+- Live dashboard was running with the pre-gate kernel during the session (endurance used an isolated pipeline; the live producer restart picks up the new TheoryBuilder/retention code automatically).
+- Machine-level swap (~2GB/3GB, editor + Apple services resident on an 8GB box) remains out of TELOS's control; RSS flat, git mmap healthy.
+
+### Metrics
+- Gate: **PASS 14/14** — DI tail 0.594 (≥0.5), RSS 76.9MB drift +3.8%, RNG 0, determinism identical, KG caps hold, checkpoint chain True, speed 7.8ms/cycle, max trap streak 2.
+- Contract: startup 0.095s | health 13ms (cached scalar) | cycle mean 10.9-12.8ms | memory 79-84MB bounded | serializations 0.000 | RNG 0 | **2629 tests** | 42 axioms — **PASS**.
+- Live: DI 1.0 sustained | RSS flat 104MB | git clean.
