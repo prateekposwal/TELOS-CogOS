@@ -49,6 +49,7 @@ from telos.core.project.rational_abandonment import AbandonmentGate
 from telos.core.project.strategic_coherence import StrategicCoherence
 from telos.core.project.method import MethodRegistry
 from telos.core.ecology.ecosystem import Ecosystem
+from telos.core.research.amplification_gate import ResearchAmplificationGate
 from telos.core.research.seasons import ResearchSeasons
 from telos.core.research.discovery_rate import DiscoveryRateTracker
 from telos.core.research.debt import ResearchDebtTracker
@@ -173,6 +174,13 @@ class TelosV14Pipeline:
                  human_gateway: Optional[HumanGateway] = None):
         self.config = config or PipelineConfig()
         self._human_gateway = human_gateway
+        # Research Amplification Gate (Λ6.5): the standing pre-PERCEIVE stage.
+        # Constructed ONLY when enabled (research_gate != off/legacy) so a
+        # default pipeline carries zero new state — byte-identical behavior.
+        gate_mode = getattr(self.config, 'research_gate', 'off')
+        self._research_gate: Optional[ResearchAmplificationGate] = None
+        if gate_mode not in ("off", "legacy"):
+            self._research_gate = ResearchAmplificationGate()
         from telos.world.epistemic import RealityGapTracker
         # TELOS v6 Phase 4/7: per-model reality-gap tracker feeding model_fidelity
         # into capability authorization. Untested model -> fidelity None -> the
@@ -444,6 +452,49 @@ class TelosV14Pipeline:
         """
         self.council.register(validator)
 
+    @property
+    def research_gate(self) -> Optional[ResearchAmplificationGate]:
+        """The pipeline's ResearchAmplificationGate instance.
+
+        None when the config knob is off/legacy (the default) — existing
+        callers see no gate at all. When report/require is configured, a
+        caller attaches its run's evidence base here (via
+        attach_research_evidence) before execute() so the pre-PERCEIVE gate
+        can judge 7/7-dimension external grounding (Λ6.5).
+
+        Returns:
+            The gate instance, or None when the knob is disabled.
+        """
+        return self._research_gate
+
+    def attach_research_evidence(self, sources, claims) -> None:
+        """Attach the run's external evidence base to the gate.
+
+        Sources must be registered BEFORE the claims that reference them
+        (Λ6.5: every claim needs a named source) and every claim dimension
+        must be one of the 7 mandatory dimensions. Raises ValueError when the
+        knob is off/legacy (no gate exists — evidence has nowhere to go and a
+        silent no-op would be the diagnosed bounded-evidence-mode failure).
+
+        Args:
+            sources: iterable of EvidenceSource to register.
+            claims: iterable of EvidenceClaim mapped to mandatory dimensions.
+
+        Raises:
+            ValueError: gate disabled, duplicate source_id, claim referencing
+                an unknown source, or claim on a non-mandatory dimension.
+        """
+        gate = self._research_gate
+        if gate is None:
+            raise ValueError(
+                "research_gate is off/legacy — set PipelineConfig("
+                "research_gate='report'|'require') before attaching evidence"
+            )
+        for src in sources:
+            gate.register_source(src)
+        for claim in claims:
+            gate.register_claim(claim)
+
     def _build_phases(self) -> List[Phase]:
         from telos.core.phases.reflect import ReflectPhase
         return [
@@ -707,6 +758,37 @@ class TelosV14Pipeline:
             if it:
                 return str(it)
         return None
+
+    def _run_research_amplification_gate(self, ctx) -> None:
+        """Run the pre-PERCEIVE Research Amplification Gate for this cycle.
+
+        The gate's verdict is attached to the context (and therefore the
+        DecisionTrace via build_trace) truthfully in BOTH active modes:
+        report and require. report never blocks — a run with zero or partial
+        external grounding carries an honest LEFT verdict in its trace but
+        still executes. require blocks the run BEFORE any stream or
+        simulation consumes the brief when grounding is missing — the
+        structural fix for bounded-evidence-mode: answering under a coverage
+        gap is LEFT, never a silent pass and never fabricated grounding.
+
+        Args:
+            ctx: the phase context for this cycle (writes
+                ctx.amplification_report and, in require mode on a gap,
+                ctx.research_gate_left / ctx.governance_blocked /
+                ctx.blocking_reason).
+        """
+        report = self._research_gate.run()
+        ctx.amplification_report = report.to_dict()
+        if report.passed:
+            return
+        logger.warning(
+            f"Cycle {ctx.cycle_count}: ResearchAmplificationGate LEFT — "
+            f"missing={report.missing_dimensions}"
+        )
+        if getattr(self.config, 'research_gate', 'off') == "require":
+            ctx.research_gate_left = True
+            ctx.governance_blocked = True
+            ctx.blocking_reason = f"research_amplification_left:{report.reason}"
 
     def _maybe_inject_recovery_intent(self, ctx) -> None:
         """Select-phase recovery (Λ3.1): break a firewall action_loop trap.
@@ -975,7 +1057,27 @@ class TelosV14Pipeline:
         # Store tiered context on ctx for downstream use
         ctx._tiered_context = tiered_context
 
-        for phase in self._phases:
+        # ── Research Amplification Gate (Λ6.5): the standing pre-PERCEIVE
+        #    stage. In report mode the verdict is attached to the context /
+        #    DecisionTrace truthfully (a coverage-gapped run carries an honest
+        #    LEFT report but still executes). In require mode a missing
+        #    7/7-dimension external grounding marks the run LEFT BEFORE any
+        #    stream or simulation consumes the brief — the phase loop below is
+        #    skipped entirely, so streams/simulate never see the brief.
+        if self._research_gate is not None:
+            try:
+                self._run_research_amplification_gate(ctx)
+            except Exception as e:
+                logger.warning("runtime.py: research amplification gate failed: %r", e)
+
+        if getattr(ctx, 'research_gate_left', False):
+            logger.warning(
+                f"Cycle {self._cycle_count}: run LEFT at the research "
+                f"amplification gate — no stream/simulation consumed the brief"
+            )
+
+        phases = self._phases if not getattr(ctx, 'research_gate_left', False) else []
+        for phase in phases:
             self._display.on_phase_start(phase.name)
             try:
                 phase.execute(self, ctx)
@@ -1982,7 +2084,19 @@ class TelosV14Pipeline:
             decision_integrity=trace.decision_integrity,
             mission_drift=trace.mission_drift,
             firewall_blocked=ctx.firewall_blocked,
-            governance_blocked_by=ctx.firewall_verdict.blocked_by if ctx.firewall_verdict else None,
+            governance_blocked_by=(
+                ctx.firewall_verdict.blocked_by
+                if ctx.firewall_verdict else (
+                    # Research Amplification Gate LEFT (Λ6.5, require mode):
+                    # the run was marked LEFT pre-PERCEIVE so no firewall
+                    # verdict exists — surface the gate's honest reason here
+                    # instead of a silent None. Never set when the knob is
+                    # off/legacy (research_gate_left is false), so default
+                    # runs keep their exact pre-wiring mapping.
+                    ctx.blocking_reason
+                    if getattr(ctx, 'research_gate_left', False) else None
+                )
+            ),
             decision_trace=trace,
             distributed_verdict=getattr(ctx, 'distributed_verdict', None),
             alternatives_available=self._sim_engine.alternative_count if self._sim_engine else 0,

@@ -23,11 +23,12 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 - **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
 ## Status (SHIPPED — v6.1 — 2026-08-20)
-- **2629 tests passing** (verified 2026-08-29; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
+- **2648 tests passing** (verified 2026-08-29; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
 - **31/31 self-audit checks passing**
 - **v6 modules wired & tested**: governance (`telos/core/governance/` — `governor.py`, `capability_authorization.py`), epistemic/evidence/acquisition (`telos/world/` — `epistemic.py`, `evidence.py`, `acquisition.py`), theory experiment (`telos/core/reasoning/theory/experiment.py`), 3 domain adapters (`dev_validation.py`, `logistics_simulator.py`, `robotics_simulator.py`), 3 benchmarks (`telos/benchmarks/` `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` with `main()` CLI + provenance result JSONs)
 - **Decision trace schema contract**: canonical aliases `intent`/`discrimination_index`/`action_taken` + `budget_carryover_ms` in `to_dict()` (`telos/core/types.py`) — no consumer invents its own names (locked by `tests/core/test_trace_schema.py`)
 - **EvidenceProvenanceValidator** (`telos/core/council/validators/evidence.py`): council advisor scoring candidate intents against the falsification record (RealityGapTracker + no-action history) — decision-provenance-as-evidence (Λ6.5)
+- **Research Amplification Gate wired** (`telos/core/research/amplification_gate.py` → runtime.py): standing pre-PERCEIVE external-research-first stage — bounded-evidence-mode structural fix (Λ6.5, HEAD `869ad11` module now live); LEFT unless all 7 mandatory dimensions carry external grounding (never a silent pass, never fabricated grounding); `PipelineConfig.research_gate` modes `off`/`legacy` (default — byte-identical), `report` (gate verdict attached to DecisionTrace), `require` (coverage gap → run LEFT before streams/simulate)
 - **Λ3.1 stagnation recovery**: consecutive no-action cycles arm goal-seek escape with recorded reason (`_update_stagnation_recovery_state` in `runtime.py`)
 - **RealityGapTracker → CapabilityAuthorization feed**: per-model model_fidelity feeds the act-phase capability gate (`telos/core/phases/act.py`)
 - **Legal-motion planner**: `legal_goal_step`/`legal_cardinal_action` in `telos_task.py` — A* cardinal-only first step so model and executor agree on what is reachable

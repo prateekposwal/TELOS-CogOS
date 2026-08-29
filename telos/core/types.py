@@ -138,6 +138,14 @@ class DecisionTrace:
     # ── Axiom Compliance Prover results ────────────────────────────────────
     axiom_results: Optional[Dict[str, Dict]] = None          # AxiomProver.verify() output
 
+    # ── Research Amplification Gate verdict (Λ6.5, pre-PERCEIVE) ──────────
+    # AmplificationReport.to_dict() when the pipeline ran the gate
+    # (research_gate report/require modes), else None. passed=False with
+    # run_status="LEFT" is the run's honest verdict: answering under a
+    # coverage gap is the diagnosed bounded-evidence-mode failure, never
+    # a silent pass and never fabricated grounding.
+    amplification_report: Optional[Dict] = None
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "cycle_id": self.cycle_id,
@@ -235,6 +243,7 @@ class DecisionTrace:
             "curiosity_bonus": self.curiosity_bonus,
             "tool_audit": self.tool_audit,
             "axiom_results": self.axiom_results,
+            "amplification_report": self.amplification_report,
         }
 
 @dataclass
@@ -278,6 +287,19 @@ class PipelineConfig:
     # full behavior (default). "research"/"debug" add instrumentation. Set
     # via config or the TELOS_MODE env var (read at construction sites).
     mode: str = "standard"
+
+    # Research Amplification Gate (Lambda 6.5, pre-PERCEIVE stage): a standing
+    # evidence-enrichment gate that runs BEFORE any stream/simulation consumes
+    # the brief. Modes: "off"/"legacy" = disabled (default — pipeline behavior
+    # is byte-identical to pre-gate runs); "report" = run the gate when a
+    # caller attaches an evidence base (named sources + claims mapped to the 7
+    # mandatory dimensions) and attach the AmplificationReport verdict to the
+    # decision context/trace (an evidence-less run carries an honest LEFT
+    # report — the gate never fabricates grounding, and reporting never
+    # blocks); "require" = a run arriving at the gate without 7/7-dimension
+    # external grounding is LEFT before STREAMS (the bounded-evidence-mode
+    # structural fix: DONE is only achievable through the amplification report).
+    research_gate: str = "off"
 
     @property
     def is_fast_mode(self) -> bool:
