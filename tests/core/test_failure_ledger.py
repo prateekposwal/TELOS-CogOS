@@ -170,6 +170,6 @@ def test_stats_shape():
     ledger.observe(_result(_trace(1, 0.2, 0.5)))
     stats = ledger.stats
     assert stats["total_failures"] == 1
-    assert stats["max_failures"] == 10000
+    assert stats["max_failures"] == 2000
     assert stats["by_type"]["low_integrity"] == 1
     assert "root_causes" in stats

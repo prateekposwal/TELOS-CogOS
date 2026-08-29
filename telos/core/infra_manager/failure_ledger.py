@@ -66,7 +66,7 @@ class FailureLedger:
         "escalation": "unresolved_uncertainty",
     }
 
-    def __init__(self, max_failures: int = 10000):
+    def __init__(self, max_failures: int = 2000):
         self._failures: List[FailureRecord] = []
         self._max_failures = max_failures
         self._eviction_count: int = 0

@@ -60,6 +60,7 @@ class Assumption:
     evidence_against: List[str] = field(default_factory=list)
     source: str = "initialization"
     active: bool = True
+    _max_evidence: int = 50
 
     @property
     def survival_rate(self) -> float:
@@ -81,11 +82,15 @@ class Assumption:
         self.times_survived += 1
         self.confidence = min(1.0, self.confidence + 0.05)
         self.evidence_for.append(evidence)
+        if len(self.evidence_for) > self._max_evidence:
+            self.evidence_for.pop(0)
 
     def fail(self, evidence: str) -> None:
         self.times_failed += 1
         self.confidence = max(0.0, self.confidence - 0.15)
         self.evidence_against.append(evidence)
+        if len(self.evidence_against) > self._max_evidence:
+            self.evidence_against.pop(0)
 
 
 @dataclass

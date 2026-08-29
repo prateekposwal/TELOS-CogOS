@@ -69,9 +69,16 @@ class SkillLibrary:
 
         if len(self.skills) >= self.max_skills:
             oldest = min(self.skills, key=lambda k: self.skills[k].utility_score)
-            self._archived.append(self.skills[oldest])
+            self._archive(self.skills[oldest])
             del self.skills[oldest]
         self.skills[skill.skill_id] = skill
+
+    def _archive(self, skill: Skill) -> None:
+        """Move a skill to the bounded archived list (oldest-first eviction)."""
+        self._archived.append(skill)
+        if len(self._archived) > self.max_archived:
+            self._archived.sort(key=lambda s: s.last_matched_cycle)
+            self._archived = self._archived[-self.max_archived:]
 
     def find_relevant_skills(self, state: np.ndarray, threshold: float = 0.8) -> List[Skill]:
         self._cycle += 1
@@ -95,7 +102,7 @@ class SkillLibrary:
             if s.last_matched_cycle > 0 and s.last_matched_cycle < cutoff
         ]
         for sid in to_prune:
-            self._archived.append(self.skills[sid])
+            self._archive(self.skills[sid])
             del self.skills[sid]
 
         # Utility-floor eviction: if active skills still exceed 80% capacity,
@@ -109,7 +116,7 @@ class SkillLibrary:
                 if sid in protected:
                     continue
                 if s.utility_score < 0.3:
-                    self._archived.append(s)
+                    self._archive(s)
                     del self.skills[sid]
                     utility_evicted.append(sid)
             if utility_evicted:
@@ -118,11 +125,6 @@ class SkillLibrary:
                     "(kept top 10 protected)",
                     len(utility_evicted),
                 )
-
-        # P2.4: Cap archived list — remove oldest entries by last_matched_cycle
-        if len(self._archived) > self.max_archived:
-            self._archived.sort(key=lambda s: s.last_matched_cycle)
-            self._archived = self._archived[-self.max_archived:]
 
         return len(to_prune)
 
