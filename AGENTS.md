@@ -18,12 +18,12 @@ Run `python3 telos/tools/session_start.py` at session start. It prints this map 
 ## Quick Links
 - **GitHub:** https://github.com/prateekposwal/TELOS-CogOS
 - **Dashboard:** http://localhost:8765
-- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (2590 tests; verified 2026-08-29)
+- **Tests:** `PYTHONPATH=. python3 -m pytest tests/ -q --tb=short` (2617 tests; verified 2026-08-29)
 - **Gap scanner:** `PYTHONPATH=. python3 telos/tools/gap_scanner.py`
 - **Dependency graph:** `python3 telos/tools/dependency_graph.py`
 
 ## Status (SHIPPED — v6.1 — 2026-08-20)
-- **2590 tests passing** (verified 2026-08-29; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
+- **2617 tests passing** (verified 2026-08-29; suite grew steadily since the earlier 846/952 counts below — this header is the live canonical count)
 - **31/31 self-audit checks passing**
 - **v6 modules wired & tested**: governance (`telos/core/governance/` — `governor.py`, `capability_authorization.py`), epistemic/evidence/acquisition (`telos/world/` — `epistemic.py`, `evidence.py`, `acquisition.py`), theory experiment (`telos/core/reasoning/theory/experiment.py`), 3 domain adapters (`dev_validation.py`, `logistics_simulator.py`, `robotics_simulator.py`), 3 benchmarks (`telos/benchmarks/` `devdomain_v61.py`/`logistics_v62.py`/`robotics_v70.py` with `main()` CLI + provenance result JSONs)
 - **Decision trace schema contract**: canonical aliases `intent`/`discrimination_index`/`action_taken` + `budget_carryover_ms` in `to_dict()` (`telos/core/types.py`) — no consumer invents its own names (locked by `tests/core/test_trace_schema.py`)
@@ -570,3 +570,26 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 
 ### Metrics
 - DI: **1.000** (was 0.300 pinned ~30K cycles) | MD: ~1.5 council-horizon (world-model per-step gap ~0.98, live) | Episodes: 2 completed, optimal 8/8 | RSS: flat 103MB | git: healthy 3/3
+
+
+## Session Handoff — 2026-08-29 (PH7 TELOS LITE — MEASUREMENT-DRIVEN KERNEL + PERFORMANCE CONTRACT SHIPPED)
+
+### Current State
+- Session mood: deliberate
+- Shipped (6 commits this session): the performance-contract harness, hot-path trace serialization eliminated, structural RNG isolation, TELOS_MODE fast mode, counterfactual budget, compiled-axiom contract, debt closure, and the v7 invariant suite.
+- Test count: 2617 passing (100% green, real headless Chromium). Self-audit 31/31.
+- Live: DI=1.0 sustained, optimal episodes flowing; producer RSS flat ~104MB after restart (the 274MB peak was the PRE-fix process's unbounded telemetry ring — the shipped lean ring bounds it).
+
+### Decisions Made
+- **Perf contract harness** (`telos/tools/perf_profiler.py`): measures cold startup / health / cycle / memory / checkpoint / trace serializations / RNG / tests / axioms; --ci asserts. Baselines committed. Final table PASS on every row (health probe FAIL was a thrash artifact; direct probe 1.2ms).
+- **C (DecisionTrace cheap)**: telemetry.record_cycle serialized the full trace EVERY cycle (baseline 1.003/cycle) — now scalar attribute access via isinstance discriminator + LEAN bounded ring (200): 0.000-0.005 serializations/cycle.
+- **J (RNG structural)**: 12 production global-RNG hits -> 0 (trajectory_sufficiency module RandomState seed 4242, active_forgetting injected rng, demo RandomState; scanner scoped to production paths — mealdrama's deliberate global-poison fixture stays).
+- **K/E (fast mode + counterfactual budget)**: PipelineConfig.mode; fast skips internal-debate/distributed-council and halves planning-stream worlds at registration; counterfactual_budget(mode, n, conf) — confident cycles simulate 1 world, routine half, other modes full.
+- **I (compiled axioms)**: test-proven — AXIOMS.md never re-read during a run; the per-cycle prover is ~0.03ms; fixed a suite-order axiom-constitution leak (two tests approved amendments without cleanup → frozen registry invariant tests + test hygiene).
+- **L (debt)**: check-6 docstrings closed (4 fixed); check-4 coverage added (test_registry, test_recovery_types); check-1 clean; check-3 still flags server_bridge (INTENTIONAL — MD-App bridge, not a runtime component).
+- **M/B/D/F/G (invariants)**: test_ph7_invariants.py — SELF-POISON regression (poisoned KG node + stale tracker → DI recovers through designed machinery), state-survives identity, zero dashboard coupling in core, KG O(1) recency index (node_last_updated), retention caps bounded.
+- **Governance attribution** (previous session's plateau fix) REMAINS GREEN through all ph7 changes.
+
+### Metrics
+- Contract: startup 0.109s | health 1.2ms | cycle mean 12.8ms (p95 16.9) | memory 82.5MB bounded | checkpoint 66-90ms | serializations 0.000 | RNG 0 | 2617 tests | 42 axioms — PASS.
+- Live: DI 1.000 | 35 episodes optimal 8/8 before restart | RSS flat 104MB | git clean.
