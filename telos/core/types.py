@@ -271,6 +271,23 @@ class PipelineConfig:
     timelock_window_cycles: int = 3
     # Deterministic execution seed
     deterministic_seed: Optional[int] = None
+    # Runtime mode (v7 K): "fast" skips expensive advisory layers (counter-
+    # factual alternative generation, InternalDebate, DistributedCouncil,
+    # knowledge consultation) — core reasoning + axioms + evidence +
+    # governance + stagnation + essential trace stay. "standard" preserves
+    # full behavior (default). "research"/"debug" add instrumentation. Set
+    # via config or the TELOS_MODE env var (read at construction sites).
+    mode: str = "standard"
+
+    @property
+    def is_fast_mode(self) -> bool:
+        return self.mode == "fast"
+
+    @property
+    def skip_advisory_layers(self) -> bool:
+        """Advisory (non-blocking) layers are the first thing fast mode
+        skips: they consume time but never change the blocking verdict."""
+        return self.is_fast_mode
     # Distributed Council (advisory crew layer on top of the blocking primary
     # council): enabled toggle + cadence (run every N cycles).
     distributed_council_enabled: bool = True

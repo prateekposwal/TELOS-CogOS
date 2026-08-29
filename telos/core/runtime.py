@@ -419,6 +419,14 @@ class TelosV14Pipeline:
                         f"{len(prev.top_skills)} skills, {len(prev.top_theories)} theories")
 
     def register_stream(self, stream: CognitiveStream) -> None:
+        # v7 K: fast mode also halves the planning stream's world budget
+        # (the stream's own default is 30 worlds/cycle) — the simulation
+        # budget is a per-mode policy, not a per-stream constant.
+        if self.config.is_fast_mode and hasattr(stream, "configure")                 and getattr(stream, "n_worlds", None):
+            try:
+                stream.configure(n_worlds=max(1, int(stream.n_worlds) // 2))
+            except Exception as e:
+                logger.warning("stream fast-mode configure failed: %r", e)
         self.streams.append(stream)
         self.streams.sort(key=lambda s: s.priority, reverse=True)
         # P1.4: Auto-register with trust manager so auth checks work
@@ -1182,7 +1190,7 @@ class TelosV14Pipeline:
             # ── v2: InternalDebate — multi-perspective analysis before decision ──
             if phase.name == "select":
                 try:
-                    if ctx.selected_intent:
+                    if ctx.selected_intent and not self.config.skip_advisory_layers:
                         debate_result = self._internal_debate.debate(
                             context={
                                 "intent_type": ctx.selected_intent.intent_type,
@@ -1320,7 +1328,8 @@ class TelosV14Pipeline:
             #    phase settles (mempool confirm/reject already done) ──
             if phase.name == "council":
                 try:
-                    self._run_distributed_council(ctx)
+                    if not self.config.skip_advisory_layers:
+                        self._run_distributed_council(ctx)
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
