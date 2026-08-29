@@ -166,6 +166,9 @@ class KnowledgeGraph:
         self._record_timestamps: Dict[str, List[float]] = defaultdict(list)
         self._max_edges_per_type = max_edges_per_type
         self._max_edges_total = max_edges_total
+        # v7 F: node_id -> last touch timestamp (O(1) recency for local
+        # reasoning; never a full-graph scan).
+        self._node_last_updated: Dict[str, float] = {}
 
     # ── Validation ───────────────────────────────────────────────
 
@@ -363,6 +366,7 @@ class KnowledgeGraph:
             timestamp=now, activation=1.0,
             provenance=provenance or {},
         )
+        self._node_last_updated[node_id] = now
         self._domain_index[domain].add(node_id)
         for tag in (tags or []):
             self._tag_index[tag].add(node_id)
@@ -465,6 +469,7 @@ class KnowledgeGraph:
             node.activation = min(2.0, node.activation + boost)
             node.access_count += 1
             node.timestamp = time.time()
+            self._node_last_updated[node_id] = node.timestamp
             affected += 1
         frontier = {node_id}
         visited = {node_id}
@@ -515,6 +520,9 @@ class KnowledgeGraph:
         )
         self._adjacency[src].add(dst)
         self._adjacency[dst].add(src)
+        _now_e = time.time()
+        self._node_last_updated[src] = _now_e
+        self._node_last_updated[dst] = _now_e
         self._enforce_edge_caps(edge_type)
         return edge_id
 
@@ -788,6 +796,18 @@ class KnowledgeGraph:
             "cycle": self._cycle,
         }
 
+    # ── v7 F: recency index ─────────────────────────────────────────
+    def node_last_updated(self, node_id: str) -> Optional[float]:
+        """O(1) recency lookup — local reasoning never scans the graph.
+
+        Args:
+            node_id: the node to query.
+
+        Returns:
+            Last touch timestamp, or None when the node is unknown.
+        """
+        return self._node_last_updated.get(node_id)
+
     # ── Internal ────────────────────────────────────────────────
 
     def restore(self, node_id: str) -> bool:
@@ -805,6 +825,7 @@ class KnowledgeGraph:
         node.activation = 1.0
         node.timestamp = time.time()
         self._nodes[node_id] = node
+        self._node_last_updated[node_id] = node.timestamp
         self._domain_index[node.domain].add(node_id)
         for tag in node.tags:
             self._tag_index[tag].add(node_id)
