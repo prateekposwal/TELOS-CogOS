@@ -164,6 +164,8 @@ def build_trace(
         curiosity_bonus=getattr(ctx, 'curiosity_bonus', 1.0),
         # ── Real tool-use channel audit record ─────────────────────────────
         tool_audit=getattr(ctx, 'tool_audit', None),
+        # ── Research Amplification Gate verdict (Λ6.5, pre-PERCEIVE) ──────
+        amplification_report=getattr(ctx, 'amplification_report', None),
     )
 
     # ── Merkle Proof of Reasoning (Bitcoin-inspired) ──────────────────────
