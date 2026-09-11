@@ -206,6 +206,86 @@ def test_producer_episode_bookkeeping_counts_and_resets(isolated_paths):
         p.stop()
 
 
+def test_producer_episode_worlds_accumulate_and_reset_on_goal(isolated_paths):
+    """Audit C+D: the hero's rollout-states slot — _episode_worlds sums the
+    real per-cycle worlds_simulated values (the exact accumulation _run_cycle
+    performs) and RESETS when a goal is reached, mirroring the steps/moves
+    episode clocks. The lifetime _worlds_simulated_total is untouched by the
+    reset (monotone across episode boundaries); unmeasured episode averages
+    stay None — the honest '—' state, never a fabricated 0.
+    """
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        stats = p._episode_stats()
+        assert stats["current_worlds"] == 0
+        assert stats["last_worlds"] is None, "unmeasured until an episode completes"
+        assert stats["avg_worlds_per_goal"] is None, "unmeasured until an episode completes"
+        # Two real cycles: each adds its trace's worlds_simulated to BOTH
+        # the episode counter and the lifetime total (line 836 pattern).
+        p._worlds_simulated_total += int(5)
+        p._episode_worlds += int(5)
+        p._worlds_simulated_total += int(3)
+        p._episode_worlds += int(3)
+        stats = p._episode_stats()
+        assert stats["current_worlds"] == 8
+        # Goal reached: the episode's worlds are archived + reset.
+        p._episode_steps = 10
+        p._on_goal_reached()
+        stats = p._episode_stats()
+        assert stats["completed"] == 1
+        assert stats["last_worlds"] == 8
+        assert stats["avg_worlds_per_goal"] == 8.0
+        assert stats["current_worlds"] == 0, "episode counter must reset at the goal"
+        assert p._worlds_simulated_total == 8, "lifetime total never resets at an episode"
+    finally:
+        p.stop()
+
+
+def test_producer_episode_worlds_follow_real_trace_field(isolated_paths):
+    """Real cycles: _episode_worlds accumulates exactly the per-cycle
+    worlds_simulated values the traces recorded — the hero slot reads the
+    same real field the lifetime total sums, just windowed per episode.
+
+    Goal-aware (flake-kill): the strict windowed equality holds only while
+    the episode is OPEN (the window resets at each goal — the very behaviour
+    under test, and this agent provably completes optimal 8/8 episodes). The
+    final snapshot is branched on its own `completed`: open episode → exact
+    trace-sum equality; a goal that landed meanwhile → structural invariants
+    only (never a fabricated number on either path).
+    """
+    p = DashboardProducer(cycle_interval_s=0.05, burst_cycles=4)
+    p.start()
+    try:
+        deadline = time.time() + 12
+        while time.time() < deadline and p.snapshot()["decisions"] < 6:
+            time.sleep(0.1)
+        snap = p.snapshot()
+        traces = snap["traces"]
+        ep = snap["episodes"]
+        assert traces, "real traces must exist"
+        assert ep["current_worlds"] <= snap["worlds_simulated"], \
+            "an episode window can never exceed the lifetime total"
+        if ep["completed"] == 0:
+            # No goal yet (isolated paths ⇒ no seeded history): the open
+            # episode window spans every in-memory trace and the per-goal
+            # averages are honestly unmeasured.
+            assert ep["current_worlds"] == sum(
+                int(t.get("worlds_simulated", 0) or 0) for t in traces
+            ), "episode worlds must equal the real per-cycle trace sum"
+            assert ep["avg_worlds_per_goal"] is None, \
+                "no goal yet ⇒ average must be the honest unmeasured None"
+        else:
+            # A goal completed before the final snapshot: the window reset
+            # at the goal (behaviour under test) — the episode archived its
+            # totals and the current window started fresh.
+            assert ep["last_worlds"] is not None, \
+                "completed episode must archive its rollout total"
+            assert ep["avg_worlds_per_goal"] is not None, \
+                "completed episode makes the per-goal average measured"
+    finally:
+        p.stop()
+
+
 def test_producer_episode_stats_real_run_shape_and_no_reward_mutation(isolated_paths):
     """Real cycles: the episodes payload is present, honest, and the sim's
     reward dict is never mutated by the metric — the live pool only ever
@@ -220,11 +300,17 @@ def test_producer_episode_stats_real_run_shape_and_no_reward_mutation(isolated_p
         ep = snap["episodes"]
         assert set(ep) == {"completed", "current_steps", "current_moves",
                            "last_steps", "last_moves",
+                           "current_worlds", "last_worlds", "avg_worlds_per_goal",
                            "avg_steps_per_goal", "avg_moves_per_goal",
                            "efficiency_vs_optimal", "moves_efficiency_vs_optimal",
                            "optimal_steps", "optimal_moves"}
         assert ep["completed"] >= 0
         assert ep["current_steps"] >= 0
+        # Audit C+D: the episode rollout counter is bounded by the lifetime
+        # total (a window can never exceed the whole) and unmeasured episode
+        # averages stay None — the honest '—' state.
+        assert ep["current_worlds"] <= snap["worlds_simulated"]
+        assert (ep["avg_worlds_per_goal"] is None) == (ep["completed"] == 0)
         if ep["completed"] > 0:
             # Can't beat the Manhattan optimum (>= 8 decision steps); the
             # efficiency ratio is bounded [0, 1] when defined.
