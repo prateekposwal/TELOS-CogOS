@@ -221,6 +221,13 @@ def validate_project(project_path: str, timeout: float = 30.0) -> Tuple[
 
     for name, args in discover_commands(project_path):
         run = _safe_run(args, cwd=project_path, timeout=timeout)
+        # Command identity (the discovered name: "test", "lint", ...), not
+        # the binary (_safe_run's default = args[0] = "npm"/"python3"/...).
+        # Every name-based consumer classifies runs by what the command IS —
+        # dev_domain_adapter's lint/typecheck adoption and the invariant
+        # tests — so the discovered name is the ONE canonical source here.
+        # (Binary-name misnomer made those consumers dead code.)
+        run.name = name
         runs.append(run)
         if name in ("test", "test:ci", "pytest", "go-test"):
             ratio = _extract_pass_ratio(run)
