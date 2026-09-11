@@ -332,11 +332,14 @@ def test_producer_episode_stats_real_run_shape_and_no_reward_mutation(isolated_p
 # bounds-safe, honest no-op for immovable states.
 # ═══════════════════════════════════════════════════════════════════════
 
-def test_astar_step_finds_optimal_legal_monotone_path():
-    """A* plans the shortest legal path around the real blocked cells
-    {(1,1),(2,2),(3,1)} toward (4,4); each step is cardinal, in-bounds,
-    unblocked, and strictly reduces Manhattan distance (monotone)."""
-    from telos.dashboard.producer import _astar_step
+def test_legal_goal_step_optimal_legal_monotone_path():
+    """The canonical legal-motion A* (telos_task.legal_goal_step — the
+    function GridAdpt and GridSim both execute) plans the shortest legal
+    path around the real blocked cells {(1,1),(2,2),(3,1)} toward (4,4);
+    each step is cardinal, in-bounds, unblocked, and strictly reduces
+    Manhattan distance (monotone). Ported from the producer's retired
+    _astar_step duplicate (the verbatim executor no longer needs it)."""
+    from telos_task import legal_goal_step
     blocked = {(1, 1), (2, 2), (3, 1)}
     goal = np.array([4.0, 4.0])
     fallback = np.array([0.0, 0.0])
@@ -344,7 +347,7 @@ def test_astar_step_finds_optimal_legal_monotone_path():
     path = [(0, 0)]
     steps = 0
     while tuple(int(round(v)) for v in pos) != (4, 4):
-        step = _astar_step(pos, blocked, goal, 5, fallback)
+        step = legal_goal_step(pos, blocked, goal, 5, fallback)
         assert abs(step[0]) + abs(step[1]) == 1, f"non-cardinal step {step}"
         nxt = pos + step
         key = (int(round(nxt[0])), int(round(nxt[1])))
@@ -362,46 +365,69 @@ def test_astar_step_finds_optimal_legal_monotone_path():
     assert steps == 8, "Manhattan optimum must be reachable legally"
 
 
-def test_astar_step_deterministic_and_honest_noops():
+def test_legal_goal_step_deterministic_and_honest_noops():
     """Same state → same step (deterministic); at the goal or with no legal
-    path the executor returns the fallback (honest no-op, never invented)."""
-    from telos.dashboard.producer import _astar_step
+    path the planner returns the fallback (honest no-op, never invented)."""
+    from telos_task import legal_goal_step
     blocked = {(1, 1), (2, 2), (3, 1)}
     goal = np.array([4.0, 4.0])
     fallback = np.array([0.0, 0.0])
     pos = np.array([2.0, 0.0])
-    s1 = _astar_step(pos, blocked, goal, 5, fallback)
-    s2 = _astar_step(pos, blocked, goal, 5, fallback)
+    s1 = legal_goal_step(pos, blocked, goal, 5, fallback)
+    s2 = legal_goal_step(pos, blocked, goal, 5, fallback)
     assert (s1 == s2).all(), "A* must be deterministic"
     # Already at the goal → no-op.
-    assert _astar_step(np.array([4.0, 4.0]), blocked, goal, 5, fallback) is fallback
-    # Trapped state with no path (fully walled) → honest no-op.
-    walled = {(x, y) for x in range(5) for y in range(5) if (x, y) != (0, 0) and (x, y) != (4, 4)}
+    assert legal_goal_step(np.array([4.0, 4.0]), blocked, goal, 5, fallback) is fallback
     # Goal unreachable: all neighbours blocked.
     trapped = {(1, 0), (0, 1)}
-    assert _astar_step(np.array([0.0, 0.0]), blocked | trapped, goal, 5, fallback) is fallback
+    assert legal_goal_step(np.array([0.0, 0.0]), blocked | trapped, goal, 5, fallback) is fallback
 
 
-def test_apply_action_preserves_genuine_noop_and_plans_legally(isolated_paths):
-    """_apply_action: zero vectors stay put (respect the decision), non-zero
-    vectors become the first legal A* step — in-bounds and unblocked."""
+def test_apply_action_executes_adapter_action_verbatim(isolated_paths):
+    """_apply_action (live-loop plateau fix): the producer executes the
+    pipeline's OWN adapter action verbatim through the same sim.transition
+    the act phase uses for its predicted landing — the model and the world
+    can never disagree about the executed step. Genuine no-ops stay put;
+    a blocked landing stays put (transition returns s); a legal cardinal
+    move lands exactly where the pipeline predicted."""
     p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
     try:
-        from telos_task import GridSim, DEFAULT_BLOCKED, DEFAULT_REWARDS
+        from telos_task import GridSim, DEFAULT_BLOCKED, DEFAULT_REWARDS, GOAL, GRID_SIZE
         p._sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS))
-        p._grid_size = 5
-        from telos_task import GOAL
+        p._grid_size = GRID_SIZE
         p._goal = GOAL
         state = np.array([0.0, 0.0])
-        # Genuine no-op: unchanged.
+        # Genuine no-op: unchanged (the decision is respected, never rewritten).
         out = p._apply_action(state, np.array([0.0, 0.0]))
         assert (out == state).all(), "no-op must stay put"
-        # Legal plan from the origin (blocked cells read from the live sim).
-        out = p._apply_action(state, np.array([1.0, 1.0]))
+        # Legal cardinal move from the adapter: verbatim landing, in-bounds,
+        # unblocked — exactly what the pipeline's predicted_state computes.
+        out = p._apply_action(state, np.array([1.0, 0.0]))
         key = (int(round(out[0])), int(round(out[1])))
-        assert 0 <= key[0] < 5 and 0 <= key[1] < 5, "out of bounds"
-        assert key not in p._sim.blocked, "planned into a blocked cell"
-        assert tuple(int(v) for v in out) == (1, 0), "A* first step from (0,0)"
+        assert tuple(key) == (1, 0), "verbatim cardinal move must land at (1,0)"
+        assert key not in p._sim.blocked, "landed in a blocked cell"
+        # A diagonal vector (the pre-fix adapter's shape, now impossible) is
+        # routed by the sim: (0,0)+[1,1] -> (1,1) which IS blocked -> stays.
+        # Honest: a vector that cannot be routed does not move the agent.
+        out_d = p._apply_action(np.array([0.0, 0.0]), np.array([1.0, 1.0]))
+        assert (out_d == np.array([0.0, 0.0])).all(), \
+            "unroutable vector must stay put (blocked landing), never be rewritten"
+        # A blocked landing: [1,0] from... (0,0) is fine; use [2,2] cell with
+        # (-1,-1): (2,2)-(-1,-1)=(1,1) blocked -> stays put.
+        out_b = p._apply_action(np.array([2.0, 2.0]), np.array([-1.0, -1.0]))
+        assert (out_b == np.array([2.0, 2.0])).all(), "blocked landing must stay put"
+        # Verbatim equality with the pipeline's predicted_state computation:
+        # GridAdpt emits the action; the executor lands via sim.transition —
+        # the exact same call the act phase makes for its honest prediction.
+        from telos_task import GridAdpt
+        adapter = GridAdpt()
+        act = adapter.intent_to_action(
+            type("I", (), {"intent_type": "bootstrap_navigate",
+                           "params": {"action_vector": None},
+                           "metadata": None})(), np.array([1.0, 0.0]), np.zeros(2))
+        land = p._apply_action(np.array([1.0, 0.0]), act)
+        assert (land == p._sim.transition(np.array([1.0, 0.0]), act)).all(), \
+            "executor landing must equal the pipeline's predicted landing"
     finally:
         p.stop()
 

@@ -22,11 +22,13 @@ observations of the running system (positions visited, terrain, council
 verdicts, rewards) stamped with provenance caller=dashboard_producer.
 
 Structural rules (v7 additions):
-    3. Movement on the live grid is a LEGAL-ROUTE executor: the pipeline's
-       adapter emits diagonal/no-op vectors; this producer plans with A*
-       over the real 5x5 legal grid (blocked cells from the sim) toward the
-       goal, so every approved cycle that can move makes monotone progress.
-       Deterministic (fixed neighbor order + Manhattan heuristic), bounds-safe.
+    3. Movement on the live grid is the PIPELINE'S OWN action, executed
+       verbatim: GridAdpt (the adapter) already emits legal cardinal moves
+       or an honest no-op (legal-motion planner, telos_task.py), so the
+       producer executes exactly what the pipeline predicted. ANY rewrite
+       here (the old A* legal-route executor) falsified the pipeline's
+       per-step landing prediction -> permanent reality gap -> risk gate
+       FAIL -> the no-action crawl. Model and executor AGREE by construction.
     4. Counters survive restarts: cycles and worlds_simulated_total are
        restored from the last persisted producer state (exact counters) or,
        failing that, from the latest checkpoint files (honest best-effort),
@@ -36,7 +38,6 @@ Structural rules (v7 additions):
 
 import glob as _glob
 import sys
-import heapq
 import json
 import logging
 import math
@@ -48,6 +49,21 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 logger = logging.getLogger("telos_dashboard_producer")
+
+
+def _ist_day() -> str:
+    """Current calendar day in the user's working timezone (IST, UTC+5:30).
+
+    The day-boundary epoch for the producer's "today (IST)" secondary
+    counters. One localtime() call per cycle — cheap, and the day string
+    only changes at the IST midnight boundary, so the comparison in the
+    per-cycle path is a pure string identity check.
+
+    Returns:
+        YYYY-MM-DD string for the current IST calendar day.
+    """
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d")
 
 
 def json_clean(obj: Any) -> Any:
@@ -104,73 +120,6 @@ SYSTEM_SCORE_WEIGHTS = {"di": 0.50, "md": 0.25, "reward": 0.15, "coverage": 0.10
 # score - so efficiency is a separate labeled stat, not a component.
 OPTIMAL_STEPS = 8.0   # Manhattan distance (0,0)->(4,4): shortest possible episode
 MAX_EPISODE_HISTORY = 50
-
-
-def _astar_step(state, blocked, goal, grid_size, fallback):
-    """First step of the shortest legal path toward the goal (A*).
-
-    Deterministic legal-route planner over the REAL grid: blocked cells are
-    taken from the live sim (never invented), neighbors are cardinal-only,
-    heuristic is Manhattan distance to the goal, ties break by a monotone
-    counter so the same state always yields the same step. Returns the
-    first cardinal step (delta) along the shortest path — each approved
-    step strictly decreases path-length to the goal (monotone progress).
-    Returns ``fallback`` (no move) when the start IS the goal or no legal
-    path exists (genuinely immovable state — the honest no-op).
-
-    Args:
-        state: current float position [x, y].
-        blocked: iterable of (x, y) blocked cells from the live sim.
-        goal: target [x, y] (module GOAL from telos_task, real).
-        grid_size: edge length of the square grid (5 for GridWorld).
-        fallback: value to return when no move is possible (the state).
-
-    Returns:
-        np.ndarray delta (first legal step) or ``fallback``.
-    """
-    start = (int(round(state[0])), int(round(state[1])))
-    gx, gy = int(round(goal[0])), int(round(goal[1]))
-    if start == (gx, gy):
-        return fallback  # already at the goal — nothing to do
-    blocked_set = set(tuple(b) for b in blocked)
-
-    def manhattan(cell):
-        return abs(cell[0] - gx) + abs(cell[1] - gy)
-
-    # Deterministic neighbor order (ties resolve identically every run).
-    neighbors = ((1, 0), (-1, 0), (0, 1), (0, -1))
-    counter = 0
-    start_h = manhattan(start)
-    heap = [(start_h, 0, counter, start)]
-    counter += 1
-    g_score = {start: 0}
-    came_from = {start: None}
-    closed = set()
-    while heap:
-        f, g, _, cell = heapq.heappop(heap)
-        if cell in closed:
-            continue
-        closed.add(cell)
-        if cell == (gx, gy):
-            # Walk back to the first step after the start (start's parent
-            # is None, so the first step is the node whose parent is start).
-            node = cell
-            while came_from[node] is not None and came_from[node] != start:
-                node = came_from[node]
-            return np.array([node[0] - start[0], node[1] - start[1]], dtype=float)
-        for dx, dy in neighbors:
-            ncell = (cell[0] + dx, cell[1] + dy)
-            if not (0 <= ncell[0] < grid_size and 0 <= ncell[1] < grid_size):
-                continue  # bounds-safe: never plan outside the grid
-            if ncell in blocked_set:
-                continue  # real blocked cells are never entered
-            ng = g + 1
-            if ng < g_score.get(ncell, float('inf')):
-                g_score[ncell] = ng
-                came_from[ncell] = cell
-                heapq.heappush(heap, (ng + manhattan(ncell), ng, counter, ncell))
-                counter += 1
-    return fallback  # no legal path — honest no-op
 
 
 def _clamp01(value: float) -> float:
@@ -410,6 +359,23 @@ class DashboardProducer:
         self._episode_worlds = 0
         self._last_episode_worlds: Optional[int] = None
         self._completed_episode_worlds: List[int] = []
+        # ── "today (IST)" epoch counters (audit Option E, day boundary) ──
+        # A calendar-day reset of the SECONDARY per-day window. The day is
+        # the user's working timezone (IST = UTC+5:30), computed lazily in
+        # the per-cycle path (one date() call per cycle — cheap). Resets at
+        # the IST midnight boundary only; a dashboard restart NEVER resets
+        # the day window (persisted in the producer state file, same as the
+        # consolidated totals). Labeled "today (IST)" everywhere — these
+        # never redefine the consolidated episode/efficiency metrics.
+        self._today_day: Optional[str] = None
+        self._today_episodes: int = 0
+        self._today_steps: int = 0
+        self._today_reward: float = 0.0
+        # Episode-reset handoff: set when a goal-reach reset lands; the NEXT
+        # cycle passes episode_reset=True into pipeline.execute() so the
+        # runtime can suppress the cross-episode deferred reality-gap record
+        # (the prediction belongs to the pre-reset world — Λ6.5).
+        self._episode_reset_pending: bool = False
 
         # ── live metrics (all measured, none invented) ──
         self._traces: List[Dict] = []
@@ -485,6 +451,13 @@ class DashboardProducer:
                 "worlds_simulated": self._worlds_simulated_total,
                 "world_states": len(self._visited_positions),
                 "episodes": self._episode_stats(),
+                "today": {
+                    "date": self._today_day,
+                    "episodes": self._today_episodes,
+                    "steps": self._today_steps,
+                    "reward": round(self._today_reward, 2),
+                    "label": "today (IST)",
+                },
                 "position": self._state_np.tolist(),
                 "mood": self._mood(),
                 "knowledge": self._knowledge_stats(),
@@ -725,8 +698,23 @@ class DashboardProducer:
     def _run_cycle(self) -> None:
         trace_dict: Optional[Dict] = None
         with self._lock:
-            result = self._pipeline.execute(self._state_np, user_name="Prateek")
+            episode_reset = self._episode_reset_pending
+            self._episode_reset_pending = False
+            result = self._pipeline.execute(
+                self._state_np, user_name="Prateek", episode_reset=episode_reset)
             self._cycles += 1
+            # "today (IST)" epoch window: reset the SECONDARY per-day counters
+            # at the IST midnight boundary only (one date() lookup per cycle).
+            # Distinct label — never merged into the consolidated metrics.
+            # Λ2.3: no silent swallow — a date lookup failure must surface
+            # loudly, not silently freeze the today window at a stale day.
+            _today = _ist_day()
+            if self._today_day != _today:
+                self._today_day = _today
+                self._today_episodes = 0
+                self._today_steps = 0
+                self._today_reward = 0.0
+            self._today_steps += 1
             # Every decision cycle is one step of the episode clock (moves,
             # no-ops AND inquiry pauses are all real time-to-goal - an
             # honest measure of how many decisions reaching the goal takes).
@@ -766,6 +754,9 @@ class DashboardProducer:
                     reward = self._sim.rewards[pos_key]
                 self._sim.rewards[pos_key] = 0.0
             self._reward_collected += reward
+            # Λ2.3: no silent swallow — reward arithmetic is trivial float
+            # addition; a failure must surface loudly, not zero counter.
+            self._today_reward += reward
             # System Score - bounded composite of MEASURED signals. Time is
             # NOT a component: cycles elapsed is an endurance fact, kept as
             # a separate labeled readout, never folded into a quality score.
@@ -872,7 +863,9 @@ class DashboardProducer:
             # ZERO sim mutation) and reset to origin for a continuous live run.
             if trace is not None and trace.selected_action is not None and self._sim.terminal(self._state_np):
                 self._on_goal_reached()
+                self._today_episodes += 1
                 self._state_np = np.array([0.0, 0.0])
+                self._episode_reset_pending = True  # next cycle observes the new world
 
         # Broadcast OUTSIDE the lock (network I/O must not stall the cycle).
         if trace_dict is not None:
@@ -916,19 +909,20 @@ class DashboardProducer:
             return state
         if abs(a[0]) < 0.05 and abs(a[1]) < 0.05:
             return state  # genuine no-op — respect the decision
-        step = _astar_step(
-            state=state,
-            blocked=self._sim.blocked,
-            goal=self._goal,
-            grid_size=self._grid_size,
-            fallback=np.array([0.0, 0.0], dtype=float),
-        )
-        if step is None or (abs(step[0]) < 0.05 and abs(step[1]) < 0.05):
-            return state  # immovable / already at goal — honest no-op
-        dest = np.clip(state + step, 0, self._grid_size - 1)
-        # A* only returns legal in-grid steps; the clip is a belt-and-braces
-        # guarantee for the in-bounds contract.
-        return dest
+        # Verbatim execution (structural fix, live-loop plateau): the adapter
+        # (GridAdpt.intent_to_action) emits LEGAL CARDINAL moves or an honest
+        # no-op through the same legal-motion planner the sim's futures use.
+        # Executing exactly what the pipeline predicted keeps the deferred
+        # reality-gap comparison at zero on every acted cycle (the act phase
+        # computes predicted_state via this same sim.transition). The old A*
+        # rewrite here moved the agent goal-ward even when the pipeline's
+        # decision was exploratory — the executed trajectory never matched the
+        # predicted landing, the world model was PERMANENTLY falsified, and
+        # the governor's risk gate pinned ACT for ~3-5 cycles after every
+        # move (the eternal no-action crawl). Model and executor now agree by
+        # construction; a blocked/honest no-op from the adapter still stays
+        # put (transition returns s on a blocked landing).
+        return self._sim.transition(state.copy(), a)
 
     def _record_knowledge(self, result, trace, reward: float, terrain_changes: List[Dict]) -> None:
         """Record real runtime observations as knowledge nodes + edges.
@@ -1029,6 +1023,10 @@ class DashboardProducer:
             payload = {
                 "cycles": self._cycles,
                 "worlds_simulated_total": self._worlds_simulated_total,
+                "today_day": self._today_day,
+                "today_episodes": self._today_episodes,
+                "today_steps": self._today_steps,
+                "today_reward": self._today_reward,
                 "updated_at": time.time(),
             }
             tmp_path = PRODUCER_STATE_PATH + ".tmp"
@@ -1066,10 +1064,19 @@ class DashboardProducer:
             try:
                 self._cycles = int(state.get("cycles", 0) or 0)
                 self._worlds_simulated_total = int(state.get("worlds_simulated_total", 0) or 0)
+                # The today (IST) window survives restarts WITHIN the same
+                # calendar day (a restart is an operational artifact, not an
+                # epoch boundary — audit Option E reasoning). If the persisted
+                # day is not today, the first cycle resets it (cheap).
+                self._today_day = state.get("today_day") or None
+                self._today_episodes = int(state.get("today_episodes", 0) or 0)
+                self._today_steps = int(state.get("today_steps", 0) or 0)
+                self._today_reward = float(state.get("today_reward", 0.0) or 0.0)
                 logger.info(
                     "producer: restored exact counters from %s "
-                    "(cycles=%d, worlds_simulated=%d)",
+                    "(cycles=%d, worlds_simulated=%d, today=%s)",
                     PRODUCER_STATE_PATH, self._cycles, self._worlds_simulated_total,
+                    self._today_day,
                 )
             except (TypeError, ValueError) as e:
                 logger.warning("producer: counter restore (state file) malformed: %r", e)
