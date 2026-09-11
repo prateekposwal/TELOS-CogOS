@@ -244,8 +244,8 @@
       if (last && d.decisions > 0) {
         var verdict = last.status === 'APPROVED'
           ? 'passed the council and became action'
-          : 'was held back by ' + (last.firewall_blocked_by || last.blocking_validator || 'a validator') +
-            ' — TELOS chose not to act';
+          : 'was held back by ' + (last.blocked_by_gate || last.firewall_blocked_by || last.blocking_validator || 'a validator') +
+            ' (' + (last.decision_mode || last.status || 'governance') + ') — TELOS chose not to act';
         var diTxt = (typeof last.di === 'number') ? (last.di * 100).toFixed(0) + '%' : '—';
         sq.querySelector('.pq-body').textContent =
           'Cycle ' + (last.cycle_id != null ? last.cycle_id : '—') + ' — "' + (last.intent || 'a decision') +

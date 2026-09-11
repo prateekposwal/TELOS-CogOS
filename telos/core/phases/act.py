@@ -98,6 +98,23 @@ class ActPhase(Phase):
             pipeline: the running pipeline (source of reality-gap tracker).
             ctx: the phase context for this cycle.
         """
+        # Hoisted defaults (Λ2.3 latent-bug fix): `model_fidelity`, `tested`,
+        # `spec`, `di`, `md` and `catastrophe` were only assigned inside the
+        # no-override branch but referenced unconditionally by the shared
+        # downstream computation (derive_epistemic_state, the WorldSpec block,
+        # GovernorInput) — a pipeline with no tracker, or the documented
+        # _governance_override test hook, crashed the whole governance
+        # computation, silently swallowed by execute's except. One canonical
+        # rule: a missing signal is a PERMISSIVE PASS (the module's own
+        # contract); the hoisted permissive defaults honor that instead of
+        # raising, and the else branch overwrites them with real signals.
+        model_fidelity = None
+        tested = False
+        spec = None
+        di = 1.0
+        md = 0.0
+        catastrophe = False
+
         # Optional injected authorization (tests / explicit override).
         override = getattr(ctx, '_governance_override', None)
         if override is not None and isinstance(override, CapabilityAuthorization):
@@ -106,8 +123,6 @@ class ActPhase(Phase):
             # ── Gather per-gate signals ──
             # model fidelity from the reality-gap tracker (Phase 4).
             model_id = "world"
-            model_fidelity = None
-            tested = False
             tracker = getattr(pipeline, '_reality_gap_tracker', None)
             if tracker is not None and not isinstance(tracker, type):
                 try:
@@ -470,6 +485,25 @@ class ActPhase(Phase):
             ctx.epistemic_state = epistemic_state
             ctx.governor_decision = governor_decision
             ctx.decision_mode = governor_decision.mode
+            # Audit Item 1 (decision-mode telemetry): record WHY the cycle
+            # did not act — the failed capability gate(s) (e.g. model_fidelity,
+            # risk_coverage, causal_confidence, recovery, authority) — on the
+            # context on EVERY cycle, INCLUDING DEFER/BLOCK (Lambda 2.3: the
+            # reason is never silently dropped). The governor's metadata
+            # carries the gates that failed when it deferred/blocked on
+            # capability; the capability fallback covers the other hard-stop
+            # paths (ABSTAIN on low DI -> causal_confidence/recovery FAIL,
+            # BLOCK on high MD -> risk_coverage FAIL). Readable after
+            # execute() so the trace and decision log can show "DEFER —
+            # model_fidelity" instead of a silent no-op. try/except:
+            # telemetry must never break the act gate.
+            try:
+                _failed = list(governor_decision.metadata.get("failed_gates") or [])
+                if not _failed and capability is not None:
+                    _failed = [g for g in capability.failed_gates() if isinstance(g, str)]
+                ctx.blocked_by_gate = ",".join(sorted(_failed)) if _failed else None
+            except Exception:
+                ctx.blocked_by_gate = None
             # ESCALATE is a deliberate per-world policy (see GovernorDecision.hard_stop):
             #   advisory  -> proceed + log (existing behavior preserved)
             #   required  -> HARD STOP until distinct human authorization (safety-critical)

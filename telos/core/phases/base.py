@@ -143,6 +143,12 @@ class PhaseContext:
     # semantics (BenchmarkMetrics still counts 'blocks' the same way). They only
     # extend the context so the act phase can report a richer DecisionMode.
     decision_mode: Any = None              # DecisionMode (ACT/DEFER/ABSTAIN/ESCALATE/BLOCK)
+    # Audit Item 1 (decision-mode telemetry): comma-joined names of the
+    # capability gate(s) that FAILED this cycle (e.g. "model_fidelity",
+    # "causal_confidence,recovery"). Recorded on EVERY cycle — including
+    # DEFER/BLOCK — so the trace/decision-log can say WHY a cycle did not
+    # act. None when no mandatory gate failed.
+    blocked_by_gate: Optional[str] = None
     no_action: bool = False                # True when act emits NO action vector
     capability_authorization: Any = None   # CapabilityAuthorization for this cycle
     governor_decision: Any = None          # GovernorDecision record

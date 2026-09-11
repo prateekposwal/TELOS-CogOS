@@ -309,8 +309,8 @@ function renderHeroCaption(n) {
   } else {
     // Name the ACTUAL gate from the live trace: the firewall's loop detector
     // ('action_loop') vs the council validator that rejected the action.
-    var gate = last.firewall_blocked_by || last.blocking_validator || 'a validator';
-    verdict = 'The last one was held back by ' + gate + ' — TELOS chose not to act.';
+    var gate = last.blocked_by_gate || last.firewall_blocked_by || last.blocking_validator || 'a validator';
+    verdict = 'The last one was held back by ' + gate + ' (' + (last.decision_mode || last.status || 'governance') + ') — TELOS chose not to act.';
   }
   el.textContent = 'Each decision is a real pipeline run — DI-gated and council-checked. ' + verdict;
 }
@@ -444,7 +444,7 @@ function renderRecent(recent, decisions) {
     var ok = r.status === 'APPROVED';
     var pos = Array.isArray(r.position) ? '(' + Math.round(r.position[0]) + ',' + Math.round(r.position[1]) + ')' : '';
     return '<span class="story-decision ' + (ok ? 'ok' : 'warn') + '" title="' +
-      (r.firewall_blocked_by || r.blocking_validator || '') + '">C' + r.cycle_id + ' ' + (r.intent || '?') +
+      (r.blocked_by_gate || r.firewall_blocked_by || r.blocking_validator || '') + '">C' + r.cycle_id + ' ' + (r.intent || '?') +
       ' DI=' + (r.di !== undefined ? (r.di * 100).toFixed(0) + '%' : '—') + ' ' + pos + '</span>';
   }).join('');
 }
