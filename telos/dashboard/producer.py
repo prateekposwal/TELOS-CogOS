@@ -1259,6 +1259,13 @@ class DashboardProducer:
                 "worlds_simulated": self._worlds_simulated_total,
                 "world_states": len(self._visited_positions),
                 "episodes": self._episode_stats(),
+                "today": {
+                    "date": self._today_day,
+                    "episodes": self._today_episodes,
+                    "steps": self._today_steps,
+                    "reward": round(self._today_reward, 2),
+                    "label": "today (IST)",
+                },
                 "position": self._state_np.tolist(),
                 "mood": self._mood(),
                 "knowledge": self._knowledge_stats(),
