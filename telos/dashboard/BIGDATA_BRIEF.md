@@ -74,7 +74,7 @@ number, 4 stat boxes, insight line, chips, mood, action) + `graph-wall` of boxed
 From `/api/overview` (+ WS `overview` pushes): `producer{running,cycles,last_cycle_at,last_error}`,
 `decisions`, `domains{name:count}`, `lessons`, `edges`, `edge_types{type:count}`,
 `world_states`, `worlds_simulated`, `di`, `md`, `mood`, `score` (0–100 bounded), `score_components{di,md,reward_fraction,world_coverage,weights,drift_threshold,grid_area}`,
-`reward_collected`, `reward_available`, `position[x,y]`, `episodes{completed,current_steps,last_steps,avg_steps_per_goal,efficiency_vs_optimal,optimal_steps}`,
+`reward_collected`, `reward_available`, `position[x,y]`, `episodes{completed,current_steps,current_worlds,last_steps,last_worlds,avg_steps_per_goal,avg_worlds_per_goal,efficiency_vs_optimal,optimal_steps}`,
 `recent_decisions[{cycle_id,intent,di,md,status,worlds,position,blocking_validator}]`, `knowledge{nodes,edges,domains,edge_types}`.
 From `/api/checkpoints` (full traces, capped 100): `cycle_id, timestamp, decision_integrity,
 mission_drift, council_validated, firewall_blocked, blocking_validator, world_state,
@@ -98,7 +98,7 @@ mood, resources{c_compute,c_memory,c_bandwidth}`.
 │   editorial two-line title — line 2 dyed with REAL domain colors
 │   lede (#story-headline hook sentence) + subhead (#story-subhead)
 │   hero-meta: giant decisions (#story-decisions) + 4 captioned stats
-│     (#story-lessons / #story-worlds / #story-worlds-sim / #story-efficiency)
+│     (#story-lessons / #story-worlds / #story-worlds-sim [episode rollout states] / #story-efficiency)
 │   #hero-backdrop canvas: the REAL DI/MD history as a glowing pulse waveform
 │   scroll cue
 ├ CHAPTER 01  "The Signal"      — decision quality

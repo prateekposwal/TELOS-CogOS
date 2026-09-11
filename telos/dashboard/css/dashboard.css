@@ -426,7 +426,7 @@ body.theme-light .hero-scrim {
 
 .story-stats {
   display: grid;
-  /* 5 hero stats: worlds simulated, world states, lessons, cycles per goal,
+  /* 5 hero stats: rollout states (episode), world states, lessons, cycles per goal,
      moves per goal (the moves/cycles split is the episode-efficiency pair). */
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-4);
