@@ -34,10 +34,16 @@ logger = logging.getLogger('telos_council_validators')
 
 # Intent types that are evidence-gathering by design: they should never be
 # penalised for not producing a world-changing action — their purpose IS inquiry.
-_INQUIRY_TYPES = {
+# NOTE: this set is NOT the same as STAGNATION_EXEMPT_INQUIRY_TYPES (the
+# stagnation-arming exemption). `blended_inquiry` is exempt there (its dwell
+# is deliberate exploration) but its FALSIFIED no-action LOOP must still
+# DISSENT here by design (Λ6.5: a hybrid inquiry type that repeats a falsified
+# no-action loop is evidence of non-execution and must force a differently-typed
+# escape). The two exemptions are distinct canonical concerns — never merge them.
+_INQUIRY_TYPES = frozenset({
     "inquiry", "inquiry_explore", "inquiry_recalibrate", "inquiry_resolve",
     "curiosity_explore", "perceive", "memory_miss",
-}
+})
 
 # Consecutive falsified selections of the SAME intent type that trigger dissent.
 FALSIFICATION_DISSENT_AFTER = 3

@@ -171,52 +171,73 @@ class DecisionFirewall:
 
         # Check 5: Loop detection — same action repeated too many times
         if intent.intent_type:
-            self._action_history.append(intent.intent_type)
-            if len(self._action_history) > self._max_action_history:
-                self._action_history.pop(0)
-            recent = self._action_history[-self._loop_threshold:]
-            if len(recent) >= self._loop_threshold and len(set(recent)) == 1:
-                # If all moves are blocked (surrounded), allow a "try anyway" retry
-                if available_moves is not None and available_moves == 0:
-                    self._consecutive_loop_blocks = 0  # stuck retry is a pass
-                    logger.info(
-                        f"DecisionFirewall: loop detected ({recent[0]} x{self._loop_threshold}) "
-                        f"but available_moves=0 — allowing retry (stuck)"
-                    )
-                    signals.append({
-                        "check": "loop_detection",
-                        "passed": True,
-                        "reason": f"All moves blocked, allowing '{recent[0]}' retry",
-                        "action": recent[0],
-                        "stuck": True,
-                    })
-                else:
-                    # Λ3.1 Recovery Mode: 2+ consecutive action_loop blocks
-                    # request a goal-seek recovery intent (different type)
-                    # so the same-intent detector cannot trap the agent.
-                    self._consecutive_loop_blocks += 1
-                    recovery_requested = (
-                        self._consecutive_loop_blocks >= RECOVERY_AFTER_LOOP_BLOCKS
-                    )
-                    signal = {
-                        "check": "loop_detection",
-                        "passed": False,
-                        "reason": f"Same action '{recent[0]}' repeated {self._loop_threshold}+ consecutive cycles",
-                        "action": recent[0],
-                        "consecutive_loop_blocks": self._consecutive_loop_blocks,
-                    }
-                    if recovery_requested:
-                        signal["recovery_requested"] = True
-                        signal["recovery"] = "goal_seek_escape"
-                        signal["axiom"] = "3.1"
+            loop_type = intent.intent_type
+            # Designed recovery/escape intents (Λ3.1 answer types) are exempt
+            # from the loop DETECTOR by their own nature: they exist to break
+            # exactly this check. Their history slot is NOT recorded (they are
+            # the interrupt, not the loop member), so a recovery that repeatedly
+            # fires stays a pass — blocking the escape with the same trap it is
+            # meant to break would make recovery impossible (the eternal
+            # plateau's rebound: goal_seek filled the window, then the detector
+            # blocked goal_seek itself). The canonical recovery set
+            # (recovery_types.py) is the single source — any future escape
+            # type is auto-exempt. They still pass every OTHER firewall check
+            # + the council, so a genuinely invalid recovery is still blocked.
+            from telos.core.governance.recovery_types import STAGNATION_EXEMPT_RECOVERY_TYPES
+            if loop_type in STAGNATION_EXEMPT_RECOVERY_TYPES:
+                signals.append({
+                    "check": "loop_detection",
+                    "passed": True,
+                    "reason": f"'{loop_type}' is a designed escape type — exempt from loop detection (Λ3.1)",
+                    "action": loop_type,
+                })
+            else:
+                self._action_history.append(loop_type)
+                if len(self._action_history) > self._max_action_history:
+                    self._action_history.pop(0)
+                recent = self._action_history[-self._loop_threshold:]
+                if len(recent) >= self._loop_threshold and len(set(recent)) == 1:
+                    # If all moves are blocked (surrounded), allow a "try anyway" retry
+                    if available_moves is not None and available_moves == 0:
+                        self._consecutive_loop_blocks = 0  # stuck retry is a pass
                         logger.info(
-                            f"DecisionFirewall: loop recovery requested — "
-                            f"{self._consecutive_loop_blocks} consecutive action_loop "
-                            f"blocks on '{recent[0]}' (Λ3.1)"
+                            f"DecisionFirewall: loop detected ({recent[0]} x{self._loop_threshold}) "
+                            f"but available_moves=0 — allowing retry (stuck)"
                         )
-                    signals.append(signal)
-                    return self._block("action_loop",
-                                       f"Action '{recent[0]}' repeated {self._loop_threshold}+ cycles", signals)
+                        signals.append({
+                            "check": "loop_detection",
+                            "passed": True,
+                            "reason": f"All moves blocked, allowing '{recent[0]}' retry",
+                            "action": recent[0],
+                            "stuck": True,
+                        })
+                    else:
+                        # Λ3.1 Recovery Mode: 2+ consecutive action_loop blocks
+                        # request a goal-seek recovery intent (different type)
+                        # so the same-intent detector cannot trap the agent.
+                        self._consecutive_loop_blocks += 1
+                        recovery_requested = (
+                            self._consecutive_loop_blocks >= RECOVERY_AFTER_LOOP_BLOCKS
+                        )
+                        signal = {
+                            "check": "loop_detection",
+                            "passed": False,
+                            "reason": f"Same action '{recent[0]}' repeated {self._loop_threshold}+ consecutive cycles",
+                            "action": recent[0],
+                            "consecutive_loop_blocks": self._consecutive_loop_blocks,
+                        }
+                        if recovery_requested:
+                            signal["recovery_requested"] = True
+                            signal["recovery"] = "goal_seek_escape"
+                            signal["axiom"] = "3.1"
+                            logger.info(
+                                f"DecisionFirewall: loop recovery requested — "
+                                f"{self._consecutive_loop_blocks} consecutive action_loop "
+                                f"blocks on '{recent[0]}' (Λ3.1)"
+                            )
+                        signals.append(signal)
+                        return self._block("action_loop",
+                                           f"Action '{recent[0]}' repeated {self._loop_threshold}+ cycles", signals)
 
         # Check 6: Identity integrity — mood-based gate
         if system_mood in ("uncertain", "fatigued"):

@@ -791,7 +791,37 @@ class TelosV14Pipeline:
             ctx.governance_blocked = True
             ctx.blocking_reason = f"research_amplification_left:{report.reason}"
 
+    def _selection_in_loop_family(self, intent_type: Optional[str]) -> bool:
+        """Is this intent type part of the firewall's recently-inspected loop family?
+
+        The trap is a FAMILY of types the firewall recently inspected, not a
+        single stored looped type: the eternal plateau's alternation pair
+        (curiosity_explore <-> blended_inquiry) each break the 4-same-type
+        run, so gating on `current == looped` alone let the alternation
+        consume the one-shot arming WITHOUT ever injecting the escape. Any
+        type still present in the firewall's action-retention window is
+        loop-family — replacing it with the designed escape is trap
+        continuation, never stomping. Only a type with ZERO presence in the
+        recent history is a genuine natural escape worth not stomping.
+
+        Args:
+            intent_type: the candidate selection's intent type.
+
+        Returns:
+            True when the type appears in the firewall's recent history.
+        """
+        if not intent_type:
+            return False
+        history = list(getattr(self._firewall, '_action_history', []))
+        if intent_type in history:
+            return True
+        # Defense in depth: the stored looped type is the trap's PRIMARY type
+        # even if history currently lacks it (e.g. a recovery spell flushed the
+        # window). Re-selecting the recorded looped type is trap continuation.
+        return intent_type == self._recovery_looped_type
+
     def _maybe_inject_recovery_intent(self, ctx) -> None:
+
         """Select-phase recovery (Λ3.1): break a firewall action_loop trap.
 
         When the previous cycle ended on a loop block at the recovery
@@ -820,11 +850,12 @@ class TelosV14Pipeline:
         self._recovery_stagnation_armed = False  # consumed one-shot
         looped = self._recovery_looped_type
         current = ctx.selected_intent.intent_type if ctx.selected_intent else None
-        if current is not None and looped is not None and current != looped:
-            # The streams chose something different — do NOT stomp it here.
-            # The council may still fall back to the looped type (Λ4.3
-            # alternative selection); the post-council hook re-checks the
-            # FINAL intent and injects only then.
+        if current is not None and not self._selection_in_loop_family(current):
+            # A genuinely NEW type (absent from the firewall's recent
+            # retention window) is a natural escape — the trap broke on its
+            # own; do not stomp it. NOTE: the council may still fall back to
+            # a loop-family type afterwards (Λ4.3 alternative selection); the
+            # post-council hook re-checks the FINAL intent and injects then.
             return
         from telos.intent_ir import IntentIR
         ctx.selected_intent = IntentIR(
@@ -860,8 +891,10 @@ class TelosV14Pipeline:
             return  # recovery not armed in the immediately previous cycle
         looped = self._recovery_looped_type
         final = ctx.selected_intent.intent_type if ctx.selected_intent else None
-        if final is None or looped is None or final != looped:
+        if final is not None and not self._selection_in_loop_family(final):
             return  # the system escaped naturally - no injection
+        if final is None:
+            return
         # Allow the post-council escape for BOTH armer types: a firewall
         # action_loop trap AT threshold, or a governor no-action STAGNATION
         # (firewall counter stays 0 for the latter, so gating on it alone would
@@ -1022,7 +1055,8 @@ class TelosV14Pipeline:
     def execute(self, state: np.ndarray,  # Axiom 1.1 — Architecture Produces Outcomes
                  user_name: Optional[str] = None,
                  chat_history: Optional[List[Dict]] = None,
-                 tiered_context: Optional['TieredContext'] = None) -> PipelineResult:
+                 tiered_context: Optional['TieredContext'] = None,
+                 episode_reset: bool = False) -> PipelineResult:
         # ── Genesis recognition — bind creator identity ──
         if user_name and ANCHOR.recognize(user_name):
             self._creator_present = True
@@ -1057,6 +1091,13 @@ class TelosV14Pipeline:
         )
         # Store tiered context on ctx for downstream use
         ctx._tiered_context = tiered_context
+        # Episode reset signal (Λ6.5): the executor restarted the world at
+        # origin after a goal. The previous cycle's prediction belongs to the
+        # OLD world instance — comparing it against this new observation would
+        # be a category error (a 5.66-step "gap" that permanently falsifies the
+        # world model). Downstream (act phase) suppresses the cross-episode
+        # deferred-gap record when this flag is set.
+        ctx.episode_reset = bool(episode_reset)
 
         # ── Research Amplification Gate (Λ6.5): the standing pre-PERCEIVE
         #    stage. In report mode the verdict is attached to the context /
@@ -1523,7 +1564,17 @@ class TelosV14Pipeline:
                     if pending is not None:
                         prev_pred, prev_cycle = pending
                         if prev_cycle != ctx.cycle_count:
-                            self._reality_gap_tracker.record("world", prev_pred, ctx.state, cycle=ctx.cycle_count)
+                            if getattr(ctx, 'episode_reset', False):
+                                # Episode boundary: the prediction was made in
+                                # the pre-reset world; the current observation
+                                # is a NEW world instance at origin. Comparing
+                                # across the reset is not a prediction failure
+                                # (no causal link -> no evidence, Λ6.5).
+                                # Suppress the record and clear the pending
+                                # prediction so it cannot poison a later cycle.
+                                self._pending_reality_gap = None
+                            else:
+                                self._reality_gap_tracker.record("world", prev_pred, ctx.state, cycle=ctx.cycle_count)
                     if predicted is not None and not getattr(ctx, 'no_action', False):
                         self._pending_reality_gap = (predicted, ctx.cycle_count)
                     else:
