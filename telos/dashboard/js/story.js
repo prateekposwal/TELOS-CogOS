@@ -97,6 +97,7 @@ function renderOverview(d) {
   var edgeTypes = n.edge_types;
   var worldStates = n.world_states;
   var worldsSim = n.worlds_simulated;
+  var ep = n.episodes;
   var recent = n.recent_decisions;
   var producer = n.producer;
 
@@ -131,18 +132,26 @@ function renderOverview(d) {
   setNum('story-domains-count', domainNames.length);
   setNum('story-lessons', lessons);
   setNum('story-worlds', worldStates);
-  setNum('story-worlds-sim', worldsSim);
+  // ROLLOUT STATES slot (audit C+D): the hero value is the PER-EPISODE
+  // cumulative counterfactual states — episodes.current_worlds from the live
+  // payload (the producer resets it at each goal). With the producer down,
+  // the honest fallback is the LAST trace's own worlds_simulated (its most
+  // recent measured rollout width) — never the lifetime total.
+  var epWorlds = (ep && producer.running && typeof ep.current_worlds === 'number')
+    ? ep.current_worlds
+    : (recent.length ? (recent[recent.length - 1].worlds || 0) : 0);
+  setNum('story-worlds-sim', epWorlds);
   setNum('story-graph', lessons + '/' + edges);
-  // WORLDS SIMULATED caption — the honest per-decision rate. Chosen metric:
-  // total_worlds / total_decisions (the run-wide mean rollout width), NOT the
-  // last-cycle value — inquiry modulation makes the per-cycle count noisy and
-  // the mean is stable and derived from two measured totals (never invented).
-  var wsCap = document.getElementById('story-worlds-sim-caption');
-  if (wsCap) {
+  // LIFETIME total + per-decision rate live in the TOOLTIP only (secondary
+  // endurance facts — the slot's primary meaning is this episode). Rate =
+  // lifetime / decisions = the run-wide mean rollout width, derived from two
+  // measured totals (never invented) and inverted to confidence in fast mode,
+  // so it is deliberately NOT a primary surface signal.
+  var wsSimEl = document.getElementById('story-worlds-sim');
+  if (wsSimEl) {
     var rate = (decisions > 0 && worldsSim > 0) ? (worldsSim / decisions) : null;
-    wsCap.textContent = 'cumulative counterfactual rollout states' +
-      (rate !== null ? ' — ~' + rate.toFixed(1) + ' per decision (horizon steps)'
-                     : ' — awaiting the first decision');
+    wsSimEl.title = 'lifetime: ' + worldsSim + ' counterfactual states across all episodes' +
+      (rate !== null ? ' — ~' + rate.toFixed(1) + ' per decision (horizon steps)' : '');
   }
   // DI / MD moved into the Chart panel caption (still measured values).
   var diEl = document.getElementById('story-di');
@@ -153,7 +162,6 @@ function renderOverview(d) {
   // Episode efficiency — REAL measured goal-reach events (producer-side
   // bookkeeping, ZERO sim mutation). Unmeasured (no episode yet, or no
   // producer) renders '—', never a fabricated number.
-  var ep = n.episodes;
   var effEl = document.getElementById('story-efficiency');
   if (effEl) {
     if (!ep || !producer.running || ep.completed === 0 || typeof ep.avg_steps_per_goal !== 'number') {
@@ -233,7 +241,7 @@ function renderOverview(d) {
   renderRecent(recent, decisions);
 
   // 9) Reflection — honest "right now" wording (no invented time-frame).
-  renderMood(n, decisions, lessons, worldsSim, recent);
+  renderMood(n, decisions, lessons, recent);
 
   // 10) Track poll deltas for the growth insight.
   if (_prevLessons === null) _prevLessons = lessons;
@@ -423,7 +431,7 @@ function renderRecent(recent, decisions) {
 }
 
 // ─── Mood reflection — honest "right now", no invented "today" ───
-function renderMood(n, decisions, lessons, worldsSim, recent) {
+function renderMood(n, decisions, lessons, recent) {
   var moodEl = document.getElementById('story-mood');
   if (!moodEl) return;
   if (decisions === 0) {
@@ -438,8 +446,7 @@ function renderMood(n, decisions, lessons, worldsSim, recent) {
     goalsBit = ', ' + epMood.completed + ' goal' + (epMood.completed === 1 ? '' : 's') + ' reached';
   }
   moodEl.innerHTML = 'Right now TELOS feels <b>' + n.mood + '</b> — ' + decisions +
-    ' decisions in, ' + lessons + ' knowledge nodes learned, ' + worldsSim +
-    ' worlds simulated' + goalsBit + lastBit + '.';
+    ' decisions in, ' + lessons + ' knowledge nodes learned' + goalsBit + lastBit + '.';
 }
 
 function setNum(id, val) {

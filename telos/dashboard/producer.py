@@ -392,6 +392,8 @@ class DashboardProducer:
         # observations (ZERO sim mutation):
         #   steps — every decision cycle (moves, no-ops AND inquiry pauses)
         #   moves — only cycles where the agent actually changed position.
+        #   worlds — counterfactual rollout states this episode (the
+        #            per-cycle trace worlds_simulated, summed; resets at goal).
         self._episode_steps = 0
         self._episode_moves = 0
         self._episodes_completed = 0
@@ -399,6 +401,15 @@ class DashboardProducer:
         self._last_episode_moves: Optional[int] = None
         self._completed_episode_steps: List[int] = []
         self._completed_episode_moves: List[int] = []
+        # Audit C+D: the hero's rollout-states slot is PER-EPISODE — the
+        # cumulative counterfactual rollout states since the current goal.
+        # Mirrors the steps/moves clocks exactly: archived on goal reach,
+        # reset at the goal, never persisted (a restart starts a fresh
+        # episode honestly). The lifetime counter keeps its own monotone
+        # _worlds_simulated_total (tooltip source, survives restarts).
+        self._episode_worlds = 0
+        self._last_episode_worlds: Optional[int] = None
+        self._completed_episode_worlds: List[int] = []
 
         # ── live metrics (all measured, none invented) ──
         self._traces: List[Dict] = []
@@ -544,13 +555,17 @@ class DashboardProducer:
         self._episodes_completed += 1
         self._last_episode_steps = self._episode_steps
         self._last_episode_moves = self._episode_moves
+        self._last_episode_worlds = self._episode_worlds
         self._completed_episode_steps.append(self._episode_steps)
         self._completed_episode_moves.append(self._episode_moves)
+        self._completed_episode_worlds.append(self._episode_worlds)
         if len(self._completed_episode_steps) > MAX_EPISODE_HISTORY:
             self._completed_episode_steps = self._completed_episode_steps[-MAX_EPISODE_HISTORY:]
             self._completed_episode_moves = self._completed_episode_moves[-MAX_EPISODE_HISTORY:]
+            self._completed_episode_worlds = self._completed_episode_worlds[-MAX_EPISODE_HISTORY:]
         self._episode_steps = 0
         self._episode_moves = 0
+        self._episode_worlds = 0
 
     def _episode_stats(self) -> Dict[str, Any]:
         """Episode efficiency - all values derived from real goal-reach events.
@@ -561,8 +576,14 @@ class DashboardProducer:
         (0,0)->(4,4) = 8, the shortest possible episode; efficiency is
         clamp01(optimal / avg), so it is bounded [0, 1] when defined.
 
+        Audit C+D (rollout-state slot): current_worlds is the cumulative
+        counterfactual rollout states since the current goal (resets at
+        each goal); last_worlds / avg_worlds_per_goal are None until at
+        least one episode completes (honest '—'), never a fabricated 0.
+
         Returns:
-            Dict with completed/current_steps/last_steps/avg_steps_per_goal/
+            Dict with completed/current_steps/current_worlds/last_steps/
+            last_worlds/avg_steps_per_goal/avg_worlds_per_goal/
             efficiency_vs_optimal/optimal_steps.
         """
         with self._lock:
@@ -572,14 +593,19 @@ class DashboardProducer:
             hist_moves = list(self._completed_episode_moves)
             avg_moves = (float(sum(hist_moves)) / len(hist_moves)) if hist_moves else None
             eff_moves = _clamp01(OPTIMAL_STEPS / avg_moves) if avg_moves else None
+            hist_worlds = list(self._completed_episode_worlds)
+            avg_worlds = (float(sum(hist_worlds)) / len(hist_worlds)) if hist_worlds else None
             return {
                 "completed": self._episodes_completed,
                 "current_steps": self._episode_steps,
                 "current_moves": self._episode_moves,
+                "current_worlds": self._episode_worlds,
                 "last_steps": self._last_episode_steps,
                 "last_moves": self._last_episode_moves,
+                "last_worlds": self._last_episode_worlds,
                 "avg_steps_per_goal": (None if avg is None else round(avg, 1)),
                 "avg_moves_per_goal": (None if avg_moves is None else round(avg_moves, 1)),
+                "avg_worlds_per_goal": (None if avg_worlds is None else round(avg_worlds, 1)),
                 "efficiency_vs_optimal": (None if eff is None else round(eff, 4)),
                 "moves_efficiency_vs_optimal": (None if eff_moves is None else round(eff_moves, 4)),
                 "optimal_steps": OPTIMAL_STEPS,
@@ -833,7 +859,9 @@ class DashboardProducer:
                         self._cycles, rss,
                     )
 
-            self._worlds_simulated_total += int(trace.worlds_simulated if trace else 0)
+            ws = int(trace.worlds_simulated if trace else 0)
+            self._worlds_simulated_total += ws
+            self._episode_worlds += ws
             self._last_cycle_at = time.time()
 
             # Persist the exact hero counters atomically so a dashboard

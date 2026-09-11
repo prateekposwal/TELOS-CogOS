@@ -327,10 +327,19 @@
         if (mindCite) mindCite.textContent = 'latest cycle · stream_activations';
       } else if (d.decisions > 0) {
         var _modeBit2 = (state.metaMode ? ' Cognition mode: ' + state.metaMode + '.' : '');
+        // Audit C+D: the honest sentence is PER-EPISODE rollout states
+        // (episodes.current_worlds resets at each goal) — never a lifetime
+        // 'worlds simulated so far'. Producer-down fallback: the last real
+        // trace's own worlds_simulated (measured, never invented).
+        var epW = (d.episodes && typeof d.episodes.current_worlds === 'number')
+          ? d.episodes.current_worlds
+          : (state.traces.length ? (state.traces[state.traces.length - 1].worlds_simulated || 0) : null);
         mind.querySelector('.pq-body').textContent =
-          'TELOS has simulated ' + d.worlds_simulated + ' counterfactual worlds so far, and feels ' + d.mood + '.' + _modeBit2;
+          (epW !== null
+            ? 'TELOS has rolled ' + epW + ' counterfactual states this episode, and feels ' + d.mood + '.' + _modeBit2
+            : 'TELOS feels ' + d.mood + ' — episode rollout data needs a live producer.' + _modeBit2);
         var mindCite2 = mind.querySelector('.pq-cite');
-        if (mindCite2) mindCite2.textContent = 'worlds simulated · measured mood';
+        if (mindCite2) mindCite2.textContent = 'counterfactual states this episode · measured mood';
       } else {
         mind.querySelector('.pq-body').textContent = 'The mind wakes with the first decision cycle.';
       }

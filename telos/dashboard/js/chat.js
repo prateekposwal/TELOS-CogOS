@@ -5,7 +5,7 @@ function addLog(trace) {
   const b = trace.firewall_blocked || !trace.council_validated;
   const e = document.createElement('div');
   e.className = 'log-entry';
-  e.innerHTML = `<span class="${b ? 'warn' : 'success'}">${b ? 'BLOCKED' : 'APPROVED'}</span> DI=${(trace.decision_integrity || 1).toFixed(2)} worlds=${trace.worlds_simulated || 0}`;
+  e.innerHTML = `<span class="${b ? 'warn' : 'success'}">${b ? 'BLOCKED' : 'APPROVED'}</span> DI=${(trace.decision_integrity || 1).toFixed(2)} rollout=${trace.worlds_simulated || 0}`;
   c.prepend(e);
   while (c.children.length > 50) c.removeChild(c.lastChild);
 }
