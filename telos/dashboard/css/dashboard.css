@@ -878,3 +878,10 @@ body.theme-light .hero-scrim {
   .btn, .zoom-btn, .icon-btn, .story-chip.clickable, .mem-node .mem-dot,
   .metric-card, .story-chip, .story-decision, .sidebar { transition: none; }
 }
+
+
+/* Audit: per-decision rollout-rate secondary line + today-IST tag (story strip) */
+.ss-caption.ss-sub { margin-top: 2px; font-style: italic; opacity: 0.75; }
+.ss-tag { display: inline-block; font-size: 0.72em; font-weight: 700; letter-spacing: 0.06em;
+          border: 1px solid currentColor; border-radius: 3px; padding: 0 4px;
+          margin-left: 4px; opacity: 0.85; text-transform: uppercase; }

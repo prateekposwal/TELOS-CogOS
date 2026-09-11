@@ -340,6 +340,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "reward_available": snap.get("reward_available", 0.0),
                 "position": snap.get("position", [0, 0]),
                 "episodes": snap.get("episodes"),
+                "today": snap.get("today"),
                 "recent_decisions": snap.get("recent_decisions", []),
                 "knowledge": snap.get("knowledge", {}),
             }

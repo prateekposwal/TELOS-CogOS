@@ -152,6 +152,25 @@ function renderOverview(d) {
     var rate = (decisions > 0 && worldsSim > 0) ? (worldsSim / decisions) : null;
     wsSimEl.title = 'lifetime: ' + worldsSim + ' counterfactual states across all episodes' +
       (rate !== null ? ' — ~' + rate.toFixed(1) + ' per decision (horizon steps)' : '');
+    // Audit: per-decision rollout rate as a READABLE SECONDARY line (was
+    // tooltip-only). Deliberately NOT a primary slot: the rate is INVERSE to
+    // confidence — in confident/fast mode the pipeline simulates fewer worlds
+    // per decision on purpose (counterfactual_budget), so a LOWER number is
+    // the designed healthy signal, never a quality defect.
+    var rateEl = document.getElementById('story-worlds-sim-rate');
+    if (rateEl) {
+      rateEl.textContent = (rate !== null && rate > 0)
+        ? '~' + rate.toFixed(1) + ' rollouts per decision — confident mode → deliberately fewer'
+        : (decisions > 0 ? 'no rollouts this run yet' : '— rollouts per decision');
+    }
+  }
+  // Audit Option E: "episodes today (IST)" — the calendar-day window from
+  // the live producer snapshot (distinct label; never the consolidated
+  // metric). Producer-down stays '—' (honest unmeasured).
+  var todayEl = document.getElementById('story-today-episodes');
+  if (todayEl) {
+    var t = d.today;
+    todayEl.textContent = (t && typeof t.episodes === 'number') ? String(t.episodes) : '—';
   }
   // DI / MD moved into the Chart panel caption (still measured values).
   var diEl = document.getElementById('story-di');
