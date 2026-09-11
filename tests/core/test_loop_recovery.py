@@ -449,3 +449,70 @@ def test_plateau_breaks_bounded_real_pipeline_run():
         pass  # recovery presence is asserted below via the global counter
     assert recoveries > 0 or not trap_cycles, \
         "alternation can no longer consume the arming — escapes must fire"
+
+
+def test_blocked_cycle_stores_no_pending_prediction_leak_lock():
+    """The fractional simulated-future leak (root cause of the persistent
+    crawl): `simulate.py` sets ctx.predicted_state to a counterfactual
+    horizon-end future on EVERY cycle — including cycles the firewall or
+    governor then block. The act-phase deferred-gap only exists for an
+    EXECUTED action (Λ6.5: 'a prediction exists only for an executed action;
+    a blocked cycle predicts nothing, so it can falsify nothing'). The
+    runtime must NOT store the pending prediction when no action executed,
+    or the next cycle records a fabricated 1.5-2.5 gap against a phantom
+    landing, pins model_fidelity at 0, and governor-DEFERs ~65% of cycles.
+
+    This locks the leak at both ends:
+      1. The runtime stores the pending only when selected_action exists.
+      2. The deferred record writes the tracker ONLY with a genuinely
+         executed action — a blocked cycle contributes zero records."""
+    import tempfile
+    tmpdir = tempfile.mkdtemp()
+    pipe = _build_pipeline(tmpdir)
+    tracker = pipe._reality_gap_tracker
+    from telos.core.phases.base import PhaseContext
+
+    # The runtime's exact act-phase block (runtime.py): store pending ONLY
+    # when an action executed.
+    def store_pending(ctx, predicted) -> None:
+        if predicted is not None and ctx.selected_action is not None:
+            pipe._pending_reality_gap = (predicted, ctx.cycle_count)
+        else:
+            pipe._pending_reality_gap = None
+
+    # Blocked cycle: predicted_state is set by simulate (fractional phantom)
+    # but NO action executed (selected_action is None). Before the fix this
+    # stored the phantom and the next cycle recorded a fake gap.
+    ctx = PhaseContext(cycle_count=20, state=np.array([0.0, 0.0]), user_name="t")
+    ctx.selected_action = None
+    phantom = np.array([2.039, 1.091])  # horizon-end fractional future
+    store_pending(ctx, phantom)
+    assert pipe._pending_reality_gap is None, \
+        "blocked cycle (no action) must NOT store a prediction — leak lock"
+
+    # Executed action: the only case that may store a pending (next cycle
+    # compares predicted landing vs observed landing — the real per-step gap).
+    ctx2 = PhaseContext(cycle_count=21, state=np.array([0.0, 0.0]), user_name="t")
+    ctx2.selected_action = np.array([1.0, 0.0])
+    pred_landing = np.array([1.0, 0.0])  # the honest predicted landing
+    store_pending(ctx2, pred_landing)
+    assert pipe._pending_reality_gap is not None, "executed action stores its prediction"
+
+    # Next cycle (no reset): the deferred comparison records ONE real gap.
+    ctx3 = PhaseContext(cycle_count=22, state=np.array([1.0, 0.0]), user_name="t")
+    pipe._reality_gap_tracker.record("world", pred_landing, ctx3.state, cycle=22)
+    assert len(tracker.model("world").gap_history) == 1, \
+        "executed-action landing produces exactly one record"
+    # The recorded gap is the REAL per-step error (predicted [1,0] vs obs [1,0]).
+    assert abs(tracker.model("world").gap_history[-1] - 0.0) < 1e-6, \
+        "verbatim-executor per-step prediction must land exactly (gap ~ 0)"
+
+    # A blocked execution replay must never touch the tracker (repro: feed a
+    # phantom then the deferred path; nothing may land).
+    ctx4 = PhaseContext(cycle_count=23, state=np.array([0.0, 0.0]), user_name="t")
+    # simulate wrote a phantom again but the firewall blocked (no action)…
+    ctx4.selected_action = None
+    store_pending(ctx4, phantom)
+    assert pipe._pending_reality_gap is None
+    assert len(tracker.model("world").gap_history) == 1, \
+        "leak replay adds NOTHING to the tracker — blocked cycles are silent"
