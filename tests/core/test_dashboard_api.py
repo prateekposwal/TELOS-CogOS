@@ -146,6 +146,14 @@ def test_checkpoints_merge_producer_and_disk(handler, tmp_path, monkeypatch):
         assert "current_worlds" in ov["episodes"], "episode current_worlds missing"
         assert "last_worlds" in ov["episodes"]
         assert "avg_worlds_per_goal" in ov["episodes"]
+        # Audit Option E: the today(IST) day-window payload rides BOTH the
+        # snapshot and the overview (the overview is the WS/hero source).
+        assert ov["today"] is not None, "live overview must expose the today(IST) window"
+        today_snap = p.snapshot()["today"]
+        assert today_snap["episodes"] == ov["today"]["episodes"], \
+            "today episodes must match across snapshot and overview"
+        assert ov["today"]["label"] == "today (IST)", \
+            "day window must carry its distinct label (never the consolidated metric)"
         after = p.snapshot()
         assert abs(ov["episodes"]["current_worlds"]
                    - after["episodes"]["current_worlds"]) <= after["worlds_simulated"], \
