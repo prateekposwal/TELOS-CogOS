@@ -137,6 +137,19 @@ def test_checkpoints_merge_producer_and_disk(handler, tmp_path, monkeypatch):
         # Overview reflects the live producer
         ov = h._load_overview()
         assert abs(ov["decisions"] - fresh()) <= 1
+        # Audit C+D: the overview carries the episode-level rollout-states
+        # payload with the live per-episode counter (the hero slot's source).
+        # Race-tolerant bound: both reads window the same lifetime range
+        # [0, worlds_simulated] - a cycle landing between them can only move
+        # the episode counter within that range (a goal reset included).
+        assert ov["episodes"] is not None, "live overview must expose episodes"
+        assert "current_worlds" in ov["episodes"], "episode current_worlds missing"
+        assert "last_worlds" in ov["episodes"]
+        assert "avg_worlds_per_goal" in ov["episodes"]
+        after = p.snapshot()
+        assert abs(ov["episodes"]["current_worlds"]
+                   - after["episodes"]["current_worlds"]) <= after["worlds_simulated"], \
+            "episode rollout counter must stay within the lifetime total"
         # Honest naming contract: the overview's KG-node count is exposed as
         # `knowledge_nodes` (live KnowledgeGraph nodes), NOT `lessons` (which
         # would collide with ExperienceManager lessons). `lessons` is kept

@@ -962,8 +962,10 @@ def test_v6_kg3d_webgl_renders_real_pixels_browser():
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# v7 data-side improvements (2026-08-15) — hero stat honesty contracts:
-#   1. WORLDS SIMULATED — relabel + live per-decision rate caption.
+# v7 data-side improvements — hero stat honesty contracts:
+#   1. ROLLOUT STATES (audit C+D) — the hero slot is PER-EPISODE counter-
+#      factual states (resets at each goal); the lifetime total is demoted
+#      to the tooltip; no surface claims 'worlds' for either counter.
 #   2. cycles-per-goal + moves-per-goal split (moves = real position changes).
 #   5a. DECISIONS caption names the REAL gate from the live trace
 #       (firewall action_loop vs council blocking_validator).
@@ -971,16 +973,26 @@ def test_v6_kg3d_webgl_renders_real_pixels_browser():
 # ═══════════════════════════════════════════════════════════════════════
 
 def test_v7_hero_stats_relabel_and_honest_captions():
-    """The hero renders the new honest labels: WORLDS SIMULATED (with a
-    per-decision caption element), cycles-per-goal + moves-per-goal split,
-    and the LESSONS caption that names live knowledge-graph archival."""
+    """The hero renders the honest labels (audit C+D): the rollout-states
+    slot is PER-EPISODE counterfactual states that reset at each goal — the
+    lifetime 'worlds simulated' claim may not occupy the hero slot and the
+    lifetime total is demoted to the tooltip (title attr). Plus the
+    cycles-per-goal + moves-per-goal split and the LESSONS caption that
+    names live knowledge-graph archival."""
     html = open(HTML).read()
-    # Item 1: relabel futures → worlds simulated; caption element exists for
-    # the live per-decision rate story.js computes from measured totals.
+    # Item 1 (audit C+D): relabel → 'rollout states this episode'; the
+    # caption element keeps its id and the caption defines the per-goal
+    # window; the lifetime total survives in the title (tooltip) attribute.
     assert "futures imagined" not in html, "old futures label must be gone"
-    assert ">worlds simulated</div>" in html, "WORLDS SIMULATED label missing"
-    assert 'id="story-worlds-sim-caption"' in html, "per-decision caption id missing"
-    assert "cumulative counterfactual rollout states" in html
+    assert "rollout states this episode" in html, "episode rollout label missing"
+    assert ">worlds simulated</div>" not in html, \
+        "lifetime 'worlds simulated' label must not claim the hero slot"
+    assert 'id="story-worlds-sim"' in html, "episode rollout value id missing"
+    assert 'id="story-worlds-sim-caption"' in html, "episode caption id missing"
+    assert "counterfactual states rolled since the current goal" in html, \
+        "episode caption must define the per-goal window"
+    assert "resets at each goal" in html, "caption must state the goal reset"
+    assert "lifetime" in html, "lifetime total must appear (tooltip), never the hero label"
     # Item 2: cycles-per-goal relabel + moves-per-goal split element.
     assert "steps per goal" not in html, "old steps-per-goal label must be gone"
     assert "cycles per goal" in html, "cycles-per-goal label missing"
@@ -994,19 +1006,31 @@ def test_v7_hero_stats_relabel_and_honest_captions():
     assert "live knowledge-graph nodes" in html, "LESSONS caption must name KG nodes"
 
 
-def test_v7_story_js_wires_gate_naming_and_worlds_rate():
+def test_v7_story_js_wires_gate_naming_and_episode_worlds():
     """story.js wires the REAL firewall/council gate into the DECISIONS
-    caption and computes the worlds-per-decision rate from measured totals
-    (never a fabricated constant)."""
+    caption, reads the PER-EPISODE rollout count from the live episodes
+    payload (episodes.current_worlds, with the last trace's measured
+    worlds_simulated as the producer-down fallback), and keeps the lifetime
+    total + per-decision rate in the tooltip only (audit C+D)."""
     story = open(os.path.join(JS_DIR, "story.js")).read()
     # Item 5a: the gate is read from the live trace fields.
     assert "firewall_blocked_by" in story, "story.js must read the firewall gate"
     assert "blocking_validator" in story, "story.js must read the council gate"
     assert "was held back by" in story, "gate-naming verdict must render"
-    # Item 1: per-decision rate derived from two measured totals.
+    # Item 1 (audit C+D): the hero value is the episode count from the live
+    # payload, falling back to the last trace when the producer is down —
+    # never the lifetime total on the hero.
+    assert "ep.current_worlds" in story, "hero value must read the episode count"
+    assert "recent[recent.length - 1].worlds" in story, \
+        "producer-down fallback must be the last trace's measured rollout count"
+    # Lifetime total + per-decision rate stay in the TOOLTIP (title attr).
     assert "worldsSim / decisions" in story, \
         "per-decision rate must be total/decisions (measured, never invented)"
-    assert "story-worlds-sim-caption" in story, "caption element must be wired"
+    assert "lifetime:" in story, "tooltip must carry the lifetime total"
+    # No primary-surface claim of 'worlds simulated' survives the mood
+    # sentence or the slot renderer.
+    assert "' worlds simulated'" not in story, \
+        "mood sentence must not claim a lifetime worlds-simulated count"
     # Item 2: moves-per-goal rendering from the real episodes payload.
     assert "avg_moves_per_goal" in story, "moves split must render"
     assert "story-moves-per-goal" in story, "moves stat must be written"
