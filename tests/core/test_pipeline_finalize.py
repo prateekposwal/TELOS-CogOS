@@ -255,13 +255,19 @@ class TestRunAxiomProver:
         assert prover.verify_kwargs["stream_results"] == []
         assert prover.verify_kwargs["pipeline"] is pipeline
 
-    def test_skips_when_verify_raises(self):
+    def test_prover_crash_recorded_honestly_not_silently_skipped(self):
+        # Hardening fix (2026-09-11): a prover crash is NEVER a silent skip.
+        # It is logged as ERROR and recorded as a synthetic PROVER_CRASH
+        # failed axiom result so downstream consumers see honest failure
+        # instead of assuming the prover cleanly ran (Λ2.3 Kintsugi).
         prover = FakeVerifier(raise_on_verify=True)
         pipeline = FakePipeline()
         pipeline._axiom_prover = prover
         trace = _trace()
         run_axiom_prover(pipeline, trace, ctx := make_ctx())
-        assert trace.axiom_results is None
+        assert trace.axiom_results is not None
+        assert "PROVER_CRASH" in trace.axiom_results
+        assert trace.axiom_results["PROVER_CRASH"]["passed"] is False
 
 
 class TestRunV2ModuleHooks:

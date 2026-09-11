@@ -620,3 +620,92 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 - Gate: **PASS 14/14** — DI tail 0.594 (≥0.5), RSS 76.9MB drift +3.8%, RNG 0, determinism identical, KG caps hold, checkpoint chain True, speed 7.8ms/cycle, max trap streak 2.
 - Contract: startup 0.095s | health 13ms (cached scalar) | cycle mean 10.9-12.8ms | memory 79-84MB bounded | serializations 0.000 | RNG 0 | **2629 tests** | 42 axioms — **PASS**.
 - Live: DI 1.0 sustained | RSS flat 104MB | git clean.
+
+## Session Handoff — 2026-08-29 23:59:40
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 3.167 | Cycles: 1
+
+
+## Session Handoff — 2026-09-04 06:45:11
+
+### Current State
+*(No current state captured)*
+
+### Decisions Made
+*(No decisions recorded)*
+
+### Open Issues
+*(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0 (step_count=pipeline=42960,log=266) | Token budget: 0.0%
+
+### Checkpoint
+- /tmp/telos_checkpoints/checkpoint_42960.json
+
+
+## Session Handoff — 2026-09-04 06:45:12
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 42960
+
+
+## Session Handoff — 2026-09-11 22:05:28
+
+### Current State
+*(No current state captured)*
+
+### Decisions Made
+*(No decisions recorded)*
+
+### Open Issues
+*(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0 (step_count=pipeline=0,log=284) | Token budget: 0.0%
+
+### Checkpoint
+- N/A
+## Session Handoff — 2026-09-12 (HARDENING SESSION — CODE-CHANGING, FULLY VERIFIED)
+
+### Current State
+- Session mood: deliberate
+- Shipped (committed this session): the six-item reliability+performance hardening (axiom None-guard, env-overridable timers, chat timeout derivation, PID+uuid checkpoint staging, bootstrap no-intent keeper, per-cycle watchdog) plus a watchdog env-hoist micro-opt (3 env lookups/phase → 1/cycle).
+- Test count: 2665 passing (100% green, +36 since 2629: 17 hardening + prior-session tests). Self-audit 31/31. Endurance 10k gate PASS 14/14. Perf contract PASS (cycle mean 9.0ms, p95 13.1ms, memory 75.7MB idle, RNG 0, serializations 0.005/cycle).
+- Live dashboard restarted on shipped code: DI 1.0, cycles growing, 57 nodes/2049 edges served, new producer RSS 68.8MB (flat).
+- Note: live process resumed from checkpoint at cycle 1319 (not 0) — restore path works.
+
+### Decisions Made
+- **Axiom None-guard** (`telos/core/pipeline_finalize.py:13-56`): pre-flight logs None trace/fields loudly (Λ2.3, never silent skip); per-axiom verification continues through the remaining 41; a PROVER bug now yields a recorded synthetic `PROVER_CRASH` failed axiom (honest failure, not a clean 42/42) — plus `axiom_prover.py:359` guards `ctx.j_term_breakdown` None inside predicate 5.3 so the prover never AttributeErrors into the catch-all.
+- **Env timers** (`producer.py:267,273`, `telos_task.py:203`, `serve_dashboard.py:597-602`): `TELOS_CYCLE_S` (default 2.0), `TELOS_CHECKPOINT_EVERY_N` (default 20), `TELOS_OLLAMA_TIMEOUT` (default 30), `TELOS_CHAT_TIMEOUT` (explicit parent override) — daytime tuning needs no code edits.
+- **Chat timeout mismatch** (`serve_dashboard.py:592-608`): parent derives `3.0×ollama_t + 2.0×2.0 + 10.0` from the child's own 3-attempt×30s + 2×2s-retry worst case (104s ≥ 94s) — the old 30s parent timeout could never fire before the child's genuine max.
+- **Checkpoint tmp race** (`checkpoint_manager.py:225-229`): staging file is now `checkpoint_tmp_<pid>_<uuid>.json`; canonical key rule maps any name containing `tmp` to cycle -1; two interleaved writers can no longer tear the hmac chain.
+- **Bootstrap no-intent** (`select.py:707-733`): empty intents + empty selection on fresh/wiped KG → injects legitimate `bootstrap_navigate` intent (params `bootstrap=True`, metadata `stream=bootstrap`, honest self-start) so the firewall ever cycles governed `no_intent` with `selected_action=None` forever; adapter maps it to a legal cardinal action.
+- **Per-cycle watchdog** (`runtime.py:1081-1127`): wall-clock deadline at every phase boundary, `TELOS_CYCLE_TIMEOUT_MS` default 5000ms; a wedged phase → recorded `governance_blocked=cycle_timeout:<phase>` in ctx AND `PipelineResult.governance_blocked_by` (runtime.py:2124-2141) — never a silent hang. Docstring honestly notes a wedged C-level call cannot be preempted. Env reads hoisted to ONE lookup/cycle.
+- Dashboard start needed nothing: `./telos/start_dashboard.sh restart` → checkpoint restore → live producer (the launcher's port-answers semantics already handle zombies).
+- Deferred: nothing mission-critical. Remaining open items are the pre-existing live-loop pattern (curiosity_explore/blended_inquiry blocked at [4,2] by action_loop + EvidenceProvenanceValidator, DI per-intent dips 0.3) and machine swap (~2GB, editor+Apple services) — both recorded, not hacked. Perf profiler's isolated run logs 28/42 axioms at its synthetic high cycle — its own pipeline, not the live kernel.
+
+### Open Issues
+- Live-loop plateau pattern at [4,2] persists (firewall action_loop + EvidenceProvenanceValidator blocks on blended_inquiry; DI=1.0 overall held).
+
+### Metrics
+- DI: 1.000 (live, sustained) | MD: ~2.5 (live, healthy < 5) | Cycles: 1337+ live; endurance 10k gate PASS 14/14 | RSS: live producer 68.8MB flat | Contract: tests 2665 | axioms 42 | self-audit 31/31

@@ -11,12 +11,13 @@
   },
   "agent": {
     "telos": {
-      "description": "Runs TELOS CogOS reasoning pipeline on GridWorld tasks.",
+      "description": "Runs TELOS CogOS reasoning pipeline on GridWorld tasks (and can apply code fixes when asked to ACT).",
       "mode": "subagent",
       "permission": {
         "read": "allow",
         "bash": "allow",
-        "edit": "deny"
+        "edit": "allow",
+        "external_directory": "allow"
       }
     }
   }

@@ -12,26 +12,58 @@ logger = logging.getLogger('telos_pipeline')
 
 def run_axiom_prover(pipeline, trace, ctx) -> None:
     """Verify all axioms against the current cycle.
+
+    Pre-checks trace/ctx for fields that would cause NoneType errors in
+    individual axiom predicates, logs them loudly, then runs verification.
+    Each axiom is verified independently so one None field does NOT skip
+    the remaining 41 axioms (Λ2.3 Kintsugi — never silent swallow).
         Args:
             pipeline: the pipeline argument for this call.
             trace: the decision trace for this cycle
             ctx: the phase context for this cycle
     """
+    # ── Pre-flight: log None fields loudly (not silently skip) ──
+    if trace is None:
+        logger.warning("Axiom prover: trace is None — running axioms that "
+                       "can still evaluate (pre-flight, not silent skip)")
+    elif any(getattr(trace, f, None) is None
+             for f in ('decision_integrity', 'mission_drift', 'selected_action')):
+        _none_fields = [f for f in ('decision_integrity', 'mission_drift',
+                                    'selected_action')
+                        if getattr(trace, f, object()) is None]
+        logger.warning("Axiom prover: trace field(s) None: %s — "
+                       "axioms depending on these will evaluate accordingly, "
+                       "remaining axioms proceed", _none_fields)
+
+    # ── Verify: the prover returns per-axiom dicts; run inside a guard
+    #    that catches ONLY catastrophic failures (import bugs, attribute
+    #    errors in the prover itself), NOT per-None-field misses. ──
     try:
         results = pipeline._axiom_prover.verify(
             trace, ctx, stream_results=getattr(ctx, 'stream_activations', []),
             pipeline=pipeline,
         )
-        passed = sum(1 for r in results.values() if r["passed"])
-        failed = len(results) - passed
-        if failed > 0:
-            failed_list = [aid for aid, r in results.items() if not r["passed"]]
-            logger.warning(f"Axiom compliance: {passed}/{len(results)} passed, "
-                          f"{failed} failed: {', '.join(failed_list[:10])}")
-        if hasattr(trace, 'axiom_results'):
-            trace.axiom_results = results
     except Exception as e:
-        logger.warning(f"Axiom verification skipped: {e}")
+        # Λ2.3: this catch is for PROVER bugs, not trace-field None.
+        # Log with full traceback so the root cause is visible, and
+        # record an honest partial-failure result so axiom integrity
+        # is never silently clean when it wasn't.
+        logger.error("Axiom prover crashed (this is a prover bug, NOT a "
+                     "trace-field None skip): %s", e, exc_info=True)
+        # Emit a synthetic per-axiom result so downstream consumers see
+        # honest failures instead of assuming the prover never ran.
+        results = {f"PROVER_CRASH": {"passed": False,
+                                      "reason": f"Prover itself crashed: {e}"}}
+
+    passed = sum(1 for r in results.values() if r["passed"])
+    failed = len(results) - passed
+    if failed > 0:
+        failed_list = [aid for aid, r in results.items() if not r["passed"]]
+        logger.warning("Axiom compliance: %d/%d passed, %d failed: %s",
+                       passed, len(results), failed,
+                       ", ".join(str(a) for a in failed_list[:10]))
+    if hasattr(trace, 'axiom_results'):
+        trace.axiom_results = results
 
 
 def run_v2_module_hooks(pipeline, ctx, trace) -> None:
@@ -272,4 +304,3 @@ def record_resource_accounting(pipeline, ctx) -> None:
             logger.warning(f"Resource budget exceeded: {budget_ok['exceeded_dimensions']}")
     except Exception as e:
         logger.warning(f"Resource Accounting failed: {e}")
-

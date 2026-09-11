@@ -200,7 +200,7 @@ def ollama_chat(messages: list, cycle: int = 0) -> str:
 
     for attempt in range(max_retries):
         try:
-            conn = http.client.HTTPConnection("localhost", 11434, timeout=30)
+            conn = http.client.HTTPConnection("localhost", 11434, timeout=int(os.environ.get("TELOS_OLLAMA_TIMEOUT", "30")))
             payload = json.dumps({"model": OLLAMA_MODEL, "messages": messages, "stream": False})
             conn.request("POST", "/api/chat", body=payload, headers={"Content-Type": "application/json"})
             resp = conn.getresponse()

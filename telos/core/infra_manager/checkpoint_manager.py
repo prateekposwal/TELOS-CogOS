@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -50,6 +51,13 @@ def _checkpoint_cycle_key(path) -> int:
         int: the cycle number, or -1 for non-cycle files.
     """
     name = Path(path).name
+    # Canonical rule: any name containing 'tmp' is a NON-cycle file (staging
+    # file), keyed -1 so it sorts oldest (pruned first, never latest). This
+    # covers checkpoint_tmp.json AND PID/uuid-suffixed temp names; relying on
+    # int-parse failure alone mis-keys 'checkpoint_tmp_12345.json' as cycle
+    # 12345 (a latent bug the unique temp naming would have tripped).
+    if "tmp" in name:
+        return -1
     try:
         return int(name.split("_")[-1].split(".")[0])
     except (IndexError, ValueError):
@@ -214,7 +222,11 @@ class CheckpointManager:
         )
 
         self._save_count += 1
-        tmp_path = self._path / "checkpoint_tmp.json"
+        # Process-unique staging filename (PID + uuid) so two interleaved
+        # writers can never tear the hmac chain by clobbering one shared
+        # checkpoint_tmp.json. os.replace below stays atomic per writer.
+        _tmp_name = f"checkpoint_tmp_{os.getpid()}_{uuid.uuid4().hex[:8]}.json"
+        tmp_path = self._path / _tmp_name
         final_path = self._path / f"checkpoint_{cycle:04d}.json"
         payload = {
             "cycle": data.cycle, "timestamp": data.timestamp,

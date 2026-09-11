@@ -14,6 +14,7 @@ Governance Integration:
 """
 
 from __future__ import annotations
+import os
 
 import time
 import numpy as np
@@ -1077,8 +1078,33 @@ class TelosV14Pipeline:
             )
 
         phases = self._phases if not getattr(ctx, 'research_gate_left', False) else []
+        # ── Per-cycle watchdog: wall-clock deadline at every phase boundary ──
+        # Catches slow-but-returning phases (serialization stalls, O(n²)
+        # rescans) instead of letting them hang the producer thread. A
+        # single wedged C-level call cannot be preempted from a Python
+        # thread — this is documented as an honest limitation.
+        # Env read hoisted: ONE lookup per cycle (was 3 per phase x 9 phases
+        # for the watchdog's pre/post checks — env lookups are dict hits, but
+        # per-cycle there is no reason to re-read a value that cannot change).
+        _cycle_timeout_s = float(os.environ.get(
+            'TELOS_CYCLE_TIMEOUT_MS', '5000')) / 1000.0
+        _cycle_deadline = time.monotonic() + _cycle_timeout_s
+        _cycle_timeout_ms = _cycle_timeout_s * 1000.0
         for phase in phases:
+            # Check deadline before each phase
+            if time.monotonic() > _cycle_deadline:
+                logger.error(
+                    "Cycle %d: WATCHDOG triggered before phase '%s' — "
+                    "deadline %sms exceeded (cycle_timeout)",
+                    self._cycle_count, phase.name, _cycle_timeout_ms,
+                )
+                ctx.governance_blocked = True
+                ctx.blocking_reason = f"cycle_timeout:before:{phase.name}"
+                if hasattr(ctx, '_phase_timings'):
+                    ctx._phase_timings['watchdog_interrupted'] = _cycle_timeout_ms
+                break
             self._display.on_phase_start(phase.name)
+            _phase_start = time.monotonic()
             try:
                 phase.execute(self, ctx)
             except Exception as e:
@@ -1087,6 +1113,19 @@ class TelosV14Pipeline:
                 ctx.blocking_reason = f"phase_crash:{phase.name}:{str(e)[:50]}"
                 if hasattr(self, '_telemetry'):
                     self._telemetry.record_phase_failure(phase.name, str(e))
+                break
+            _phase_elapsed = time.monotonic() - _phase_start
+            if _phase_elapsed > _cycle_timeout_s:
+                logger.error(
+                    "Cycle %d: WATCHDOG triggered after phase '%s' (%.1fms) — "
+                    "deadline exceeded (cycle_timeout)",
+                    self._cycle_count, phase.name, _phase_elapsed * 1000,
+                )
+                ctx.governance_blocked = True
+                ctx.blocking_reason = f"cycle_timeout:after:{phase.name}"
+                if hasattr(ctx, '_phase_timings'):
+                    ctx._phase_timings[phase.name] = _phase_elapsed * 1000
+                    ctx._phase_timings['watchdog_interrupted'] = _phase_elapsed * 1000
                 break
 
             if phase.name == "simulate":
@@ -2087,14 +2126,20 @@ class TelosV14Pipeline:
             governance_blocked_by=(
                 ctx.firewall_verdict.blocked_by
                 if ctx.firewall_verdict else (
-                    # Research Amplification Gate LEFT (Λ6.5, require mode):
-                    # the run was marked LEFT pre-PERCEIVE so no firewall
-                    # verdict exists — surface the gate's honest reason here
-                    # instead of a silent None. Never set when the knob is
-                    # off/legacy (research_gate_left is false), so default
-                    # runs keep their exact pre-wiring mapping.
+                    # Non-firewall governance reasons are surfaced honestly:
+                    # (a) Research Amplification Gate LEFT (Λ6.5, require
+                    # mode) — the run was LEFT pre-PERCEIVE so no firewall
+                    # verdict exists; (b) watchdog cycle_timeout and
+                    # phase_crash records (hardening fixes) so a wedged
+                    # phase is visible as governance_blocked=cycle_timeout
+                    # in every downstream consumer, never a silent None.
+                    # Default runs (knob off / no watchdog trip / no crash)
+                    # keep their exact pre-wiring mapping.
                     ctx.blocking_reason
-                    if getattr(ctx, 'research_gate_left', False) else None
+                    if (getattr(ctx, 'research_gate_left', False)
+                        or ctx.blocking_reason.startswith("cycle_timeout")
+                        or ctx.blocking_reason.startswith("phase_crash"))
+                    else None
                 )
             ),
             decision_trace=trace,

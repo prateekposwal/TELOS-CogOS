@@ -356,7 +356,7 @@ class AxiomProver:
         }
 
         # 5.3 — Identity Coupling (C_align = λD(I_A, I_B))
-        has_align = getattr(ctx, 'j_term_breakdown', {}).get('alignment_cost', 0) is not None \
+        has_align = (getattr(ctx, 'j_term_breakdown', None) or {}).get('alignment_cost', 0) is not None \
             if hasattr(ctx, 'j_term_breakdown') else False
         if not has_align and trace is not None:
             jb = getattr(trace, 'j_term_breakdown', None)
