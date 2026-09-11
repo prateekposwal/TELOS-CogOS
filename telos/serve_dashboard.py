@@ -589,12 +589,23 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             script_dir = os.path.dirname(os.path.abspath(__file__))
             project_dir = os.path.dirname(script_dir)
 
+            # Parent timeout MUST not fire before the child's genuine max:
+            # child = 3 Ollama attempts x per-attempt timeout + 2 x 2s retry
+            # delays (~94s worst case at defaults). Derive from the child's
+            # own config (TELOS_OLLAMA_TIMEOUT); an explicit
+            # TELOS_CHAT_TIMEOUT still overrides for daytime tuning.
+            _explicit = os.environ.get('TELOS_CHAT_TIMEOUT')
+            if _explicit is not None:
+                _chat_timeout = float(_explicit)
+            else:
+                _ollama_t = float(os.environ.get('TELOS_OLLAMA_TIMEOUT', '30'))
+                _chat_timeout = 3.0 * _ollama_t + 2.0 * 2.0 + 10.0  # +boot margin
             proc = subprocess.run(
                 [sys.executable, "telos_task.py"],
                 input=message + "\nquit\n",
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=_chat_timeout,
                 cwd=project_dir,
                 env={**os.environ, "PYTHONPATH": "."},
             )

@@ -33,6 +33,7 @@ Structural rules (v7 additions):
        so the hero never resets to 0 when the dashboard restarts.
 """
 
+
 import glob as _glob
 import sys
 import heapq
@@ -263,13 +264,13 @@ DECISION_LOG_PATH = os.path.join(
     'decision_log.json')
 DECISION_LOG_MAX_ENTRIES = 500
 
-CYCLE_INTERVAL_S = 2.0   # live cadence between steady-state cycles
+CYCLE_INTERVAL_S = float(os.environ.get('TELOS_CYCLE_S', '2.0'))   # live cadence between steady-state cycles (env-overridable)
 BURST_CYCLES = 5         # warm-up cycles at boot so graphs fill within seconds
 MAX_TRACES_IN_MEMORY = 200
 # Default persistence cadence for long-lived runs: a checkpoint (~20MB with a
 # full KG) or a full-KG serialization is NOT written every 2s cycle. First
 # cycle always persists (fast restore seed); afterwards every N cycles.
-CHECKPOINT_EVERY_N_DEFAULT = 20
+CHECKPOINT_EVERY_N_DEFAULT = int(os.environ.get('TELOS_CHECKPOINT_EVERY_N', '20'))
 KNOWLEDGE_SERIALIZE_INTERVAL_DEFAULT = 20
 
 

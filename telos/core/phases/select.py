@@ -704,3 +704,30 @@ class SelectPhase(Phase):
             except Exception as e:
                 logger.debug(f"RegretMemory recording failed: {e}")
 
+        # ── Bootstrap guard (Λ3.1, honest self-start) ──────────────────────
+        # Fresh/wiped knowledge (empty stream intents + no inquiry selection)
+        # used to reach the firewall with selected_intent=None forever,
+        # cycling governed 'no_intent' blocks and selected_action=None. Inject
+        # a legitimate keeper intent so there is ALWAYS a real candidate for
+        # council/firewall to process (it may STILL be blocked on integrity/
+        # drift grounds — that is honest governance, not a silent void). The
+        # adapter maps it to a legal cardinal action; params carry
+        # bootstrap=True so every downstream consumer can see this was a
+        # self-start candidate, not a claimed discovery.
+        if ctx.selected_intent is None and not getattr(ctx, 'intents', []):
+            from telos.intent_ir import IntentIR
+            ctx.selected_intent = IntentIR(
+                intent_type="bootstrap_navigate",
+                confidence=0.4,
+                params={
+                    "bootstrap": True,
+                    "reason": "empty_intent_bootstrap",
+                    "action_vector": None,  # adapter picks the legal goal-step
+                },
+                metadata={"stream": "bootstrap", "honest": True},
+            )
+            ctx.intents.append((ctx.selected_intent, 0.4))
+            logger.warning(
+                f"Cycle {ctx.cycle_count}: bootstrap_navigate injected — "
+                f"no stream intents on empty knowledge state (honest self-start)"
+            )
