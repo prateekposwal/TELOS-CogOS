@@ -254,12 +254,22 @@ def prime_skill_library(experience_mgr, pipeline, checkpoint_dir: str, cycles: i
 
 class GridSim(DomainSimulator):
     def __init__(self, blocked: Optional[Set[Tuple[int, int]]] = None,
-                 rewards: Optional[Dict[Tuple[int, int], float]] = None):
+                 rewards: Optional[Dict[Tuple[int, int], float]] = None,
+                 random_seed: Optional[int] = None):
         self.blocked = blocked or DEFAULT_BLOCKED
         self.rewards = rewards or DEFAULT_REWARDS
         self.position = np.array([0.0, 0.0])
         self._cycle: int = 0
         self.terrain_changes: List[Dict] = []
+        # RNG isolation (audit Item 3): maybe_shift_terrain is a production
+        # hot path — the dashboard producer calls it EVERY cycle — so it must
+        # own a private random.Random, never the global `random` module (whose
+        # state depends on whatever imported it first; locked by
+        # tests/core/test_gridsim_rng_isolation.py). random_seed=None yields a
+        # private OS-entropy instance (isolated, live-nondeterministic);
+        # a fixed seed makes terrain shifts reproducible (the regression-test
+        # and harness pattern for the other engines).
+        self._rng = random.Random(random_seed)
 
     def initialize(self): pass
     def cleanup(self): pass
@@ -283,12 +293,12 @@ class GridSim(DomainSimulator):
                       if (x, y) not in self.blocked and (x, y) != (4, 4)]
         if len(candidates) < 2:
             return []
-        chosen = random.sample(candidates, 2)
+        chosen = self._rng.sample(candidates, 2)
         terrain_types = ['plains', 'forest', 'water', 'desert', 'mountain']
         changes = []
         for cx, cy in chosen:
             old = TERRAIN.get((cx, cy), 'plains')
-            new = random.choice([t for t in terrain_types if t != old])
+            new = self._rng.choice([t for t in terrain_types if t != old])
             TERRAIN[(cx, cy)] = new
             changes.append({'x': cx, 'y': cy, 'old': old, 'new': new})
             logger.info(f"🌋 Cell ({cx},{cy}) changed: {old} → {new}")
