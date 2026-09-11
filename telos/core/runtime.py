@@ -1551,6 +1551,17 @@ class TelosV14Pipeline:
                 #    per model so model_fidelity feeds capability authorization.
                 #    Only record on a validated act cycle (an action was emitted),
                 #    mirroring the trajectory-divergence recording above. ──
+                # The canonical rule (Λ6.5): a prediction exists ONLY for an
+                # executed action. `predicted_state` is set by the simulate
+                # phase to a counterfactual horizon-end future even on cycles
+                # the firewall/governor then BLOCK — storing that phantom as a
+                # per-step prediction and comparing it next cycle fabricated a
+                # 1.5-2.5 fake gap every blocked cycle, pinning model_fidelity
+                # at 0 and governor-DEFERing ~65% of cycles (the leak that
+                # turned a broken plateau into a permanent crawl). Gating on
+                # `selected_action is not None` inverts the default: only an
+                # action that genuinely executed can falsify anything; a
+                # blocked cycle predicts nothing and stays quiet.
                 try:
                     # Deferred one-cycle-ahead comparison: the reality gap is the
                     # model's prediction made LAST cycle for THIS cycle's
@@ -1575,7 +1586,7 @@ class TelosV14Pipeline:
                                 self._pending_reality_gap = None
                             else:
                                 self._reality_gap_tracker.record("world", prev_pred, ctx.state, cycle=ctx.cycle_count)
-                    if predicted is not None and not getattr(ctx, 'no_action', False):
+                    if predicted is not None and ctx.selected_action is not None:
                         self._pending_reality_gap = (predicted, ctx.cycle_count)
                     else:
                         self._pending_reality_gap = None
