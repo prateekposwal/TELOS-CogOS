@@ -650,7 +650,7 @@ class SelectPhase(Phase):
                         "recovery_cost": score.recovery_cost,
                         "identity_cost": score.identity_cost,
                         "alignment_cost": score.alignment_cost,
-                        "identity_violation": score.identity_violation,
+                        "identity_violation": score.identity_cost,
                         "future_option_value": score.future_option_value,
                         "counterfactual_diversity": score.counterfactual_diversity,
                         "prediction_error": score.prediction_error,
