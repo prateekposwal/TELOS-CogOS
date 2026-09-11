@@ -146,6 +146,21 @@ class DecisionTrace:
     # a silent pass and never fabricated grounding.
     amplification_report: Optional[Dict] = None
 
+    # ── Decision-mode telemetry (audit Item 1: why a cycle did not act) ────
+    # The DecisionGovernor's mode as a string (ACT/DEFER/ABSTAIN/ESCALATE/
+    # BLOCK) and the failed capability gate(s) that structurally suppressed
+    # ACT on a DEFER/BLOCK cycle (e.g. "model_fidelity" or
+    # "causal_confidence,recovery"). act_emitted_action distinguishes a
+    # real success (an action vector was emitted) from an approved no-op
+    # (governor allowed, but no action vector materialised) — the honesty
+    # gap that hid governor-DEFER behind "DI 1.0, firewall_blocked=False,
+    # action=None". ADDITIVE: the canonical aliases
+    # (intent/discrimination_index/action_taken + budget_carryover_ms) are
+    # untouched (locked by tests/core/test_trace_schema.py).
+    decision_mode: Optional[str] = None
+    blocked_by_gate: Optional[str] = None
+    act_emitted_action: Optional[bool] = None
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "cycle_id": self.cycle_id,
@@ -244,6 +259,14 @@ class DecisionTrace:
             "tool_audit": self.tool_audit,
             "axiom_results": self.axiom_results,
             "amplification_report": self.amplification_report,
+            # Decision-mode telemetry (audit Item 1)
+            "decision_mode": (
+                self.decision_mode.value
+                if hasattr(self.decision_mode, "value")
+                else self.decision_mode
+            ),
+            "blocked_by_gate": self.blocked_by_gate,
+            "act_emitted_action": self.act_emitted_action,
         }
 
 @dataclass

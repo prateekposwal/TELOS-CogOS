@@ -464,6 +464,31 @@ class DashboardProducer:
                 "knowledge_payload": self._knowledge_payload,
             }
 
+    @staticmethod
+    def _decision_status(trace: Dict) -> str:
+        """Honest story status for one decision.
+
+        BLOCKED     — firewall or council rejected the cycle (the classic
+                      block the dashboard already named).
+        DEFER/ABSTAIN/BLOCK — the DecisionGovernor's hard stop: a genuine
+                      non-action WITH a reason (blocked_by_gate), the state
+                      the old status erased behind "APPROVED with action=None".
+        ESCALATE    — a hard-stop escalation (required policy, no human yet).
+        APPROVED    — action emitted, or nothing vetoed the cycle (legacy
+                      traces without decision_mode keep pre-telemetry
+                      behavior). An approved-noop (action=None, mode ACT)
+                      stays APPROVED but carries act_emitted_action=false so
+                      it is distinguishable from real success.
+        """
+        if trace.get("firewall_blocked") or not trace.get("council_validated", True):
+            return "BLOCKED"
+        mode = trace.get("decision_mode")
+        if mode in ("DEFER", "ABSTAIN", "BLOCK"):
+            return mode
+        if mode == "ESCALATE" and not trace.get("act_emitted_action", False):
+            return "ESCALATE"
+        return "APPROVED"
+
     def _story_decision(self, trace: Dict) -> Dict:
         intent = trace.get("selected_intent") or {}
         if isinstance(intent, dict):
@@ -475,11 +500,16 @@ class DashboardProducer:
             "intent": intent_label,
             "di": trace.get("decision_integrity", 0.0),
             "md": trace.get("mission_drift", 0.0),
-            "status": "BLOCKED" if (trace.get("firewall_blocked") or not trace.get("council_validated", True)) else "APPROVED",
+            "status": self._decision_status(trace),
             "worlds": trace.get("worlds_simulated", 0),
             "position": trace.get("world_state"),
             "blocking_validator": trace.get("blocking_validator"),
             "firewall_blocked_by": trace.get("firewall_blocked_by"),
+            # Audit Item 1: the WHY (an Aviku observer sees "DEFER —
+            # model_fidelity" instead of a silent no-op).
+            "decision_mode": trace.get("decision_mode"),
+            "blocked_by_gate": trace.get("blocked_by_gate"),
+            "act_emitted_action": trace.get("act_emitted_action"),
         }
 
     def _mood(self) -> str:
@@ -1164,6 +1194,11 @@ class DashboardProducer:
         "inquiry_blend", "agent2_pos", "agent2_reward", "score",
         "terrain_changes", "health_score", "representation",
         "escalation_requested",
+        # Audit Item 1 (decision-mode telemetry): the lean trace + decision
+        # log must expose WHY a cycle did not act — the governor mode and the
+        # failed capability gate(s) — and whether an action was actually
+        # emitted (approved-noop vs real success).
+        "decision_mode", "blocked_by_gate", "act_emitted_action",
     ]
 
     def _trace_for_broadcast(self, trace_dict: Dict) -> Dict:

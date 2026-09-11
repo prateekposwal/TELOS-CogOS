@@ -51,6 +51,14 @@ def build_trace(
 
     verdict = ctx.verdict
 
+    # Audit Item 1 (decision-mode telemetry): the governor mode may arrive as
+    # a DecisionMode Enum (ctx.decision_mode is set from governor_decision.mode
+    # in act.py) — normalize to its string value so to_dict() and the JSON
+    # decision log always carry a plain string ("DEFER", "BLOCK", ...).
+    _decision_mode = getattr(ctx, 'decision_mode', None)
+    if hasattr(_decision_mode, 'value'):
+        _decision_mode = _decision_mode.value
+
     # ── PSDT: Serialize from ctx ──
     psdt_dict = None
     psdt_obj = getattr(ctx, 'psdt', None)
@@ -166,6 +174,17 @@ def build_trace(
         tool_audit=getattr(ctx, 'tool_audit', None),
         # ── Research Amplification Gate verdict (Λ6.5, pre-PERCEIVE) ──────
         amplification_report=getattr(ctx, 'amplification_report', None),
+        # ── Decision-mode telemetry (audit Item 1) ────────────────────────
+        # decision_mode: the DecisionGovernor's mode this cycle
+        # (ACT/DEFER/ABSTAIN/ESCALATE/BLOCK); blocked_by_gate: the failed
+        # capability gate(s) when the governor suppressed ACT; both are
+        # recorded on ctx even on DEFER/BLOCK. act_emitted_action separates a
+        # real success (action vector emitted) from an approved no-op
+        # (selected_action is None) — the distinction the old
+        # "approved no-op" view erased.
+        decision_mode=_decision_mode,
+        blocked_by_gate=getattr(ctx, 'blocked_by_gate', None),
+        act_emitted_action=getattr(ctx, 'selected_action', None) is not None,
     )
 
     # ── Merkle Proof of Reasoning (Bitcoin-inspired) ──────────────────────
@@ -193,6 +212,9 @@ def build_trace(
             "inquiry_summary": inquiry_summary,
             "blocking_validator": trace.blocking_validator,
             "firewall_blocked": trace.firewall_blocked,
+            "decision_mode": trace.decision_mode,
+            "blocked_by_gate": trace.blocked_by_gate,
+            "act_emitted_action": trace.act_emitted_action,
         }
 
         # reasoning_witness: heavy reasoning data
