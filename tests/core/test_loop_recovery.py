@@ -6,6 +6,12 @@ changes when actions are blocked), so the firewall's same-intent detector
 blocks the runtime arms a recovery; the next select phase injects a
 differently-typed goal_seek_recovery intent that passes the council AND the
 firewall like any other intent (the legitimate block is never overridden).
+
+Audit Item 2 (cost of escape): the end-to-end plateau test below MEASURES the
+waste, not just the escape — a moves floor, a blocked/no-op-per-move waste
+ceiling, a recovery-move rate, and an arm→inject→move latency lockdown. Every
+bound derives from pre-telemetry trace fields (intent_type / firewall_blocked /
+selected_action) through the producer's verbatim executor shape.
 """
 import os
 import tempfile
@@ -388,6 +394,21 @@ def test_episode_reset_suppresses_cross_episode_reality_gap():
         "a normal deferred comparison still records (absence of reset)"
 
 
+# ── Cost-of-escape bound constants (audit Item 2) ─────────────────────────
+# All bounds derive from pre-telemetry trace fields (intent_type,
+# firewall_blocked, selected_action) through the verbatim executor, so they
+# discriminate HEALTH from PATHOLOGY without any new telemetry. Measured in
+# the SAME 120-cycle harness on the test's deterministic seed 42:
+#   fixed kernel            : moves 67 | blocked/noop per move 0.79 | rate 10/10
+#   leak present (8f0c4d4)  : moves 42 | blocked/noop per move 1.86 | rate 6/12
+#   firewall trap (3739edf^): moves 34 | blocked/noop per move 2.53 | rate 0/1
+MIN_MOVES_IN_120 = 60          # moves floor: >= half the 120 cycles must genuinely move the agent (8/2-episode shape); the leak/A*-rewriter crawl (42 moves measured; the audit's 12-move episode crawl) must FAIL it
+MAX_BLOCKED_PER_MOVE = 3       # waste ceiling: every move may carry at most 3 blocked/no-op cycles (moves >= cycles/4); a 108-non-move/12-move crawl (ratio 9.0) FAILs, the healthy run (0.79) PASSes
+MIN_RECOVERY_MOVE_RATE = 0.5   # recovery-move floor: >= half of goal_seek_recovery fires must change position; an escape the firewall traps fires but never moves (rate -> 0) and FAILs
+RECOVERY_ESCAPE_WINDOW = 4     # lockdown: within 4 cycles of a streak==2 trap the designed recovery must fire - or the loop family broke naturally (a real move also counts)
+RECOVERY_MOVE_LATENCY_MAX = 6  # lockdown: arm->inject->move bound — the agent must be moving again within 6 cycles of EVERY trap (measured: 1 cycle on the fixed kernel; a pre-fix seed-43 run took 7 -> FAILs)
+
+
 def test_plateau_breaks_bounded_real_pipeline_run():
     """End-to-end bound: with the three structural fixes active (executor
     verbatim in the producer cycle shape, reset flag threaded, window-based
@@ -395,6 +416,12 @@ def test_plateau_breaks_bounded_real_pipeline_run():
     bookkeeping completes at least one episode and the no-action pathology
     does not build: no DI-floor streak longer than 5, and whenever a
     firewall loop trap forms a goal_seek_recovery fires within 4 cycles.
+    Audit Item 2 extends this to the COST of escape: the run must also meet
+    a moves floor (MIN_MOVES_IN_120), a blocked/no-op waste ceiling
+    (MAX_BLOCKED_PER_MOVE), a recovery-move rate (MIN_RECOVERY_MOVE_RATE),
+    and an arm->inject->move latency lockdown per trap (RECOVERY_ESCAPE_WINDOW
+    fire-or-natural-escape window + RECOVERY_MOVE_LATENCY_MAX move bound) —
+    the pre-fix crawls fail these bounds, the fixed kernel passes them.
     Bounded runtime: 120 cycles max on the real pipeline."""
     import tempfile
     tmpdir = tempfile.mkdtemp()
@@ -411,7 +438,11 @@ def test_plateau_breaks_bounded_real_pipeline_run():
     di_floor_streak = 0
     max_di_streak = 0
     goals = 0
-    recoveries = 0
+    moves = 0               # cycles where the verbatim executor changed position
+    recoveries = 0          # cycles whose selected intent was goal_seek_recovery
+    recovery_moves = 0      # recovery fires that genuinely moved the agent
+    moved = []              # per-cycle position-change flag (producer move clock)
+    recovery_fires = []     # per-cycle goal_seek_recovery selection flag
     trap_cycles = []
     for i in range(120):
         result = pipe.execute(state, user_name="Prateek", episode_reset=reset_pending)
@@ -426,16 +457,26 @@ def test_plateau_breaks_bounded_real_pipeline_run():
             max_di_streak = max(max_di_streak, di_floor_streak)
         else:
             di_floor_streak = 0
-        if itype == "goal_seek_recovery":
-            recoveries += 1
-        streak = pipe._firewall.consecutive_loop_blocks
-        if fb and streak == 2:
-            trap_cycles.append(i)
-        # Verbatim executor (the producer's _apply_action contract):
+        # Verbatim executor (the producer's _apply_action contract) with the
+        # producer's move clock: pos_before -> apply -> pos_after changed.
+        pos_before = state.copy()
         if sa is not None and not fb:
             a = np.asarray(sa, dtype=float)
             if a.shape == (2,) and (abs(a[0]) >= 0.05 or abs(a[1]) >= 0.05):
                 state = sim.transition(state.copy(), a)
+        moved_i = bool(np.linalg.norm(state - pos_before) > 1e-9)
+        moved.append(moved_i)
+        if moved_i:
+            moves += 1
+        is_recovery = itype == "goal_seek_recovery"
+        recovery_fires.append(is_recovery)
+        if is_recovery:
+            recoveries += 1
+            if moved_i:
+                recovery_moves += 1
+        streak = pipe._firewall.consecutive_loop_blocks
+        if fb and streak == 2:
+            trap_cycles.append(i)
         if sim.terminal(state):
             goals += 1
             reset_pending = True
@@ -443,12 +484,124 @@ def test_plateau_breaks_bounded_real_pipeline_run():
     assert goals >= 1, "the pipeline must complete at least one episode"
     assert max_di_streak <= 5, \
         f"DI-floor streak {max_di_streak} > 5 — reset-gap falsification persists"
-    # Every loop trap must be answered: recovery fires (or the trap broke) in
-    # the 4 cycles after any streak==2 block.
-    for idx in trap_cycles:
-        pass  # recovery presence is asserted below via the global counter
+    # Loop traps must be answered (the lockdown loop below asserts the 4-cycle
+    # fire-or-natural-escape window per trap; this global counter keeps the
+    # original arming-consumption assertion on top of it).
     assert recoveries > 0 or not trap_cycles, \
         "alternation can no longer consume the arming — escapes must fire"
+    # ── Cost-of-escape bounds (audit Item 2) ──────────────────────────────
+    # Every bound is derived from pre-telemetry trace fields via the verbatim
+    # executor shape above; the shared evaluator also locks the pre-fix
+    # pathology shapes in test_cost_of_escape_bounds_reject_pre_fix_pathology_shapes
+    # so the bounds can never be weakened silently.
+    violations = _cost_bounds_violations(
+        moves, 120, recoveries, recovery_moves, moved, recovery_fires,
+        trap_cycles)
+    assert violations == [], \
+        "cost-of-escape bounds violated:\n  " + "\n  ".join(violations)
+
+
+def _cost_bounds_violations(moves, total, recoveries, recovery_moves,
+                            moved, recovery_fires, trap_cycles):
+    """Return the list of cost-of-escape bound violations (empty == healthy).
+
+    Pure evaluation over trace-shape arrays (the intent_type / firewall_blocked
+    / selected_action derivations from the verbatim executor), shared by the
+    real-pipeline test and the pathology-shape test so the bounds can never be
+    weakened silently. A trap inside the final <window> cycles has an EMPTY
+    observable horizon — the strict check counts it as a violation because the
+    agent is still trapped when the run ends (the seed-44 tail-plateau shape:
+    traps at 110/116 with zero moves after them).
+
+    Args:
+        moves: number of cycles where the verbatim executor changed position.
+        total: total cycles in the run (the 120-cycle bounded window).
+        recoveries: goal_seek_recovery selection count.
+        recovery_moves: recovery fires that genuinely moved the agent.
+        moved: per-cycle position-change flags (producer move clock).
+        recovery_fires: per-cycle goal_seek_recovery selection flags.
+        trap_cycles: cycles where a streak==2 firewall block formed."""
+    violations = []
+    if moves < MIN_MOVES_IN_120:
+        violations.append(f"moves {moves} < {MIN_MOVES_IN_120} in {total} cycles")
+    if (total - moves) > MAX_BLOCKED_PER_MOVE * moves:
+        violations.append(
+            f"{total - moves} blocked/no-op cycles for {moves} moves (ratio "
+            f"{(total - moves) / max(moves, 1):.2f}) exceeds "
+            f"{MAX_BLOCKED_PER_MOVE} per move"
+        )
+    if recoveries > 0 and recovery_moves / recoveries < MIN_RECOVERY_MOVE_RATE:
+        violations.append(
+            f"recovery-move-rate {recovery_moves}/{recoveries} = "
+            f"{recovery_moves / recoveries:.2f} < {MIN_RECOVERY_MOVE_RATE}"
+        )
+    for trap in trap_cycles:
+        if not (any(recovery_fires[trap + 1: trap + 1 + RECOVERY_ESCAPE_WINDOW])
+                or any(moved[trap + 1: trap + 1 + RECOVERY_ESCAPE_WINDOW])):
+            violations.append(
+                f"trap@{trap}: no goal_seek_recovery AND no move within "
+                f"{RECOVERY_ESCAPE_WINDOW} cycles of the trap"
+            )
+        if not any(moved[trap + 1: trap + 1 + RECOVERY_MOVE_LATENCY_MAX]):
+            violations.append(
+                f"trap@{trap}: agent not moving within "
+                f"{RECOVERY_MOVE_LATENCY_MAX} cycles of the trap"
+            )
+    return violations
+
+
+def test_cost_of_escape_bounds_reject_pre_fix_pathology_shapes():
+    """The audit's canonical discriminator at the trace-shape level (no
+    pipeline run): the pre-fix crawl and trapped-escape shapes MUST violate
+    the cost-of-escape bounds while the measured healthy shape passes.
+
+    * Healthy (measured fixed kernel, seed 42): 67 moves/120, recovery rate
+      6/6, traps at 16/33/65/71/87/112 — trap@16 breaks NATURALLY (move at
+      +1, no recovery fire; the original 'or the trap broke' branch), the
+      rest by a recovery fire at +1.
+    * Crawl (the audit's 117-step/12-move episode): 12 moves/120 -> the
+      moves floor AND the waste ceiling must reject it (the pre-fix
+      leak/A*-rewrite signature; a REAL leak run measured only 42 moves).
+    * Trapped escape: 10 recovery fires that never move -> rate 0.0 < 0.5
+      (a REAL firewall-trap run measured 0/1) must be rejected.
+    * Unanswered trap: the agent moves everywhere EXCEPT the trap's window
+      -> the arm->inject->move lockdown must reject it."""
+    traps = [16, 33, 65, 71, 87, 112]
+    moved = [i % 2 == 0 for i in range(120)]   # 60 baseline moves (healthy pace)
+    fires = [False] * 120
+    for tr in traps[1:]:          # traps 33..112: recovery fire at +1 (measured)
+        moved[tr + 1] = True
+        fires[tr + 1] = True
+    moved[17] = True              # trap@16: natural escape — move, no fire
+    healthy = _cost_bounds_violations(sum(moved), 120, sum(fires), sum(fires), moved, fires, traps)
+    assert healthy == [], f"the measured healthy shape must pass: {healthy}"
+
+    crawl_moved = [False] * 120
+    for i in range(12):
+        crawl_moved[i] = True     # 12 genuine moves in 120 cycles
+    crawl = _cost_bounds_violations(12, 120, 0, 0, crawl_moved,
+                                    [False] * 120, [])
+    assert any(v.startswith("moves 12") for v in crawl), \
+        "the 12-move crawl must fail the moves floor"
+    assert any("per move" in v for v in crawl), \
+        "the 12-move crawl must fail the waste ceiling"
+
+    trapped_fires = [False] * 120
+    for i, mv in enumerate(moved):
+        if not mv and sum(trapped_fires) < 10:
+            trapped_fires[i] = True   # 10 recovery fires on non-moving cycles
+    trapped = _cost_bounds_violations(sum(moved), 120, 10, 0, moved,
+                                      trapped_fires, [])
+    assert any("recovery-move-rate 0/10" in v for v in trapped), \
+        "fires without moves must fail the recovery-move rate"
+
+    shift_moved = [False] * 120
+    shift_moved[0:17] = [True] * 17   # agent moved BEFORE the trap…
+    shift_moved[23:73] = [True] * 50  # …and AFTER its window — not inside it
+    unanswered = _cost_bounds_violations(67, 120, 0, 0, shift_moved,
+                                         [False] * 120, [16])
+    assert any("trap@16" in v for v in unanswered), \
+        "a trap whose window holds no fire and no move must fail the lockdown"
 
 
 def test_blocked_cycle_stores_no_pending_prediction_leak_lock():
