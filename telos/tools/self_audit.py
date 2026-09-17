@@ -389,24 +389,24 @@ def run_audit(verbose=True) -> Dict:
     except Exception as e:
         checks.append((False, "VISION_v2 hooks check", f"Error: {e}"))
 
-    # ── Check 27: Key modules have test files ──
+    # ── Check 27: Real core-module coverage (test references, not basename) ──
+    # The old check matched `builder.py` only to `test_builder.py`, so tests
+    # named by feature (test_theory_builder.py) were invisible and the count
+    # was a phantom (150+). Coverage is now measured by the canonical analyzer:
+    # a module counts as covered when a test imports its dotted path or
+    # references a symbol it defines.
     try:
-        tests_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'tests')
-        core_dir = os.path.join(os.path.dirname(__file__), '..', 'core')
-        test_map = {}
-        for f in os.listdir(tests_dir):
-            if f.startswith('test_') and f.endswith('.py'):
-                test_map[f[5:-3]] = f
-        untested = []
-        for root, dirs, files in os.walk(core_dir):
-            for f in files:
-                if f.endswith('.py') and f != '__init__.py':
-                    module_name = f[:-3]
-                    if module_name not in test_map:
-                        rel = os.path.relpath(os.path.join(root, f), core_dir)
-                        untested.append(rel)
-        ok = True  # informational only
-        details = f"{len(untested)} core modules without test files" if untested else "All core modules have tests"
+        from telos.tools.coverage_priority import analyze as _coverage_analyze
+        report = _coverage_analyze()
+        total, uncovered = report["total"], report["uncovered"]
+        pct = 100.0 * report["covered"] / max(total, 1)
+        ok = uncovered == 0
+        if uncovered:
+            top = ", ".join(r["module"] for r in report["rows"][:5])
+            details = (f"{uncovered}/{total} core modules lack test references "
+                       f"({pct:.1f}% covered) — top: {top}")
+        else:
+            details = f"all {total} core modules referenced by tests ({pct:.0f}%)"
         checks.append((ok, "Core module test coverage", details))
     except Exception as e:
         checks.append((False, "Test coverage check", f"Error: {e}"))
