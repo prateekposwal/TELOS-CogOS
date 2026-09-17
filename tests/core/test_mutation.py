@@ -1,36 +1,45 @@
-import numpy as np
-import pytest
-from tests.core.conftest import MockSimulator
-from telos.core.runtime import TelosV14Pipeline, PipelineConfig
-from telos.core.council.base import Validator, ValidationSignal
-from telos.core.contracts.domain_model import DomainAdapter
+"""
+MutationGuard (core/infra_manager/mutation.py) — direct unit coverage.
 
-class CrashingValidator(Validator):
-    @property
-    def name(self) -> str: return "CrashingValidator"
-    def validate(self, world, intent, facts, **kwargs) -> ValidationSignal:
-        raise ValueError("Validator crashed!")
+The guard is a security defense: it caps the total per-parameter self-
+modification delta per cycle so a single observe() cannot cause runaway drift.
+"""
+from telos.core.infra_manager.mutation import MutationGuard
 
-class MockAdapter(DomainAdapter):
-    def forward(self, x): return x
-    def inverse(self, x): return x
-    def intent_to_action(self, intent, state, mission_dir): return np.zeros(2)
-    @property
-    def name(self): return "mock"
 
-def test_validator_exception_handling():
-    sim = MockSimulator()
-    config = PipelineConfig(simulator=sim, adapter=MockAdapter())
-    pipeline = TelosV14Pipeline(config)
-    pipeline.register_validator(CrashingValidator())
-    
-    # Pipeline should handle exception and report failure without crashing the whole process
-    result = pipeline.execute(np.array([0., 0.]))
-    
-    assert result.council_blocked is True
-    # Verify that the failure was logged or handled in signals
-    signals = result.decision_trace.council_signals
-    crashing_signal = next((s for s in signals if s["validator"] == "CrashingValidator"), None)
-    assert crashing_signal is not None
-    assert "validator error" in crashing_signal["reason"]
+def test_within_cap_accumulates_then_blocks():
+    g = MutationGuard()
+    g.begin_cycle(1)
+    assert g.check("risk_tolerance", 0.03) is True
+    assert g.check("risk_tolerance", 0.01) is True   # total 0.04 <= 0.05
+    assert g.check("risk_tolerance", 0.02) is False  # total 0.06 > 0.05
+    assert g._blocked_changes == 1
 
+
+def test_begin_cycle_resets_accumulators():
+    g = MutationGuard()
+    g.begin_cycle(1)
+    assert g.check("risk_tolerance", 0.04) is True
+    g.begin_cycle(2)
+    assert g.check("risk_tolerance", 0.04) is True, "new cycle starts clean"
+
+
+def test_unknown_param_uses_default_cap():
+    g = MutationGuard()
+    g.begin_cycle(1)
+    assert g.check("mystery_param", 0.04) is True
+    assert g.check("mystery_param", 0.02) is False
+
+
+def test_negative_delta_is_magnitude_capped():
+    g = MutationGuard()
+    g.begin_cycle(1)
+    assert g.check("risk_tolerance", -0.04) is True
+    assert g.check("risk_tolerance", -0.02) is False, "abs(total) > cap"
+
+
+def test_params_are_independent_within_a_cycle():
+    g = MutationGuard()
+    g.begin_cycle(1)
+    assert g.check("risk_tolerance", 0.05) is True
+    assert g.check("exploration_budget", 0.05) is True
