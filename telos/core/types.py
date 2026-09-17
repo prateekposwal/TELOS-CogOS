@@ -333,6 +333,40 @@ class PipelineConfig:
         """Advisory (non-blocking) layers are the first thing fast mode
         skips: they consume time but never change the blocking verdict."""
         return self.is_fast_mode
+    # v9: standard-mode confidence world funnel (default-OFF kernel-amendment
+    # flag). When True, high-confidence cycles with a CURRENTLY validated
+    # model route through the SAME counterfactual_budget funnel fast mode
+    # uses (peak stream confidence >= 0.8 -> half the world count). Off by
+    # default so standard-mode world counts are byte-identical until a
+    # driver explicitly opts in. Honest feed: peak stream confidence + the
+    # act-phase model-fidelity staleness window — decision_criticality is
+    # never set by any production phase (base.py default 'medium'), so it is
+    # NOT a source.
+    confidence_world_funnel: bool = False
+    # v9: model-fidelity fast path in the streams phase (mirrors the memory
+    # fast path): a CURRENTLY validated model (fidelity >= 0.6) on a calm
+    # record (last DI >= 0.7, zero recent council blocks, last sim solve
+    # > 0.9) cuts effective_n_worlds to 1-2. predicted_state is unaffected:
+    # the simulate phase always sets it from sim_options[0] and the act phase
+    # re-derives the honest one-step landing through the real transition, so
+    # the deferred reality-gap record stays truthful.
+    fidelity_fast_path_enabled: bool = True
+
+    # v9 'lite' preset — a DRIVER shortcut, not a kernel behavior change:
+    # fast mode with small counterfactual budgets, short horizon, sparse
+    # checkpoints and a higher stream-skip threshold. Every field can be
+    # overridden per call (kwargs win).
+    @classmethod
+    def lite(cls, **overrides) -> "PipelineConfig":
+        kwargs = dict(
+            mode="fast",
+            n_worlds=10,
+            horizon=5,
+            checkpoint_every_n=20,
+            stream_skip_threshold=0.35,
+        )
+        kwargs.update(overrides)
+        return cls(**kwargs)
     # Distributed Council (advisory crew layer on top of the blocking primary
     # council): enabled toggle + cadence (run every N cycles).
     distributed_council_enabled: bool = True

@@ -11,6 +11,7 @@ import hashlib
 from telos.core.phases.base import Phase, PhaseContext, StreamActivation
 from telos.core.attention import AttentionBid, run_attention_auction
 from telos.core.trace.psdt import PSDT, PartialDecision
+from telos.core.phases.act import ACT_FIDELITY_STALE_CYCLES
 
 logger = logging.getLogger('telos_pipeline')
 
@@ -321,6 +322,46 @@ class StreamPhase(Phase):
                     ctx.effective_n_worlds = max(5, ctx.effective_n_worlds // 3)
                     logger.debug(f"Cycle {ctx.cycle_count}: memory fast path triggered, worlds={ctx.effective_n_worlds}")
                     break
+
+        # ── v9: Model-fidelity fast path ──
+        # Mirrors the memory fast path above: a CURRENTLY validated model
+        # (recent per-step fidelity >= 0.6 inside the SAME staleness window
+        # the act gate uses) on a calm record (last cycle DI >= 0.7, zero
+        # recent council blocks, last sim solve > 0.9) does not need a full
+        # multi-world counterfactual sweep — cut to 1-2 worlds. predicted_state
+        # stays honest: the simulate phase always sets it from sim_options[0]
+        # and the act phase re-derives the one-step landing through the real
+        # transition, so the deferred reality-gap record is unaffected.
+        if pipeline.config.fidelity_fast_path_enabled:
+            tracker = getattr(pipeline, '_reality_gap_tracker', None)
+            mf = None
+            if tracker is not None and not isinstance(tracker, type):
+                try:
+                    mf = tracker.model_fidelity(
+                        "world",
+                        now_cycle=getattr(ctx, "cycle_count", None),
+                        stale_window=ACT_FIDELITY_STALE_CYCLES)
+                except Exception:
+                    mf = None
+            last_di = getattr(pipeline, '_last_di_for_omega', None)
+            recent_blocks = int(getattr(pipeline, '_council_recent_blocks', 0) or 0)
+            last_solve = float(getattr(pipeline, '_last_sim_score', 0.0) or 0.0)
+            calm_and_valid = (
+                isinstance(mf, (int, float)) and not isinstance(mf, bool)
+                and float(mf) >= 0.6
+                and last_di is not None
+                and float(last_di) >= 0.7
+                and recent_blocks == 0
+                and last_solve > 0.9
+                and ctx.effective_n_worlds > 2
+            )
+            if calm_and_valid:
+                ctx.effective_n_worlds = max(1, min(2, ctx.effective_n_worlds))
+                logger.debug(
+                    f"Cycle {ctx.cycle_count}: fidelity fast path — "
+                    f"mf={float(mf):.2f} di={float(last_di):.2f} "
+                    f"worlds={ctx.effective_n_worlds}"
+                )
 
         # P0.3: Emit readiness signal if any stream produced high-confidence intent
         for sa in ctx.stream_activations:

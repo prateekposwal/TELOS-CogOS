@@ -80,6 +80,7 @@ function _normalize(d) {
     reward_collected: typeof d.reward_collected === 'number' ? d.reward_collected : 0,
     reward_available: typeof d.reward_available === 'number' ? d.reward_available : 0,
     episodes: d.episodes || null,
+    stall: d.stall || null,
   };
 }
 
@@ -104,9 +105,21 @@ function renderOverview(d) {
   // 1) HOOK — what is TELOS doing RIGHT NOW (live beat, state-aware).
   renderHook(n);
 
-  // 2) Live badge.
+  // 2) Live badge + #3 stall-vs-lockout classifier. An observer cannot tell
+  // "designed exploration stall (escape pending)" from "LOCKED — escape
+  // counter not arming" — both look like no movement. The classifier label
+  // comes from the producer's per-family escape counters (measured, never
+  // invented); only a RUNNING producer can produce it (history-only mode
+  // honestly shows the plain badge).
   if (producer.running) {
-    setStoryLive('', '● live · ' + (producer.cycles || 0) + ' cycles');
+    var stall = n.stall;
+    if (stall && stall.label === 'locked') {
+      setStoryLive('locked', '▲ LOCKED — escape counter not arming');
+    } else if (stall && stall.label === 'stall') {
+      setStoryLive('stall', '● stall · escape pending · ' + (producer.cycles || 0) + ' cycles');
+    } else {
+      setStoryLive('', '● live · ' + (producer.cycles || 0) + ' cycles');
+    }
   } else {
     setStoryLive('off', 'history only (' + (producer.cycles || 0) + ' cycles on disk)');
   }

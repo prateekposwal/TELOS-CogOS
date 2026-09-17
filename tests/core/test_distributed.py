@@ -87,3 +87,50 @@ class TestDistributedCouncil:
             {"signal_dicts": [{"passed": True, "confidence": 0.2,
                                "evidence_weight": 0.7}]})
         assert result
+
+
+class TestDomainExpertLens:
+    """v9: the DOMAIN_EXPERT lens joins the crew when the context carries
+    domain knowledge and dissents on avoid-listed candidates. Advisory only —
+    the primary blocking verdict and the aggregation formula are untouched."""
+
+    def _crew_with_knowledge(self, knowledge_report, intent_type="blended_inquiry"):
+        dc = DistributedCouncil()
+        dc.register_default_crew()
+        result = dc.run_perspectives(
+            {"validated": True, "decision_integrity": 0.9,
+             "mission_drift": 0.1},
+            {"intent_type": intent_type, "domain": "gridworld",
+             "knowledge_report": knowledge_report})
+        return dc, result
+
+    def test_domain_expert_lens_registers_and_dissents_on_avoid(self):
+        dc, result = self._crew_with_knowledge({
+            "approach": "plan_trajectory", "outcome": 0.9,
+            "avoid": [{"approach": "blended_inquiry", "reason": "falsified loop"}],
+        })
+        agent_ids = [a["agent_id"] for a in result["agents"]]
+        assert "domain_expert" in agent_ids
+        expert = [a for a in result["agents"] if a["agent_id"] == "domain_expert"][0]
+        assert expert["role"] == "domain_expert"
+        assert expert["validated"] is False
+        assert "validated" in result and "agents" in result
+
+    def test_domain_expert_lens_absent_without_knowledge(self):
+        dc = DistributedCouncil()
+        dc.register_default_crew()
+        result = dc.run_perspectives(
+            {"validated": True, "decision_integrity": 0.9, "mission_drift": 0.1},
+            {"intent_type": "plan_trajectory"})
+        agent_ids = [a["agent_id"] for a in result["agents"]]
+        assert "domain_expert" not in agent_ids
+        assert len(agent_ids) == 5
+
+    def test_domain_expert_neutral_when_candidate_not_listed(self):
+        dc, result = self._crew_with_knowledge(
+            {"approach": "plan_trajectory", "outcome": 0.9,
+             "avoid": [{"approach": "blended_inquiry", "reason": "falsified"}]},
+            intent_type="plan_trajectory",
+        )
+        expert = [a for a in result["agents"] if a["agent_id"] == "domain_expert"][0]
+        assert expert["validated"] is True

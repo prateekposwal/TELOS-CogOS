@@ -246,6 +246,22 @@ class PlanningStream(CognitiveStream):
             )
 
         state = world.state
+        # v9: consume the perceive-phase knowledge consultation (Λ4.7). The
+        # report rides on world.metadata. A PROVEN approach labels this
+        # cycle's plan as `domain_plan` carrying the approach + outcome so
+        # the council (and the distributed DOMAIN_EXPERT lens) can weigh the
+        # domain evidence. The action vector is still the stream's own
+        # simulated best — only the intent TYPE and the knowledge labels
+        # change, so the executor path (adapter reads params["action_vector"])
+        # is untouched. Confidence uses the SAME 0.8 ceiling as
+        # plan_trajectory, so the seeded intent can never out-bid the plan's
+        # own ceiling in the attention auction; the semantic group merge in
+        # synthesize treats domain_plan exactly like plan_trajectory.
+        knowledge_report = None
+        try:
+            knowledge_report = (world.metadata or {}).get("knowledge_report") or None
+        except Exception:
+            knowledge_report = None
         try:
             options = self._sim_engine.generate_options(state, horizon=self.horizon, n_worlds=self.n_worlds)
             if not options:
@@ -260,6 +276,18 @@ class PlanningStream(CognitiveStream):
             best_state = getattr(best.world, 'state', best.world)
             action = best_state[:2] - state[:2] if len(best_state) >= 2 else np.zeros(2)
 
+            approach = None
+            outcome = 0.0
+            is_domain_plan = False
+            if knowledge_report and isinstance(knowledge_report, dict):
+                approach = knowledge_report.get("approach")
+                if approach is not None:
+                    try:
+                        outcome = float(knowledge_report.get("outcome") or 0.0)
+                    except (TypeError, ValueError):
+                        outcome = 0.0
+                    is_domain_plan = outcome >= 0.51  # search min_outcome
+
             metadata = {
                 "stream": "planning",
                 "options_count": len(options),
@@ -267,28 +295,36 @@ class PlanningStream(CognitiveStream):
                 "best_variance": best.variance,
                 "sim_light": True,
             }
+            if is_domain_plan:
+                metadata["expert"] = knowledge_report.get("domain") or "unknown"
             if best.probabilistic:
                 metadata["best_confidence"] = best.probabilistic.mean
                 metadata["best_std"] = best.probabilistic.std
                 metadata["ci_lower"] = best.probabilistic.ci_lower
                 metadata["ci_upper"] = best.probabilistic.ci_upper
 
+            params = {
+                "action_vector": action,
+                "trajectory": best.world,
+                "options_count": len(options),
+                "best_score": best.score,
+                "variance": best.variance,
+                "probabilistic": {
+                    "mean": best.probabilistic.mean,
+                    "std": best.probabilistic.std,
+                    "ci_lower": best.probabilistic.ci_lower,
+                    "ci_upper": best.probabilistic.ci_upper,
+                } if best.probabilistic else None,
+            }
+            if is_domain_plan:
+                params["approach"] = approach
+                params["outcome"] = outcome
+
             return IntentIR(
-                intent_type="plan_trajectory",
-                confidence=min(0.8, best.score),
-                params={
-                    "action_vector": action,
-                    "trajectory": best.world,
-                    "options_count": len(options),
-                    "best_score": best.score,
-                    "variance": best.variance,
-                    "probabilistic": {
-                        "mean": best.probabilistic.mean,
-                        "std": best.probabilistic.std,
-                        "ci_lower": best.probabilistic.ci_lower,
-                        "ci_upper": best.probabilistic.ci_upper,
-                    } if best.probabilistic else None,
-                },
+                intent_type="domain_plan" if is_domain_plan else "plan_trajectory",
+                confidence=(min(0.8, max(0.3, outcome))
+                            if is_domain_plan else min(0.8, best.score)),
+                params=params,
                 metadata=metadata,
             )
         except Exception as e:

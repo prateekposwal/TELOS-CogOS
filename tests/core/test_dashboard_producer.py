@@ -681,3 +681,82 @@ class TestPersistenceThrottle:
             assert "decision_integrity" in t or "discrimination_index" in t
         finally:
             p.stop()
+
+
+def test_stall_classifier_labels_stall_and_lockout(isolated_paths):
+    """#3 stall-vs-lockout classifier: the SAME blocked loop reads "designed
+    exploration stall (escape pending)" when a per-family escape counter is
+    arming, but "LOCKED — escape counter not arming" when it is not (the
+    [4,1] signature a human watching the dashboard must see: blocks continue
+    but nothing arms). Driven at the classifier boundary against the REAL
+    pipeline the producer builds — the counters it reads are the ones the
+    escape machinery itself consults, never synthesized."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=0)
+    p._build()  # real pipeline internals (no cycles run — we control state)
+
+    # ── LOCKED: blocked cycle, streak >= 2, ZERO arming counters ──
+    trace = {"selected_action": None, "firewall_blocked": True,
+             "decision_integrity": 0.3}
+    p._pipeline._firewall._loop_blocks_by_type = {}
+    p._pipeline._stagnant_no_action = {}
+    p._pipeline._recovery_goal_seek_pending = False
+    p._pipeline._recovery_stagnation_armed = False
+    p._classify_stall(trace)   # streak -> 1 (transient, not yet LOCKED)
+    second = p._classify_stall(trace)  # streak -> 2
+    assert second["label"] == "locked", second
+    assert second["status"] == "LOCKED — escape counter not arming"
+    assert second["no_action_streak"] == 2
+    assert second["escape_arming"]["firewall_max_loop_blocks"] == 0
+
+    # ── STALL: the SAME blocked shape, but a family counter is arming
+    #    (curiosity armed at 2 — blended's low_integrity block did NOT reset
+    #    it, per-family #2) → the label flips to escape-pending ──
+    p._pipeline._firewall._loop_blocks_by_type = {"curiosity_explore": 2}
+    p._pipeline._stagnant_no_action = {"blended_inquiry": 3}
+    stall = p._classify_stall(trace)
+    assert stall["label"] == "stall", stall
+    assert stall["status"] == "designed exploration stall (escape pending)"
+    assert stall["escape_arming"]["firewall_max_loop_blocks"] == 2
+    assert stall["families"]["firewall"] == {"curiosity_explore": 2}
+
+    # ── ACTIVE: an emitted action resets the producer's no-action streak ──
+    active = p._classify_stall({"selected_action": [1.0, 0.0],
+                                "firewall_blocked": False})
+    assert active["label"] == "active"
+    assert active["no_action_streak"] == 0
+
+    # ── the recovery-armed flag alone (no family streak yet) is still a
+    #    STALL — the escape is pending, not locked ──
+    p._pipeline._firewall._loop_blocks_by_type = {}
+    p._pipeline._stagnant_no_action = {}
+    p._pipeline._recovery_goal_seek_pending = True
+    pending = p._classify_stall(trace)
+    assert pending["label"] == "stall", pending
+    assert pending["escape_arming"]["recovery_pending"] is True
+
+    # ── the snapshot surfaces the classifier (measured, JSON-clean) ──
+    snap = p.snapshot()
+    assert snap["stall"]["label"] in ("active", "stall", "locked", "blocked", "unknown")
+    p.stop()
+
+
+def test_legal_goal_step_memoized_deterministic_and_invalidated():
+    """v9: legal-motion A* is memoized per (start, goal, sorted-blocked,
+    grid_size). Same inputs → cached identical result (determinism intact,
+    cache never returns a step a fresh search would not); a CHANGED blocked
+    set is a NEW key → a fresh, correct answer (never a stale cache)."""
+    import telos_task
+
+    fallback = np.zeros(2)
+    s_a = telos_task.legal_goal_step(
+        np.array([0.0, 0.0]), {(1, 1), (2, 2)}, np.array([4.0, 4.0]), 5, fallback)
+    s_a2 = telos_task.legal_goal_step(
+        np.array([0.0, 0.0]), {(1, 1), (2, 2)}, np.array([4.0, 4.0]), 5, fallback)
+    assert np.array_equal(s_a, s_a2)
+    assert telos_task._astar_first_step.cache_info().hits >= 1
+    assert telos_task._astar_first_step.cache_info().maxsize <= 256
+    s_b = telos_task.legal_goal_step(
+        np.array([0.0, 0.0]), {(1, 0), (1, 1), (2, 2)}, np.array([4.0, 4.0]), 5, fallback)
+    assert not np.array_equal(s_a, s_b)
+    assert np.array_equal(s_b, np.array([0.0, 1.0]))
+    assert telos_task._legal_cardinal_candidates.cache_info().maxsize <= 64

@@ -48,7 +48,7 @@ def _semantic_group(intent_type: str) -> str:
             intent_type: the intent_type argument for this call.
     """
     safety = {"halt", "emergency_stop", "avoid", "retreat", "brake"}
-    navigation = {"plan_trajectory", "navigate", "move", "advance", "follow_path"}
+    navigation = {"plan_trajectory", "navigate", "move", "advance", "follow_path", "domain_plan"}
     exploration = {"memory_miss", "plan_empty", "plan_noop", "explore", "search"}
     perception_group = {"perceive", "observe", "scan", "detect"}
     utility = {"recharge", "return", "dock", "maintain"}

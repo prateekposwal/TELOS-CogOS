@@ -107,3 +107,58 @@ def test_recovery_type_never_blocked_by_loop_detector():
     # The history still reflects the original loop member (the trap's record
     # is untouched by escape attempts).
     assert set(fw._action_history) == {"blended_inquiry"}
+
+
+def test_partner_low_integrity_block_does_not_reset_armed_streak():
+    """#2 per-family arming counters (belt-and-braces on #1): a
+    `blended_inquiry` low_integrity block (Check 2, BEFORE loop detection) is
+    a DIFFERENT family's block — it must NEVER reset `curiosity_explore`'s
+    own action_loop streak. The old single global counter let the alternation
+    reset every escape path back to 1 forever (the [4,1] 100% lockout). A
+    family's OWN non-loop block is an honest break of its own ledger; a
+    genuine pass clears the whole ledger (the agent acted — trap broken)."""
+    fw = DecisionFirewall()
+    # curiosity_explore traps via action_loop: 3 warm-ups pass, then EVERY
+    # inspection with a saturated 4-same window blocks and increments the
+    # family streak (+1 per inspection). Reach the Λ3.1 arming threshold.
+    for n in range(4):
+        v = fw.inspect(_world(), IntentIR("curiosity_explore", 0.9),
+                       council_validated=True, decision_integrity=0.9)
+        if n < 3:
+            assert v.passed, "fewer than 4 repeats is not yet a loop"
+        else:
+            assert not v.passed and v.blocked_by == "action_loop"
+    armed_before = fw._loop_blocks_by_type["curiosity_explore"]
+    assert armed_before >= 1
+    # NOW the partner stalls at Check 2 low_integrity — many times, the live
+    # [4,2] shape.
+    for _ in range(6):
+        v = fw.inspect(_world(), IntentIR("blended_inquiry", 0.6),
+                       council_validated=True, decision_integrity=0.2)
+        assert not v.passed and v.blocked_by == "low_integrity"
+    # blended's own slot reset to 0 (its non-loop block breaks ITS ledger) —
+    # but curiosity's armed streak survives untouched.
+    assert fw._loop_blocks_by_type.get("blended_inquiry", 0) == 0, \
+        "a family's OWN non-loop block resets its OWN slot"
+    assert fw._loop_blocks_by_type["curiosity_explore"] == armed_before, \
+        "a partner family's low_integrity block must NOT reset the armed streak"
+    assert fw.consecutive_loop_blocks == armed_before, \
+        "max across families stays armed — the partners cannot mutual-reset"
+    # A genuine pass clears the WHOLE ledger (the agent acted, trap broken).
+    v = fw.inspect(_world(), IntentIR("plan_trajectory", 0.9),
+                   council_validated=True, decision_integrity=0.9)
+    assert v.passed
+    assert fw._loop_blocks_by_type == {}
+    assert fw.consecutive_loop_blocks == 0
+
+    # A genuine pass can never be faked by a sibling's STALLED retry: after
+    # the pass re-arms the SAME trap, the partnership must be able to arm
+    # again from the family's own accumulation.
+    for n in range(4):
+        v = fw.inspect(_world(), IntentIR("curiosity_explore", 0.9),
+                       council_validated=True, decision_integrity=0.9)
+        if n < 3:
+            assert v.passed
+        else:
+            assert not v.passed and v.blocked_by == "action_loop"
+    assert fw.consecutive_loop_blocks == 1, "re-arm restarts the family ledger"

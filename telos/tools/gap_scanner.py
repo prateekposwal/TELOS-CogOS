@@ -11,8 +11,14 @@ Scans the TELOS codebase for:
  6. Docstring vs signature mismatches
 
 Usage:
-    python3 telos/tools/gap_scanner.py                 # full-codebase scan
+    python3 telos/tools/gap_scanner.py                 # full-codebase scan (Check 4 skipped)
+    python3 telos/tools/gap_scanner.py --with-tests    # full scan + full pytest coverage sweep
     python3 telos/tools/gap_scanner.py --staged        # scan only staged files (pre-commit)
+
+Check 4 (Test Coverage) launches the ENTIRE pytest suite as a subprocess
+(up to a 360s timeout), so by default it is SKIPPED with a printed note.
+Pass --with-tests to enable it. The staged (pre-commit) mode always skips
+it — the hook gates NEW code only (checks 3/4 are repo-wide by design).
 """
 
 import ast
@@ -20,7 +26,7 @@ import os
 import re
 import subprocess
 import sys
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -196,10 +202,17 @@ def check_dead_code():
                 content = f.read()
         except Exception:
             continue
-        for name in list(name_to_files.keys()):
-            pattern = re.compile(r'\b' + re.escape(name) + r'\b')
-            n = len(pattern.findall(content))
-            if n:
+        # ONE identifier scan per file (Item 3): a single C-level regex pass
+        # over the whole content yields per-name occurrence counts for EVERY
+        # candidate at once, so the old per-name `re.compile(...).findall`
+        # (O(files x names) ~ 509 x 1672 ~ 64s+ floor) becomes O(1) dict
+        # lookups per name. A defined name's occurrence count is identical
+        # under both regexes — `\bname\b` matches exactly the maximal
+        # identifier runs of `[A-Za-z_]\w*` — so the dead-code result set
+        # is unchanged (membership + `occ > def_count` use the same numbers).
+        counts = Counter(re.findall(r"[A-Za-z_]\w*", content))
+        for name, n in counts.items():
+            if n and name in name_to_files:
                 name_to_files[name].add(fp)
                 occ[name] += n
 
@@ -507,6 +520,11 @@ def check_test_coverage():
 
     if "--staged" in sys.argv[1:]:
         print("  ✓ SKIP (staged mode — repo-wide check, not per-file)")
+        return True
+
+    if "--with-tests" not in sys.argv[1:]:
+        print("  ✓ SKIP (default — the full pytest sweep is a 360s subprocess; "
+              "pass --with-tests to enable)")
         return True
 
     core_files = []

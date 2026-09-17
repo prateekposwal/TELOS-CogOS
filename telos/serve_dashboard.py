@@ -343,6 +343,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "today": snap.get("today"),
                 "recent_decisions": snap.get("recent_decisions", []),
                 "knowledge": snap.get("knowledge", {}),
+                # #3 stall-vs-lockout classifier — honest label from the
+                # producer's per-family escape counters (never synthesized).
+                "stall": snap.get("stall") or {
+                    "label": "unknown", "status": "no live cycle yet",
+                },
             }
         # No producer: derive what we honestly can from persisted history.
         traces = self._load_checkpoints()
@@ -403,6 +408,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                           "total_nodes": (len(knowledge.get("nodes", []))
                                           + len(knowledge.get("archived_nodes", []))),
                           "domains": domains, "edge_types": edge_types},
+            # #3 stall-vs-lockout classifier: history-only mode has NO live
+            # escape counters — the honest label is "unknown" + why, never a
+            # fabricated stall/lockout verdict.
+            "stall": {
+                "label": "unknown",
+                "status": "unknown — live escape counters require a running producer",
+            },
         }
 
     # /api/checkpoints persisted-file cache (Λ4.7 — don't re-read what hasn't

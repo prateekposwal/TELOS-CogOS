@@ -76,8 +76,15 @@ class DecisionFirewall:
         self._action_history: List[str] = []
         self._max_action_history: int = 10
         self._loop_threshold: int = 4
-        # Consecutive action_loop blocks — recovery counter (Λ3.1).
-        self._consecutive_loop_blocks: int = 0
+        # Consecutive action_loop blocks per TRAPPED TYPE — the Λ3.1 recovery
+        # counter. Per-type (not one global int): a NON-loop block of a
+        # DIFFERENT type (e.g. `blended_inquiry` blocked by low_integrity at
+        # Check 2 during a `curiosity_explore` action_loop trap) must NOT
+        # reset the looped type's accumulation — under alternation that
+        # reset was a counter-neutralization that kept every escape path at
+        # max 1, forever (the [4,1] lockout). A type's own non-loop block,
+        # or any genuine pass, still clears it.
+        self._loop_blocks_by_type: Dict[str, int] = {}
 
     def set_di_threshold(self, threshold: float) -> None:
         """Update the minimum Decision Integrity threshold dynamically.
@@ -132,7 +139,8 @@ class DecisionFirewall:
                 "reason": "Council rejected the proposed action",
             })
             return self._block("council_rejection",
-                               "Council rejected — Firewall upholds block", signals)
+                               "Council rejected — Firewall upholds block", signals,
+                               intent_type=intent.intent_type if intent is not None else None)
 
         # Check 2: Decision Integrity (with domain-specific threshold)
         effective_domain = domain or self.config.domain
@@ -148,7 +156,8 @@ class DecisionFirewall:
                 "applied_threshold": applied_threshold,
             })
             return self._block("low_integrity",
-                               f"DI {decision_integrity:.3f} below threshold {applied_threshold:.3f}", signals)
+                               f"DI {decision_integrity:.3f} below threshold {applied_threshold:.3f}", signals,
+                               intent_type=intent.intent_type if intent is not None else None)
 
         # Check 3: Mission violation
         if self.config.block_on_mission_violation and mission_violation:
@@ -158,7 +167,8 @@ class DecisionFirewall:
                 "reason": "Proposed action violates mission parameters",
             })
             return self._block("mission_violation",
-                               "Action violates mission parameters", signals)
+                               "Action violates mission parameters", signals,
+                               intent_type=intent.intent_type if intent is not None else None)
 
         # Check 4: Intent validity
         if intent is None:
@@ -167,7 +177,7 @@ class DecisionFirewall:
                 "passed": False,
                 "reason": "No intent selected",
             })
-            return self._block("no_intent", "No intent to validate", signals)
+            return self._block("no_intent", "No intent to validate", signals, intent_type=None)
 
         # Check 5: Loop detection — same action repeated too many times
         if intent.intent_type:
@@ -199,7 +209,7 @@ class DecisionFirewall:
                 if len(recent) >= self._loop_threshold and len(set(recent)) == 1:
                     # If all moves are blocked (surrounded), allow a "try anyway" retry
                     if available_moves is not None and available_moves == 0:
-                        self._consecutive_loop_blocks = 0  # stuck retry is a pass
+                        self._loop_blocks_by_type[recent[0]] = 0  # stuck retry is a pass
                         logger.info(
                             f"DecisionFirewall: loop detected ({recent[0]} x{self._loop_threshold}) "
                             f"but available_moves=0 — allowing retry (stuck)"
@@ -215,16 +225,20 @@ class DecisionFirewall:
                         # Λ3.1 Recovery Mode: 2+ consecutive action_loop blocks
                         # request a goal-seek recovery intent (different type)
                         # so the same-intent detector cannot trap the agent.
-                        self._consecutive_loop_blocks += 1
+                        # Per-family counter: this type's OWN accumulation
+                        # (a different type's non-loop block must not reset it).
+                        self._loop_blocks_by_type[recent[0]] = (
+                            self._loop_blocks_by_type.get(recent[0], 0) + 1
+                        )
                         recovery_requested = (
-                            self._consecutive_loop_blocks >= RECOVERY_AFTER_LOOP_BLOCKS
+                            self._loop_blocks_by_type[recent[0]] >= RECOVERY_AFTER_LOOP_BLOCKS
                         )
                         signal = {
                             "check": "loop_detection",
                             "passed": False,
                             "reason": f"Same action '{recent[0]}' repeated {self._loop_threshold}+ consecutive cycles",
                             "action": recent[0],
-                            "consecutive_loop_blocks": self._consecutive_loop_blocks,
+                            "consecutive_loop_blocks": self._loop_blocks_by_type[recent[0]],
                         }
                         if recovery_requested:
                             signal["recovery_requested"] = True
@@ -232,12 +246,13 @@ class DecisionFirewall:
                             signal["axiom"] = "3.1"
                             logger.info(
                                 f"DecisionFirewall: loop recovery requested — "
-                                f"{self._consecutive_loop_blocks} consecutive action_loop "
+                                f"{self._loop_blocks_by_type[recent[0]]} consecutive action_loop "
                                 f"blocks on '{recent[0]}' (Λ3.1)"
                             )
                         signals.append(signal)
                         return self._block("action_loop",
-                                           f"Action '{recent[0]}' repeated {self._loop_threshold}+ cycles", signals)
+                                           f"Action '{recent[0]}' repeated {self._loop_threshold}+ cycles", signals,
+                                           intent_type=recent[0])
 
         # Check 6: Identity integrity — mood-based gate
         if system_mood in ("uncertain", "fatigued"):
@@ -250,10 +265,13 @@ class DecisionFirewall:
                     "reason": f"System mood is '{system_mood}' and DI {decision_integrity:.3f} < elevated threshold {elevated_threshold:.3f}",
                 })
                 return self._block("low_identity_integrity",
-                                   f"Mood '{system_mood}' blocks action below DI {elevated_threshold:.3f}", signals)
+                                   f"Mood '{system_mood}' blocks action below DI {elevated_threshold:.3f}", signals,
+                                   intent_type=intent.intent_type if intent is not None else None)
 
         self._pass_count += 1
-        self._consecutive_loop_blocks = 0  # any pass clears the loop-recovery streak
+        # Any genuine pass clears the whole loop-recovery ledger: the agent
+        # acted, so whatever trap existed is broken for every type.
+        self._loop_blocks_by_type = {}
         signals.append({
             "check": "all_governance_checks",
             "passed": True,
@@ -266,10 +284,28 @@ class DecisionFirewall:
             governance_signals=signals,
         )
 
-    def _block(self, blocked_by: str, reason: str, signals: list) -> FirewallVerdict:
+    def _block(self, blocked_by: str, reason: str, signals: list,
+               intent_type: Optional[str] = None) -> FirewallVerdict:
         self._block_count += 1
         if blocked_by != "action_loop":
-            self._consecutive_loop_blocks = 0  # only consecutive loop blocks count
+            # RESET ONLY THE BLOCKED TYPE's own loop-recovery streak. A
+            # non-loop block of a DIFFERENT type (e.g. `blended_inquiry`
+            # blocked by low_integrity at Check 2 while `curiosity_explore`
+            # is mid-trap) must NOT wipe the looped type's accumulation —
+            # that global reset was the [4,1] counter-neutralization that
+            # kept every escape path at max 1 forever.
+            # LOOP-DETECTOR-AWARE SAME-TYPE exception: a same-type non-loop
+            # block (e.g. `curiosity_explore` low_integrity at Check 2 —
+            # Check 2 fires BEFORE Check 5's loop detector) while THIS type
+            # is mid-accumulation on the loop ledger (streak > 0) must NOT
+            # cancel the in-flight escape either — that zeroing was the
+            # same-type counter-neutralization that pinned the streak at 1
+            # forever (RECOVERY_AFTER_LOOP_BLOCKS could never be reached).
+            # A same-type block with NOTHING in flight (streak == 0), or any
+            # genuine pass (which clears the whole ledger), is still an
+            # honest break.
+            if intent_type and self._loop_blocks_by_type.get(intent_type, 0) == 0:
+                self._loop_blocks_by_type[intent_type] = 0
         logger.warning(f"DecisionFirewall: BLOCKED by {blocked_by} — {reason}")
         return FirewallVerdict(
             passed=False,
@@ -280,8 +316,12 @@ class DecisionFirewall:
 
     @property
     def consecutive_loop_blocks(self) -> int:
-        """Consecutive action_loop blocks (Λ3.1 recovery counter)."""
-        return self._consecutive_loop_blocks
+        """Most-armed intent type's consecutive action_loop blocks (Λ3.1).
+
+        Per-family: returns the maximum accumulation across trapped types, so
+        under alternation a partner type's low_integrity block can no longer
+        zero a sibling's streak (each type keeps its OWN ledger)."""
+        return max(self._loop_blocks_by_type.values(), default=0)
 
     @property
     def stats(self) -> Dict:
@@ -290,7 +330,7 @@ class DecisionFirewall:
             "blocks": self._block_count,
             "passes": self._pass_count,
             "block_rate": self._block_count / max(total, 1),
-            "consecutive_loop_blocks": self._consecutive_loop_blocks,
+            "consecutive_loop_blocks": self.consecutive_loop_blocks,
             "constitutional": {
                 "loop_detection": True,
                 "identity_gate": True,

@@ -8,6 +8,7 @@ Covers the reliability + performance hardening fixes:
   5. Bootstrap no-intent keeper   (select.py)              — honest self-start
   6. Per-cycle watchdog           (runtime.py execute())   — cycle_timeout
 """
+import json
 import os
 import sys
 import time
@@ -378,3 +379,70 @@ def test_watchdog_does_not_break_normal_cycle(monkeypatch):
     import telos.core.runtime as rt
     src = open(rt.__file__).read()
     assert "cycle_timeout" in src
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# v9 — identity-tuple dump env gate (per-cycle dump now a diagnostics opt-in)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _build_standard(tmp_path):
+    from telos_task import GridAdpt, GridSim, DEFAULT_BLOCKED, DEFAULT_REWARDS
+    from telos.core.runtime import PipelineConfig, TelosV14Pipeline
+    from telos.core.streams.implementations import (
+        ReflexStream, PerceptionStream, MemoryStream, PlanningStream, TheoryStream,
+    )
+    from telos.core.streams.inquiry_stream import InquiryStream
+    from telos.core.council.validators import (
+        RealityValidator, ConstraintValidator, MemoryAdvisor, MissionDriftDetector,
+        EvidenceProvenanceValidator,
+    )
+    from telos.core.ledger.skill_library import SkillLibrary
+    from telos.core.simulation import CounterfactualEngine
+    sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS))
+    pipe = TelosV14Pipeline(PipelineConfig(
+        adapter=GridAdpt(), simulator=sim,
+        compute_budget_ms=100.0, state_dim=2, n_worlds=4, horizon=5,
+        checkpoint_path=str(tmp_path / "cp"),
+        knowledge_path=str(tmp_path / "kg.json"),
+        ledger_path=str(tmp_path / "ld.json"),
+        identity_path=str(tmp_path / "id.json"),
+        pattern_path=str(tmp_path / "pt.json"),
+        deterministic_seed=42, mode="standard",
+    ))
+    sl = SkillLibrary()
+    for s in [ReflexStream(sl), PerceptionStream(sl), MemoryStream(sl),
+              PlanningStream(sl, sim_engine=CounterfactualEngine(sim)),
+              InquiryStream(sl),
+              TheoryStream(sl, theory_builder=getattr(pipe, "_theory_builder", None))]:
+        pipe.register_stream(s)
+    for v in [RealityValidator(), ConstraintValidator(), MemoryAdvisor(sl),
+              MissionDriftDetector(drift_threshold=5.0), EvidenceProvenanceValidator()]:
+        pipe.register_validator(v)
+    return pipe
+
+
+def test_identity_tuple_dump_env_gated(tmp_path, monkeypatch):
+    dump = "/tmp/telos_identity_tuple.json"
+    if os.path.exists(dump):
+        os.remove(dump)
+    monkeypatch.setenv("TELOS_IDENTITY_TUPLE_EVERY_N", "0")
+    pipe = _build_standard(tmp_path)
+    state = np.zeros(2)
+    for _ in range(2):
+        pipe.execute(state, user_name="perf")
+    assert not os.path.exists(dump), "N=0: the per-cycle identity dump must never run"
+    monkeypatch.setenv("TELOS_IDENTITY_TUPLE_EVERY_N", "1")
+    pipe2 = _build_standard(tmp_path)
+    pipe2.execute(state, user_name="perf")
+    assert os.path.exists(dump), "N=1: the dump must fire on cycle 1"
+    with open(dump) as f:
+        data = json.load(f)
+    assert "G_t" in data
+    if os.path.exists(dump):
+        os.remove(dump)
+
+
+def test_identity_tuple_dump_env_pattern_in_source():
+    import telos.core.runtime as rt
+    src = open(rt.__file__).read()
+    assert "TELOS_IDENTITY_TUPLE_EVERY_N" in src

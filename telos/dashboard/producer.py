@@ -402,6 +402,28 @@ class DashboardProducer:
         # importing telos.serve_dashboard from the producer would create a
         # second module copy whose websocket_clients set is always empty.
         self._broadcast_fn = None
+        # ── Stall-vs-lockout classifier (live-loop honesty) ──
+        # A dashboard observer cannot tell "designed exploration stall
+        # (escape pending)" from "LOCKED — escape counter not arming" — both
+        # read as no movement. The classifier labels the live loop from the
+        # pipeline's OWN per-family escape counters (firewall
+        # `_loop_blocks_by_type`, stagnation `_stagnant_no_action`, the
+        # recovery-armed flags), updated every cycle in `_run_cycle`. The
+        # producer's consecutive no-action streak is pure local bookkeeping
+        # (reset the moment an action emits).
+        self._stall_signal: Dict[str, Any] = {
+            "label": "unknown",
+            "status": "no live cycle yet",
+            "no_action_streak": 0,
+            "escape_arming": {
+                "firewall_max_loop_blocks": 0,
+                "stagnation_max_no_action": 0,
+                "recovery_pending": False,
+                "recovery_armed": False,
+            },
+            "families": {"firewall": {}, "stagnation": {}},
+        }
+        self._no_action_streak: int = 0
 
     # ── Public control ─────────────────────────────────────────────
 
@@ -462,6 +484,7 @@ class DashboardProducer:
                 "mood": self._mood(),
                 "knowledge": self._knowledge_stats(),
                 "knowledge_payload": self._knowledge_payload,
+                "stall": self._stall_signal,
             }
 
     @staticmethod
@@ -885,6 +908,12 @@ class DashboardProducer:
             self._episode_worlds += ws
             self._last_cycle_at = time.time()
 
+            # Stall-vs-lockout classification from the pipeline's OWN per-family
+            # escape counters (never invented — see _classify_stall). Runs
+            # inside the lock so the label is consistent with the trace just
+            # recorded; exposed via snapshot() and the overview payload.
+            self._stall_signal = self._classify_stall(trace_dict)
+
             # Persist the exact hero counters atomically so a dashboard
             # restart continues the totals instead of resetting to 0.
             self._persist_producer_state()
@@ -1248,6 +1277,101 @@ class DashboardProducer:
     def knowledge_path(self) -> str:
         return KNOWLEDGE_PATH
 
+    def _classify_stall(self, trace: Optional[Dict]) -> Dict[str, Any]:
+        """Label the live loop: ACTIVE / stall (escape pending) / LOCKED.
+
+        Reads the pipeline's OWN per-family loop-escape machinery — the SAME
+        counters the Λ3.1 escape consults — so the label is measured, never
+        invented:
+
+          * an action was emitted this cycle          -> ACTIVE (streak reset);
+          * no action AND an arming counter is live
+            (a firewall family streak > 0, a stagnation
+            family > 0, or the goal-seek recovery armed
+            or pending)                               -> STALL — the designed
+            escape is on its way ("escape pending");
+          * no action for 2+ cycles with NONE of those
+            counters arming                           -> LOCKED — the escape
+            counter is not arming (the [4,1] signature:
+            alternation reset each family's counter so
+            neither ever reached its threshold);
+          * a single first blocked cycle with no arming
+            yet                                        -> transient block.
+
+        The [4,1]/[4,2] partner-reset blind spot is why per-family counters
+        matter here: with a single global counter, a partner's low_integrity
+        block kept every family at 1 — the classified signature "blocks
+        continue but nothing arms" is precisely LOCKED, and formerly dead
+        to an observer.
+
+        Args:
+            trace: the json-cleaned DecisionTrace dict of the last cycle
+                (None before the first cycle).
+
+        Returns:
+            Classifier dict {label, status, no_action_streak,
+            escape_arming, families}.
+        """
+        acted = bool(
+            trace is not None
+            and trace.get("selected_action") is not None
+            and not trace.get("firewall_blocked")
+        )
+        if acted:
+            self._no_action_streak = 0
+            return {
+                "label": "active",
+                "status": "acting — moving",
+                "no_action_streak": 0,
+                "escape_arming": {
+                    "firewall_max_loop_blocks": 0,
+                    "stagnation_max_no_action": 0,
+                    "recovery_pending": False,
+                    "recovery_armed": False,
+                },
+                "families": {"firewall": {}, "stagnation": {}},
+            }
+        self._no_action_streak += 1
+        pipe = self._pipeline
+        fw = getattr(pipe, "_firewall", None)
+        fw_blocks = dict(getattr(fw, "_loop_blocks_by_type", None) or {})
+        stag = dict(getattr(pipe, "_stagnant_no_action", None) or {})
+        fw_max = max(fw_blocks.values(), default=0)
+        stag_max = max(stag.values(), default=0)
+        recovery_pending = bool(getattr(pipe, "_recovery_goal_seek_pending", False))
+        recovery_armed = bool(getattr(pipe, "_recovery_stagnation_armed", False))
+        arming = {
+            "firewall_max_loop_blocks": fw_max,
+            "stagnation_max_no_action": stag_max,
+            "recovery_pending": recovery_pending,
+            "recovery_armed": recovery_armed,
+        }
+        families = {"firewall": fw_blocks, "stagnation": stag}
+        armed = fw_max > 0 or stag_max > 0 or recovery_pending or recovery_armed
+        if armed:
+            return {
+                "label": "stall",
+                "status": "designed exploration stall (escape pending)",
+                "no_action_streak": self._no_action_streak,
+                "escape_arming": arming,
+                "families": families,
+            }
+        if self._no_action_streak >= 2:
+            return {
+                "label": "locked",
+                "status": "LOCKED — escape counter not arming",
+                "no_action_streak": self._no_action_streak,
+                "escape_arming": arming,
+                "families": families,
+            }
+        return {
+            "label": "blocked",
+            "status": "transient block (escape arming next cycles)",
+            "no_action_streak": self._no_action_streak,
+            "escape_arming": arming,
+            "families": families,
+        }
+
     def checkpoint_dir(self) -> str:
         return CHECKPOINT_DIR
 
@@ -1304,4 +1428,5 @@ class DashboardProducer:
                 "position": self._state_np.tolist(),
                 "mood": self._mood(),
                 "knowledge": self._knowledge_stats(),
+                "stall": self._stall_signal,
             }
