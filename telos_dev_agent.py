@@ -44,6 +44,31 @@ def scan_once(project_path: str, channel: SuggestionChannel):
         if snap.findings:
             channel.push_findings(snap.findings)
 
+        # Deepen the scan: actually RUN the repo's discovered validation
+        # commands (tests/typecheck/lint) and surface MEASURED results —
+        # not just file counts. Bounded by TELOS_DEV_AGENT_TEST_TIMEOUT.
+        from telos.adapters.dev_validation import discover_commands, validate_project
+        commands = discover_commands(project_path)
+        if commands:
+            timeout = float(os.environ.get("TELOS_DEV_AGENT_TEST_TIMEOUT", "30"))
+            try:
+                ratio, _ts, _lint, runs, evidence = validate_project(
+                    project_path, timeout=timeout)
+                if ratio is not None:
+                    channel.push("🧪", "Test pass ratio",
+                                 f"{ratio:.2f} ({'measured' if evidence.is_measured else 'unvalidated'})",
+                                 severity=2 if ratio < 1.0 else 1, domain="validation")
+                for run in runs:
+                    cls = getattr(run, "classification", None)
+                    name = getattr(cls, "name", str(cls))
+                    if name != "SUCCESS":
+                        channel.push("⚠️", f"Command not clean: {run.name}",
+                                     f"{name} (rc={run.returncode})",
+                                     severity=2, domain="validation")
+            except Exception as exc:  # advisory — never crash the scan
+                channel.push("🧪", "Validation error", str(exc), severity=1,
+                             domain="validation")
+
     return state
 
 

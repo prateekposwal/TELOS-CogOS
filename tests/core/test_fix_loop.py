@@ -214,3 +214,18 @@ class TestIterationLoop:
         assert len(controller.history) == 2
         assert controller.history[0].target_test == "test_math1.py::test_sub"
         assert controller.history[1].target_test == "test_math2.py::test_mul"
+
+
+def test_fix_loop_iterations_env_override(monkeypatch):
+    """The iteration ceiling is operator-tunable via env, default 3."""
+    from telos.core.fix_loop import (
+        max_fix_loop_iterations, DEFAULT_FIX_LOOP_MAX_ITERATIONS,
+    )
+    monkeypatch.delenv("TELOS_FIX_LOOP_MAX_ITERATIONS", raising=False)
+    assert max_fix_loop_iterations() == DEFAULT_FIX_LOOP_MAX_ITERATIONS
+    monkeypatch.setenv("TELOS_FIX_LOOP_MAX_ITERATIONS", "7")
+    assert max_fix_loop_iterations() == 7
+    monkeypatch.setenv("TELOS_FIX_LOOP_MAX_ITERATIONS", "0")
+    assert max_fix_loop_iterations() == 1, "clamped to at least 1"
+    monkeypatch.setenv("TELOS_FIX_LOOP_MAX_ITERATIONS", "not-an-int")
+    assert max_fix_loop_iterations() == DEFAULT_FIX_LOOP_MAX_ITERATIONS
