@@ -5,7 +5,7 @@ description: Use ONLY when the user asks to invoke, query, or develop TELOS — 
 
 # TELOS — Cognitive Operating System
 
-TELOS is a 42-axiom CogOS at `/Users/prateekposwal/Desktop/Vrooom-computation/telos/`. Intelligence is defined by architectural axiom satisfaction, not task accuracy.
+TELOS is a 42-axiom CogOS at `~/dev/telos/`. Intelligence is defined by architectural axiom satisfaction, not task accuracy.
 
 
 ## Core Operating Principle (Architect Mandate, 2026-08-01)
@@ -28,18 +28,24 @@ Every TELOS invocation MUST honor these three rules — they are load-bearing:
 
 Run the pipeline:
 ```
-PYTHONPATH=/Users/prateekposwal/Desktop/Vrooom-computation python3 /Users/prateekposwal/Desktop/Vrooom-computation/telos_task.py
+cd ~/dev/telos && make run        # uses .venv/bin/python when present
+# or: PYTHONPATH=. ./.venv/bin/python telos_task.py
 ```
 
 Run tests:
 ```
-PYTHONPATH=/Users/prateekposwal/Desktop/Vrooom-computation python3 -m pytest tests/ -v
+cd ~/dev/telos && make test-all   # uses .venv/bin/python when present
+# or: PYTHONPATH=. ./.venv/bin/python -m pytest tests/ -v
 ```
+
+Never invoke a bare `python3` for project work — on hosts where the first
+`python3` on PATH lacks numpy/pytest, every subprocess dies. The project
+canonicalizes on `sys.executable` internally; use `.venv/bin/python` to run it.
 
 ## Architecture
 
 ```
-Pipeline (7 phases): PERCEIVE → STREAMS → SIMULATE → EVALUATE → SELECT → COUNCIL → ACT
+Pipeline (9 phases): PERCEIVE → STREAMS → SIMULATE → EVALUATE → SYNTHESIS → SELECT → COUNCIL → ACT → REFLECT
 ```
 
 ### Components
@@ -93,4 +99,4 @@ grounded on, you are looping — stop and ground.
 
 - `telos_task.py`: GridWorld navigation + local LLM explanations
 - `run_demo.py`: Original GridWorld demo
-- Tests: 846/846 passing across 72 files
+- Tests: 2684 passing (verified on the current `main`)
