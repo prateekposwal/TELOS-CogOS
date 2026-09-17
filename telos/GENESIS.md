@@ -7,7 +7,7 @@
 This system is anchored in the **42 Axioms of Systemic Intelligence** (see [AXIOMS.md](./AXIOMS.md)). It is an axiomatized cognitive engine designed to evolve through structural accretion rather than heuristic training.
 
 ## Provenance
-Initialized and hardened through iterative cycles of formal axiomatization, pipeline orchestration, and empirical validation within the `/Users/prateekposwal/Desktop/Vrooom-computation` environment.
+Initialized and hardened through iterative cycles of formal axiomatization, pipeline orchestration, and empirical validation within the `~/dev/telos` environment.
 
 ## Current State (July 2026)
 - **Tests**: 631 passing across 55 test files

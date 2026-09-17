@@ -1,18 +1,33 @@
-.PHONY: test test-core test-fallback clean lint
+# TELOS Makefile
+#
+# Prefer the local .venv interpreter (has numpy/pytest); fall back to
+# whatever `python3` is on PATH. Never hardcode a bare interpreter for
+# project targets — see the sys.executable pattern in telos/core/actions/executor.py.
+
+PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
+export PYTHONPATH := .
+
+.PHONY: test test-core test-fallback test-all lint run audit clean
 
 test: test-core test-fallback
 
 test-core:
-	python3 -m pytest tests/core/ -v
+	$(PYTHON) -m pytest tests/core/ -v
 
 test-fallback:
-	python3 -m pytest tests/test_latent_cognition.py -v
+	$(PYTHON) -m pytest tests/test_latent_cognition.py -v
 
 test-all:
-	python3 -m pytest tests/ -v
+	$(PYTHON) -m pytest tests/ -v
 
 lint:
-	python3 -m py_compile telos/core/runtime.py telos/core/simulation.py
+	$(PYTHON) -m py_compile telos/core/runtime.py telos/core/simulation/__init__.py telos/core/simulation/engine.py telos/core/simulation/options.py telos/core/actions/executor.py
+
+run:
+	$(PYTHON) telos_task.py
+
+audit:
+	$(PYTHON) telos/tools/self_audit.py
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

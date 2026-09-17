@@ -41,16 +41,27 @@ Each phase satisfies specific axioms:
 
 ## Getting Started
 
+Canonical working copy: **`~/dev/telos`** (local disk — never inside
+iCloud-synced `Desktop`/`Documents`; macOS "Optimize Mac Storage" evicts files
+there and git/reads break).
+
 ```bash
+# One-time: local interpreter with numpy/pytest/flask/websockets
+/usr/bin/python3 -m venv --system-site-packages .venv
+
 # Run the pipeline
-cd telos && PYTHONPATH=. python3 telos_task.py
+make run                 # or: PYTHONPATH=. ./.venv/bin/python telos_task.py
 
 # Run tests
-PYTHONPATH=. python3 -m pytest tests/ -v
+make test-all            # or: PYTHONPATH=. ./.venv/bin/python -m pytest tests/ -v
 
 # Dashboard
-python3 telos/serve_dashboard.py
+./.venv/bin/python telos/serve_dashboard.py
 ```
+
+Use `./.venv/bin/python` (or `make`) for project work. A bare `python3` may
+resolve to an interpreter without the dependencies; TELOS canonicalizes
+subprocess calls on `sys.executable` for the same reason.
 
 ## Repository Structure
 
