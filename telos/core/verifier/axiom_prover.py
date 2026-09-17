@@ -160,13 +160,15 @@ class AxiomProver:
         # ── Layer 3: Adaptive Capacity ────────────────────────────────────
 
         # 3.1 — Maintenance vs Recovery (M_t > M_min before E_{t+1})
-        meta = getattr(ctx, 'meta_cognition', None) or {}
-        recovery_mode = meta.get('recovery_mode', False) if isinstance(meta, dict) else False
-        passed = recovery_mode is not None
+        # Falsifiable: the recovery state must be explicitly RECORDED (key
+        # present). An absent record is a real violation, not a silent pass.
+        meta = getattr(ctx, 'meta_cognition', None)
+        passed = isinstance(meta, dict) and 'recovery_mode' in meta
+        recovery_mode = meta.get('recovery_mode') if passed else None
         results['3.1'] = {
             "passed": passed,
-            "reason": f"recovery_mode={recovery_mode} — recovery mode tracked" if passed
-                      else "recovery_mode not observed",
+            "reason": f"recovery_mode={recovery_mode} recorded — recovery state tracked" if passed
+                      else "recovery_mode not recorded — recovery state not tracked",
         }
 
         # 3.2 — State Maintenance (budget reserved)
@@ -188,15 +190,14 @@ class AxiomProver:
         }
 
         # 3.4 — Exploration vs Exploitation
-        exploration = getattr(ctx, 'curiosity_state', None) is not None
-        if not exploration and isinstance(meta, dict):
-            exploration = meta.get('exploration_mode', False)
-        exploitation = not exploration
-        passed = exploration or exploitation
+        # Falsifiable: the trade-off must be explicit — an `exploration_mode`
+        # decision recorded in meta_cognition. Absence is a violation.
+        passed = isinstance(meta, dict) and 'exploration_mode' in meta
         results['3.4'] = {
             "passed": passed,
-            "reason": f"exploration={exploration}, exploitation={exploitation} — trade-off active" if passed
-                      else "neither exploration nor exploitation detected",
+            "reason": (f"exploration_mode={meta.get('exploration_mode')} recorded — "
+                       "trade-off explicit") if passed
+                      else "exploration_mode not recorded — trade-off not explicit",
         }
 
         # 3.5 — Structural Inertia (calibration ran)
@@ -231,11 +232,18 @@ class AxiomProver:
         }
 
         # 4.2 — Exploration/Comfort Trade-off
-        passed = exploration or exploitation
+        # Falsifiable: the mission policy must expose BOTH the risk
+        # (comfort) and exploration parameters used for the trade-off.
+        policy = getattr(infra, 'policy', None)
+        cur = getattr(policy, 'current', None)
+        risk = getattr(cur, 'risk_tolerance', None)
+        explore = getattr(cur, 'exploration_budget', None)
+        passed = risk is not None and explore is not None
         results['4.2'] = {
             "passed": passed,
-            "reason": f"exploration={exploration}, exploitation={exploitation} — trade-off made" if passed
-                      else "no trade-off detected",
+            "reason": (f"risk_tolerance={risk}, exploration_budget={explore} — "
+                       "comfort/exploration trade-off explicit") if passed
+                      else "mission policy risk/exploration parameters absent — trade-off not explicit",
         }
 
         # 4.3 — Possibility Preservation
