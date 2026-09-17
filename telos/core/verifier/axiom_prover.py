@@ -319,16 +319,28 @@ class AxiomProver:
         }
 
         # 4.11 — Cooperative Intelligence (U_group > ΣU_i − C_align)
-        # Multi-agent architecture is long-term/aspirational (AXIOMS.md marks
-        # it "aspirational"). FAIL-CLOSED: without multi-agent wiring this
-        # axiom is reported as scaffold-not-verifiable — it NEVER silently
-        # passes, it is honestly accounted as not-yet-implemented.
+        # Implemented scaffold (telos/core/coordination/cooperative.py): the
+        # CooperativeCouncil evaluates the DistributedCouncil crew's verdicts
+        # and records whether the inequality holds. FAIL-CLOSED and
+        # falsifiable: a missing verdict OR an unmet inequality both fail —
+        # presence alone is not enough.
         coop = kwargs.get('cooperative_intelligence', None)
+        if coop is None:
+            coop = getattr(ctx, 'cooperative_verdict', None)
+        if isinstance(coop, dict):
+            coop_flag = coop.get('cooperative')
+        elif coop is not None:
+            coop_flag = getattr(coop, 'cooperative', None)
+        else:
+            coop_flag = None
+        passed = coop_flag is True
         results['4.11'] = {
-            "passed": coop is not None,
-            "reason": ("Cooperative intelligence wired — collective > isolated"
-                       if coop is not None
-                       else "multi-agent aspiration — declared NOT yet implemented (Λ2.3 fail-closed)"),
+            "passed": passed,
+            "reason": (f"CooperativeVerdict cooperative={coop_flag} — U_group > U_isolated − C_align"
+                       if passed
+                       else ("CooperativeVerdict present but inequality not met"
+                             if coop is not None
+                             else "no CooperativeVerdict — cooperation not evaluated (fail-closed)")),
         }
 
         # 4.10 — Recursive World Models

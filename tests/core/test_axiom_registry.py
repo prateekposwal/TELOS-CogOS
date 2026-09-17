@@ -51,8 +51,8 @@ class TestRegistryAccountability:
         acct = accounting()
         assert acct["total"] == 42
         assert acct["total"] == acct["enforced"] + acct["scaffold"] + acct["aspirational"]
-        assert acct["aspirational"] == 1, "4.11 honestly aspirational"
-        assert acct["scaffold"] == 1, "4.9 honestly scaffold"
+        assert acct["aspirational"] == 0, "4.11 graduated to scaffold"
+        assert acct["scaffold"] == 2, "4.9 + 4.11 honestly scaffold"
 
     def test_prover_covers_all_42_ids(self):
         p = AxiomProver()
@@ -80,11 +80,21 @@ class TestProverPredicates:
         r2 = p.verify(_trace(), _ctx())
         assert r2["6.3"]["passed"] is False
 
-    def test_cooperative_intelligence_aspirational_fail_closed(self):
+    def test_cooperative_intelligence_fail_closed_absent(self):
         p = AxiomProver()
         r = p.verify(_trace(), _ctx())
         assert r["4.11"]["passed"] is False
-        assert "NOT yet implemented" in r["4.11"]["reason"]
+        assert "not evaluated (fail-closed)" in r["4.11"]["reason"]
+
+    def test_cooperative_intelligence_passes_on_true_verdict(self):
+        from types import SimpleNamespace
+        p = AxiomProver()
+        r = p.verify(_trace(), _ctx(),
+                     cooperative_intelligence=SimpleNamespace(cooperative=True))
+        assert r["4.11"]["passed"] is True
+        r2 = p.verify(_trace(), _ctx(),
+                      cooperative_intelligence=SimpleNamespace(cooperative=False))
+        assert r2["4.11"]["passed"] is False, "presence alone must not pass"
 
 
 class TestGovernedAmendment:

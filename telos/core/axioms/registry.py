@@ -6,9 +6,11 @@ Every declared axiom carries an honest `enforcement` status:
   - "enforced": the AxiomProver has a real predicate for it.
   - "scaffold": the predicate exists but verifies scaffold presence (e.g.
     RelationalContext) — honest, meaningful, never an always-true stub.
-  - "aspirational": declared but NOT implementable with the current single-
-    agent architecture (e.g. Cooperative Intelligence). Such axioms are
-    FAIL-CLOSED by the prover: they can never silently pass.
+  - "aspirational": declared but NOT implementable with the current
+    architecture. Such axioms are FAIL-CLOSED by the prover: they can never
+    silently pass. (Λ4.11 Cooperative Intelligence moved from aspirational to
+    scaffold once `coordination/cooperative.py` gave it a real, falsifiable
+    predicate.)
 
 This registry is what self_audit checks: the declared constitution (42 in
 AXIOMS.md) must equal the accounted constitution here — a future drift like
@@ -48,7 +50,7 @@ AXIOMS: List[Dict[str, str]] = [
     {"id": "4.8", "enforcement": "enforced"},
     {"id": "4.9", "enforcement": "scaffold"},   # RelationalContext scaffold
     {"id": "4.10", "enforcement": "enforced"},
-    {"id": "4.11", "enforcement": "aspirational"},  # multi-agent; fail-closed
+    {"id": "4.11", "enforcement": "scaffold"},  # CooperativeCouncil; fail-closed
     {"id": "5.1", "enforcement": "enforced"},
     {"id": "5.2", "enforcement": "enforced"},
     {"id": "5.3", "enforcement": "enforced"},
