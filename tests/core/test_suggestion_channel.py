@@ -83,3 +83,35 @@ def test_max_history_trims():
         ch.push("🔵", f"t{i}", "x")
     assert len(ch.get_pending()) == 3
     assert ch.get_pending()[0].title == "t7"
+
+
+def test_push_findings_adds_one_per_finding():
+    ch = SuggestionChannel()
+    ch.push_findings(["3 packages outdated", "2 TS errors"], domain="repo")
+    pending = ch.get_pending()
+    assert len(pending) == 2
+    assert pending[0].message == "3 packages outdated"
+    assert pending[0].domain == "repo"
+    assert all(p.category == "🔧" for p in pending)
+
+
+def test_push_findings_empty_and_blank_are_noops():
+    ch = SuggestionChannel()
+    ch.push_findings([])
+    ch.push_findings(None)
+    ch.push_findings(["", "   "])
+    assert ch.get_pending() == []
+
+
+def test_push_findings_title_is_leading_segment():
+    ch = SuggestionChannel()
+    ch.push_findings(["Tests: 0 found — suite missing"])
+    pending = ch.get_pending()
+    assert pending[0].title == "Tests"
+    assert pending[0].message == "Tests: 0 found — suite missing"
+
+
+def test_push_findings_respects_max_history():
+    ch = SuggestionChannel(max_history=3)
+    ch.push_findings([f"finding {i}" for i in range(10)])
+    assert len(ch.get_pending()) == 3
