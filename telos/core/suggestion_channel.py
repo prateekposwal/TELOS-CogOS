@@ -62,6 +62,29 @@ class SuggestionChannel:
         if len(self._suggestions) > self._max_history:
             self._suggestions = self._suggestions[-self._max_history:]
 
+    def push_findings(self, findings: List[str], category: str = "🔧",
+                      severity: int = 1, domain: str = "codebase"):
+        """Push a list of raw finding strings as suggestions (one per finding).
+
+        The canonical entry point for domain scans (dev agent, scheduler) that
+        surface plain-text findings rather than structured suggestions.
+
+        Args:
+            findings: raw finding lines from a domain snapshot (may be empty).
+            category: emoji category applied to every pushed suggestion.
+            severity: severity applied to every pushed suggestion.
+            domain: domain name applied to every pushed suggestion.
+        """
+        if not findings:
+            return
+        for finding in findings:
+            text = str(finding).strip()
+            if not text:
+                continue
+            title = text.split(":", 1)[0].split("—", 1)[0].strip() or text
+            self.push(category=category, title=title[:120], message=text,
+                      severity=severity, domain=domain)
+
 
     def get_pending(self, min_severity: int = 1) -> List[Suggestion]:
         """Get all non-dismissed suggestions above a severity threshold.
