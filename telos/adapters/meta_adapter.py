@@ -11,6 +11,7 @@ is the highest cognitive function.
 """
 
 import os
+import sys
 import time
 import json
 import logging
@@ -31,7 +32,7 @@ logger = logging.getLogger('telos_meta_adapter')
 @dataclass
 class MetaConfig:
     codebase_path: str = ""
-    test_command: str = "python3 -m pytest tests/ -v"
+    test_command: str = f"{sys.executable} -m pytest tests/ -v"
     lint_command: str = ""
     report_path: str = os.environ.get("TELOS_REPORT_DIR", os.path.expanduser("~/.telos")) + "/telos_meta_report.json"
 

@@ -551,7 +551,7 @@ def check_test_coverage():
     print()
     try:
         result = subprocess.run(
-            ["python3", "-m", "pytest", "tests/", "-q", "--tb=no"],
+            [sys.executable, "-m", "pytest", "tests/", "-q", "--tb=no"],
             cwd=str(BASE_DIR),
             capture_output=True,
             text=True,
