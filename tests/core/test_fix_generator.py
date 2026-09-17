@@ -17,6 +17,7 @@ Covered strategies:
 
 import os
 import subprocess
+import sys
 
 from telos.adapters.git_repo import GitRepoSim
 from telos.core.actions.executor import ActionExecutor
@@ -61,7 +62,7 @@ def _pytest_output(repo_path, path):
         (returncode, output) tuple with raw real output.
     """
     r = subprocess.run(
-        ["python3", "-m", "pytest", path, "-q", "--tb=short"],
+        [sys.executable, "-m", "pytest", path, "-q", "--tb=short"],
         cwd=repo_path, capture_output=True, text=True)
     return r.returncode, r.stdout + "\n" + r.stderr
 

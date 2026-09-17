@@ -33,6 +33,7 @@ import os
 import re
 import shlex
 import subprocess
+import sys
 import time
 import numpy as np
 from dataclasses import dataclass, field
@@ -130,7 +131,7 @@ ACTION_ALLOWLIST: Dict[str, AllowlistEntry] = {
         description="Show the unified diff of unstaged changes (read-only).",
     ),
     "run_tests": AllowlistEntry(
-        template=["python3", "-m", "pytest", "{path}", "-q", "--tb=short"],
+        template=[sys.executable, "-m", "pytest", "{path}", "-q", "--tb=short"],
         kind="read_only",
         description="Run pytest on a path INSIDE the operator's workspace root.",
     ),

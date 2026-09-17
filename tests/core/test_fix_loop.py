@@ -16,6 +16,7 @@ Tests build a genuinely broken repo, drive the loop, and assert:
 
 import os
 import subprocess
+import sys
 import pytest
 
 from tests.core.test_git_repo_domain import build_real_repo, run_command
@@ -37,7 +38,7 @@ def run_pytest_rc(repo_path, path):
         pytest returncode (0 = all passed).
     """
     return run_command(
-        ["python3", "-m", "pytest", path, "-q", "--tb=short"], repo_path).returncode
+        [sys.executable, "-m", "pytest", path, "-q", "--tb=short"], repo_path).returncode
 
 
 class TestWriteLoopEndToEnd:

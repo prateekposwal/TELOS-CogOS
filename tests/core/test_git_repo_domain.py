@@ -17,6 +17,7 @@ Realness rules enforced:
 
 import os
 import subprocess
+import sys
 import pytest
 import numpy as np
 
@@ -86,7 +87,7 @@ def build_real_repo(repo_path, with_broken_test=True):
 
     test_output_path = os.path.join(repo_path, "test_output.txt")
     result = run_command(
-        ["python3", "-m", "pytest", "test_calculator.py", "-q", "--tb=short"],
+        [sys.executable, "-m", "pytest", "test_calculator.py", "-q", "--tb=short"],
         repo_path,
     )
     with open(test_output_path, "w") as f:

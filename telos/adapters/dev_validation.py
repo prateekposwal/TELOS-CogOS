@@ -17,6 +17,7 @@ import json
 import os
 import shlex
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Dict, Any
 
@@ -186,7 +187,7 @@ def discover_commands(project_path: str) -> List[Tuple[str, List[str]]]:
             or _has("setup.cfg", project_path) or _has("setup.py", project_path):
         if _has("pytest.ini", project_path) or _has("requirements-dev.txt", project_path) \
                 or os.path.exists(os.path.join(project_path, "tests")):
-            commands.append(("pytest", ["python3", "-m", "pytest", "-q"]))
+            commands.append(("pytest", [sys.executable, "-m", "pytest", "-q"]))
 
     # Go
     if _has("go.mod", project_path):
