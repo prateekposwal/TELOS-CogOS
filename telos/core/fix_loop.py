@@ -50,8 +50,26 @@ from telos.world.world import World
 
 logger = logging.getLogger('telos_fix_loop')
 
-# Bounded iterations for the fix loop (item #3 ceiling).
-FIX_LOOP_MAX_ITERATIONS = 3
+# Bounded iterations for the fix loop (item #3 ceiling). The default is 3;
+# operators may widen/narrow it per-run via TELOS_FIX_LOOP_MAX_ITERATIONS
+# WITHOUT editing code (daytime tuning, matching the other TELOS_* env knobs).
+DEFAULT_FIX_LOOP_MAX_ITERATIONS = 3
+FIX_LOOP_MAX_ITERATIONS = DEFAULT_FIX_LOOP_MAX_ITERATIONS  # backward compat
+
+
+def max_fix_loop_iterations() -> int:
+    """Resolve the iteration ceiling from the environment.
+
+    Returns:
+        A positive int: TELOS_FIX_LOOP_MAX_ITERATIONS when set and valid,
+        else DEFAULT_FIX_LOOP_MAX_ITERATIONS.
+    """
+    raw = os.environ.get("TELOS_FIX_LOOP_MAX_ITERATIONS")
+    try:
+        value = int(raw) if raw is not None else DEFAULT_FIX_LOOP_MAX_ITERATIONS
+    except (TypeError, ValueError):
+        value = DEFAULT_FIX_LOOP_MAX_ITERATIONS
+    return max(1, value)
 
 # Regexes to parse the allowlisted pytest rerun output (raw, never invented).
 _SUMMARY_RE = re.compile(r"(\d+)\s+passed(?:[.,]\s*(\d+)\s+failed)?")
@@ -736,7 +754,7 @@ class FixLoopController:
             The list of per-iteration FixLoopFeedback records.
         """
         results: List[FixLoopFeedback] = []
-        max_iter = max(1, FIX_LOOP_MAX_ITERATIONS)
+        max_iter = max_fix_loop_iterations()
         if len(fixes) > max_iter:
             fixes = fixes[:max_iter]
         for i, fix in enumerate(fixes, start=1):
@@ -766,7 +784,7 @@ class FixLoopController:
         gen = FixProposalGenerator(self._repo_path)
         snap = gen._snapshot(evidence)
         outcomes: List[Dict[str, Any]] = []
-        for i, test_id in enumerate(target_tests[:FIX_LOOP_MAX_ITERATIONS], start=1):
+        for i, test_id in enumerate(target_tests[:max_fix_loop_iterations()], start=1):
             proposal = gen.generate(test_id, snap)
             hook = {
                 "test_id": test_id,
@@ -854,7 +872,8 @@ class FixLoopController:
         return hyp
 
 __all__ = [
-    "FIX_LOOP_MAX_ITERATIONS", "FixProposalValidator", "FixProposalStream",
+    "FIX_LOOP_MAX_ITERATIONS", "max_fix_loop_iterations",
+    "DEFAULT_FIX_LOOP_MAX_ITERATIONS", "FixProposalValidator", "FixProposalStream",
     "FixLoopFeedback", "FixLoopController", "FixProposalGenerator",
     "FixProposal",
 ]
