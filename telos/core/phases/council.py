@@ -40,21 +40,30 @@ class CouncilPhase(Phase):
                       f"threshold={pipeline.council._config.voting_threshold}")
 
         # ── InternalDebate: multi-perspective deliberation loop ──
-        debate_result = None
+        # v9 de-dup: the select phase already computed the debate (its
+        # interpretation context is input-identical to this one within the
+        # cycle — uncertainty/options/resources/goals resolve to the same
+        # values). Reuse ctx._debate_result; compute only when select skipped
+        # it (blend/reconcile early-return or empty intents) — never a
+        # second per-cycle computation.
+        debate_result = getattr(ctx, '_debate_result', None)
         deliberation_rounds = 0
         try:
             debate = getattr(pipeline, '_internal_debate', None)
             if (debate is not None and ctx.selected_intent is not None
                     and not getattr(pipeline.config, 'skip_advisory_layers', False)):
-                debate_result = debate.debate(
-                    context={
-                        "uncertainty": getattr(ctx, 'inquiry_omega_value', 0.5),
-                        "options": [i.intent_type for i, _ in getattr(ctx, 'intents', [])[:3]],
-                        "resources": {"budget": pipeline.budget_manager.total_budget_ms},
-                        "goals": {"survival": 1.0},
-                    },
-                    context_description=f"Council review of {ctx.selected_intent.intent_type}",
-                )
+                if debate_result is None:
+                    debate_result = debate.debate(
+                        context={
+                            "uncertainty": getattr(ctx, 'inquiry_omega_value', 0.5),
+                            "options": [i.intent_type for i, _ in getattr(ctx, 'intents', [])[:3]],
+                            "resources": {"budget": pipeline.budget_manager.total_budget_ms},
+                            "goals": {"survival": 1.0},
+                        },
+                        context_description=f"Council review of {ctx.selected_intent.intent_type}",
+                    )
+                    # first computation owns the slot (select skipped it)
+                    ctx._debate_result = debate_result
                 ctx.latest_debate = {
                     "consensus": getattr(debate_result, 'consensus_level', 0.5) if debate_result else 0.5,
                     "rounds": getattr(debate_result, 'rounds', 1) if debate_result else 1,

@@ -174,3 +174,26 @@ class TestPipelineDistributedCouncil:
         r2 = pipeline.execute(state)  # cycle 2 → run
         assert r1.distributed_verdict is None
         assert r2.distributed_verdict is not None
+
+    def test_distributed_council_context_carries_domain_and_knowledge(self):
+        """v9: the DOMAIN_EXPERT lens needs the domain string + the perceive
+        knowledge report in the crew context — both keys must be present on
+        every distributed-council invocation."""
+        pipeline = self._build_pipeline()
+        state = np.array([1.0, 2.0, 0.5, -0.3, 0.0, 0.1])
+        captured = {}
+        dc = pipeline._distributed_council
+        orig = dc.run_perspectives
+
+        def capturing(primary_verdict, context=None):
+            captured["context"] = context
+            return orig(primary_verdict, context)
+
+        dc.run_perspectives = capturing
+        try:
+            pipeline.execute(state)
+        finally:
+            dc.run_perspectives = orig
+        assert captured, "distributed council must run during execute"
+        assert "domain" in captured["context"]
+        assert "knowledge_report" in captured["context"]

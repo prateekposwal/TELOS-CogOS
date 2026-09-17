@@ -377,6 +377,13 @@ body.theme-light .hero-scrim {
   white-space: nowrap; letter-spacing: 0.06em;
 }
 .story-live.off { color: var(--text-dim); background: transparent; border-color: var(--border); }
+/* #3 stall-vs-lockout classifier: the amber badge = designed exploration
+   stall with the Λ3.1 escape arming ("escape pending"); the red badge = a
+   genuine lockout (blocks continue, escape counter NOT arming). An observer
+   now sees the difference a bare "BLOCKED" row never showed. */
+.story-live.stall { color: var(--warn); background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.45); }
+.story-live.locked { color: var(--danger); background: rgba(248, 113, 113, 0.12); border-color: rgba(248, 113, 113, 0.5); }
+.story-live.stall, .story-live.locked { animation: breathe 2.4s infinite; }
 
 .hero-title {
   font-weight: 600; letter-spacing: -0.028em;

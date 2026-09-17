@@ -413,6 +413,19 @@ class SelectPhase(Phase):
                     )
                     if hasattr(result, 'consensus_level'):
                         debate_winner_weight = 0.5 + 0.5 * result.consensus_level
+                    # v9 de-dup: THIS is the single canonical debate per
+                    # cycle. Carry it on ctx so the council phase reuses it
+                    # instead of re-running (the runtime select-hook duplicate
+                    # is removed). The council's own context
+                    # (uncertainty/options/resources/goals) resolves to the
+                    # SAME values within the cycle (intents types are not
+                    # mutated between phases; only weights change), and the
+                    # debate is input-deterministic (consensus is a count
+                    # ratio over fixed argument strengths — ids are
+                    # timestamped but never influence consensus/winner), so
+                    # the reused record is exactly what a fresh council
+                    # debate would produce.
+                    ctx._debate_result = result
                 # Detect principle conflicts among intents via InterpretationEngine
                 if ie is not None and hasattr(ie, 'detect_conflict'):
                     from telos.core.reasoning.interpretation_engine import Principle

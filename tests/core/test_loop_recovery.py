@@ -123,7 +123,7 @@ def test_post_council_injection_fires_on_final_looped_intent():
     pipeline._recovery_goal_seek_pending = True
     pipeline._recovery_armed_cycle = 41
     pipeline._recovery_looped_type = "explore_curiosity"
-    pipeline._firewall._consecutive_loop_blocks = 2
+    pipeline._firewall._loop_blocks_by_type["explore_curiosity"] = 2
     # The real trap shape: 4 consecutive inspections of the looped type in the
     # firewall's action-history window (the alternation-trap fix reads this
     # window, not just the single stored looped type).
@@ -170,8 +170,9 @@ def test_low_integrity_inquiry_loop_escapes_via_stagnation_recovery():
     """A `blended_inquiry` intent DI-floored below a raised firewall threshold
     is a STUCK RETRY, not a deliberate explore-pause (Λ6.5). The firewall
     blocks it at `low_integrity` (Check 2, BEFORE loop detection), whose
-    `_block` RESETS `_consecutive_loop_blocks`, so the action_loop recovery
-    can never arm. The stagnation recovery previously exempted ALL inquiry
+    `_block` resets the blocked type's own action_loop recovery streak, so the
+    action_loop recovery can never arm for that type. The stagnation recovery
+    previously exempted ALL inquiry
     types, leaving this no-op loop with NO escape (DI 0.3 forever). The fix:
     stagnation keeps the inquiry exemption for genuine unblocked exploration
     AND for `action_loop` traps (the firewall owns those), but arms the
@@ -255,6 +256,75 @@ def test_low_integrity_inquiry_loop_escapes_via_stagnation_recovery():
     )
 
 
+def test_stagnation_per_family_partner_stall_does_not_reset_sibling_streak():
+    """#2 belt-and-braces on the no-action ledger: each intent type owns its
+    OWN stagnation slot, so a partner type's no-action cycle (e.g.
+    curiosity_explore's action_loop block, exempt as an inquiry type) can
+    NEVER reset the sibling stalled type's accumulation (blended_inquiry's
+    low_integrity stall) — the [4,1] no-action counter-neutralization. A
+    family's OWN genuine unblocked dwell resets only its own slot."""
+    import tempfile
+    from telos.core.phases.base import PhaseContext
+    from telos.intent_ir import IntentIR
+
+    tmpdir = tempfile.mkdtemp()
+    pipe = TelosV14Pipeline(PipelineConfig(
+        adapter=GridAdpt(), simulator=GridSim(blocked=set(DEFAULT_BLOCKED),
+                                              rewards=dict(DEFAULT_REWARDS)),
+        compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
+        checkpoint_path=tmpdir + "/cp", knowledge_path=tmpdir + "/kg.json",
+        ledger_path=tmpdir + "/ld.json", identity_path=tmpdir + "/id.json",
+        pattern_path=tmpdir + "/pt.json", deterministic_seed=42,
+    ))
+    # ── blended_inquiry stalls at low_integrity (2 cycles — below arming) ──
+    for i in range(2):
+        ctx = PhaseContext(cycle_count=i, state=np.zeros(2), user_name="t")
+        ctx.selected_action = None
+        ctx.no_action = True
+        ctx.firewall_blocked = True
+        ctx.firewall_verdict = type("V", (), {"blocked_by": "low_integrity"})()
+        ctx.selected_intent = IntentIR(intent_type="blended_inquiry", confidence=0.5)
+        pipe._update_stagnation_recovery_state(ctx)
+    assert pipe._stagnant_no_action["blended_inquiry"] == 2
+    # ── curiosity's action_loop blocks (fiery exempt as inquiry — the
+    #    firewall owns that escape) must NOT reset blended's slot ──
+    for i in range(3):
+        ctx = PhaseContext(cycle_count=100 + i, state=np.zeros(2), user_name="t")
+        ctx.selected_action = None
+        ctx.no_action = True
+        ctx.firewall_blocked = True
+        ctx.firewall_verdict = type("V", (), {"blocked_by": "action_loop"})()
+        ctx.selected_intent = IntentIR(intent_type="curiosity_explore", confidence=0.5)
+        pipe._update_stagnation_recovery_state(ctx)
+    assert pipe._stagnant_no_action["blended_inquiry"] == 2, \
+        "a partner's action_loop no-action cycle must NOT reset the stalled sibling slot"
+    assert pipe._stagnant_no_action.get("curiosity_explore", 0) == 0, \
+        "curiosity's own slot was cleared by its exemption — no rubble"
+    assert pipe._stagnant_no_action_cycles == 2, \
+        "max across families is blended's stall — the pair cannot mutual-reset"
+    # ── blended's OWN genuine unblocked dwell resets ONLY its own slot ──
+    ctx = PhaseContext(cycle_count=200, state=np.zeros(2), user_name="t")
+    ctx.selected_action = None
+    ctx.no_action = True
+    ctx.firewall_blocked = False
+    ctx.selected_intent = IntentIR(intent_type="blended_inquiry", confidence=0.5)
+    pipe._update_stagnation_recovery_state(ctx)
+    assert pipe._stagnant_no_action.get("blended_inquiry", 0) == 0
+    assert pipe._stagnant_no_action_cycles == 0
+    # ── the low_integrity stall still accumulates to the SAME arming ──
+    for i in range(3):
+        ctx = PhaseContext(cycle_count=300 + i, state=np.zeros(2), user_name="t")
+        ctx.selected_action = None
+        ctx.no_action = True
+        ctx.firewall_blocked = True
+        ctx.firewall_verdict = type("V", (), {"blocked_by": "low_integrity"})()
+        ctx.selected_intent = IntentIR(intent_type="blended_inquiry", confidence=0.5)
+        pipe._update_stagnation_recovery_state(ctx)
+    assert pipe._recovery_stagnation_armed, \
+        "3 stalled cycles re-arm the goal-seek escape — the sole path for this stall"
+    assert pipe._recovery_looped_type == "blended_inquiry"
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # LEFT ITEM 3 — live-loop plateau regression suite.
 # Root cause (headline): the producer's legal-route executor REWROTE the
@@ -301,7 +371,7 @@ def test_alternation_trap_injects_recovery_from_loop_family_not_looped_type():
         p._recovery_goal_seek_pending = True
         p._recovery_stagnation_armed = True
         p._recovery_looped_type = "curiosity_explore"
-        p._firewall._consecutive_loop_blocks = 2
+        p._firewall._loop_blocks_by_type["curiosity_explore"] = 2
         p._firewall._action_history = list(history)
         return p
 
@@ -346,6 +416,68 @@ def test_alternation_trap_injects_recovery_from_loop_family_not_looped_type():
     ctx3.selected_intent = IntentIR(intent_type="blended_inquiry", confidence=0.6)
     pipe._maybe_inject_recovery_intent(ctx3)
     assert ctx3.selected_intent.intent_type == "blended_inquiry",         "no evidence of trap family in a pure run — a fresh type is a natural escape"
+
+
+def test_selection_ring_injects_when_firewall_window_is_blind_to_partner():
+    """#1 immobility closure — the [4,2] Check-2 blind spot. `blended_inquiry`
+    blocks at the firewall's Check 2 (low_integrity dissent) BEFORE Check 5
+    appends to `_action_history`, so it can NEVER appear in the firewall's
+    action-retention window. The OLD gate judged it "a genuinely new natural
+    escape" and consumed the one-shot arming WITHOUT injecting — the eternal
+    [4,2]. The selection ring (`_recent_selected_types`) sees EVERY selected
+    type regardless of where it later blocked — the ONE canonical family
+    ledger — so the blind spot is gone. A type with ZERO presence in BOTH the
+    ring and the firewall window stays a genuine natural escape (never
+    stomped)."""
+    import tempfile
+    from telos.intent_ir import IntentIR
+    from telos.core.phases.base import PhaseContext
+
+    def armed(ring, firewall_history, looped):
+        p = _build_pipeline(tempfile.mkdtemp())
+        p._recovery_goal_seek_pending = True
+        p._recovery_stagnation_armed = True
+        p._recovery_looped_type = looped
+        p._firewall._loop_blocks_by_type[looped] = 2
+        p._recent_selected_types = list(ring)
+        p._firewall._action_history = list(firewall_history)
+        return p
+
+    # Live [4,2] shape: curiosity_explore trapped (armed streak 2, firewall
+    # history FULL of curiosity only); blended_inquiry was SELECTED for many
+    # cycles (it sat in the RING) but was blocked at Check 2 every single
+    # time, so the firewall window never saw it. Re-selecting the partner
+    # must inject the escape — the ring is the only ledger that can see it.
+    ring = ["blended_inquiry", "curiosity_explore", "blended_inquiry",
+            "curiosity_explore", "blended_inquiry"]
+    fw_hist = ["curiosity_explore"] * 4
+    pipe = armed(ring, fw_hist, "curiosity_explore")
+    ctx = PhaseContext(cycle_count=60, state=np.zeros(2), user_name="t")
+    ctx.selected_intent = IntentIR(intent_type="blended_inquiry", confidence=0.6)
+    pipe._maybe_inject_recovery_intent(ctx)
+    assert ctx.selected_intent.intent_type == "goal_seek_recovery", \
+        "the Check-2 blind spot must be closed by the selection ring"
+    assert ctx.recovery_goal_seek is True
+    assert pipe._recovery_goal_seek_pending is False, "one-shot arming consumed"
+
+    # The post-council hook has the SAME blind-spot coverage (the council's
+    # Λ4.3 fallback can re-select the partner AFTER the select-phase hook).
+    p2 = armed(ring, fw_hist, "curiosity_explore")
+    p2._recovery_armed_cycle = 61
+    ctx2 = PhaseContext(cycle_count=62, state=np.zeros(2), user_name="t")
+    ctx2.selected_intent = IntentIR(intent_type="blended_inquiry", confidence=0.6)
+    p2._maybe_inject_recovery_intent_post_council(ctx2)
+    assert ctx2.selected_intent.intent_type == "goal_seek_recovery", \
+        "the post-council hook must also read the selection ring"
+
+    # A type absent from BOTH the ring and the firewall window is a genuine
+    # natural escape — never stomped.
+    p3 = armed([], [], "curiosity_explore")
+    ctx3 = PhaseContext(cycle_count=63, state=np.zeros(2), user_name="t")
+    ctx3.selected_intent = IntentIR(intent_type="plan_trajectory", confidence=0.6)
+    p3._maybe_inject_recovery_intent(ctx3)
+    assert ctx3.selected_intent.intent_type == "plan_trajectory", \
+        "a type with zero family presence is a natural escape — leave it"
 
 
 def test_episode_reset_suppresses_cross_episode_reality_gap():

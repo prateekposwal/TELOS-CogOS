@@ -259,9 +259,16 @@ class CounterfactualEngine:
             reverse=True,
         )
 
-        # Uncertainty quantification: re-sample top options for variance
+        # Uncertainty quantification: re-sample the TOP-3 options only.
+        # Full percentile/CI resampling is reserved for the contenders that
+        # decide the commitment (rank <= 3); the long tail gets a cheap
+        # single-sample ProbabilisticScore after re-ranking below. Every
+        # consumer of rank>3 stats is trace-only (strategic_options_data in
+        # the simulate phase) or score-only (VOI / trajectory classification
+        # use `.variance`, which stays 0.0 — std=0 — exactly like the old
+        # None rows), so the tail carries no hidden decision weight.
         if self._n_repetitions > 1 and len(ranked) > 0:
-            top_n = min(len(ranked), max(3, n_worlds // 2))
+            top_n = min(len(ranked), 3)
             for opt in ranked[:top_n]:
                 rep_scores = []
                 for _ in range(self._n_repetitions):
@@ -290,6 +297,22 @@ class CounterfactualEngine:
         ranked.sort(key=lambda o: o.score, reverse=True)
         for i, option in enumerate(ranked):
             option.rank = i + 1
+
+        # Cheap stats for the long tail (rank > 3): one HONEST sample — the
+        # option's own score — with n_samples=1 and std=0 stating exactly
+        # what was measured (no invented variance). Never overwrite a
+        # genuinely sampled option that demoted on the re-sort (its CI is
+        # real); the promotion edge (an unsampled option entering rank <= 3)
+        # is pre-existing behavior — `if best.probabilistic:` fallbacks
+        # already handle it at simulate.
+        if self._n_repetitions > 1:
+            for opt in ranked[3:]:
+                if opt.probabilistic is None:
+                    opt.probabilistic = ProbabilisticScore(
+                        mean=opt.score, std=0.0, n_samples=1,
+                        ci_lower=opt.score, ci_upper=opt.score,
+                        min_score=opt.score, max_score=opt.score,
+                    )
 
         # Compute and record counterfactual diversity
         diversity = self.compute_counterfactual_diversity(ranked)

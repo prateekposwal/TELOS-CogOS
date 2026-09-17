@@ -5,6 +5,7 @@ Honest contract coverage: DecisionTrace serialization (canonical aliases),
 PipelineConfig defaults, and ledger Skill/Experience types where declared.
 """
 import numpy as np
+import pytest
 
 from telos.core.types import DecisionTrace, PipelineConfig, PipelineResult
 from telos.world.facts import DomainFacts
@@ -45,6 +46,27 @@ class TestPipelineConfig:
         assert c.operator_tool_permission is False
         assert c.action_executor is None
         assert c.distributed_council_enabled is True
+
+    def test_v9_perf_flags_defaults(self):
+        c = PipelineConfig()
+        assert c.confidence_world_funnel is False, (
+            "the standard-mode funnel must ship default-OFF (byte-identical "
+            "world counts until a driver opts in)")
+        assert c.fidelity_fast_path_enabled is True
+
+    def test_lite_preset_fields(self):
+        c = PipelineConfig.lite()
+        assert c.mode == "fast"
+        assert c.n_worlds == 10
+        assert c.horizon == 5
+        assert c.checkpoint_every_n == 20
+        assert c.stream_skip_threshold == pytest.approx(0.35)
+        assert c.is_fast_mode is True
+
+    def test_lite_preset_overrides(self):
+        c = PipelineConfig.lite(n_worlds=6)
+        assert c.n_worlds == 6
+        assert c.horizon == 5  # untouched by the override
 
 
 class TestPipelineResult:

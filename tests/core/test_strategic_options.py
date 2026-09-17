@@ -213,6 +213,47 @@ def test_best_path_selects_genuinely_best():
     sim.cleanup()
 
 
+def test_uq_full_stats_only_top3_cheap_tail():
+    """v9: UQ resampling is bounded to the top-3 contenders (cost bound —
+    previously max(3, n_worlds//2)); the long tail carries an honest
+    single-sample ProbabilisticScore (n_samples=1, std=0). MockSimulator
+    ALWAYS yields worlds, so the resample loop deterministically fires.
+    Because resampled MEANS can re-rank (the pre-existing promotion edge,
+    simulate.py fallbacks already handle an unsampled rank<=3 option), the
+    resampled options are not guaranteed to sit at ranks 1-3 — but the
+    number of full-CI options is a hard <= 3, the cheap tail rows state
+    exactly what was measured, and the only None rows are promoted
+    rank<=3 options (the documented, pre-existing edge)."""
+    from tests.core.conftest import MockSimulator
+
+    sim = MockSimulator()
+    engine = CounterfactualEngine(sim, n_repetitions=4, seed=123)
+    options = engine.generate_options(np.array([2.0, 3.0]), horizon=3, n_worlds=10)
+    assert len(options) > 3, "need a long tail to exercise the cheap path"
+    # cost bound: full CI is reserved for the rank<=3 contenders, never more
+    resampled = [o for o in options
+                 if o.probabilistic and o.probabilistic.n_samples >= 2]
+    assert len(resampled) >= 1, "resampling must fire for the top contenders"
+    assert len(resampled) <= 3, "full CI beyond 3 options is a cost regression"
+    for opt in options:
+        p = opt.probabilistic
+        if p is None:
+            # pre-existing promotion edge only: an option that entered rank<=3
+            # without having been resampled (its None is transient and the
+            # simulate-phase fallback covers it).
+            assert opt.rank <= 3, "a rank>3 option must carry a score"
+            continue
+        assert p.n_samples >= 1
+        assert np.isfinite(p.std) and p.std >= 0.0
+        if p.n_samples == 1:
+            assert p.std == 0.0, "a single sample states std=0 (no invented CI)"
+            assert p.mean == opt.score
+            assert p.ci_lower == opt.score and p.ci_upper == opt.score
+            assert p.min_score == opt.score and p.max_score == opt.score
+    for i, opt in enumerate(options):
+        assert opt.rank == i + 1
+
+
 def test_rng_isolation_immune_to_global_np_random_pollution():
     """Regression for the latent flake (GAP 2): the discrimination collapse
     (all 5 GridWorld options scoring -0.9811) happened because the simulator

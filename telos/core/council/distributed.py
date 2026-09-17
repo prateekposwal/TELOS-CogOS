@@ -28,6 +28,7 @@ class AgentRole(str, Enum):
     EXPLORER = "explorer"
     CONSERVATIVE = "conservative"
     ANALYST = "analyst"
+    DOMAIN_EXPERT = "domain_expert"
     # Deprecated alias: typo fixed 2026-08-14 (PRIMARAY -> PRIMARY).
     # Kept for compatibility with any serialized telemetry/checkpoints.
     PRIMARAY = "primary"
@@ -63,6 +64,7 @@ ROLE_WEIGHTS: Dict[AgentRole, float] = {
     AgentRole.EXPLORER: 0.6,
     AgentRole.CONSERVATIVE: 0.7,
     AgentRole.ANALYST: 0.5,
+    AgentRole.DOMAIN_EXPERT: 0.6,
 }
 
 
@@ -89,6 +91,10 @@ ROLE_PROFILES: Dict[AgentRole, Dict[str, Any]] = {
     AgentRole.ANALYST: {
         "dissent_multiplier": 1.0, "pass_multiplier": 1.0,
         "di_floor": 0.0, "md_cap": float("inf"), "novelty": False,
+    },
+    AgentRole.DOMAIN_EXPERT: {
+        "dissent_multiplier": 1.4, "pass_multiplier": 1.1,
+        "di_floor": 0.35, "md_cap": float("inf"), "novelty": False,
     },
 }
 
@@ -190,6 +196,21 @@ class DistributedCouncil:
             alternatives = context.get("alternatives") or []
             curiosity = float(context.get("curiosity_bonus", 1.0))
             return (len(alternatives) >= 2) or (curiosity > 1.2)
+        if role == AgentRole.DOMAIN_EXPERT:
+            # Domain lens (v9): the perceive-phase consult_knowledge report
+            # lists proven approaches and known failures (avoid). A candidate
+            # on the avoid list dissents regardless of the primary — the
+            # domain evidence contradicts it. Otherwise mirrors the primary.
+            # Advisory only, like every crew role (Λ1.2); the aggregation
+            # formula is unchanged — this is one more weighted vote.
+            krep = context.get("knowledge_report") or {}
+            avoid = krep.get("avoid") or []
+            candidate = context.get("intent_type", "")
+            listed = any(
+                (a.get("approach") if isinstance(a, dict) else a) == candidate
+                for a in avoid
+            )
+            return (not listed) and primary_validated
         if role == AgentRole.ANALYST:
             return primary_validated
         return primary_validated
@@ -208,6 +229,16 @@ class DistributedCouncil:
             mission_drift, signals, per-agent details, consensus.
         """
         context = context or {}
+        # v9 DOMAIN_EXPERT lens: when the context carries domain knowledge (a
+        # proven approach or known failures) the domain_expert agent joins the
+        # crew, idempotently, for this and future cycles (crew memory). The
+        # default five-agent crew is untouched on knowledge-less cycles
+        # (locked by test_register_default_crew_has_five_agents) and the
+        # aggregation formula is unchanged. On later cycles without knowledge
+        # the lens votes a neutral mirror of the primary (nothing listed).
+        krep = context.get("knowledge_report") or {}
+        if isinstance(krep, dict) and (krep.get("approach") or krep.get("avoid")):
+            self.register_agent("domain_expert", AgentRole.DOMAIN_EXPERT)
         if primary_verdict is None:
             return {"validated": True, "decision_integrity": 1.0,
                     "mission_drift": 0.0, "signals": [], "agents": [],

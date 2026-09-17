@@ -77,6 +77,13 @@ from telos.core.governance.trust_manager import TrustManager
 from telos.core.governance.timing import InformationReadinessEngine, ReadinessCondition
 STAGNATION_RECOVERY_AFTER = 3  # consecutive no-action cycles before force-escape
 
+# Ring size for the selection-level loop-family ledger (Λ3.1). Spans more
+# than an episode of blocker alternation (two types ~2-3 cycles each) plus
+# margin, so the alternation pair is always jointly visible — yet small
+# enough that a genuinely novel intent (zero presence in this window) still
+# reads as a natural escape. 12 covers 4+ full alternations of the full pair.
+_RECENT_SELECTION_RING_SIZE = 12
+
 # Intent types that are evidence-gathering by design — their no-action cycles
 # are deliberate EXPLORATION, not a pathology. Mirrors the EvidenceProvenanceValidator's
 # `_INQUIRY_TYPES`: inquiry is never penalised (Λ6.5). The stagnation armer must
@@ -208,10 +215,23 @@ class TelosV14Pipeline:
         self._recovery_looped_type: Optional[str] = None
         self._recovery_armed_cycle: Optional[int] = None
         self._recovery_reason: Optional[str] = None
+        # Λ3.1 loop family ledger (selection-level): rolling ring of the most
+        # recent SELECTED intent types — the canonical source
+        # `_selection_in_loop_family` consults FIRST. Unlike the firewall's
+        # `_action_history`, it records types that blocked BEFORE Check 5
+        # (e.g. `blended_inquiry` at Check 2 low_integrity), which never
+        # survive to the firewall window — the [4,1] lockout's exact blind
+        # spot. Ring keeps the last RECENT_SELECTION_RING_SIZE selections.
+        self._recent_selected_types: List[str] = []
         # Λ3.1 stagnation escape: consecutive cycles where NO action vector was
         # emitted (governor/firewall no-action loops, not just firewall
         # action_loop traps). Arms the same goal-seek escape with a recorded
-        # reason; resets the moment an action flows.
+        # reason; resets the moment an action flows. Per-family ledger:
+        # `_stagnant_no_action` per intent type (a partner type's exempt
+        # cycle must not reset the stalled type's accumulation — the [4,1]
+        # counter-neutralization). `_stagnant_no_action_cycles` is the MAX
+        # across families = the most-arrested type's dwell.
+        self._stagnant_no_action: Dict[str, int] = {}
         self._stagnant_no_action_cycles: int = 0
         # Flag that records whether the CURRENTLY armed recovery was triggered
         # by no-action STAGNATION (governor-driven) rather than a firewall
@@ -680,20 +700,28 @@ class TelosV14Pipeline:
         Args:
             ctx: the phase context to inspect for the cycle's action outcome.
         """
+        cur_type = ctx.selected_intent.intent_type if ctx.selected_intent else None
         if ctx.selected_action is not None and not getattr(ctx, 'no_action', False):
+            self._stagnant_no_action = {}
             self._stagnant_no_action_cycles = 0
             # An action flowed, so no stagnation loop is active — clear the
             # stagnation-armed flag (if a firewall trap were also active,
             # _update_loop_recovery_state manages its own arming).
             self._recovery_stagnation_armed = False
             return
-        self._stagnant_no_action_cycles += 1
+        # Per-family no-action accumulation: this cycle belongs to `cur_type`
+        # only. A partner type's no-action cycle (e.g. curiosity_explore's
+        # action_loop block) must NOT reset a sibling stalled type's ledger
+        # (blended_inquiry's low_integrity stall) — the [4,1] lockout was the
+        # two escape paths resetting each other's counter FOREVER so neither
+        # ever reached its arming threshold.
+        if cur_type:
+            self._stagnant_no_action[cur_type] = self._stagnant_no_action.get(cur_type, 0) + 1
         # Do NOT force-escape inquiry types nor recovery intents: their cycles
         # are deliberate exploration / an active escape, not a no-action
         # pathology (Λ6.5, mirrors the EvidenceProvenanceValidator exemption).
         # Force-escaping them would stomp curiosity, re-arm stagnation right
         # after a recovery, and preempt the firewall's own action_loop path.
-        cur_type = ctx.selected_intent.intent_type if ctx.selected_intent else None
         if cur_type in STAGNATION_EXEMPT_INQUIRY_TYPES or \
                 cur_type in STAGNATION_EXEMPT_RECOVERY_TYPES:
             # Distinguish a DELIBERATE explore-pause from a BLOCKED retry
@@ -701,12 +729,12 @@ class TelosV14Pipeline:
             # dwell, NOT to a cycle that was actively STALLED by a non-loop
             # firewall block (e.g. `low_integrity`). A `low_integrity` block
             # happens at Check 2, BEFORE the firewall's loop detection, so its
-            # `_block` resets `_consecutive_loop_blocks` and the action_loop
-            # recovery can NEVER arm — an inquiry type stalled that way is a
-            # stuck retry with NO other escape path, so stagnation must arm
-            # the goal-seek escape for it instead. Blocks at `action_loop`
-            # (or genuine unblocked exploration) keep the exemption: the
-            # firewall itself owns that escape path.
+            # `_block` resets the action_loop recovery counter and the
+            # action_loop recovery can NEVER arm — an inquiry type stalled
+            # that way is a stuck retry with NO other escape path, so
+            # stagnation must arm the goal-seek escape for it instead. Blocks
+            # at `action_loop` (or genuine unblocked exploration) keep the
+            # exemption: the firewall itself owns that escape path.
             verdict = getattr(ctx, 'firewall_verdict', None)
             blocked_by = getattr(verdict, 'blocked_by', None) if verdict is not None else None
             stalled_by_block = (
@@ -714,8 +742,15 @@ class TelosV14Pipeline:
                 and blocked_by is not None and blocked_by != "action_loop"
             )
             if not stalled_by_block:
-                self._stagnant_no_action_cycles = 0
+                # This type's own exempt dwell is not a stagnation pathology —
+                # reset ONLY its own ledger slot (a sibling's slot is theirs).
+                if cur_type:
+                    self._stagnant_no_action.pop(cur_type, None)
+                self._stagnant_no_action_cycles = max(
+                    self._stagnant_no_action.values(), default=0)
                 return
+        self._stagnant_no_action_cycles = max(
+            self._stagnant_no_action.values(), default=0)
         if self._stagnant_no_action_cycles >= STAGNATION_RECOVERY_AFTER:
             self._recovery_goal_seek_pending = True
             self._recovery_stagnation_armed = True  # governor no-action loop (not firewall) armed the escape
@@ -792,26 +827,48 @@ class TelosV14Pipeline:
             ctx.blocking_reason = f"research_amplification_left:{report.reason}"
 
     def _selection_in_loop_family(self, intent_type: Optional[str]) -> bool:
-        """Is this intent type part of the firewall's recently-inspected loop family?
+        """Is this intent type part of the RECENTLY SELECTED trap family?
 
-        The trap is a FAMILY of types the firewall recently inspected, not a
-        single stored looped type: the eternal plateau's alternation pair
+        The trap is a FAMILY of types the system recently SELECTED, not a
+        single stored looped type: the alternation pair
         (curiosity_explore <-> blended_inquiry) each break the 4-same-type
         run, so gating on `current == looped` alone let the alternation
-        consume the one-shot arming WITHOUT ever injecting the escape. Any
-        type still present in the firewall's action-retention window is
-        loop-family — replacing it with the designed escape is trap
+        consume the one-shot arming WITHOUT ever injecting the escape.
+
+        PRIMARY source: the runtime's own recent-SELECTION ring
+        (`_recent_selected_types`). `blended_inquiry` blocks at the
+        firewall's Check 2 (low_integrity dissent) — BEFORE Check 5 appends
+        to the firewall's `_action_history` — so it can NEVER appear in the
+        firewall window even though it IS the cycle-to-cycle trap member.
+        Judging it "a genuinely NEW type / natural escape" is the exact
+        blind spot that let the arming consume without injecting (the
+        [4,1] 100% lockout). The selection ring sees every selected type
+        regardless of where it later blocked.
+
+        SECONDARY source: the firewall's action-retention window (types that
+        survived to an action_loop block) plus the stored looped type —
+        defense in depth for the cases selection tracking spans.
+
+        Replacing any family member with the designed escape is trap
         continuation, never stomping. Only a type with ZERO presence in the
-        recent history is a genuine natural escape worth not stomping.
+        recent selection ring (and firewall window) is a genuine natural
+        escape worth not stomping.
 
         Args:
             intent_type: the candidate selection's intent type.
 
         Returns:
-            True when the type appears in the firewall's recent history.
+            True when the type is in the recent-selection / loop family.
         """
         if not intent_type:
             return False
+        # PRIMARY: the runtime's own recent-selection ring (per-cycle
+        # appended in the select synthesis path). This is the ONE canonical
+        # family ledger — recovery_types-style one truth.
+        recent = list(getattr(self, '_recent_selected_types', []))
+        if intent_type in recent:
+            return True
+        # SECONDARY: firewall window + stored looped type.
         history = list(getattr(self._firewall, '_action_history', []))
         if intent_type in history:
             return True
@@ -1131,6 +1188,11 @@ class TelosV14Pipeline:
             'TELOS_CYCLE_TIMEOUT_MS', '5000')) / 1000.0
         _cycle_deadline = time.monotonic() + _cycle_timeout_s
         _cycle_timeout_ms = _cycle_timeout_s * 1000.0
+        # v9: identity-tuple dump gate — ONE env lookup per cycle (same
+        # hoist discipline as the watchdog reads above). Default 0 = never;
+        # N > 0 dumps every Nth cycle (diagnostics opt-in).
+        _identity_dump_every_n = int(os.environ.get(
+            'TELOS_IDENTITY_TUPLE_EVERY_N', '0') or 0)
         for phase in phases:
             # Check deadline before each phase
             if time.monotonic() > _cycle_deadline:
@@ -1369,26 +1431,6 @@ class TelosV14Pipeline:
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
-            # ── v2: InternalDebate — multi-perspective analysis before decision ──
-            if phase.name == "select":
-                try:
-                    if ctx.selected_intent and not self.config.skip_advisory_layers:
-                        debate_result = self._internal_debate.debate(
-                            context={
-                                "intent_type": ctx.selected_intent.intent_type,
-                                "state_snapshot": str(ctx.state)[:100],
-                                "n_options": len(getattr(ctx, "sim_options", []) or []),
-                                "council_blocked": bool(getattr(ctx, "council_blocked", False)),
-                            },
-                            context_description=(
-                                f"Selection of {ctx.selected_intent.intent_type}"
-                            ),
-                        )
-                        if debate_result:
-                            ctx._debate_result = debate_result
-                except Exception as e:
-                    logger.warning("runtime.py: swallowed error: %r", e)
-
             # ── Bitcoin-inspired Decision Timelock: Record after SELECT ──
             if phase.name == "select":
                 selected_intent = getattr(ctx, 'selected_intent', None)
@@ -1505,6 +1547,23 @@ class TelosV14Pipeline:
                     self._maybe_inject_recovery_intent_post_council(ctx)
                 except Exception as e:
                     logger.warning("runtime.py: post-council recovery injection failed: %r", e)
+                # ── Loop-family ledger (Λ3.1, selection-level): record the
+                #    FINAL selected intent for this cycle into the rolling
+                #    recent-selection ring AFTER the post-council hook settles
+                #    (so recovery swaps are captured too). This is the
+                #    canonical family source `_selection_in_loop_family`
+                #    consults first — it sees types that blocked before the
+                #    firewall window (Check 2 low_integrity) and would
+                #    otherwise be judged a "natural escape" (the [4,1]
+                #    lockout blind spot). Ring is bounded: oldest-first.
+                try:
+                    final_type = ctx.selected_intent.intent_type if ctx.selected_intent else None
+                    if final_type:
+                        self._recent_selected_types.append(final_type)
+                        if len(self._recent_selected_types) > _RECENT_SELECTION_RING_SIZE:
+                            del self._recent_selected_types[0]
+                except Exception as e:
+                    logger.warning("runtime.py: loop-family ledger update failed: %r", e)
 
             # ── Distributed Council: advisory crew review after the council
             #    phase settles (mempool confirm/reject already done) ──
@@ -1880,12 +1939,18 @@ class TelosV14Pipeline:
                 self._prev_identity_state = dict(ctx.identity_state)
 
                 # Write identity tuple to /tmp/telos_identity_tuple.json
-                try:
-                    import json
-                    with open('/tmp/telos_identity_tuple.json', 'w') as idf:
-                        json.dump(ctx.identity_state, idf, indent=2, default=str)
-                except Exception as e:
-                    logger.warning("runtime.py: swallowed error: %r", e)
+                # (env-gated: TELOS_IDENTITY_TUPLE_EVERY_N, default 0 =
+                # never — the per-cycle dump is a diagnostics opt-in now,
+                # gated with the hoisted per-cycle value: one env read per
+                # cycle, never per-phase).
+                if _identity_dump_every_n > 0 and (
+                        self._cycle_count % _identity_dump_every_n == 0):
+                    try:
+                        import json
+                        with open('/tmp/telos_identity_tuple.json', 'w') as idf:
+                            json.dump(ctx.identity_state, idf, indent=2, default=str)
+                    except Exception as e:
+                        logger.warning("runtime.py: swallowed error: %r", e)
 
                 # P0 D8: Run meta-cognition check + P0: Tripartite Uncertainty
                 infra = getattr(self, '_infra_manager', None)
@@ -2315,6 +2380,15 @@ class TelosV14Pipeline:
             "curiosity_bonus": getattr(ctx, 'curiosity_bonus', 1.0),
             "criticality": getattr(ctx, 'decision_criticality', 'medium'),
             "n_sim_options": len(getattr(ctx, 'sim_options', []) or []),
+            # v9 DOMAIN_EXPERT context: the domain string + the perceive
+            # consultation report so the lens can dissent on avoid-listed
+            # candidates. Throttled cycles carry approach=None/avoid=[] — the
+            # lens stays neutral (and is not registered) on those cycles.
+            "domain": (getattr(self.config.simulator, 'domain', 'unknown')
+                       if getattr(self.config, 'simulator', None) else 'unknown'),
+            "knowledge_report": (
+                getattr(ctx.perceive, 'knowledge_report', None)
+                if getattr(ctx, 'perceive', None) else None),
         }
         result = self._distributed_council.run_perspectives(ctx.verdict, context)
         ctx.distributed_verdict = {

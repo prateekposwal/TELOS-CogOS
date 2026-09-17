@@ -143,7 +143,9 @@ def test_firewall_no_intent_block():
 
 def test_firewall_loop_recovery_signal_after_repeated_blocks():
     """Two consecutive action_loop blocks request a goal-seek recovery; a
-    pass or a non-loop block clears the streak; the block still happens."""
+    genuine pass clears the streak; a NON-loop block can no longer cancel an
+    armed same-type streak (Item 2 — Check 1/2 fire before loop detection);
+    the block still happens."""
     from telos.core.governance.firewall import (
         DecisionFirewall, FirewallConfig, RECOVERY_AFTER_LOOP_BLOCKS,
     )
@@ -178,8 +180,12 @@ def test_firewall_loop_recovery_signal_after_repeated_blocks():
                    decision_integrity=0.9)
     assert v.passed and fw.consecutive_loop_blocks == 0
 
-    # A non-loop block also clears the streak (the window needs 4 repeats
-    # to re-form the trap, then the council-rejection block resets it).
+    # A non-loop block of the SAME type mid-accumulation must NOT cancel the
+    # in-flight escape (Item 2 fix): the window needs 4 repeats to re-form
+    # the trap; once the streak is at 2, the council-rejection block fires
+    # at Check 1 — BEFORE Check 5's loop detector — and its same-type reset
+    # used to zero the armed streak so the escape could never fire (pinned at
+    # max 1 forever). The armed streak now survives the interruption.
     for _ in range(4):
         fw.inspect(world, same_intent("navigate_to_goal"), council_validated=True,
                    decision_integrity=0.9)
@@ -190,7 +196,12 @@ def test_firewall_loop_recovery_signal_after_repeated_blocks():
     v = fw.inspect(world, same_intent("navigate_to_goal"), council_validated=False,
                    decision_integrity=0.9)
     assert v.blocked_by == "council_rejection"
-    assert fw.consecutive_loop_blocks == 0, "non-loop blocks clear the streak"
+    assert fw.consecutive_loop_blocks == 2, \
+        "an armed same-type streak survives a non-loop block (escape stays in flight)"
+    # A genuine pass still clears the whole ledger (the agent acted, trap broken).
+    v = fw.inspect(world, same_intent("explore_terrain"), council_validated=True,
+                   decision_integrity=0.9)
+    assert v.passed and fw.consecutive_loop_blocks == 0
     assert RECOVERY_AFTER_LOOP_BLOCKS == 2
 
 

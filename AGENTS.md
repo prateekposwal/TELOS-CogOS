@@ -702,10 +702,71 @@ PYTHONPATH=. python3 -m pytest tests/ -q
 - **Bootstrap no-intent** (`select.py:707-733`): empty intents + empty selection on fresh/wiped KG → injects legitimate `bootstrap_navigate` intent (params `bootstrap=True`, metadata `stream=bootstrap`, honest self-start) so the firewall ever cycles governed `no_intent` with `selected_action=None` forever; adapter maps it to a legal cardinal action.
 - **Per-cycle watchdog** (`runtime.py:1081-1127`): wall-clock deadline at every phase boundary, `TELOS_CYCLE_TIMEOUT_MS` default 5000ms; a wedged phase → recorded `governance_blocked=cycle_timeout:<phase>` in ctx AND `PipelineResult.governance_blocked_by` (runtime.py:2124-2141) — never a silent hang. Docstring honestly notes a wedged C-level call cannot be preempted. Env reads hoisted to ONE lookup/cycle.
 - Dashboard start needed nothing: `./telos/start_dashboard.sh restart` → checkpoint restore → live producer (the launcher's port-answers semantics already handle zombies).
-- Deferred: nothing mission-critical. Remaining open items are the pre-existing live-loop pattern (curiosity_explore/blended_inquiry blocked at [4,2] by action_loop + EvidenceProvenanceValidator, DI per-intent dips 0.3) and machine swap (~2GB, editor+Apple services) — both recorded, not hacked. Perf profiler's isolated run logs 28/42 axioms at its synthetic high cycle — its own pipeline, not the live kernel.
+- Deferred: nothing mission-critical. Remaining open items are the pre-existing live-loop pattern (governor `risk_coverage` ceiling limit cycle at [4,2] — the act-phase catastrophe gate used a fixed 4.0 veto on the HORIZON mission-drift, which legitimately reaches ~5.66 corner-to-corner on the 5×5 grid; act-veto now world-size-scaled by Item 1, escape machinery healthy, DI per-intent dips 0.3) and machine swap (~2GB, editor+Apple services) — both recorded, not hacked. Perf profiler's isolated run logs 28/42 axioms at its synthetic high cycle — its own pipeline, not the live kernel.
 
 ### Open Issues
-- Live-loop plateau pattern at [4,2] persists (firewall action_loop + EvidenceProvenanceValidator blocks on blended_inquiry; DI=1.0 overall held).
+- Live-loop plateau pattern at [4,2] persists (governor `risk_coverage` ceiling limit cycle — the act-phase catastrophe gate vetoed horizon mission-drift above a fixed 4.0, while the 5×5 grid's corner-to-corner drift is ~5.66 and the council's own tolerance is 5.0; act-veto scaled by Item 1, escape machinery healthy; DI=1.0 overall held).
 
 ### Metrics
 - DI: 1.000 (live, sustained) | MD: ~2.5 (live, healthy < 5) | Cycles: 1337+ live; endurance 10k gate PASS 14/14 | RSS: live producer 68.8MB flat | Contract: tests 2665 | axioms 42 | self-audit 31/31
+
+## Session Handoff — 2026-09-12 (v9 PERF SHIP — FULL ADVISORY LANDED, 2709 GREEN)
+
+### Current State
+- Session mood: deliberate
+- Shipped (committed: `2f855d6` + `fd3d871`): the ENTIRE v9 perf-and-expertise advisory landed — A* memoization, top-3 UQ, identity-dump env gate, confidence funnel + fidelity fast path (both default-safe), InternalDebate de-dup (3→1/cycle), `domain_plan` knowledge consumption, DOMAIN_EXPERT council lens, and the `PipelineConfig.lite()` driver preset. Spec produced by the TELOS spec agent (read-only, every hunk verified vs the tree), verification pass re-confirmed zero drift + zero lock-risk (fast-mode budget rows, 5-crew default, v25-debate, RNG isolation), then landed + tested by the driver.
+- Test count: **2709 passing** (100% green, +44). Self-audit **31/31**. Perf contract **PASS** (cycle mean 9.27ms, p95 10.35ms — both DOWN from 9.0-10.9/13.1; cold startup 0.309s; memory 87.5MB; RNG 0; serializations 0.005/cycle; axioms 42).
+- Live dashboard restarted on the v9 kernel: DI 1.0, cycles 14904+, stall classifier reading the new per-family ledgers (`families.firewall/stagnation`), perceive knowledge consultation flowing (`gridworld` domain records), edges 2084 (identity_affinity capped 2000), mood curious. Untracked user files left alone (`AKANISTHA_STRATEGY.md`, `MD-APP_PROJECT_STATE.md`, `skills/`).
+
+### Decisions Made
+- **1 · A\* memo** (`telos_task.py`): `_astar_first_step` + `_legal_cardinal_candidates` `lru_cache` keyed on (start, goal, sorted-blocked, grid_size); blocked/goal/TERRAIN verified static per process so the cache is the identity function (determinism unchanged, keyed invalidation never stale).
+- **2 · Top-3 UQ** (`simulation/engine.py:262-315`): full percentile/CI resampling now bounded to rank≤3 (was `max(3, n_worlds//2)`); the long tail gets an honest single-sample score (n_samples=1, std=0). Every rank>3 consumer proven trace-only; the promotion edge (an unsampled option entering rank≤3 by re-sort) is pre-existing and covered by the simulate-phase fallback.
+- **3 · Identity-dump gate** (`runtime.py:1187-1190,1961-1967`): `/tmp/telos_identity_tuple.json` now behind `TELOS_IDENTITY_TUPLE_EVERY_N` (default 0 = never), hoisted one env read per cycle.
+- **4 · `confidence_world_funnel`** (default-OFF kernel-amendment flag, `types.py` + `phases/simulate.py`): standard-mode confident cycles (peak stream confidence ≥0.8 AND currently-validated model) halve the sweep via the same `counterfactual_budget` funnel; honest feed only — never `decision_criticality` (set by nothing in production).
+- **5 · InternalDebate de-dup** (`select.py` owns the one debate, `council.py` reuses `ctx._debate_result`, runtime's write-only hook removed): 3 debates/cycle → 1, consensus semantics identical (input-determinism verified); council computes only when select skipped (blend/reconcile path).
+- **6 · Fidelity fast path** (`phases/streams.py`): mirrors the memory fast path — currently-validated model (fidelity≥0.6 inside `ACT_FIDELITY_STALE_CYCLES`) on a calm record (DI≥0.7, zero recent council blocks, last solve >0.9) cuts effective worlds to 1-2; `predicted_state` stays honest for the deferred reality-gap record. Measured cut: 58→8 worlds on the test grid.
+- **7 · `domain_plan`** (`implementations.py:239-309`, `synthesize.py:51`): PlanningStream labels a plan `domain_plan` when the perceive knowledge report carries a proven approach (outcome ≥ min_outcome 0.51), same 0.8 confidence ceiling + same navigation semantic group — expert knowledge reaches the auction/council without dominating; absent/throttled report keeps byte-identical `plan_trajectory`.
+- **8 · DOMAIN_EXPERT lens** (`distributed.py` + runtime ctx): auto-registers in `run_perspectives` only when knowledge is present (5-crew lock intact); dissents on avoid-listed candidates; weights 0.6/1.4-dissent; advisory-only (aggregation + primary untouched); runtime ctx now carries `domain` + `knowledge_report`.
+- **9 · `PipelineConfig.lite()`** preset (fast/10 worlds/5 horizon/20 checkpoints/0.35 skip) — a driver, kwargs win.
+- Guard rails held: internal-debate count asserted 1/cycle; funnel/flag defaults revert to byte-identical standard behavior; two source-asserts lock the env gate; faithful conversion back into the enablement doc (no hacked tests). The remaining `telos_task.py` working diff was a docstring normalization by an external process — gap-scanner check-6 will flag it at the next telos_task commit (re-added Args were re-reverted by the same worker; the pre-commit staged scan is the safety net).
+
+### Open Issues
+- Live-loop plateau pattern at [4,2] persists (governor `risk_coverage` ceiling limit cycle — the act-phase catastrophe gate vetoed horizon mission-drift above a fixed 4.0, while the 5×5 grid's corner-to-corner drift is ~5.66 and the council's own drift tolerance is 5.0; act-veto scaled to the world's diameter by Item 1, escape machinery healthy; DI=1.0 overall held, stall classifier labels it honestly with per-family escape-arming).
+- Full repo `gap_scanner` exceeded a 300s budget this session (heavy scan) — the pre-commit STAGED scan still gates commits.
+- Phantom external worker reverted/committed files mid-session (ditto prior sessions): verify work survives before relying on it.
+
+### Metrics
+- DI: 1.000 (live, sustained) | MD: ~1.5 (live) | Cycles: 14904+ live | Contract: tests **2709** | cycle mean 9.27ms | p95 10.35ms | axioms 42 | self-audit 31/31 | RNG 0
+
+## Session Handoff — 2026-09-12 16:15:09
+
+### Current State
+*(No current state captured)*
+
+### Decisions Made
+*(No decisions recorded)*
+
+### Open Issues
+*(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 0 (step_count=pipeline=16320,log=305) | Token budget: 0.0%
+
+### Checkpoint
+- /tmp/telos_checkpoints/checkpoint_16320.json
+
+
+## Session Handoff — 2026-09-12 16:15:09
+
+### Current State
+- Session mood: neutral
+
+### Decisions Made
+- *(No decisions recorded)*
+
+### Open Issues
+- *(No open issues)*
+
+### Metrics
+- DI: 1.000 | MD: 0.000 | Cycles: 16320
+

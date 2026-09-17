@@ -17,6 +17,7 @@ import http.client
 import time
 import os
 import random
+import functools
 from typing import Set, Dict, Tuple, Optional, List
 
 logger = logging.getLogger('telos_task')
@@ -70,27 +71,39 @@ GRID_SIZE = 5
 # from these helpers so the model and the executor can never disagree about
 # what is reachable (honesty axiom: no impossible trajectories).
 
-def legal_goal_step(state, blocked, goal, grid_size, fallback):
-    """First cardinal step of the shortest legal path toward `goal` (A*).
+# Memoization: the grid, blocked set and goal are STATIC per process
+# (blocked is assigned once in __init__; terrain shifts mutate TERRAIN costs
+# only and never blocked cells or the goal; GOAL/GRID_SIZE are module
+# constants). A* is therefore a pure function of (start, goal, blocked,
+# grid_size): the lru cache below is the identity function on those exact
+# inputs, so determinism is UNCHANGED — the cache can never return a step a
+# fresh search would not. A (future) blocked-set mutation invalidates by key,
+# never by flush. The fallback vector stays out of the cache key (it only
+# selects the return value on None).
+_ASTAR_CACHE_MAXSIZE = 256
 
-    Deterministic: neighbors are cardinal-only, heuristic is Manhattan,
-    ties break by push-order counter so the same state always returns the
-    same step. Returns `fallback` (no move) when start IS the goal or no
-    legal path exists (genuinely immovable - the honest no-op).
+
+@functools.lru_cache(maxsize=_ASTAR_CACHE_MAXSIZE)
+def _astar_first_step(start, goal, blocked, grid_size):
+    """Cached A* first cardinal step; None when start IS the goal or no
+    legal path exists. Pure: every input is hashable and the search body
+    is the canonical one (same tie-break, same result). Callers map None
+    to their honest no-op fallback.
 
     Args:
-        state: current position (N-vector of floats).
-        blocked: iterable of blocked cell coordinates.
-        goal: the target coordinate.
+        start: (x, y) cardinal cell coordinate.
+        goal: (x, y) target coordinate.
+        blocked: tuple of blocked (x, y) coordinates (canonicalized).
         grid_size: square grid side length (bounds the search).
-        fallback: the action vector returned when no legal path exists.
+
+    Returns:
+        (dx, dy) first-step delta tuple, or None when immovable.
     """
     import heapq
-    start = (int(round(state[0])), int(round(state[1])))
-    gx, gy = int(round(goal[0])), int(round(goal[1]))
+    gx, gy = goal
+    blocked_set = set(blocked)
     if start == (gx, gy):
-        return fallback
-    blocked_set = set(tuple(b) for b in blocked)
+        return None
 
     def manhattan(cell):
         return abs(cell[0] - gx) + abs(cell[1] - gy)
@@ -111,7 +124,7 @@ def legal_goal_step(state, blocked, goal, grid_size, fallback):
             node = cell
             while came_from[node] is not None and came_from[node] != start:
                 node = came_from[node]
-            return np.array([node[0] - start[0], node[1] - start[1]], dtype=float)
+            return (node[0] - start[0], node[1] - start[1])
         for dx, dy in neighbors:
             ncell = (cell[0] + dx, cell[1] + dy)
             if not (0 <= ncell[0] < grid_size and 0 <= ncell[1] < grid_size):
@@ -124,7 +137,60 @@ def legal_goal_step(state, blocked, goal, grid_size, fallback):
                 came_from[ncell] = cell
                 heapq.heappush(heap, (ng + manhattan(ncell), ng, counter, ncell))
                 counter += 1
-    return fallback  # no legal path - honest no-op
+    return None  # no legal path - honest no-op
+
+
+def legal_goal_step(state, blocked, goal, grid_size, fallback):
+    """First cardinal step of the shortest legal path toward `goal` (A*).
+
+    Deterministic (and memoized per (start, goal, blocked, grid_size)):
+    neighbors are cardinal-only, heuristic is Manhattan, ties break by
+    push-order counter so the same state always returns the same step.
+    Returns `fallback` (no move) when start IS the goal or no legal path
+    exists (genuinely immovable - the honest no-op). The cache key is
+    canonicalized (sorted blocked tuples) so a re-ordered blocked iterable
+    still hits; a CHANGED blocked set is a new key -> fresh search.
+
+    Args:
+        state: current position (N-vector of floats).
+        blocked: iterable of blocked cell coordinates.
+        goal: the target coordinate.
+        grid_size: square grid side length (bounds the search).
+        fallback: the action vector returned when no legal path exists.
+    """
+    start = (int(round(state[0])), int(round(state[1])))
+    gx, gy = int(round(goal[0])), int(round(goal[1]))
+    if start == (gx, gy):
+        return fallback
+    blocked_frozen = tuple(sorted(tuple(b) for b in blocked))
+    step = _astar_first_step(start, (gx, gy), blocked_frozen, grid_size)
+    if step is None:
+        return fallback
+    return np.array([step[0], step[1]], dtype=float)
+
+
+@functools.lru_cache(maxsize=64)
+def _legal_cardinal_candidates(start, blocked, grid_size):
+    """Legal cardinal neighbor deltas of `start`, deterministic push order.
+
+    Args:
+        start: (x, y) cardinal cell coordinate.
+        blocked: tuple of blocked (x, y) coordinates (canonicalized).
+        grid_size: square grid side length (bounds the search).
+
+    Returns:
+        Tuple of legal (dx, dy) neighbor deltas in deterministic order.
+    """
+    out = []
+    blocked_set = set(blocked)
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        nc = (start[0] + dx, start[1] + dy)
+        if not (0 <= nc[0] < grid_size and 0 <= nc[1] < grid_size):
+            continue
+        if nc in blocked_set:
+            continue
+        out.append((dx, dy))
+    return tuple(out)
 
 
 def legal_cardinal_action(state, blocked, goal, grid_size, fallback,
@@ -146,21 +212,17 @@ def legal_cardinal_action(state, blocked, goal, grid_size, fallback,
         preferred: optional preferred (possibly diagonal) action vector.
     """
     start = (int(round(state[0])), int(round(state[1])))
-    blocked_set = set(tuple(b) for b in blocked)
-    candidates = []
-    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-        nc = (start[0] + dx, start[1] + dy)
-        if not (0 <= nc[0] < grid_size and 0 <= nc[1] < grid_size):
-            continue
-        if nc in blocked_set:
-            continue
-        candidates.append(np.array([dx, dy], dtype=float))
-    if not candidates:
+    blocked_frozen = tuple(sorted(tuple(b) for b in blocked))
+    candidate_steps = _legal_cardinal_candidates(start, blocked_frozen, grid_size)
+    if not candidate_steps:
         return fallback
     if preferred is not None and float(np.linalg.norm(preferred)) > 0:
         pref = np.asarray(preferred, dtype=float)
         pref = pref / float(np.linalg.norm(pref))
-        best = max(candidates, key=lambda c: float(np.dot(c, pref)))
+        best = max(
+            (np.array([dx, dy], dtype=float) for dx, dy in candidate_steps),
+            key=lambda c: float(np.dot(c, pref)),
+        )
         if float(np.dot(best, pref)) > 0.3:
             return best
     return legal_goal_step(state, blocked, goal, grid_size, fallback)
@@ -270,6 +332,12 @@ class GridSim(DomainSimulator):
         # a fixed seed makes terrain shifts reproducible (the regression-test
         # and harness pattern for the other engines).
         self._rng = random.Random(random_seed)
+        # World extent exposed to the act-phase catastrophe gate (Item 1):
+        # the state space is [0, world_extent-1]², so the max legitimate
+        # horizon mission-drift is its corner-to-corner diameter (≈5.66 for
+        # GRID_SIZE=5) — the act ceiling is scaled from this instead of a
+        # fixed absolute bar that sat below the grid's own maximum.
+        self.world_extent: int = GRID_SIZE
 
     def initialize(self): pass
     def cleanup(self): pass

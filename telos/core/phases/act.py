@@ -194,7 +194,33 @@ class ActPhase(Phase):
                     raw_verdict_md = float(getattr(verdict, 'mission_drift', 0.0) or 0.0)
                 except (TypeError, ValueError):
                     raw_verdict_md = 0.0
-            if raw_verdict_md > 4.0:  # beyond any legitimate one-step landing
+            # World-horizon-scaled catastrophe veto (Item 1). The verdict's
+            # mission_drift compares the HORIZON-end simulation landing against
+            # the current observation — a horizon-length displacement whose
+            # legitimate maximum is the WORLD's own state-space diameter
+            # (corner-to-corner ≈ 5.66 on the 5×5 GridWorld), ABOVE both the
+            # old fixed 4.0 bar and the council's own 5.0 drift tolerance. A
+            # fixed ceiling below the world's diameter vetoed ~24% of healthy
+            # cycles as `risk_coverage` catastrophes (the [4,2] governor
+            # risk_coverage limit cycle). Scale the ceiling from the
+            # simulator's declared world extent when the domain exposes one;
+            # unknown geometry keeps the legacy absolute bar so the safety
+            # floor is unchanged — an MD beyond the world's physical maximum
+            # still vetoes (only an impossible prediction can exceed it).
+            catastrophe_ceiling = 4.0  # legacy absolute bar (unknown geometry)
+            try:
+                sim_ = getattr(getattr(pipeline, 'config', None), 'simulator', None)
+                if sim_ is not None and not isinstance(sim_, type) \
+                        and callable(getattr(sim_, 'world_spec', None)):
+                    extent = getattr(sim_, 'world_extent', None)
+                    if isinstance(extent, (int, float)) and not isinstance(extent, bool) \
+                            and extent > 1.0:
+                        n_dims = max(int(np.asarray(ctx.state).shape[0])
+                                     if ctx.state is not None else 2, 1)
+                        catastrophe_ceiling = float(extent - 1.0) * float(np.sqrt(n_dims))
+            except Exception:
+                catastrophe_ceiling = 4.0
+            if raw_verdict_md > catastrophe_ceiling:
                 catastrophe = True
 
             # DI / council signals for causal-confidence + recovery.

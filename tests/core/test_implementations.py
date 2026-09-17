@@ -3,6 +3,7 @@
 import hashlib
 
 import numpy as np
+import pytest
 
 from telos.core.ledger.skill_library import SkillLibrary, Skill
 from telos.core.simulation import CounterfactualEngine
@@ -183,6 +184,44 @@ def test_planning_configure_updates_parameters():
     p.configure(horizon=5, n_worlds=2)
     assert p.horizon == 5
     assert p.n_worlds == 2
+
+
+# ── PlanningStream knowledge consumption (v9 domain_plan) ─────────────────
+
+def test_planning_domain_plan_when_knowledge_approach_present():
+    sim = MockSimulator()
+    se = CounterfactualEngine(sim)
+    p = PlanningStream(SkillLibrary(), sim_engine=se)
+    ir = p.process(_world(
+        [1.0, 2.0],
+        metadata={"knowledge_report": {"domain": "gridworld",
+                                       "approach": "move_east",
+                                       "outcome": 0.92, "avoid": []}},
+    ))
+    assert ir.intent_type == "domain_plan"
+    assert ir.params["approach"] == "move_east"
+    assert ir.params["outcome"] == pytest.approx(0.92)
+    assert ir.metadata["expert"] == "gridworld"
+    assert ir.metadata["stream"] == "planning"
+    assert ir.metadata["options_count"] >= 1
+    assert ir.confidence <= 0.8
+    assert "action_vector" in ir.params
+
+
+def test_planning_unchanged_without_knowledge():
+    sim = MockSimulator()
+    se = CounterfactualEngine(sim)
+    p = PlanningStream(SkillLibrary(), sim_engine=se)
+    for meta in (
+        None,
+        {"knowledge_report": {"approach": None, "outcome": None,
+                              "avoid": [], "throttled": True}},
+    ):
+        ir = p.process(_world([1.0, 2.0], metadata=meta))
+        assert ir.intent_type in ("plan_trajectory", "plan_empty")
+        assert ir.intent_type != "domain_plan"
+        assert "approach" not in ir.params
+        assert "outcome" not in ir.params
 
 
 def test_planning_configure_ignores_none():
