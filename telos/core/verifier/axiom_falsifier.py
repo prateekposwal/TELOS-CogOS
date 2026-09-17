@@ -95,7 +95,7 @@ def healthy_setup() -> _Setup:
         "model_competition": SimpleNamespace(
             dominant_model="m", compute_entropy=lambda *a, **k: 1.0),
         "relational_context": SimpleNamespace(relational_coherence=1.0),
-        "cooperative_intelligence": SimpleNamespace(group_utility=1.0),
+        "cooperative_intelligence": SimpleNamespace(cooperative=True),
         "system_self": object(),
         "theory_builder": object(),
         "axiom_evolution": object(),
@@ -173,7 +173,8 @@ def _sabotages() -> Dict[str, Callable[[_Setup], None]]:
     specs["4.8"] = lambda s: s.kwargs.__setitem__("model_competition", None)
     specs["4.9"] = lambda s: s.kwargs.__setitem__("relational_context", None)
     specs["4.10"] = lambda s: s.kwargs.__setitem__("system_self", None)
-    specs["4.11"] = lambda s: s.kwargs.__setitem__("cooperative_intelligence", None)
+    specs["4.11"] = lambda s: s.kwargs.__setitem__(
+        "cooperative_intelligence", SimpleNamespace(cooperative=False))
 
     # Layer 5
     specs["5.1"] = lambda s: (setattr(s.trace, "j_term_breakdown", None),

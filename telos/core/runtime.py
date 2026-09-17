@@ -2391,6 +2391,15 @@ class TelosV14Pipeline:
                 if getattr(ctx, 'perceive', None) else None),
         }
         result = self._distributed_council.run_perspectives(ctx.verdict, context)
+        # Λ4.11 — Cooperative Intelligence: decide whether cooperation is
+        # justified for this crew's (dis)agreement, using the real per-agent
+        # verdicts. Recorded for the prover's 4.11 predicate.
+        try:
+            from telos.core.coordination.cooperative import CooperativeCouncil
+            ctx.cooperative_verdict = CooperativeCouncil().evaluate(
+                result.get("agents", [])).to_dict()
+        except Exception as exc:  # never let an advisory layer break the cycle
+            logger.warning("CooperativeCouncil evaluation failed: %s", exc)
         ctx.distributed_verdict = {
             "enabled": True,
             "cycle": ctx.cycle_count,

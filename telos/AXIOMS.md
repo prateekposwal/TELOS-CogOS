@@ -42,7 +42,7 @@
 | 4.8 | **Models Compete** | ΣP(M_i) = 1 | Multiple explanations coexist until evidence resolves uncertainty; no model is ever fully killed | `ModelCompetition` — Bayesian posterior updates, probability normalization |
 | 4.9 | **Relational Optimization** | A_i = (U_i, Θ_i) | Other agents are modeled as optimizers with utility functions and internal parameters | `RelationalContext` (scaffold) — trust/authority/collaboration fields |
 | 4.10 | **Recursive World Models** | M_A(B), M_A(M_B(A)), depth ≤ 3 | Agents recursively model one another's models, bounded at third order | `SystemSelf` (self-model), `TheoryBuilder` (world-model), `RelationalContext` (other-model scaffold) |
-| 4.11 | **Cooperative Intelligence** | U_group > ΣU_i − C_align | Collective optimization exceeds isolated optimization whenever alignment costs are sufficiently low | (long-term — multi-agent architecture required) |
+| 4.11 | **Cooperative Intelligence** | U_group > ΣU_i − C_align | Collective optimization exceeds isolated optimization whenever alignment costs are sufficiently low | `coordination/cooperative.py` — `CooperativeCouncil` evaluates the crew's per-agent verdicts against the inequality (bounded, falsifiable scaffold) |
 
 ## Layer 5: Commitment Theory
 | # | Axiom | Formal | Meaning | Implementation |
@@ -95,7 +95,7 @@
 | 4.8 | Models Compete | 4 — Emergent |
 | 4.9 | Relational Optimization | 4 — Emergent (scaffold) |
 | 4.10 | Recursive World Models | 4 — Emergent (scaffold) |
-| 4.11 | Cooperative Intelligence | 4 — Emergent (aspirational) |
+| 4.11 | Cooperative Intelligence | 4 — Emergent (scaffold) |
 | 5.1 | TELOS Commitment (Unified J) | 5 — Commitment |
 | 5.2 | Axiom Evolution | 5 — Commitment |
 | 5.3 | Identity Coupling | 5 — Commitment |
