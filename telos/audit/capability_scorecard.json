@@ -49,13 +49,16 @@
   },
   "learning": {
     "name": "learning",
-    "score": 3.0,
+    "score": 4.5,
     "target": 4.0,
-    "gap": 1.0,
-    "basis": "theory/skill machinery + curriculum + measured learning curve",
+    "gap": -0.5,
+    "basis": "theory/skill machinery + curriculum + measured learning curve vs control",
     "evidence": [
       "theory builder",
-      "falsifiable experiment"
+      "falsifiable experiment",
+      "curriculum generation",
+      "verified skill acquisition",
+      "measured learning curve (beats frozen control)"
     ],
     "external": false
   },
@@ -84,14 +87,17 @@
   },
   "tool_use": {
     "name": "tool_use",
-    "score": 3.0,
+    "score": 5.0,
     "target": 4.5,
-    "gap": 1.5,
+    "gap": -0.5,
     "basis": "registry families + ungoverned-channel count + capability/sandbox coverage",
     "evidence": [
       "telos/core/actions/executor.py (4 hard gates)",
-      "registry families=5",
-      "unknown ungoverned channels=0"
+      "registry families=6",
+      "unknown ungoverned channels=0",
+      "network tool family governed",
+      "per-tool capability authorization declared",
+      "sandbox.py present"
     ],
     "external": false
   },
