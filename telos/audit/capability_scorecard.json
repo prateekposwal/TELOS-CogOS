@@ -34,16 +34,16 @@
   },
   "memory": {
     "name": "memory",
-    "score": 4.5,
+    "score": 5.0,
     "target": 5.0,
-    "gap": 0.5,
+    "gap": 0.0,
     "basis": "stores + controller/tiering + measured retrieval eval + runtime consumption",
     "evidence": [
       "memory stores present=5/5",
       "unified controller",
       "tiered decision memory",
       "retrieval eval present but not passing",
-      "capped 4.5 until memory is consumed in real cycles"
+      "consumed in real cycles (memory_consumption.json)"
     ],
     "external": false
   },
