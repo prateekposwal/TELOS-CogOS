@@ -115,7 +115,7 @@
       "telos/__main__.py",
       "README.md",
       "__version__",
-      "git tags=0",
+      "git tags=1",
       "examples/quickstart.py",
       "RELEASE.md (versioning + release process)",
       "CI gates workflow",
