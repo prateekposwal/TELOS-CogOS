@@ -206,13 +206,12 @@ IDENTITY_PATH = "/tmp/telos_identity.json"
 PATTERN_PATH = "/tmp/telos_patterns.json"
 # Phase 2: tiered decision memory persists alongside the other live stores.
 MEMORY_PATH = "/tmp/telos_memory.json"
-# Long-run memory-consumption artifact (repo-relative so the scorecard reads it)
-# plus the minimum cycle span before consumption counts as sustained, not a
-# short test run.
-MEMORY_CONSUMPTION_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "telos", "audit", "memory_consumption.json",
-)
+# LIVE memory stats written by the producer each cycle (dashboard-facing). This
+# is deliberately NOT the capability-evidence artifact — see
+# _persist_memory_consumption for why the background loop must not own it.
+LIVE_MEMORY_STATS_PATH = "/tmp/telos_memory_live_stats.json"
+# Minimum cycle span before decision-memory consumption counts as SUSTAINED in
+# the capability-evidence artifact (owned by telos/tools/memory_consumption_run.py).
 MEMORY_CONSUMPTION_MIN_CYCLES = 50
 # Decision log: the producer now feeds the SAME bounded, honest decision log
 # the handoff writer reconciles ("log=N"). Written atomically at the
@@ -1114,13 +1113,14 @@ class DashboardProducer:
         self._persist_memory_consumption()
 
     def _persist_memory_consumption(self) -> None:
-        """Write the long-run decision-memory consumption artifact.
+        """Write the producer's LIVE memory stats to a runtime path.
 
-        The capability scorecard's final memory point must rest on REAL
-        sustained consumption, not a short test run. This producer is the
-        long-running consumer: it writes cumulative memory stats (recalled,
-        stored, rejected) plus the cycle span it observed, so the artifact
-        carries its own provenance (`source`, `cycles_observed`).
+        This is deliberately NOT the capability-evidence artifact
+        (telos/audit/memory_consumption.json). Writing live counters there would
+        clobber the measured 120-cycle evidence with a dashboard restart's
+        partial counts — the artifact must be owned by an explicit measurement
+        run (telos/tools/memory_consumption_run.py), not by a background loop.
+        The dashboard reads its own live file; the scorecard reads the evidence.
 
         Returns:
             None.
@@ -1140,20 +1140,15 @@ class DashboardProducer:
                     key: report.get(key, 0)
                     for key in ("hot", "warm", "cold", "total", "evicted", "summarized")
                 },
-                "consumed_in_real_cycles": bool(
-                    report.get("memory_consumed", 0) > 0
-                    and report.get("inserted", 0) > 0
-                    and self._cycles >= MEMORY_CONSUMPTION_MIN_CYCLES
-                ),
                 "min_cycles_required": MEMORY_CONSUMPTION_MIN_CYCLES,
                 "updated_at": time.time(),
             }
-            tmp_path = MEMORY_CONSUMPTION_PATH + ".tmp"
+            tmp_path = LIVE_MEMORY_STATS_PATH + ".tmp"
             with open(tmp_path, "w") as fh:
                 json.dump(payload, fh, indent=2)
-            os.replace(tmp_path, MEMORY_CONSUMPTION_PATH)
+            os.replace(tmp_path, LIVE_MEMORY_STATS_PATH)
         except Exception as e:
-            logger.warning("producer: memory consumption persist failed: %r", e)
+            logger.warning("producer: memory stats persist failed: %r", e)
 
     def _restore_producer_counters(self) -> None:
         """Restore _cycles / _worlds_simulated_total from persisted state.
