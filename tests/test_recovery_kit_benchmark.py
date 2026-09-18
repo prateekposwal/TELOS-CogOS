@@ -8,15 +8,51 @@ from recovery_kit.benchmark import (ENTROPY_BYTES, _candidate_from_entropy,
 from recovery_kit.space import load_wordlist
 
 
+def _corrupt_checksum(words, wl_index, n, wl):
+    """Return a word-substituted phrase whose checksum is DETERMINISTICALLY bad.
+
+    Swapping in one fixed substitute (e.g. "zoo") can coincidentally satisfy
+    the checksum for some entropies — roughly 1 in 2^chk_bits per candidate
+    (measured ~6.4% of trials for n=12), which made the roundtrip test flake
+    under random test ordering. Instead, try substitutions at successive
+    positions until we find one that genuinely fails validation, and assert
+    that we found it. This is deterministic evidence the validator REJECTS,
+    rather than a lucky 1-in-16 draw.
+
+    Args:
+        words: the valid phrase to corrupt.
+        wl_index: word -> index mapping.
+        n: phrase length in words.
+        wl: the full wordlist.
+
+    Returns:
+        A corrupted phrase guaranteed to fail the checksum.
+
+    Raises:
+        AssertionError: if no single-word substitution invalidates the phrase
+            (which would itself be a validator bug worth failing on).
+    """
+    for j in range(len(words)):
+        for replacement in ("zoo", "zone", "abandon", "ability"):
+            bad = list(words)
+            if bad[j] == replacement:
+                continue
+            bad[j] = replacement
+            if not _checksum_ok(bad, wl_index, n):
+                return bad
+    raise AssertionError(
+        f"no single-word substitution invalidated a valid {n}-word phrase — "
+        "the checksum validator accepted every corruption"
+    )
+
+
 def test_checksum_validator_roundtrip():
     wl = load_wordlist()
     wl_index = {w: i for i, w in enumerate(wl)}
     for n in (12, 24):
         words = _candidate_from_entropy(os.urandom(ENTROPY_BYTES[n]), n, wl)
         assert _checksum_ok(words, wl_index, n) is True
-        bad = list(words)
-        j = 1 if words[0] != "abandon" else 0
-        bad[j] = "zoo" if bad[j] != "zoo" else "zone"
+        bad = _corrupt_checksum(words, wl_index, n, wl)
         assert not _checksum_ok(bad, wl_index, n)
 
 
