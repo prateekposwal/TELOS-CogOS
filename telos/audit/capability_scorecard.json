@@ -42,7 +42,7 @@
       "memory stores present=5/5",
       "unified controller",
       "tiered decision memory",
-      "retrieval eval measured (beats naive)",
+      "retrieval eval present but not passing",
       "consumed in real cycles (memory_consumption.json)"
     ],
     "external": false

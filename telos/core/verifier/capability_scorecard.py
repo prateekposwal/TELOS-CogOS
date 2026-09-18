@@ -139,14 +139,19 @@ def _memory_eval_beats_naive(root: str) -> bool:
 
 
 def _memory_consumed_in_real_cycles(root: str) -> bool:
-    """Whether the runtime artifact proves memory is consumed in real cycles.
+    """Whether the runtime artifact proves SUSTAINED memory consumption.
+
+    A short test run is not evidence of a working memory layer. This requires
+    the artifact to report consumed_in_real_cycles=True AND either an explicit
+    sustained cycle span (cycles_observed >= min_cycles_required, written by
+    the long-running producer) or a recalled count that only sustained use
+    produces.
 
     Args:
         root: repo root.
 
     Returns:
-        True only when telos/audit/memory_consumption.json reports
-        consumed_in_real_cycles True with a positive recalled count.
+        True only when the artifact evidences sustained consumption.
     """
     path = os.path.join(root, "telos", "audit", "memory_consumption.json")
     if not os.path.isfile(path):
@@ -154,8 +159,17 @@ def _memory_consumed_in_real_cycles(root: str) -> bool:
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return bool(data.get("consumed_in_real_cycles")) and \
-            int(data.get("memory_consumed", 0)) > 0
+        if not data.get("consumed_in_real_cycles"):
+            return False
+        if int(data.get("memory_consumed", 0)) <= 0:
+            return False
+        cycles = int(data.get("cycles_observed", 0))
+        required = int(data.get("min_cycles_required", 0))
+        if required > 0:
+            return cycles >= required
+        # No declared span: fall back to a strong count floor (a test run
+        # observes a handful of cycles; sustained use observes many recalls).
+        return int(data.get("memory_consumed", 0)) >= 50
     except (OSError, ValueError, TypeError):
         return False
 

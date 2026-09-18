@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """
-Memory retrieval evaluation — measures recall@k / precision@k / MRR for the
-TieredMemory + MemoryController against a naive baseline.
+Memory retrieval evaluation — measures semantic vs lexical vs naive retrieval.
 
-PATTERN (measured, not asserted — Λ6.5): "memory is better now" is only true if
-it retrieves the right record more often than the baseline. This harness runs a
-FIXED fixture through both retrievers and reports the delta. The controller's
-retrieval score is query-overlap x importance (with tier promotion); the naive
-baseline is plain overlap in insertion order. If the controller does not beat
-naive, the Phase-2 target is NOT met — and we say so.
+PATTERN (measured, not asserted — Λ6.5): the first version of this eval used
+queries that literally quoted the target record, so a lexical matcher scored
+perfectly and the "win" proved nothing about real retrieval. This version uses:
+
+  - PARAPHRASE queries with NO shared literal token with the target
+    ("avoid the wall" -> "hazard near obstacle"), which is the actual use case;
+  - HARD NEGATIVES — distractors that share literal tokens with the query but
+    are semantically wrong, so keyword matching is actively punished;
+  - an importance pair, so the ranking must also respect importance.
+
+It reports semantic_search (the shipping path), lexical_search (the previous
+rule), and naive_search (overlap-only, insertion order). The gate requires the
+semantic path to beat BOTH on recall@1.
 
 Run:
   PYTHONPATH=. ./.venv/bin/python telos/tools/memory_eval.py
@@ -27,25 +33,56 @@ sys.path.insert(0, PROJECT)
 from telos.core.memory.controller import MemoryController  # noqa: E402
 from telos.core.memory.tiering import MemoryRecord  # noqa: E402
 
-# Fixed fixture: each query's correct record is the HIGH-importance member of a
-# pair with IDENTICAL content overlap, and the low-importance member is inserted
-# first. A retrievers that ignores importance (naive) picks the wrong one; a
-# retriever that weights importance picks the right one.
-_PAIRS = [
-    ("a", "grid reward at corner", 0.2, 0.9),
-    ("b", "hazard avoid route near wall", 0.25, 0.85),
-    ("c", "fastest fee estimate for next block", 0.15, 0.8),
-    ("d", "lightning channel close settlement", 0.3, 0.9),
-    ("e", "navigate blocked wall", 0.1, 0.75),
-    ("f", "collect reward corner", 0.2, 0.95),
+# Each case: a paraphrase query, the record that SHOULD win, and a hard negative
+# that shares literal tokens with the query but is semantically wrong.
+#   query, expected intent, record-content, negative-content
+_CASES: List[Dict[str, str]] = [
+    {
+        "query": "avoid the wall",
+        "expected": "obstacle",
+        "target": "hazard near obstacle blocked the path",
+        "negative": "wall of the reward vault was opened",
+    },
+    {
+        "query": "collect the prize",
+        "expected": "reward",
+        "target": "gained bonus payoff at the goal",
+        "negative": "collect the failed regression report",
+    },
+    {
+        "query": "move toward the destination",
+        "expected": "navigate",
+        "target": "travelled along the route to the target cell",
+        "negative": "removed the move from the policy log",
+    },
+    {
+        "query": "the attempt went wrong",
+        "expected": "failure",
+        "target": "unsuccessful attempt caused an error and loss",
+        "negative": "the attempt produced an optimal solved run",
+    },
+    {
+        "query": "reasoning about risk",
+        "expected": "uncertain",
+        "target": "ambiguous unknown situation with doubt",
+        "negative": "reasoning about the decided strategy",
+    },
+    {
+        "query": "stop the action",
+        "expected": "governance",
+        "target": "governance gate vetoed and suppressed the action",
+        "negative": "controlled the action selection ranking",
+    },
 ]
 
-_DISTRACTORS = [
-    ("reward schedule chart", 0.5),
-    ("fee market congestion", 0.5),
-    ("channel funding transaction", 0.5),
-    ("wall geometry map", 0.5),
-    ("corner office", 0.5),
+# Unrelated distractors: no overlap with any query, present to make the task a
+# retrieval problem rather than a two-way choice.
+_DISTRACTORS: List[str] = [
+    "hashrate climbed across the mining network",
+    "lightning channel settlement completed offchain",
+    "fee histogram shows mempool backlog pending",
+    "identity narrative updated the self model",
+    "pattern library stored a cross domain signature",
 ]
 
 
@@ -59,25 +96,27 @@ def build_fixture() -> Dict[str, Any]:
     records: List[MemoryRecord] = []
     queries: List[Dict[str, Any]] = []
     cycle = 0
-    for tag, content, low_imp, high_imp in _PAIRS:
+    for case in _CASES:
         cycle += 1
+        tid = f"target_{case['expected']}"
         records.append(MemoryRecord(
-            record_id=f"exp_{tag}_low", content=content, kind="experience",
-            importance=low_imp, created_cycle=cycle,
+            record_id=tid, content=case["target"], kind="experience",
+            importance=0.9, created_cycle=cycle,
             provenance={"caller": "fixture"},
         ))
         cycle += 1
+        nid = f"negative_{case['expected']}"
         records.append(MemoryRecord(
-            record_id=f"exp_{tag}_high", content=content, kind="experience",
-            importance=high_imp, created_cycle=cycle,
+            record_id=nid, content=case["negative"], kind="experience",
+            importance=0.5, created_cycle=cycle,
             provenance={"caller": "fixture"},
         ))
-        queries.append({"query": content, "expected": [f"exp_{tag}_high"]})
-    for idx, (content, imp) in enumerate(_DISTRACTORS):
+        queries.append({"query": case["query"], "expected": [tid]})
+    for idx, content in enumerate(_DISTRACTORS):
         cycle += 1
         records.append(MemoryRecord(
             record_id=f"dist_{idx}", content=content, kind="experience",
-            importance=imp, created_cycle=cycle,
+            importance=0.5, created_cycle=cycle,
             provenance={"caller": "fixture"},
         ))
     return {"records": records, "queries": queries}
@@ -137,35 +176,37 @@ def _metrics(ranker: Callable[[str, int], List[MemoryRecord]],
 
 
 def evaluate() -> Dict[str, Any]:
-    """Run the fixture through the controller and the naive baseline.
+    """Run the fixture through semantic, lexical, and naive retrieval.
 
     Returns:
-        Dict with controller/naive metrics, the beats_naive verdict, and sizes.
+        Dict with each arm's metrics, the beats_baselines verdict, and sizes.
     """
     fixture = build_fixture()
-    controller = _build_controller(fixture["records"])
-    naive = _build_controller(fixture["records"])
+    records = fixture["records"]
+    controller = _build_controller(records)
+    lexical = _build_controller(records)
+    naive = _build_controller(records)
     queries = fixture["queries"]
 
-    c1 = _metrics(controller.search, queries, k=1)
-    c3 = _metrics(controller.search, queries, k=3)
-    n1 = _metrics(naive.naive_search, queries, k=1)
-    n3 = _metrics(naive.naive_search, queries, k=3)
+    sem = {**_metrics(controller.semantic_search, queries, k=1),
+           **_metrics(controller.semantic_search, queries, k=3)}
+    lex = {**_metrics(lexical.lexical_search, queries, k=1),
+           **_metrics(lexical.lexical_search, queries, k=3)}
+    nav = {**_metrics(naive.naive_search, queries, k=1),
+           **_metrics(naive.naive_search, queries, k=3)}
 
-    controller_metrics = {**c1, **{key: value for key, value in c3.items()
-                                   if key not in c1}}
-    naive_metrics = {**n1, **{key: value for key, value in n3.items()
-                              if key not in n1}}
     beats = (
-        controller_metrics["mrr"] > naive_metrics["mrr"]
-        and controller_metrics["recall@1"] >= naive_metrics["recall@1"]
+        sem["recall@1"] > lex["recall@1"]
+        and sem["recall@1"] > nav["recall@1"]
+        and sem["mrr"] > lex["mrr"]
     )
     return {
-        "controller": controller_metrics,
-        "naive": naive_metrics,
-        "beats_naive": beats,
+        "semantic": sem,
+        "lexical": lex,
+        "naive": nav,
+        "beats_baselines": beats,
         "queries": len(queries),
-        "records": len(fixture["records"]),
+        "records": len(records),
     }
 
 
@@ -176,21 +217,22 @@ def print_report(result: Dict[str, Any]) -> bool:
         result: the dict returned by evaluate().
 
     Returns:
-        True when the controller beats naive and recall@1 >= 0.9.
+        True when semantic retrieval beats both baselines and recall@1 >= 0.9.
     """
-    c = result["controller"]
-    n = result["naive"]
-    print(f"\n{'TELOS Memory Retrieval Evaluation':^72}")
-    print("=" * 72)
-    print(f"  fixture: {result['records']} records, {result['queries']} queries")
-    print("-" * 72)
-    print(f"  {'metric':<18}{'controller':>14}{'naive':>14}")
+    sem, lex, nav = result["semantic"], result["lexical"], result["naive"]
+    print(f"\n{'TELOS Memory Retrieval Evaluation':^74}")
+    print("=" * 74)
+    print(f"  fixture: {result['records']} records, {result['queries']} "
+          f"paraphrase queries with hard negatives")
+    print("-" * 74)
+    print(f"  {'metric':<16}{'semantic':>14}{'lexical':>14}{'naive':>14}")
     for key in ("recall@1", "precision@1", "mrr", "recall@3", "precision@3"):
-        print(f"  {key:<18}{c.get(key, 0.0):>14.3f}{n.get(key, 0.0):>14.3f}")
-    print("=" * 72)
-    print("  verdict:", "controller BEATS naive" if result["beats_naive"]
-          else "controller does NOT beat naive")
-    ok = bool(result["beats_naive"]) and c["recall@1"] >= 0.9
+        print(f"  {key:<16}{sem.get(key, 0):>14.3f}{lex.get(key, 0):>14.3f}"
+              f"{nav.get(key, 0):>14.3f}")
+    print("=" * 74)
+    print("  verdict:", "semantic BEATS lexical + naive" if result["beats_baselines"]
+          else "semantic does NOT beat both baselines")
+    ok = bool(result["beats_baselines"]) and sem["recall@1"] >= 0.9
     print("MEMORY EVAL:", "PASS" if ok else "FAIL")
     return ok
 
@@ -198,7 +240,7 @@ def print_report(result: Dict[str, Any]) -> bool:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--ci", action="store_true",
-                    help="exit 1 unless the controller beats naive (recall@1 >= 0.9)")
+                    help="exit 1 unless semantic retrieval beats both baselines")
     ap.add_argument("--json", default="telos/audit/memory_eval.json",
                     help="path to write the evaluation JSON")
     args = ap.parse_args()

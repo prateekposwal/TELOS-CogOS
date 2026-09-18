@@ -1,19 +1,26 @@
 {
-  "controller": {
+  "semantic": {
     "recall@1": 1.0,
     "precision@1": 1.0,
     "mrr": 1.0,
     "recall@3": 1.0,
     "precision@3": 0.3333333333333333
   },
-  "naive": {
-    "recall@1": 0.16666666666666666,
-    "precision@1": 0.16666666666666666,
-    "mrr": 0.5833333333333334,
-    "recall@3": 1.0,
-    "precision@3": 0.3333333333333333
+  "lexical": {
+    "recall@1": 0.3333333333333333,
+    "precision@1": 0.3333333333333333,
+    "mrr": 0.3333333333333333,
+    "recall@3": 0.3333333333333333,
+    "precision@3": 0.1111111111111111
   },
-  "beats_naive": true,
+  "naive": {
+    "recall@1": 0.3333333333333333,
+    "precision@1": 0.3333333333333333,
+    "mrr": 0.3333333333333333,
+    "recall@3": 0.3333333333333333,
+    "precision@3": 0.1111111111111111
+  },
+  "beats_baselines": true,
   "queries": 6,
   "records": 17
 }

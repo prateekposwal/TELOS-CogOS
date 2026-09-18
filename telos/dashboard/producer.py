@@ -206,6 +206,14 @@ IDENTITY_PATH = "/tmp/telos_identity.json"
 PATTERN_PATH = "/tmp/telos_patterns.json"
 # Phase 2: tiered decision memory persists alongside the other live stores.
 MEMORY_PATH = "/tmp/telos_memory.json"
+# Long-run memory-consumption artifact (repo-relative so the scorecard reads it)
+# plus the minimum cycle span before consumption counts as sustained, not a
+# short test run.
+MEMORY_CONSUMPTION_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "telos", "audit", "memory_consumption.json",
+)
+MEMORY_CONSUMPTION_MIN_CYCLES = 50
 # Decision log: the producer now feeds the SAME bounded, honest decision log
 # the handoff writer reconciles ("log=N"). Written atomically at the
 # knowledge-serialize cadence with lean canonical trace fields so it reflects
@@ -1103,6 +1111,49 @@ class DashboardProducer:
             os.replace(tmp_path, PRODUCER_STATE_PATH)
         except Exception as e:
             logger.warning("producer: counter state persist failed: %r", e)
+        self._persist_memory_consumption()
+
+    def _persist_memory_consumption(self) -> None:
+        """Write the long-run decision-memory consumption artifact.
+
+        The capability scorecard's final memory point must rest on REAL
+        sustained consumption, not a short test run. This producer is the
+        long-running consumer: it writes cumulative memory stats (recalled,
+        stored, rejected) plus the cycle span it observed, so the artifact
+        carries its own provenance (`source`, `cycles_observed`).
+
+        Returns:
+            None.
+        """
+        try:
+            report = self._pipeline.memory_report() if self._pipeline else {}
+            if not report:
+                return
+            payload = {
+                "source": "dashboard_producer",
+                "cycles_observed": self._cycles,
+                "memory_consumed": report.get("memory_consumed", 0),
+                "inserted": report.get("inserted", 0),
+                "rejected_governance_suppression": report.get(
+                    "rejected_governance_suppression", 0),
+                "tiered": {
+                    key: report.get(key, 0)
+                    for key in ("hot", "warm", "cold", "total", "evicted", "summarized")
+                },
+                "consumed_in_real_cycles": bool(
+                    report.get("memory_consumed", 0) > 0
+                    and report.get("inserted", 0) > 0
+                    and self._cycles >= MEMORY_CONSUMPTION_MIN_CYCLES
+                ),
+                "min_cycles_required": MEMORY_CONSUMPTION_MIN_CYCLES,
+                "updated_at": time.time(),
+            }
+            tmp_path = MEMORY_CONSUMPTION_PATH + ".tmp"
+            with open(tmp_path, "w") as fh:
+                json.dump(payload, fh, indent=2)
+            os.replace(tmp_path, MEMORY_CONSUMPTION_PATH)
+        except Exception as e:
+            logger.warning("producer: memory consumption persist failed: %r", e)
 
     def _restore_producer_counters(self) -> None:
         """Restore _cycles / _worlds_simulated_total from persisted state.
