@@ -92,6 +92,8 @@ class DecisionTrace:
     capabilities_k: Optional[Dict] = None
     # P1: Per-term breakdown of J(τ) commitment score
     j_term_breakdown: Optional[Dict[str, float]] = None
+    # Selection instrumentation (Phase 1, non-behavioral): WHY this intent won.
+    selection_decision: Optional[Dict] = None
 
     # ── Inquiry Stream / Ω Operator trace fields ────────────────────────────
     inquiry_skipped: bool = False
@@ -235,6 +237,7 @@ class DecisionTrace:
             "belief_state": self.belief_state,
             "capabilities_k": self.capabilities_k,
             "j_term_breakdown": self.j_term_breakdown,
+            "selection_decision": self.selection_decision,
             # Inquiry fields
             "inquiry_skipped": self.inquiry_skipped,
             "selected_question": self.selected_question,
@@ -301,6 +304,14 @@ class PipelineConfig:
     experience_index_interval: int = 1
     # Timelock configuration
     timelock_window_cycles: int = 3
+    # Selection policy (A/B experiment, default = control/byte-identical):
+    #   "control"                   — current scoring (Ω blend only)
+    #   "mission_progress"          — damp the inquiry blend by the best
+    #                                 executable candidate's mission progress
+    #   "mission_progress_readiness"— as above, but only when execution is
+    #                                 READY (a high-confidence executable
+    #                                 candidate with positive progress exists)
+    selection_policy: str = "control"
     # Deterministic execution seed
     deterministic_seed: Optional[int] = None
     # Runtime mode (v7 K): "fast" skips expensive advisory layers (counter-

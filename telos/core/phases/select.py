@@ -78,6 +78,55 @@ class SelectPhase(Phase):
             council_signals=council_signals,
         )
 
+    def _apply_selection_policy(self, pipeline, ctx, blend: float) -> float:
+        """A/B selection policy (default control = byte-identical).
+
+        Adds mission-progress awareness to the inquiry blend. Inquiry should
+        win when information is genuinely required; execution should win when
+        the system already has enough information to act. The adjustment is
+        BOUNDED (at most a 0.6 blend reduction) and only applies when an
+        executable candidate has positive projected mission progress.
+
+        Args:
+            pipeline: the pipeline (reads config.selection_policy + the
+                optional `_mission_progress_fn` hook).
+            ctx: the phase context (reads ctx.intents).
+            blend: the raw Ω blend.
+
+        Returns:
+            The effective blend to use.
+        """
+        ctx._inquiry_blend_effective = blend
+        policy = getattr(getattr(pipeline, 'config', None),
+                         'selection_policy', 'control')
+        if policy == 'control':
+            return blend
+        hook = getattr(pipeline, '_mission_progress_fn', None)
+        if hook is None:
+            return blend
+        from telos.core.decision.selection_trace import (
+            is_inquiry_intent, mission_progress,
+        )
+        best = 0.0
+        ready = False
+        for intent, _score in (getattr(ctx, 'intents', None) or []):
+            if is_inquiry_intent(intent):
+                continue
+            p = mission_progress(pipeline, ctx, intent)
+            if p is None:
+                continue
+            if p > best:
+                best = p
+            if p > 0 and float(getattr(intent, 'confidence', 0.0) or 0.0) >= 0.8:
+                ready = True
+        if best <= 0.0:
+            return blend
+        if policy == 'mission_progress_readiness' and not ready:
+            return blend
+        effective = blend * (1.0 - 0.6 * min(1.0, best))
+        ctx._inquiry_blend_effective = effective
+        return effective
+
     def execute(self, pipeline, ctx: PhaseContext) -> None:
         # ── Phase 0: Compute tripartite U from SELECT-phase data (Change 3) ──
         # This replaces the stale ACT-phase values that were previously consumed here
@@ -170,6 +219,7 @@ class SelectPhase(Phase):
                     f"-> {blend:.3f} (curiosity={curiosity_state['curiosity_level']:.2f})"
                 )
             
+            blend = self._apply_selection_policy(pipeline, ctx, blend)
             ctx.inquiry_blend = blend
 
             # ── Change 2: Per-axis modulation ──
