@@ -21,9 +21,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-# Novelty band: tasks below this are already well-practised (skip); tasks above
-# it are too far out (defer until their prerequisites are learned).
+# Novelty FLOOR: tasks below this are already well-practised (skip). Novelty
+# has no ceiling — never-seen tasks are always eligible.
 ZPD_LOW = 0.25
+# Difficulty BAND: once a competence level is known, tasks more than this far
+# beyond it are deferred (the classic zone of proximal development). This is
+# the ceiling that belongs to DIFFICULTY, not novelty — applying it to novelty
+# deferred every hard task and left only the easy ones (or vice versa).
+ZPD_BAND = 0.6
+# Retained for backward compatibility: the historical single-ceiling name.
 ZPD_HIGH = 0.9
 
 
@@ -31,9 +37,17 @@ ZPD_HIGH = 0.9
 class CurriculumTask:
     """One practice task derived from a knowledge gap.
 
+    IMPORTANT (novelty != difficulty): these are INDEPENDENT axes and must be
+    supplied independently. Difficulty is "how far beyond current competence";
+    novelty is "how little experience covers this". A task can be hard AND
+    unpractised (novelty high, difficulty high) or easy AND unpractised. Deriving
+    one from the other (e.g. ``novelty = 1 - difficulty``) is a category error:
+    it classifies the HARDEST tasks as "already learned" and silently drops them
+    from every practice frontier.
+
     Attributes:
         task_id: stable id.
-        kind: source kind (theory_gap / curiosity / under_visited).
+        kind: source kind (theory_gap / curiosity / under_visited / practice).
         description: human-readable task.
         novelty: 0..1 (higher = less covered by experience).
         difficulty: 0..1 (higher = further from current competence).
@@ -65,17 +79,18 @@ class CurriculumTask:
 class Curriculum:
     """Deterministic, novelty-ordered task generator."""
 
-    def __init__(self, zpd_low: float = ZPD_LOW, zpd_high: float = ZPD_HIGH,
+    def __init__(self, zpd_low: float = ZPD_LOW, zpd_band: float = ZPD_BAND,
                  max_tasks: int = 20):
         """Construct a curriculum.
 
         Args:
-            zpd_low: novelty below which a task is already learned.
-            zpd_high: novelty above which a task is deferred.
+            zpd_low: novelty floor below which a task is already mastered.
+            zpd_band: difficulty band above current competence within which a
+                task is attempted (the ZPD ceiling).
             max_tasks: bound on retained tasks.
         """
         self.zpd_low = zpd_low
-        self.zpd_high = zpd_high
+        self.zpd_band = zpd_band
         self.max_tasks = max(1, max_tasks)
         self._tasks: Dict[str, CurriculumTask] = {}
 
@@ -92,6 +107,36 @@ class Curriculum:
                 key=lambda t: (t.novelty, t.task_id),
             )[0]
             self._tasks.pop(worst.task_id, None)
+
+    def check_independence(self, tolerance: float = 0.02) -> None:
+        """Assert novelty is not merely ``1 - difficulty`` across the set.
+
+        A single task can coincidentally satisfy ``novelty == 1 - difficulty``
+        (e.g. both 0.5). The category error is a *whole set* whose novelty is
+        the complement of its difficulty — which reclassifies the hardest tasks
+        as already-learned. Detecting the pattern, not one point, avoids false
+        positives while still failing loud on the real bug (Λ2.3).
+
+        Args:
+            tolerance: per-task absolute tolerance for the complement relation.
+
+        Raises:
+            ValueError: when every task's novelty is the complement of its
+                difficulty (the derived axis error).
+        """
+        if len(self._tasks) < 2:
+            return
+        matches = sum(
+            1 for t in self._tasks.values()
+            if abs(t.novelty - (1.0 - t.difficulty)) <= tolerance
+        )
+        if matches == len(self._tasks):
+            raise ValueError(
+                "curriculum novelty is the complement of difficulty for every "
+                "task — novelty and difficulty are independent axes; pass both "
+                "explicitly (novelty = how little experience covers the task, "
+                "difficulty = how far beyond current competence it is)"
+            )
 
     def from_theory_gaps(self, hypotheses: List[Dict[str, object]],
                          min_novelty: float = ZPD_LOW) -> int:
@@ -158,54 +203,100 @@ class Curriculum:
                 continue
             coverage = float(s.get("coverage", 0.0) or 0.0)
             novelty = max(0.0, min(1.0, 1.0 - coverage))
+            # Difficulty is a SEPARATE input: an under-visited situation is not
+            # automatically hard. Callers may supply an explicit difficulty
+            # (e.g. from a competence gap); absent that, this signal carries no
+            # difficulty information, so it is recorded as unknown (None ->
+            # treated as the midpoint by ZPD_band consumers).
+            difficulty = s.get("difficulty")
+            difficulty = (max(0.0, min(1.0, float(difficulty)))
+                          if difficulty is not None else 0.5)
             self.add(CurriculumTask(
                 task_id=f"sig_{sid}",
                 kind="under_visited",
                 description=str(s.get("description", f"Practice {sid}")),
                 novelty=novelty,
-                difficulty=novelty,
+                difficulty=difficulty,
                 metadata={"coverage": coverage},
             ))
             added += 1
+        self.check_independence()
         return added
 
-    def frontier(self) -> List[CurriculumTask]:
-        """Return tasks in the zone of proximal development, easiest first.
+    def frontier(self, current_competence: float = 0.0) -> List[CurriculumTask]:
+        """Return actionable tasks in the zone of proximal development.
+
+        Two INDEPENDENT bands decide eligibility (see CurriculumTask's
+        novelty-vs-difficulty note):
+
+          - novelty FLOOR (zpd_low): skip what is already mastered. Novelty has
+            no ceiling — a task you have never seen is eligible no matter how
+            novel it is.
+          - difficulty CEILING (zpd_high): defer what is too far beyond current
+            competence. With no competence supplied (the default) the ceiling
+            is not applied, because there is nothing to compare against.
+
+        Ordering is easiest-first so each task's prerequisites come before it.
+
+        Args:
+            current_competence: the learner's competence in [0, 1]; when > 0 the
+                ZPD_BAND ceiling defers tasks beyond competence + band.
 
         Returns:
-            Ordered list of actionable tasks (prerequisites satisfied by
-            ordering — easiest first).
+            Ordered list of actionable tasks (easiest first).
         """
+        ceiling = None
+        if current_competence > 0.0:
+            ceiling = min(1.0, current_competence + self.zpd_band)
         eligible = [
             t for t in self._tasks.values()
-            if self.zpd_low <= t.novelty <= self.zpd_high
+            if t.novelty >= self.zpd_low
+            and (ceiling is None or t.difficulty <= ceiling)
         ]
-        eligible.sort(key=lambda t: (t.difficulty, t.novelty, t.task_id))
+        eligible.sort(key=lambda t: (t.difficulty, -t.novelty, t.task_id))
         return eligible
 
-    def deferred(self) -> List[CurriculumTask]:
-        """Return tasks too novel to attempt yet (above the ZPD ceiling).
+    def deferred(self, current_competence: float = 0.0) -> List[CurriculumTask]:
+        """Return tasks deliberately not attempted yet.
+
+        A task is deferred when it is already mastered (novelty below the
+        floor) OR — once a competence level is supplied — when it lies beyond
+        the zone of proximal development.
+
+        Args:
+            current_competence: the learner's competence in [0, 1].
 
         Returns:
-            Ordered list of deferred tasks (most novel first).
+            Ordered list of deferred tasks (hardest first).
         """
-        out = [t for t in self._tasks.values() if t.novelty > self.zpd_high]
-        out.sort(key=lambda t: (-t.novelty, t.task_id))
+        ceiling = None
+        if current_competence > 0.0:
+            ceiling = min(1.0, current_competence + self.zpd_band)
+        out = [
+            t for t in self._tasks.values()
+            if t.novelty < self.zpd_low
+            or (ceiling is not None and t.difficulty > ceiling)
+        ]
+        out.sort(key=lambda t: (-t.difficulty, t.task_id))
         return out
 
-    def stats(self) -> Dict[str, int]:
+    def stats(self, current_competence: float = 0.0) -> Dict[str, int]:
         """Return task counts by band.
+
+        Args:
+            current_competence: the learner's competence in [0, 1] (passed
+                through to frontier/deferred when > 0).
 
         Returns:
             Dict with total/frontier/deferred/learned counts.
         """
         return {
             "total": len(self._tasks),
-            "frontier": len(self.frontier()),
-            "deferred": len(self.deferred()),
+            "frontier": len(self.frontier(current_competence)),
+            "deferred": len(self.deferred(current_competence)),
             "learned": sum(1 for t in self._tasks.values()
                            if t.novelty < self.zpd_low),
         }
 
 
-__all__ = ["Curriculum", "CurriculumTask", "ZPD_LOW", "ZPD_HIGH"]
+__all__ = ["Curriculum", "CurriculumTask", "ZPD_LOW", "ZPD_HIGH", "ZPD_BAND"]

@@ -33,15 +33,22 @@ from telos.core.ledger.skill_library import SkillLibrary  # noqa: E402
 
 # Deterministic synthetic task stream: each task has a true difficulty and a
 # "verification" outcome that rises as its prerequisite skill is held. No RNG.
+#
+# `novelty` is supplied EXPLICITLY and independently of difficulty: every task
+# here has never been practised, so novelty is uniformly high. Deriving it as
+# (1 - difficulty), as an earlier version did, is a category error — it made the
+# three hardest tasks look "already learned" (novelty 0.05-0.20 < ZPD_LOW) and
+# silently dropped them, so the learned arm only attempted 5 of 8 tasks and the
+# headline "5 vs 2 successes" was partly a smaller task set.
 TASKS: List[Dict[str, Any]] = [
-    {"id": "t1", "difficulty": 0.15, "requires": None},
-    {"id": "t2", "difficulty": 0.35, "requires": "t1"},
-    {"id": "t3", "difficulty": 0.50, "requires": "t2"},
-    {"id": "t4", "difficulty": 0.62, "requires": "t3"},
-    {"id": "t5", "difficulty": 0.72, "requires": "t4"},
-    {"id": "t6", "difficulty": 0.80, "requires": "t5"},
-    {"id": "t7", "difficulty": 0.88, "requires": "t6"},
-    {"id": "t8", "difficulty": 0.95, "requires": "t7"},
+    {"id": "t1", "difficulty": 0.15, "novelty": 0.95, "requires": None},
+    {"id": "t2", "difficulty": 0.35, "novelty": 0.95, "requires": "t1"},
+    {"id": "t3", "difficulty": 0.50, "novelty": 0.95, "requires": "t2"},
+    {"id": "t4", "difficulty": 0.62, "novelty": 0.95, "requires": "t3"},
+    {"id": "t5", "difficulty": 0.72, "novelty": 0.95, "requires": "t4"},
+    {"id": "t6", "difficulty": 0.80, "novelty": 0.9, "requires": "t5"},
+    {"id": "t7", "difficulty": 0.88, "novelty": 0.9, "requires": "t6"},
+    {"id": "t8", "difficulty": 0.95, "novelty": 0.9, "requires": "t7"},
 ]
 
 
@@ -75,11 +82,12 @@ def _run_learned(tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
     library = SkillLibrary(max_skills=50)
     acquisition = SkillAcquisition(library, min_outcome=0.6)
     curriculum = Curriculum()
-    # Seed the curriculum from each task's novelty (1 - difficulty).
+    # Seed the curriculum with each task's EXPLICIT novelty and difficulty —
+    # two independent axes (see TASKS). Never novelty = 1 - difficulty.
     for t in tasks:
         curriculum.add(CurriculumTask(
             task_id=t["id"], kind="practice", description=t["id"],
-            novelty=1.0 - float(t["difficulty"]), difficulty=float(t["difficulty"]),
+            novelty=float(t["novelty"]), difficulty=float(t["difficulty"]),
         ))
     ordered = [t.task_id for t in curriculum.frontier()]
     by_id = {t["id"]: t for t in tasks}
@@ -88,7 +96,15 @@ def _run_learned(tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
     successes = 0
     reuse = 0
     held: set = set()
-    for tid in ordered:
+    attempted: set = set()
+    pending = list(ordered)
+    # Attempt EVERY task, in curriculum order (easiest first). A task deferred
+    # by the ZPD ceiling at competence 0 becomes attemptable once competence
+    # grows — so re-scan the frontier as competence rises instead of freezing
+    # the first ordering (which is what silently dropped tasks before).
+    while pending:
+        tid = pending.pop(0)
+        attempted.add(tid)
         task = by_id[tid]
         outcome = _outcome(task, competence)
         outcomes.append(outcome)
