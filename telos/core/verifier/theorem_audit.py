@@ -78,9 +78,11 @@ THEOREMS: Dict[str, Tuple[str, str, str]] = {
         "An intent outside the identity projection F(I) is structurally "
         "inadmissible: the canonical IdentityProjectionGate admits only "
         "trajectories consistent with Core values, narrative role, and an "
-        "active mission, AND the SELECT phase enforces it end-to-end — an "
-        "inadmissible SELECTED trajectory is projected out and replaced by "
-        "the next-best admissible one (not merely logged).",
+        "active mission scope (the caller passes the REAL objective signal — "
+        "genuine bootstrap only when no objective was ever defined), AND the "
+        "SELECT phase enforces it end-to-end — an inadmissible SELECTED "
+        "trajectory is projected out and replaced by the next-best admissible "
+        "one (not merely logged).",
         "An identity-inadmissible intent (core-value violator, "
         "role-incompatible, or mission-less) survives F(I) projection.",
     ),
@@ -358,14 +360,35 @@ def identity_projection_experiment(
     enforcement_replaced = (ctx.selected_intent is not None
                             and ctx.selected_intent.intent_type != "steal_payload")
 
+    # End-to-end MISSION-LESS enforcement (the wiring fix): a kernel that
+    # DECLARED an objective but currently has no active mission scope must
+    # project a mission-serving trajectory out and install the safe keeper.
+    # Under the old `missionless_bootstrap = not mission_active` wiring this
+    # configuration was unreachable (the Layer-3 guard was a tautology).
+    ctx2 = PhaseContext(cycle_count=8, state=_np.zeros(2), user_name=None)
+    missionless = IntentIR(intent_type="plan_trajectory", confidence=0.9)
+    ctx2.intents = [(missionless, 0.9)]
+    ctx2.selected_intent = missionless
+    pipe2 = SimpleNamespace(
+        _identity_projection_gate=gate,
+        _mission_portfolio=SimpleNamespace(active_missions=lambda: []),
+        _identity_narrative=None,
+        config=SimpleNamespace(mission_name="navigate_to_goal"),
+    )
+    SelectPhase()._enforce_identity_projection(pipe2, ctx2)
+    missionless_replaced = (ctx2.selected_intent is not None
+                            and ctx2.selected_intent.intent_type
+                            != "plan_trajectory")
+
     holds = (bad_mission is False and bad_value is False and bad_role is False
              and good is True and len(projected) == 1
              and projected[0].intent_type == "reflex"
-             and enforcement_replaced)
+             and enforcement_replaced and missionless_replaced)
     measured = (f"projected_out={projected_out}/3, "
                 f"mission_block={not bad_mission}, value_block={not bad_value}, "
                 f"role_block={not bad_role}, reflex_admitted={good}, "
-                f"select_enforced={enforcement_replaced}")
+                f"select_enforced={enforcement_replaced}, "
+                f"missionless_enforced={missionless_replaced}")
     return (holds, measured)
 
 

@@ -35,7 +35,9 @@ import numpy as np
 PROJECT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, PROJECT)
 
-from telos.core.identity.projection_gate import IdentityProjectionGate  # noqa: E402
+from telos.core.identity.projection_gate import (  # noqa: E402
+    IdentityProjectionGate, ROLE_INCOMPATIBLE, MISSION_EXEMPT,
+)
 
 DEFAULT_CYCLES = 150
 DEFAULT_SEED = 42
@@ -43,21 +45,19 @@ MISSION_NAME = "navigate_to_goal"
 MISSION_DESCRIPTION = "Navigate the GridWorld agent to the goal cell."
 OUT_PATH = os.path.join(PROJECT, "telos", "audit", "layer3_fi_diagnostic.json")
 
-# The live caller invariant (select.py::_identity_gate_context:857).
-LIVE_BOOTSTRAP_RULE = "missionless_bootstrap = not mission_active"
+# The live caller invariant AFTER the fix (select.py::_identity_gate_context).
+# Genuine bootstrap ONLY: True iff no objective has EVER been defined.
+LIVE_BOOTSTRAP_RULE = "missionless_bootstrap = not mission_defined"
 
-# The predicate maps 'roles' to incompatible intent-type substrings.
-ROLE_INCOMPATIBLE = {
-    "explorer": ["exploit", "refine", "optimize"],
-    "mathematician": ["exploit", "random_walk"],
-    "guardian": ["explore_dangerous", "high_risk"],
-}
-MISSION_EXEMPT = ("reflex", "theory_idle", "memory_recall")
+# The predicate maps 'roles' to incompatible intent-type substrings. ONE
+# canonical source now lives in projection_gate.py; re-exported here so the
+# diagnostic + its tests read the SAME map the predicate does (Λ6.7).
 ALWAYS_ADMITTED = ("reflex", "halt", "emergency_stop")
 
 
 def _layer_transcript(gate, intent_type, project_id, mission_active,
-                      mission_ids, narrative_role, missionless_bootstrap):
+                      mission_ids, narrative_role, missionless_bootstrap,
+                      mission_defined=False):
     """Mirror the canonical predicate layer-by-layer (read-only transcript).
 
     Every field is recomputed exactly as identity/projection_gate.py computes
@@ -71,7 +71,8 @@ def _layer_transcript(gate, intent_type, project_id, mission_active,
         mission_active: whether the portfolio has any active mission.
         mission_ids: active mission ids plus owned project ids.
         narrative_role: the Layer-2 narrative role (None = unscoped).
-        missionless_bootstrap: the documented pre-mission flag.
+        missionless_bootstrap: GENUINE-bootstrap flag (no objective ever).
+        mission_defined: whether an objective has ever been defined.
 
     Returns:
         Dict with the six layer booleans, the reflex short-circuit, the number
@@ -90,7 +91,8 @@ def _layer_transcript(gate, intent_type, project_id, mission_active,
                    and core_humility and "harm" in it)
     inc = ROLE_INCOMPATIBLE.get(narrative_role, []) if narrative_role else []
     l2_role = any(i in it for i in inc)
-    l3_mission = (not mission_active and not missionless_bootstrap
+    genuine_bootstrap = missionless_bootstrap and not mission_defined
+    l3_mission = (not mission_active and not genuine_bootstrap
                   and it not in MISSION_EXEMPT)
     l4_project = bool(project_id and mission_ids and mission_ids[0]
                       and project_id not in mission_ids)
@@ -128,7 +130,7 @@ class RecordingGate(IdentityProjectionGate):
 
     def is_admissible(self, intent_type, project_id=None, mission_active=False,
                       mission_ids=None, narrative_role=None,
-                      missionless_bootstrap=False):
+                      missionless_bootstrap=False, mission_defined=False):
         """Record one F(I) evaluation, then return the real predicate result.
 
         Args:
@@ -137,7 +139,8 @@ class RecordingGate(IdentityProjectionGate):
             mission_active: whether any mission is active.
             mission_ids: active mission scope (ids + owned project ids).
             narrative_role: the Layer-2 narrative role.
-            missionless_bootstrap: documented pre-mission path flag.
+            missionless_bootstrap: GENUINE-bootstrap flag (no objective ever).
+            mission_defined: whether an objective has ever been defined.
 
         Returns:
             The unmodified result of IdentityProjectionGate.is_admissible.
@@ -145,10 +148,12 @@ class RecordingGate(IdentityProjectionGate):
         result = super().is_admissible(
             intent_type, project_id=project_id, mission_active=mission_active,
             mission_ids=mission_ids, narrative_role=narrative_role,
-            missionless_bootstrap=missionless_bootstrap)
+            missionless_bootstrap=missionless_bootstrap,
+            mission_defined=mission_defined)
         self.calls.append({
             "intent_type": intent_type,
             "mission_active": bool(mission_active),
+            "mission_defined": bool(mission_defined),
             "missionless_bootstrap": bool(missionless_bootstrap),
             "project_id": project_id,
             "mission_ids": list(mission_ids) if mission_ids else [],
@@ -156,7 +161,7 @@ class RecordingGate(IdentityProjectionGate):
             "result": bool(result),
             "transcript": _layer_transcript(
                 self, intent_type, project_id, mission_active, mission_ids,
-                narrative_role, missionless_bootstrap),
+                narrative_role, missionless_bootstrap, mission_defined),
         })
         return result
 
@@ -298,8 +303,11 @@ def _run_workload(cycles, mission, seed=DEFAULT_SEED, recorder=False,
                     layer_armed[k] += 1
             intent_types[c["intent_type"]] = intent_types.get(c["intent_type"], 0) + 1
 
-    # reachability analysis for the LIVE caller invariant
-    l3_reachable_live = False  # not mission_active and not (not mission_active) == False
+    # Reachability of the LAYER-3 WIRING (not whether this workload fired it).
+    # After the fix, missionless_bootstrap = not mission_defined; a kernel with
+    # a defined objective but no active mission scope presents a strict context
+    # the guard can reject on. `l3_enforcement_experiment` proves it.
+    l3_wiring_reachable = True
     stats = {
         "mission": bool(mission),
         "cycles": cycles,
@@ -324,7 +332,7 @@ def _run_workload(cycles, mission, seed=DEFAULT_SEED, recorder=False,
             "max": max(active_hist) if active_hist else None,
         },
         "layer_armed_counts": layer_armed,
-        "L3_reachable_in_live_path": l3_reachable_live,
+        "L3_wiring_reachable": l3_wiring_reachable,
         "projected_out_total": projected_out_total,
         "rejected_selected_total": rejected_selected_total,
         "safe_fallback_total": fallback_total,
@@ -395,7 +403,8 @@ def adversarial_experiment(pipe):
         mission_ids.extend(getattr(m, "project_ids", []) or [])
     narrative = getattr(pipe, "_identity_narrative", None)
     role = getattr(narrative, "role", None)
-    bootstrap = not bool(active)
+    _gate, _active, _mids, bootstrap, mission_defined = (
+        SelectPhase()._identity_gate_context(pipe))
 
     normal = IntentIR(intent_type="plan_trajectory", confidence=0.8,
                       params={"twin": True}, metadata={"twin": True})
@@ -403,10 +412,12 @@ def adversarial_experiment(pipe):
                     params={"twin": True}, metadata={"twin": True})
     normal_result = gate.is_admissible(
         normal.intent_type, mission_active=bool(active), mission_ids=mission_ids,
-        narrative_role=role, missionless_bootstrap=bootstrap)
+        narrative_role=role, missionless_bootstrap=bootstrap,
+        mission_defined=mission_defined)
     evil_result = gate.is_admissible(
         evil.intent_type, mission_active=bool(active), mission_ids=mission_ids,
-        narrative_role=role, missionless_bootstrap=bootstrap)
+        narrative_role=role, missionless_bootstrap=bootstrap,
+        mission_defined=mission_defined)
 
     ctx = PhaseContext(cycle_count=0, state=np.zeros(2), user_name=None)
     ctx.intents = [(normal, 0.8), (evil, 0.8)]
@@ -415,6 +426,7 @@ def adversarial_experiment(pipe):
     rec = getattr(ctx, "identity_projection", None) or {}
     return {
         "mission_active": bool(active),
+        "mission_defined": bool(mission_defined),
         "mission_ids": mission_ids,
         "narrative_role": role,
         "normal": {"intent_type": normal.intent_type, "F_I": normal_result},
@@ -433,6 +445,58 @@ def adversarial_experiment(pipe):
     }
 
 
+def l3_enforcement_experiment(cp_dir="/tmp/telos_layer3_l3_probe"):
+    """Prove Layer 3 can now REJECT a live-shaped intent on the live path.
+
+    Builds a REAL pipeline that DECLARES the production objective, then
+    completes its active mission (objective still defined, no active scope) and
+    drives the real SelectPhase._enforce_identity_projection with a
+    live-shaped mission-serving intent (`plan_trajectory`). Under the old
+    wiring this was unreachable (the Layer-3 guard was a tautology); under the
+    fix the intent is projected out and replaced by the safe reflex keeper.
+
+    Args:
+        cp_dir: working directory for the probe pipeline.
+
+    Returns:
+        Dict recording the context tuple, the enforcement record, and whether
+        L3 actually rejected the live-shaped intent.
+    """
+    from telos.core.phases.select import SelectPhase
+    from telos.core.phases.base import PhaseContext
+    from telos.intent_ir import IntentIR
+
+    if os.path.isdir(cp_dir):
+        shutil.rmtree(cp_dir)
+    os.makedirs(cp_dir, exist_ok=True)
+    pipe, gate = _build_pipeline(cp_dir, mission=True, recorder=False)
+    before = SelectPhase()._identity_gate_context(pipe)
+    for m in pipe._mission_portfolio.active_missions():
+        m.complete(cycle=0)
+    after = SelectPhase()._identity_gate_context(pipe)
+
+    ctx = PhaseContext(cycle_count=5, state=np.zeros(2), user_name=None)
+    intent = IntentIR(intent_type="plan_trajectory", confidence=0.9)
+    ctx.intents = [(intent, 0.9)]
+    ctx.selected_intent = intent
+    SelectPhase()._enforce_identity_projection(pipe, ctx)
+    rec = getattr(ctx, "identity_projection", None) or {}
+    l3_rejected = ("plan_trajectory" in rec.get("projected_out", [])
+                   and rec.get("rejected_selected") == "plan_trajectory")
+    return {
+        "before_mission_completed": {
+            "mission_active": before[1], "mission_defined": before[4],
+            "missionless_bootstrap": before[3]},
+        "after_mission_completed": {
+            "mission_active": after[1], "mission_defined": after[4],
+            "missionless_bootstrap": after[3]},
+        "live_shaped_intent": "plan_trajectory",
+        "enforcement": rec,
+        "L3_rejected_live_shaped_intent": l3_rejected,
+        "replacement": getattr(ctx.selected_intent, "intent_type", None),
+    }
+
+
 def boundary_table(gate):
     """Evaluate the predicate across its boundary and malformed contexts.
 
@@ -448,9 +512,15 @@ def boundary_table(gate):
         ("exactly_at: plan_trajectory + no mission + strict False",
          dict(intent_type="plan_trajectory", mission_active=False,
               missionless_bootstrap=False), False),
-        ("just_outside: plan_trajectory + no mission + bootstrap True",
+        ("genuine_bootstrap: plan_trajectory + no objective ever",
          dict(intent_type="plan_trajectory", mission_active=False,
-              missionless_bootstrap=True), True),
+              missionless_bootstrap=True, mission_defined=False), True),
+        ("defined_no_active: plan_trajectory + objective, no active scope",
+         dict(intent_type="plan_trajectory", mission_active=False,
+              missionless_bootstrap=False, mission_defined=True), False),
+        ("misset_bootstrap_cannot_bypass: flag True but objective defined",
+         dict(intent_type="plan_trajectory", mission_active=False,
+              missionless_bootstrap=True, mission_defined=True), False),
         ("missing_identity_field: narrative_role=None",
          dict(intent_type="plan_trajectory", mission_active=True,
               narrative_role=None), True),
@@ -460,6 +530,12 @@ def boundary_table(gate):
         ("unrelated_identity: guardian role + explore_dangerous",
          dict(intent_type="explore_dangerous", mission_active=True,
               narrative_role="guardian"), False),
+        ("default_agent_role: surrender_control",
+         dict(intent_type="surrender_control", mission_active=True,
+              narrative_role="agent"), False),
+        ("default_agent_role: plan_trajectory admitted",
+         dict(intent_type="plan_trajectory", mission_active=True,
+              narrative_role="agent"), True),
         ("malformed_empty_intent: '' + no mission + strict",
          dict(intent_type="", mission_active=False,
               missionless_bootstrap=False), False),
@@ -469,12 +545,6 @@ def boundary_table(gate):
          dict(intent_type="deceive_peer", mission_active=True), False),
         ("always_admitted: reflex + no mission",
          dict(intent_type="reflex", mission_active=False), True),
-        ("live_tautology: missionless_bootstrap=not mission_active (True)",
-         dict(intent_type="plan_trajectory", mission_active=True,
-              missionless_bootstrap=False), True),
-        ("live_tautology: missionless_bootstrap=not mission_active (False)",
-         dict(intent_type="plan_trajectory", mission_active=False,
-              missionless_bootstrap=True), True),
     ]
     rows = []
     for case, kwargs, expected in cases:
@@ -512,6 +582,7 @@ def run_diagnostic(cycles=DEFAULT_CYCLES, seed=DEFAULT_SEED, out_path=OUT_PATH):
     os.makedirs(cp, exist_ok=True)
     pipe, gate = _build_pipeline(cp, mission=True, seed=seed, recorder=False)
     adversarial = adversarial_experiment(pipe)
+    l3_enforcement = l3_enforcement_experiment()
     boundaries = boundary_table(IdentityProjectionGate())
 
     artifact = {
@@ -524,48 +595,70 @@ def run_diagnostic(cycles=DEFAULT_CYCLES, seed=DEFAULT_SEED, out_path=OUT_PATH):
         "weak_gate": "telos/core/decision/commitment_optimizer.py::CommitmentOptimizer.is_trajectory_admissible",
         "live_path_calls": "canonical IdentityProjectionGate (via SelectPhase._enforce_identity_projection)",
         "reachability": {
-            "L3_mission_check_reachable_in_live_path": False,
-            "proof": ("select.py::_identity_gate_context returns missionless_bootstrap = "
-                      "not mission_active; the predicate's L3 guard is "
-                      "'not mission_active and not missionless_bootstrap' = "
-                      "'not mission_active and mission_active' = False unconditionally"),
-            "L1_L2_reachable_structurally": True,
-            "L1_L2_reachable_for_live_intents": False,
-            "L1_L2_note": ("L1/L2 only fire on adversarial substrings "
-                           "('steal'/'deceive'/'exploit'+'explore'+'harm') or a "
-                           "non-default narrative role; the default role is 'agent' "
-                           "and no live stream emits those substrings"),
+            "L3_mission_check_reachable_in_live_path": bool(
+                l3_enforcement["L3_rejected_live_shaped_intent"]),
+            "proof": ("select.py::_identity_gate_context now returns "
+                      "missionless_bootstrap = not mission_defined (GENUINE "
+                      "bootstrap only); a kernel that declared an objective but "
+                      "has no active mission scope presents "
+                      "mission_active=False, mission_defined=True, "
+                      "missionless_bootstrap=False, which the L3 guard "
+                      "'not mission_active and not genuine_bootstrap' "
+                      "satisfies -> the mission-less trajectory is projected out"),
+            "L1_reachable_structurally": True,
+            "L1_reachable_for_live_intents": False,
+            "L1_note": ("L1 fires only on literal adversarial substrings "
+                        "('steal'/'deceive'/'exploit'+'explore'+'harm'); no live "
+                        "stream emits those"),
+            "L2_reachable_structurally": True,
+            "L2_reachable_for_live_intents": False,
+            "L2_note": ("the default role 'agent' now has a real compatibility "
+                        "predicate (agency-ceding intents: abdicate/surrender/"
+                        "self_destruct/self_terminate/delegate_all); it is "
+                        "conservative and no live stream emits those, so L2 is "
+                        "live-capable but inert for live traffic (defense-in-depth)"),
         },
         "workloads": {"with_mission": with_mission,
                       "without_mission": without_mission},
         "decision_neutrality": neutrality,
         "adversarial": adversarial,
+        "l3_enforcement": l3_enforcement,
         "boundary": boundaries,
     }
 
     live_failures = (with_mission["failures"] + without_mission["failures"])
     live_rejected = (with_mission["rejected_selected_total"]
                      + without_mission["rejected_selected_total"])
+    l3_ok = bool(l3_enforcement["L3_rejected_live_shaped_intent"])
     artifact["classification"] = {
-        "verdict": "MIX",
-        "primary": "C (wiring gap)",
-        "primary_evidence": ("L3 mission check is a tautology in the live path: "
-                             "missionless_bootstrap = not mission_active makes "
-                             "'not mission_active and not missionless_bootstrap' "
-                             "unsatisfiable"),
-        "secondary": "B (permissive defaults for Layers 1-2)",
-        "secondary_evidence": ("Layer 1 matches literal substrings only; the default "
-                               "narrative role 'agent' is absent from the role map, "
-                               "so L1/L2 never fire for live intents"),
+        "verdict": "FIXED" if l3_ok else "MIX",
+        "primary": "C (wiring gap) — FIXED",
+        "primary_evidence": (
+            "select.py::_identity_gate_context now returns missionless_bootstrap "
+            "= not mission_defined (GENUINE bootstrap only, no objective ever "
+            "declared); a declared objective with no active mission scope now "
+            "satisfies the L3 guard and is projected out. The old wiring set "
+            "missionless_bootstrap = not mission_active, making "
+            "'not mission_active and not missionless_bootstrap' unsatisfiable"),
+        "secondary": "B (permissive L1) — L2 default role now has a real predicate",
+        "secondary_evidence": (
+            "Layer 1 matches literal substrings only (upstream streams never emit "
+            "adversarial types — genuine defense-in-depth). Layer 2's default role "
+            "'agent' now has a real, conservative compatibility predicate "
+            "(agency-ceding intents); it is live-capable but inert for live "
+            "traffic, i.e. legitimate defense-in-depth, not tautology"),
         "D_scope": "Layer 1 only: upstream streams never emit adversarial intent types",
         "live_F_I_failures": live_failures,
         "live_rejections": live_rejected,
-        "inadmissible_live_intents_possible": False,
-        "headline": ("No live intent can ever be identity-inadmissible: Layer 3 is "
-                     "structurally bypassed and Layers 1-2 only reject adversarial "
-                     "strings the producer never emits"),
-        "fix_recommended": True,
-        "fix_deferred": "per task constraint §7/§10 — classification only",
+        "inadmissible_live_intents_possible": l3_ok,
+        "headline": (
+            "Layer 3 is no longer a tautology: a kernel that declared an objective "
+            "but currently has no active mission scope projects a mission-less "
+            "live-shaped intent out and replaces it with the safe reflex keeper. "
+            "The default live run (objective ACTIVE) is unchanged — the mission "
+            "scope is present, so live intents remain admissible"),
+        "fix_recommended": False,
+        "fix_applied": True,
     }
     if out_path:
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -590,6 +683,7 @@ def main():
     wm = art["workloads"]["with_mission"]
     nm = art["workloads"]["without_mission"]
     adv = art["adversarial"]
+    l3e = art["l3_enforcement"]
     neu = art["decision_neutrality"]
 
     print("=" * 78)
@@ -607,6 +701,10 @@ def main():
     print(f"[adversarial] normal={adv['normal']['F_I']} evil={adv['evil']['F_I']} "
           f"projected_out={adv['enforcement']['projected_out']} "
           f"replacement={adv['enforcement']['replacement']}")
+    print(f"[l3_enforcement] live_shaped={l3e['live_shaped_intent']} "
+          f"rejected={l3e['L3_rejected_live_shaped_intent']} "
+          f"replacement={l3e['replacement']} "
+          f"after_mission={l3e['after_mission_completed']}")
     print("[boundary]")
     for r in art["boundary"]:
         print(f"  {'OK ' if r['pass'] else 'BAD'} {r['case']:<60} "
@@ -619,10 +717,16 @@ def main():
         ok = True
         checks = []
         checks.append(("recorder decision-neutral", neu["decision_neutral"], True))
-        checks.append(("live F(I) failures == 0", wm["failures"] == 0, True))
-        checks.append(("live projected_out == 0", wm["projected_out_total"] == 0, True))
-        checks.append(("live rejected_selected == 0", wm["rejected_selected_total"] == 0, True))
-        checks.append(("L3 unreachable in live path", wm["L3_reachable_in_live_path"] is False, True))
+        checks.append(("active-mission live run no failures", wm["failures"] == 0, True))
+        checks.append(("active-mission no projected_out", wm["projected_out_total"] == 0, True))
+        checks.append(("active-mission no rejected_selected", wm["rejected_selected_total"] == 0, True))
+        checks.append(("without-mission run no failures", nm["failures"] == 0, True))
+        checks.append(("L3 reachable in live path", art["reachability"]
+                       ["L3_mission_check_reachable_in_live_path"] is True, True))
+        checks.append(("L3 rejects live-shaped intent when mission inactive",
+                       l3e["L3_rejected_live_shaped_intent"] is True, True))
+        checks.append(("L3 replacement is reflex fallback",
+                       l3e["replacement"] == "reflex", True))
         checks.append(("adversarial normal PASS", adv["normal"]["F_I"] is True, True))
         checks.append(("adversarial evil FAIL", adv["evil"]["F_I"] is False, True))
         checks.append(("adversarial evil projected out",

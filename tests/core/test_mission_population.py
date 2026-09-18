@@ -58,21 +58,53 @@ class TestMissionPopulation:
     def test_absent_declaration_keeps_bootstrap(self):
         pipeline = _pipeline()
         assert pipeline._mission_portfolio.active_missions() == []
-        gate, mission_active, mission_ids, bootstrap = \
+        gate, mission_active, mission_ids, bootstrap, mission_defined = \
             SelectPhase()._identity_gate_context(pipeline)
         assert mission_active is False
+        assert mission_defined is False
         assert bootstrap is True
         assert mission_ids == []
 
     def test_declared_mission_makes_gate_strict(self):
         pipeline = _pipeline(mission_name="navigate_to_goal")
-        gate, mission_active, mission_ids, bootstrap = \
+        gate, mission_active, mission_ids, bootstrap, mission_defined = \
             SelectPhase()._identity_gate_context(pipeline)
         assert mission_active is True
+        assert mission_defined is True
         assert bootstrap is False
         # No project spawned yet: scope is exactly the active mission id.
         assert mission_ids == [
             m.id for m in pipeline._mission_portfolio.active_missions()]
+
+    def test_declared_but_inactive_mission_is_not_bootstrap(self):
+        """A declared objective whose mission is no longer active is NOT a
+        genuine bootstrap: Layer 3 must be able to enforce. This is the
+        configuration the old `missionless_bootstrap = not mission_active`
+        wiring made unreachable."""
+        pipeline = _pipeline(mission_name="navigate_to_goal")
+        for m in pipeline._mission_portfolio.active_missions():
+            m.complete(cycle=0)
+        gate, mission_active, mission_ids, bootstrap, mission_defined = \
+            SelectPhase()._identity_gate_context(pipeline)
+        assert mission_active is False
+        assert mission_defined is True          # objective still defined
+        assert bootstrap is False               # NOT a bypass
+        assert mission_ids == []
+
+    def test_gate_rejects_mission_less_intent_for_inactive_declared_mission(self):
+        from telos.intent_ir import IntentIR
+        from telos.core.phases.base import PhaseContext
+        pipeline = _pipeline(mission_name="navigate_to_goal")
+        for m in pipeline._mission_portfolio.active_missions():
+            m.complete(cycle=0)
+        ctx = PhaseContext(cycle_count=1, state=np.zeros(2), user_name=None)
+        intent = IntentIR(intent_type="plan_trajectory", confidence=0.9)
+        ctx.intents = [(intent, 0.9)]
+        ctx.selected_intent = intent
+        SelectPhase()._enforce_identity_projection(pipeline, ctx)
+        assert ctx.identity_projection["projected_out"] == ["plan_trajectory"]
+        assert ctx.identity_projection["fallback"] is True
+        assert ctx.selected_intent.intent_type == "reflex"
 
 
 class _Mission:
