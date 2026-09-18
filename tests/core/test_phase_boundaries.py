@@ -92,3 +92,14 @@ class TestPhaseBoundaryIntegration:
         result = pipeline.execute(np.array([1.0, 0.0]))
         assert result.health_score >= 0.0
         assert result.pipeline_phase is not None
+
+    def test_identity_projection_enforced_in_select(self, pipeline):
+        """The canonical F(I) gate is wired and its enforcement record is
+        written on every cycle (the root change: it no longer only logs)."""
+        result = pipeline.execute(np.array([1.0, 0.0]))
+        trace = result.decision_trace
+        assert trace.identity_projection is not None
+        # This mock pipeline declares no missions: the documented bootstrap
+        # path applies and normal intents are admitted (not collapsed).
+        assert trace.identity_projection["missionless_bootstrap"] is True
+        assert trace.identity_projection["projected_out"] == []

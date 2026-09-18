@@ -100,6 +100,10 @@ class DecisionTrace:
     council_gate: Optional[Dict] = None
     # Mission-policy instrumentation (non-behavioral): FW DI threshold source.
     policy_trace: Optional[Dict] = None
+    # F(I) identity-projection enforcement record (Λ4.1 × T8): candidates
+    # projected out by the canonical gate, any selected-intent replacement,
+    # and whether the safe fallback fired.
+    identity_projection: Optional[Dict] = None
 
     # ── Inquiry Stream / Ω Operator trace fields ────────────────────────────
     inquiry_skipped: bool = False
@@ -247,6 +251,7 @@ class DecisionTrace:
             "act_gate": self.act_gate,
             "council_gate": self.council_gate,
             "policy_trace": self.policy_trace,
+            "identity_projection": self.identity_projection,
             # Inquiry fields
             "inquiry_skipped": self.inquiry_skipped,
             "selected_question": self.selected_question,

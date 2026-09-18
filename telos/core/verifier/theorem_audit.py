@@ -76,9 +76,11 @@ THEOREMS: Dict[str, Tuple[str, str, str]] = {
     "T8-identity-projection": (
         "Identity Projection (F(I))",
         "An intent outside the identity projection F(I) is structurally "
-        "inadmissible: the real IdentityProjectionGate admits only "
+        "inadmissible: the canonical IdentityProjectionGate admits only "
         "trajectories consistent with Core values, narrative role, and an "
-        "active mission.",
+        "active mission, AND the SELECT phase enforces it end-to-end — an "
+        "inadmissible SELECTED trajectory is projected out and replaced by "
+        "the next-best admissible one (not merely logged).",
         "An identity-inadmissible intent (core-value violator, "
         "role-incompatible, or mission-less) survives F(I) projection.",
     ),
@@ -302,11 +304,15 @@ def kintsugi_experiment() -> Tuple[bool, str]:
 
 def identity_projection_experiment(
         gate: Optional[Any] = None) -> Tuple[bool, str]:
-    """T8 — the real F(I) gate projects identity-inadmissible intents out.
+    """T8 — the real F(I) gate projects identity-inadmissible intents out, and
+    the SELECT phase ENFORCES the projection end-to-end.
 
     Drives the canonical IdentityProjectionGate: a mission-less trajectory, a
     core-value violator, and a role-incompatible trajectory must each be
-    rejected, while a reflex intent passes.
+    rejected, while a reflex intent passes. It then drives the SAME gate
+    through SelectPhase._enforce_identity_projection to prove an
+    identity-inadmissible SELECTED trajectory is projected out and replaced by
+    the next-best admissible one (the old behaviour only logged it).
 
     Args:
         gate: optional gate override (tests inject a permissive gate to prove
@@ -316,7 +322,11 @@ def identity_projection_experiment(
         (holds, measured) tuple.
     """
     from telos.core.identity.projection_gate import IdentityProjectionGate
+    from telos.core.phases.base import PhaseContext
+    from telos.core.phases.select import SelectPhase
     from telos.intent_ir import IntentIR
+    from types import SimpleNamespace
+    import numpy as _np
 
     gate = gate if gate is not None else IdentityProjectionGate()
     bad_mission = gate.is_admissible("plan_trajectory", mission_active=False)
@@ -331,12 +341,31 @@ def identity_projection_experiment(
     ]
     projected = gate.project_intents(intents, mission_active=False)
     projected_out = len(intents) - len(projected)
+
+    # End-to-end: the canonical gate wired into SELECT must reject an
+    # inadmissible selection and pick the admissible alternative.
+    ctx = PhaseContext(cycle_count=7, state=_np.zeros(2), user_name=None)
+    inadmissible = IntentIR(intent_type="steal_payload", confidence=0.9)
+    admissible = IntentIR(intent_type="reflex", confidence=0.5)
+    ctx.intents = [(inadmissible, 0.9), (admissible, 0.5)]
+    ctx.selected_intent = inadmissible
+    pipe = SimpleNamespace(
+        _identity_projection_gate=gate,
+        _mission_portfolio=SimpleNamespace(active_missions=lambda: []),
+        _identity_narrative=None,
+    )
+    SelectPhase()._enforce_identity_projection(pipe, ctx)
+    enforcement_replaced = (ctx.selected_intent is not None
+                            and ctx.selected_intent.intent_type != "steal_payload")
+
     holds = (bad_mission is False and bad_value is False and bad_role is False
              and good is True and len(projected) == 1
-             and projected[0].intent_type == "reflex")
+             and projected[0].intent_type == "reflex"
+             and enforcement_replaced)
     measured = (f"projected_out={projected_out}/3, "
                 f"mission_block={not bad_mission}, value_block={not bad_value}, "
-                f"role_block={not bad_role}, reflex_admitted={good}")
+                f"role_block={not bad_role}, reflex_admitted={good}, "
+                f"select_enforced={enforcement_replaced}")
     return (holds, measured)
 
 

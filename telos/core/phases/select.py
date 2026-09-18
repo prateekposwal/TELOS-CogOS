@@ -128,6 +128,22 @@ class SelectPhase(Phase):
         return effective
 
     def execute(self, pipeline, ctx: PhaseContext) -> None:
+        """Run SELECT, then ENFORCE the identity projection F(I).
+
+        Enforcement is applied as a wrapper around the selection logic so it
+        covers EVERY branch (inquiry bridge, synthesis reconciliation,
+        commitment optimization, bootstrap keeper) without touching their
+        early returns. Identity is not a penalty term — an inadmissible
+        trajectory cannot be selected.
+
+        Args:
+            pipeline: the running pipeline (canonical gate + mission portfolio).
+            ctx: the phase context (reads/writes intents + selected_intent).
+        """
+        self._run_selection(pipeline, ctx)
+        self._enforce_identity_projection(pipeline, ctx)
+
+    def _run_selection(self, pipeline, ctx: PhaseContext) -> None:
         # ── Phase 0: Compute tripartite U from SELECT-phase data (Change 3) ──
         # This replaces the stale ACT-phase values that were previously consumed here
         tripartite_u = self._compute_tripartite_from_available(pipeline, ctx)
@@ -793,4 +809,144 @@ class SelectPhase(Phase):
             logger.warning(
                 f"Cycle {ctx.cycle_count}: bootstrap_navigate injected — "
                 f"no stream intents on empty knowledge state (honest self-start)"
+            )
+
+    # ── F(I) Identity Projection enforcement (Λ4.1 × theorem T8) ─────────────
+    # The canonical IdentityProjectionGate (telos/core/identity/projection_gate.py)
+    # is the SAME primitive theorem T8 measures. Before this wiring, SELECT only
+    # LOGGED the weak CommitmentOptimizer.is_trajectory_admissible result — an
+    # inadmissible trajectory was still selected. Enforcement now projects the
+    # inadmissible space out.
+
+    def _identity_gate_context(self, pipeline):
+        """Read the F(I) mission context used by the enforcement gate.
+
+        The live GridWorld kernel has no declared missions (empty portfolio).
+        Passing mission_active=False to the STRICT gate makes every non-reflex
+        intent inadmissible and would collapse selection to nothing — the
+        legitimate pre-mission (bootstrap) path. `missionless_bootstrap` keeps
+        Layers 1–2 (core values + narrative role) enforced and skips ONLY the
+        mission-existence layer, asserted here because the portfolio provably
+        has zero active missions. It is recorded on ctx, never silent.
+
+        Args:
+            pipeline: the running pipeline.
+
+        Returns:
+            Tuple (gate-or-None, mission_active, mission_ids,
+            missionless_bootstrap).
+        """
+        gate = getattr(pipeline, '_identity_projection_gate', None)
+        portfolio = getattr(pipeline, '_mission_portfolio', None)
+        active = portfolio.active_missions() if portfolio is not None else []
+        mission_active = bool(active)
+        mission_ids = [getattr(m, 'id', None) for m in active]
+        return gate, mission_active, mission_ids, not mission_active
+
+    @staticmethod
+    def _identity_fallback_intent():
+        """The always-admissible safe keeper for an empty F(I).
+
+        IdentityProjectionGate always admits reflex/halt/emergency_stop. When
+        every candidate is projected out, selecting nothing would starve the
+        act phase (the empty-selection regression); a reflex keeper is the
+        canonical safe trajectory that keeps the cycle operable and governed.
+        It is recorded (fallback=True), never silent.
+
+        Returns:
+            An IntentIR of type 'reflex'.
+        """
+        from telos.intent_ir import IntentIR
+        return IntentIR(
+            intent_type="reflex",
+            confidence=0.3,
+            params={"fallback": True, "reason": "identity_projection_empty"},
+            metadata={"stream": "identity_projection", "fallback": True},
+        )
+
+    def _enforce_identity_projection(self, pipeline, ctx: PhaseContext) -> None:
+        """Root enforcement of F(I): inadmissible trajectories are projected out.
+
+        Applied to the FINAL selection after _run_selection, so every branch is
+        covered. Two actions, in order:
+          1. Project the candidate set — inadmissible candidates are REMOVED
+             from ctx.intents (identity does not score them lower; it removes
+             them from the thinkable option space).
+          2. Enforce the selected trajectory — if ctx.selected_intent is
+             inadmissible it is rejected and the highest-weighted admissible
+             alternative is chosen (J_I(τ) = argmax_{τ ∈ F(I)} U(τ)). If no
+             admissible alternative exists, a safe reflex keeper is installed
+             so the cycle stays operable and governed.
+
+        The enforcement record is written to ctx.identity_projection on every
+        cycle the gate runs (superseding the old logging-only behaviour, which
+        remains in _run_selection as a supplementary weak-check record).
+
+        Args:
+            pipeline: the running pipeline (provides the canonical gate).
+            ctx: the phase context (reads/writes ctx.intents +
+                ctx.selected_intent).
+        """
+        gate, mission_active, mission_ids, bootstrap = self._identity_gate_context(
+            pipeline)
+        if gate is None:
+            return
+
+        narrative = getattr(pipeline, '_identity_narrative', None)
+        narrative_role = getattr(narrative, 'role', None)
+        project_id = getattr(
+            getattr(ctx, 'project_coherence', None), 'project_id', None)
+
+        def _admissible(intent) -> bool:
+            if intent is None:
+                return False
+            return gate.is_admissible(
+                intent.intent_type,
+                project_id=project_id,
+                mission_active=mission_active,
+                mission_ids=mission_ids,
+                narrative_role=narrative_role,
+                missionless_bootstrap=bootstrap,
+            )
+
+        projected_out = []
+        admissible_candidates = []
+        for intent, weight in (getattr(ctx, 'intents', None) or []):
+            if _admissible(intent):
+                admissible_candidates.append((intent, weight))
+            else:
+                projected_out.append(getattr(intent, 'intent_type', 'unknown'))
+        if projected_out:
+            ctx.intents = admissible_candidates
+
+        selected = getattr(ctx, 'selected_intent', None)
+        rejected = None
+        replacement = None
+        fallback = False
+        if selected is not None and not _admissible(selected):
+            rejected = getattr(selected, 'intent_type', 'unknown')
+            if admissible_candidates:
+                replacement = max(admissible_candidates,
+                                  key=lambda item: item[1])[0]
+            else:
+                replacement = self._identity_fallback_intent()
+                fallback = True
+            ctx.selected_intent = replacement
+
+        ctx.identity_projection = {
+            "mission_active": mission_active,
+            "missionless_bootstrap": bootstrap,
+            "projected_out": projected_out,
+            "rejected_selected": rejected,
+            "replacement": getattr(replacement, 'intent_type', None),
+            "fallback": fallback,
+        }
+
+        if rejected is not None:
+            logger.warning(
+                f"Cycle {getattr(ctx, 'cycle_count', 0)}: F(I) enforced — "
+                f"selected '{rejected}' is identity-inadmissible; projected out "
+                f"and selected '{getattr(replacement, 'intent_type', None)}'"
+                + (" (safe reflex fallback: no admissible candidate)" if fallback
+                   else "")
             )

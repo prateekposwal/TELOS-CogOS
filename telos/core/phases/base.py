@@ -171,6 +171,12 @@ class PhaseContext:
     # P1: Per-term J(τ) breakdown from commitment optimizer
     j_term_breakdown: Optional[Dict[str, float]] = None
 
+    # F(I) Identity Projection enforcement (Λ4.1 × theorem T8). Populated by
+    # SelectPhase on every cycle the canonical gate runs: which candidates the
+    # gate projected out, whether the selected intent was replaced, and whether
+    # the safe fallback fired (see select.py::_enforce_identity_projection).
+    identity_projection: Optional[Dict] = None
+
     # Session Continuity Layer
     session: SessionContinuity = field(default_factory=SessionContinuity)
     chat_history: List[Dict] = field(default_factory=list)

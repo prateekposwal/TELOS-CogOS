@@ -64,8 +64,9 @@ from telos.core.discovery.orchestrator import DiscoveryOrchestrator
 from telos.core.identity.mission import MissionPortfolio
 from telos.core.identity.mission_arbitration import MissionArbiter
 from telos.core.identity.mission_lifecycle import MissionLifecycleEngine
-from telos.core.identity.system_self import IdentityCore
+from telos.core.identity.system_self import IdentityCore, IdentityNarrative
 from telos.core.identity.identity_bridge import IdentityBridge
+from telos.core.identity.projection_gate import IdentityProjectionGate
 from telos.core.streams.implementations import TheoryStream
 from telos.core.accounting.resource_gradient import ResourceGradientTracker
 from telos.core.streams.base import CognitiveStream
@@ -382,6 +383,16 @@ class TelosV14Pipeline:
             self._theory_builder.set_promotion_hook(km.link_promoted_theory)
         self._discovery_orchestrator = DiscoveryOrchestrator()
         self._identity_core = IdentityCore()
+        # Canonical F(I) projection gate (Λ4.1 × theorem T8). The SAME
+        # primitive T8 measures is wired into the live kernel so the SELECT
+        # phase can ENFORCE admissibility (project inadmissible trajectories
+        # out) instead of merely logging them. IdentityNarrative is the
+        # mutable Layer-2 source for the narrative-role check.
+        self._identity_narrative = IdentityNarrative()
+        self._identity_projection_gate = IdentityProjectionGate(
+            identity_core=self._identity_core,
+            identity_narrative=self._identity_narrative,
+        )
         # Identity↔Knowledge wiring (Gap 1): the IdentityBridge connects the
         # MUTABLE identity layers (IdentityNarrative/IdentityState) to the
         # KnowledgeGraph + KnowledgeLinker. IdentityCore stays frozen — the

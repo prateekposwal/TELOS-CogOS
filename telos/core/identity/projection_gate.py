@@ -36,7 +36,8 @@ class IdentityProjectionGate:
 
     def is_admissible(self, intent_type: str, project_id: Optional[str] = None,
                       mission_active: bool = False, mission_ids: Optional[List[str]] = None,
-                      narrative_role: Optional[str] = None) -> bool:
+                      narrative_role: Optional[str] = None,
+                      missionless_bootstrap: bool = False) -> bool:
         """F(I) projection: is this trajectory admissible?
 
         Checks trajectory τ against all 6 identity layers:
@@ -44,12 +45,21 @@ class IdentityProjectionGate:
         2. Narrative role — is this intent compatible with who the system is?
         3. Active missions — does this serve a current mission?
         4. Project assignment — is this project still valid?
+
         Args:
             intent_type: the intent_type argument for this call.
             project_id: the project_id argument for this call.
             mission_active: the mission_active argument for this call.
             mission_ids: the mission_ids argument for this call.
             narrative_role: the narrative_role argument for this call.
+            missionless_bootstrap: DOCUMENTED pre-mission path (default False =
+                strict). When the system provably has ZERO missions in its
+                portfolio, Layer 3 has nothing to reference: the mission
+                existence check is not applicable. This flag keeps Layers 1–2
+                (core values + narrative role) enforced while skipping Layer 3
+                — it is NOT a silent bypass (the caller asserts zero active
+                missions explicitly). A system WITH missions must pass False so
+                a mission-less trajectory is correctly projected out.
         """
         if intent_type in ("reflex", "halt", "emergency_stop"):
             return True
@@ -81,8 +91,10 @@ class IdentityProjectionGate:
                 logger.debug(f"F(I) blocked {intent_type}: incompatible with role '{narrative_role}'")
                 return False
 
-        # Layer 3: Active mission check
-        if not mission_active and intent_type not in ("reflex", "theory_idle", "memory_recall"):
+        # Layer 3: Active mission check. Skipped ONLY on the documented
+        # mission-less bootstrap path (see the flag docstring above).
+        if (not mission_active and not missionless_bootstrap
+                and intent_type not in ("reflex", "theory_idle", "memory_recall")):
             logger.debug(f"F(I) blocked {intent_type}: no active mission")
             return False
 
@@ -94,11 +106,16 @@ class IdentityProjectionGate:
         return True
 
     def project_intents(self, intents: List[Any], mission_active: bool = False,
-                        mission_ids: Optional[List[str]] = None) -> List[Any]:
+                        mission_ids: Optional[List[str]] = None,
+                        missionless_bootstrap: bool = False) -> List[Any]:
         """Filter a list of intents through F(I), returning only admissible ones.
+
             Args:
+                intents: the candidate intents to project.
                 mission_active: the mission_active argument for this call.
                 mission_ids: the mission_ids argument for this call.
+                missionless_bootstrap: documented pre-mission path (see
+                    is_admissible); skips only the mission-existence layer.
         """
         admissible = []
         for intent in intents:
@@ -109,7 +126,8 @@ class IdentityProjectionGate:
                 intent_type = intent[0].intent_type
 
             if self.is_admissible(intent_type, mission_active=mission_active,
-                                 mission_ids=mission_ids, narrative_role=self._narrative.role):
+                                 mission_ids=mission_ids, narrative_role=self._narrative.role,
+                                 missionless_bootstrap=missionless_bootstrap):
                 admissible.append(intent)
             else:
                 logger.info(f"F(I) projected out: {intent_type}")
