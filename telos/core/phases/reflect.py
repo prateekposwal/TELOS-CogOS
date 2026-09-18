@@ -32,6 +32,11 @@ _RECENT_CYCLES_SCAN = 20
 # Minimum times a pattern must repeat before it's flagged as "recurring"
 _RECURRING_THRESHOLD = 3
 
+# Λ4.7 retention cap: the per-cycle DI/MD/block histories are read only as
+# recent windows (`[-20:]`, `[-5:]`, `[-3:]`); bound them so a long-lived run
+# cannot grow them one float per cycle forever.
+_HISTORY_CAP = 200
+
 
 class ReflectPhase(Phase):
     name = "reflect"
@@ -52,11 +57,18 @@ class ReflectPhase(Phase):
         md = verdict.mission_drift
         self._di_history.append(di)
         self._md_history.append(md)
+        # Λ4.7: bound the rolling histories (recent-window reads).
+        if len(self._di_history) > _HISTORY_CAP:
+            del self._di_history[:-_HISTORY_CAP]
+        if len(self._md_history) > _HISTORY_CAP:
+            del self._md_history[:-_HISTORY_CAP]
 
         validators = [s.validator_name for s in verdict.signals if not s.passed]
         if validators:
             for v in validators:
                 self._block_history.append(v)
+        if len(self._block_history) > _HISTORY_CAP:
+            del self._block_history[:-_HISTORY_CAP]
 
         # 1. Store the current cycle as a pattern
         intent_type = ctx.selected_intent.intent_type if ctx.selected_intent else "none"

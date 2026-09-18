@@ -225,3 +225,81 @@ class TestAxiomIntegrity:
         t0 = time.time()
         p.verify(trace=None, ctx=None)
         assert time.time() - t0 < 1.0
+
+# ────────────────────────────────────────────────────────────────────────
+# 7. Memory-leak detection — robust to allocator noise, falsifiable
+# ────────────────────────────────────────────────────────────────────────
+class TestMemoryLeakDetection:
+    """The memory gate must measure TELOS retention, not allocator high-water.
+
+    A synthetic series with a bounded cache fill + an INJECTED sustained leak
+    must FAIL the late-window slope check; the same fill without the leak must
+    PASS. This is the falsifiability proof for the repaired memory gate.
+    """
+
+    @staticmethod
+    def _series(cycles: int = 10000, leak_per_cycle: float = 0.0,
+                base: int = 600000):
+        out = []
+        for i in range(200, cycles, 200):
+            fill = base * (1.0 - np.exp(-i / 500.0))     # bounded cache fill
+            leak = leak_per_cycle * max(0, i - 500)      # injected leak
+            out.append({"i": i, "rss_kb": 80000, "blocks": int(fill + leak)})
+        return out
+
+    def test_bounded_series_passes(self):
+        from telos.tools.endurance import memory_leak_metrics, STABILITY
+        m = memory_leak_metrics(self._series(leak_per_cycle=0.0), 10000)
+        assert m["leak_blocks_per_cycle"] <= STABILITY["leak_blocks_per_cycle"]
+
+    def test_deliberate_leak_is_caught(self):
+        from telos.tools.endurance import memory_leak_metrics, STABILITY
+        m = memory_leak_metrics(self._series(leak_per_cycle=10.0), 10000)
+        assert m["leak_blocks_per_cycle"] > STABILITY["leak_blocks_per_cycle"]
+
+    def test_empty_series_is_safe(self):
+        from telos.tools.endurance import memory_leak_metrics
+        assert memory_leak_metrics([], 10000)["leak_blocks_per_cycle"] == 0.0
+
+
+# ────────────────────────────────────────────────────────────────────────
+# 8. Unbounded-retention fixes (the leak class this session closed)
+# ────────────────────────────────────────────────────────────────────────
+class TestRetentionCaps:
+    def test_audit_histories_bounded(self):
+        from telos.core.infra_manager.audit_controller import (
+            AuditController, _HISTORY_CAP,
+        )
+
+        class _Trace:
+            decision_integrity = 0.9
+            mission_drift = 0.1
+            council_validated = True
+            firewall_blocked = False
+
+        class _Result:
+            decision_trace = _Trace()
+            health_score = 0.9
+
+        ac = AuditController()
+        for _ in range(_HISTORY_CAP * 3):
+            ac.observe(_Result())
+        assert len(ac._di_history) == _HISTORY_CAP
+        assert len(ac._md_history) == _HISTORY_CAP
+        assert len(ac._health_history) == _HISTORY_CAP
+
+    def test_failure_ledger_type_index_pruned_and_valid(self):
+        from telos.core.infra_manager.failure_ledger import (
+            FailureLedger, FailureRecord,
+        )
+        fl = FailureLedger(max_failures=50)
+        for i in range(500):
+            fl._append(FailureRecord(
+                failure_id=str(i), cycle=i, timestamp=0.0,
+                failure_type="firewall_block", severity=0.7,
+                root_cause="governance_intervention"))
+        total_indexed = sum(len(v) for v in fl._type_index.values())
+        assert total_indexed == len(fl._failures) == 50
+        # indices remain consistent with the (shifted) records list
+        assert fl.get_failures_by_type("firewall_block") == fl._failures
+

@@ -25,6 +25,11 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger('telos_infra')
 
+# Λ4.7 retention cap: the rolling DI/MD/health histories are consumed ONLY as
+# recent windows (`[-50:]`, `[-10:]`, `[-8:]`). A long-lived run must not retain
+# one float per cycle forever; the cap is far larger than any read window.
+_HISTORY_CAP = 500
+
 
 @dataclass
 class ComponentMaturity:
@@ -112,6 +117,15 @@ class AuditController:
         self._di_history.append(trace.decision_integrity)
         self._md_history.append(trace.mission_drift)
         self._health_history.append(result.health_score)
+
+        # Λ4.7: bound the rolling histories so a long run cannot grow them
+        # without limit (they are only ever read as recent windows).
+        if len(self._di_history) > _HISTORY_CAP:
+            del self._di_history[:-_HISTORY_CAP]
+        if len(self._md_history) > _HISTORY_CAP:
+            del self._md_history[:-_HISTORY_CAP]
+        if len(self._health_history) > _HISTORY_CAP:
+            del self._health_history[:-_HISTORY_CAP]
 
         if not trace.council_validated or trace.firewall_blocked:
             self._failure_count += 1

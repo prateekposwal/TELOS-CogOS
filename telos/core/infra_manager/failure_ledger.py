@@ -126,6 +126,17 @@ class FailureLedger:
         if len(self._failures) >= self._max_failures:
             self._failures.pop(0)
             self._eviction_count += 1
+            # Λ4.7: `_type_index` holds positions into `_failures`. Evicting the
+            # oldest record shifts every position down by one, so drop the dead
+            # position 0 and shift the rest. Previously the index was never
+            # pruned — it grew one entry per failure forever (unbounded leak)
+            # and its positions went stale after the first eviction.
+            for ftype, positions in list(self._type_index.items()):
+                shifted = [i - 1 for i in positions if i > 0]
+                if shifted:
+                    self._type_index[ftype] = shifted
+                else:
+                    del self._type_index[ftype]
         idx = len(self._failures)
         self._failures.append(record)
         self._type_index[record.failure_type].append(idx)

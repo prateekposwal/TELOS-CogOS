@@ -33,6 +33,10 @@ logger = logging.getLogger('telos_infra')
 _STUCK_DOMINANCE_CYCLES = 10
 _STUCK_PLATEAU_CYCLES = 5
 
+# Λ4.7 retention cap: per-stream calibration histories are read only as recent
+# windows (`[-20:]`); bound them so a long-lived run cannot grow them forever.
+_MAX_CAL_HISTORY = 200
+
 
 @dataclass
 class StreamCalibration:
@@ -179,6 +183,12 @@ class StreamCalibrator:
 
                 drift = trace.mission_drift or 0.0
                 cal.drift_history.append(drift)
+
+                # Λ4.7: bound the per-stream histories (recent-window read)
+                if len(cal.confidence_history) > _MAX_CAL_HISTORY:
+                    del cal.confidence_history[:-_MAX_CAL_HISTORY]
+                if len(cal.drift_history) > _MAX_CAL_HISTORY:
+                    del cal.drift_history[:-_MAX_CAL_HISTORY]
 
                 if drift < 1.0:
                     cal.accurate_calls += 1
