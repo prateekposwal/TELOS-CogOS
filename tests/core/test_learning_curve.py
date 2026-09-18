@@ -20,6 +20,29 @@ def test_evaluate_passes():
     assert result["learned"]["acquired"] > 0
 
 
+def test_learned_arm_attempts_every_task():
+    """REGRESSION: the learned arm must attempt the FULL task stream.
+
+    An earlier version derived novelty as (1 - difficulty), so the three hardest
+    tasks were classified 'already learned' and silently skipped — the learned
+    arm only ran 5 of 8 tasks and the '5 vs 2' headline was partly a smaller
+    task set. Both arms must cover the same tasks.
+    """
+    learned = _run_learned(TASKS)
+    frozen = _run_frozen(TASKS)
+    assert len(learned["order"]) + len(learned["outcomes"]) >= len(TASKS)
+    assert len(learned["outcomes"]) == len(TASKS), \
+        f"learned arm attempted {len(learned['outcomes'])}/{len(TASKS)} tasks"
+    assert len(frozen["outcomes"]) == len(TASKS)
+
+
+def test_novelty_is_independent_of_difficulty():
+    """Every task carries explicit novelty that is not 1-difficulty."""
+    for task in TASKS:
+        assert "novelty" in task, task["id"]
+        assert abs(task["novelty"] - (1.0 - task["difficulty"])) > 0.02, task["id"]
+
+
 def test_evaluate_is_deterministic():
     """Two evaluations over the fixed stream are identical."""
     assert evaluate() == evaluate()

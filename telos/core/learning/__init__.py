@@ -11,11 +11,11 @@ from telos.core.learning.acquisition import (
     DEFAULT_MIN_OUTCOME, DEFAULT_CANDIDATE_TTL_CYCLES, DEFAULT_MAX_CANDIDATES,
 )
 from telos.core.learning.curriculum import (
-    Curriculum, CurriculumTask, ZPD_LOW, ZPD_HIGH,
+    Curriculum, CurriculumTask, ZPD_LOW, ZPD_HIGH, ZPD_BAND,
 )
 
 __all__ = [
     "SkillAcquisition", "SkillCandidate", "Curriculum", "CurriculumTask",
     "DEFAULT_MIN_OUTCOME", "DEFAULT_CANDIDATE_TTL_CYCLES", "DEFAULT_MAX_CANDIDATES",
-    "ZPD_LOW", "ZPD_HIGH",
+    "ZPD_LOW", "ZPD_HIGH", "ZPD_BAND",
 ]
