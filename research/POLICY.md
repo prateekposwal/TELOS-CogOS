@@ -72,9 +72,31 @@ system more permissive at no cost. The duplicate is a design smell (one signal,
 two applications) but not a defect in effect; the env toggle is retained for
 future worlds where the bias may matter. No default change.
 
+## Symmetric uncertainty→risk (done — enabled)
+
+`adjust_risk_by_uncertainty` was tighten-only. A bounded loosen-under-
+certainty branch was added (`+0.5·risk·(CERTAINTY_MAX − avg_uncertainty)` when
+`avg_uncertainty ≤ CERTAINTY_MAX = 0.2`; identical to the old path at/above the
+threshold, so continuity holds). A/B (env `TELOS_RISK_SYMMETRIC_UNCERTAINTY`):
+
+| Metric | tighten-only | symmetric |
+|---|---:|---:|
+| action / no-op / episodes / DI | 0.893 / 0.107 / 16 / 1.0 | **identical** |
+| risk_tolerance mean | 0.197 | **0.209** |
+| firewall DI threshold mean | 0.803 | **0.791** |
+
+Identical health/safety, one-sided bias corrected → **enabled by default**
+(opt-out `TELOS_RISK_SYMMETRIC_UNCERTAINTY=0`).
+
+## Gates
+
+- `make check` — release/CI gate (full duration, ~3 min): pytest + self-audit +
+  falsifier + theorems + cognitive health.
+- `make check-fast` — per-commit gate (reduced sim duration; episode threshold
+  scales with cycle count).
+- `.github/workflows/gates.yml` runs `make check` on PRs.
+
 ## LEFT
 
-- `adjust_risk_by_uncertainty` remains tighten-only (no symmetric
-  loosen-on-certainty path). Harmless while DI = 1.0 and the threshold is
-  inert; a symmetric path is a possible future hygiene item, not a blocker.
 - The mood double-application stays by decision (A/B above), documented.
+- Nothing load-bearing remains in the policy/threshold area.
