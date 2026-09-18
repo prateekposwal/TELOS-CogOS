@@ -142,26 +142,39 @@ class Curriculum:
                          min_novelty: float = ZPD_LOW) -> int:
         """Derive tasks from falsified / untested theory hypotheses.
 
+        Novelty and difficulty are INDEPENDENT axes (see CurriculumTask): the
+        caller may supply a per-hypothesis ``difficulty`` (clamped to [0, 1]),
+        which is used verbatim. When it is absent, difficulty is derived from
+        the hypothesis's EVIDENCE (confidence + test counts), never copied from
+        novelty. ``check_independence`` runs on the whole set at the end so the
+        derived-axis category error fails loud on this path too.
+
         Args:
             hypotheses: dicts with id/action/predicted_outcome/confidence/
-                tests_passed/tests_failed/falsified.
+                tests_passed/tests_failed/falsified and an optional difficulty
+                in [0, 1] that overrides the evidence-derived default.
             min_novelty: novelty floor for admission.
 
         Returns:
             Number of tasks added.
+
+        Raises:
+            ValueError: when the resulting set's novelty is the complement of
+                its difficulty for every task (the derived-axis error).
         """
         added = 0
         for h in hypotheses:
             hid = str(h.get("id", ""))
             if not hid:
                 continue
-            tested = int(h.get("tests_passed", 0) or 0) + int(
-                h.get("tests_failed", 0) or 0)
+            tests_passed = int(h.get("tests_passed", 0) or 0)
+            tests_failed = int(h.get("tests_failed", 0) or 0)
+            tested = tests_passed + tests_failed
             confidence = float(h.get("confidence", 0.0) or 0.0)
             falsified = bool(h.get("falsified", False))
-            # Novelty: untested hypotheses are most novel; falsified ones are
-            # novel again (the belief did not hold); confident tested ones are
-            # least novel.
+            # Novelty: how LITTLE experience covers the hypothesis. Untested
+            # hypotheses are most novel; falsified ones are novel again (the
+            # belief did not hold); confident tested ones are least novel.
             if falsified:
                 novelty = 0.85
             elif tested == 0:
@@ -170,6 +183,27 @@ class Curriculum:
                 novelty = max(0.0, 1.0 - confidence) * 0.5
             if novelty < min_novelty:
                 continue
+            # Difficulty: how far the hypothesis is from being SETTLED. This is
+            # an independent axis, not a transform of novelty: novelty saturates
+            # on falsified/untested hypotheses regardless of how much evidence
+            # exists, whereas difficulty reads the evidence itself — a falsified
+            # belief must unwind its failing tests, an untested one is merely
+            # unresolved (one clean test settles it), and a tested hypothesis is
+            # harder when its tests mostly FAIL and it is under-confident. Since
+            # novelty depends on coverage-of-experience and difficulty on the
+            # pass/fail record, the default path never makes novelty the
+            # complement of difficulty.
+            raw_difficulty = h.get("difficulty")
+            if raw_difficulty is not None:
+                difficulty = max(0.0, min(1.0, float(raw_difficulty)))
+            elif falsified:
+                difficulty = min(1.0, 0.7 + 0.05 * tests_failed)
+            elif tested == 0:
+                difficulty = 0.5
+            else:
+                pass_ratio = tests_passed / tested
+                difficulty = max(0.0, min(
+                    1.0, 0.6 * (1.0 - pass_ratio) + 0.2 * (1.0 - confidence)))
             action = str(h.get("action", "unknown"))
             predicted = float(h.get("predicted_outcome", 0.5) or 0.5)
             self.add(CurriculumTask(
@@ -180,11 +214,14 @@ class Curriculum:
                     f"{'falsified' if falsified else f'{tested} tests'})"
                 ),
                 novelty=novelty,
-                difficulty=novelty if not falsified else min(1.0, novelty + 0.1),
+                difficulty=difficulty,
                 metadata={"action": action, "predicted_outcome": predicted,
                           "falsified": falsified, "tests": tested},
             ))
             added += 1
+        # Whole-set independence guard (same contract as from_signals): fail
+        # loud if every task's novelty is the complement of its difficulty.
+        self.check_independence()
         return added
 
     def from_signals(self, signals: List[Dict[str, object]]) -> int:
