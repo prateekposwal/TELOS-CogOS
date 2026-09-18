@@ -14,6 +14,8 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 from telos.core.verifier import capability_scorecard as cs
 from telos.core.verifier.measurement import (
     ARTIFACT_SCHEMA_VERSION, SCORER_PRODUCER, flags_from_provenance,
@@ -167,19 +169,77 @@ def _module_repo(tmp_path, modules, artifact=None, relpath=None):
 
 
 def test_verification_awards_only_with_a_passing_artifact(tmp_path):
-    """Valid verification artifact -> 5.0; missing -> existence-only base."""
+    """Valid verification artifact -> 4.0 (base + adversarial); missing ->
+    existence-only base. The live-compliance point needs its own artifact."""
     root = _module_repo(tmp_path, VERIF_MODULES, _artifact(
         list(cs.VERIFICATION_CRITERIA), producer="telos/tools/verification_eval.py"),
         "telos/audit/verification_eval.json")
     result = cs._score_verification(root)
-    assert result.score == 5.0
+    assert result.score == 4.0
     assert result.independently_measured is True
     assert result.external is False
+    assert any("withheld" in e for e in result.evidence)
 
     empty = _module_repo(tmp_path / "empty", VERIF_MODULES)
     result = cs._score_verification(empty)
     assert result.score == 1.0
     assert result.artifact_backed is False
+
+
+def _write_live_compliance(root, min_compliance):
+    """Write a well-formed live axiom-compliance artifact into a repo tree.
+
+    Args:
+        root: repo root.
+        min_compliance: the worst measured cycle's passed/42 ratio.
+
+    Returns:
+        The artifact path.
+    """
+    payload = _artifact(list(cs.AXIOM_COMPLIANCE_CRITERIA),
+                        producer="telos/tools/axiom_compliance_eval.py")
+    payload["min_compliance"] = min_compliance
+    out = os.path.join(root, cs.AXIOM_COMPLIANCE_ARTIFACT)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(payload, f)
+    return out
+
+
+def test_verification_live_compliance_is_credited_proportionally(tmp_path):
+    """The live-compliance point scales with the WORST measured cycle and is
+    withheld entirely when the artifact is missing/malformed (fail closed)."""
+    root = _module_repo(tmp_path, VERIF_MODULES, _artifact(
+        list(cs.VERIFICATION_CRITERIA), producer="telos/tools/verification_eval.py"),
+        "telos/audit/verification_eval.json")
+    out = _write_live_compliance(root, 28 / 42)
+    result = cs._score_verification(root)
+    assert result.score == pytest.approx(1.0 + 3.0 + 28 / 42)
+    assert any("0.667" in e for e in result.evidence)
+    assert any("below 42/42" in e for e in result.evidence)
+
+    # Full live compliance earns the full point.
+    _write_live_compliance(root, 1.0)
+    assert cs._score_verification(root).score == 5.0
+
+    # A missing artifact can never silently credit the live point.
+    os.remove(out)
+    assert cs._score_verification(root).score == 4.0
+
+    # A malformed artifact (bad provenance) is also withheld.
+    _write_live_compliance(root, 1.0)
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump({"min_compliance": 1.0}, f)
+    assert cs._score_verification(root).score == 4.0
+
+    # A structurally valid but FAILING measurement is not well-formed evidence.
+    failing = _artifact(list(cs.AXIOM_COMPLIANCE_CRITERIA),
+                        producer="telos/tools/axiom_compliance_eval.py",
+                        verdict=False)
+    failing["min_compliance"] = 1.0
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(failing, f)
+    assert cs._score_verification(root).score == 4.0
 
 
 def test_reproducibility_awards_and_caps_without_external_reproduction(tmp_path):
