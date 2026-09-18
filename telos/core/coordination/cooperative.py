@@ -3,7 +3,7 @@ Cooperative Intelligence (Λ4.11) — bounded multi-agent aggregation.
 
 AXIOM 4.11
 ----------
-    U_group − C_align ≥ Σ U_i
+    U_group − C_align ≥ max_i U_i
 
 Collective optimization beats isolated optimization **whenever alignment
 costs are sufficiently low**. This module makes that inequality executable:
@@ -17,10 +17,21 @@ interaction cost ``λ·D(I_A, I_B)`` and Λ5.1's J enters it as the penalty
 ``−εC_align``. The axiom's proposition is that cooperation holds "whenever
 alignment costs are sufficiently low", so the cost must be **overcome on the
 group side**: a larger disagreement makes cooperation HARDER to justify. The
-formal string previously shown here (``U_group > Σ U_i − C_align``) placed the
+formal string previously shown here (``U_group > max_i U_i − C_align``) placed the
 cost on the isolated side, which made high-cost/high-diversity crews *more*
 likely to pass — the inverse of the axiom's stated meaning. Corrected at the
 root.
+
+Notation of the isolated side (source of truth = AXIOMS.md 4.11's *Meaning*
+column + Λ6.11): the RHS is ``max_i U_i`` — the best single agent acting
+alone — NOT ``Σ U_i``. "Isolated optimization" is singular: the utility the
+best individual can achieve without cooperating. A sum would count every agent
+again after the group already pooled them and, against the weighted-mean group
+utility (mean ≤ max ≤ Σ for N ≥ 2), is either degenerate-false for every crew
+or — with a summed group — reduces to a mere zero-disagreement test. Neither
+is the substantive, falsifiable synergy claim the Meaning column states. The
+executable predicate already used ``max_i u_i``; the formal notation was the
+only slip, reconciled here at the root.
 
 Formalization (bounded, per-decision)
 -------------------------------------

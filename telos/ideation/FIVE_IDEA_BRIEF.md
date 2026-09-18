@@ -158,7 +158,7 @@ layer where contributors hold voting rights proportional to verified contributio
 codifies licensing, curation, access, and revenue-sharing rules. Decisions emerge from **coordination of many
 independent agents**, not from a central curator (Λ4.6: no single stream is "the commons"; the collective
 decision *is* the intelligence). Cooperation is sustainable because the **alignment cost of collective
-optimization is kept below the group surplus** (Λ4.11: U_group − C_align ≥ ΣU_i): a transparent rule ledger makes
+optimization is kept below the group surplus** (Λ4.11: U_group − C_align ≥ max_i U_i): a transparent rule ledger makes
 curation and sharing cheaply verifiable, so contributing is individually rational. The commons issues usage
 licenses, prices access, and redistributes revenue to contributors via the shared ledger — Reddit's "community
 governs an asset" pattern, but where the asset is data and governance is enforceable rather than advisory.
@@ -168,7 +168,7 @@ Reddit-class because it creates **self-organizing communities as the governing u
 applies it to the currently-unowned, currently-captured dataset economy — turning scattered contributors into a
 cohesive governance commons they actually control. Structurally it extends **Λ4.6 (Emergent Intelligence)** —
 collective coordination, not a curator, produces the governance decision — and **Λ4.11 (Cooperative
-Intelligence)** — it is the first market embodiment where group > sum-of-isolated is made *incentive-compatible*
+Intelligence)** — it is the first market embodiment where group > best-agent-isolated is made *incentive-compatible*
 by keeping alignment cost low.
 
 ### Flywheel / network effects
