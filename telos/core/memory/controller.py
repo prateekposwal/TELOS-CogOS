@@ -26,6 +26,7 @@ import re
 from typing import Any, Dict, Iterable, List, Optional
 
 from telos.core.governance.recovery_types import GOVERNANCE_SUPPRESSION_REASONS
+from telos.core.memory.embedding import shared_backend, cosine_dense
 from telos.core.memory.semantic import (
     normalize, term_frequencies, inverse_document_frequencies, cosine,
 )
@@ -100,6 +101,8 @@ class MemoryController:
         # Semantic retrieval index (lazily rebuilt when the record set changes).
         self._idf: Dict[str, float] = {}
         self._vectors: Dict[str, Dict[str, float]] = {}
+        self._embedding_vectors: Dict[str, List[float]] = {}
+        self._backend_used: str = "lexical"
         self._index_size = -1
         if memory_path and os.path.isfile(memory_path):
             self._load(memory_path)
@@ -235,13 +238,31 @@ class MemoryController:
         )
         return self.insert(record)
 
-    def _rebuild_semantic_index(self) -> None:
-        """Rebuild the IDF-weighted vector index over the live records.
+    def _rebuild_semantic_index(self, embedding: bool = False) -> None:
+        """Rebuild the retrieval index over the live records.
 
-        Rebuilt lazily whenever the record set changes, so IDF stays a true
-        corpus statistic without per-query cost.
+        Two interchangeable backends (Λ6.7, one retrieval surface):
+          - LEXICAL (always available, deterministic, offline): concept-
+            normalized IDF-weighted vectors;
+          - EMBEDDING (when a local model is reachable): real learned vectors
+            for the record contents, so UNSEEN vocabulary still matches.
+
+        Args:
+            embedding: when True, attempt the embedding index (falls back to
+                lexical silently if embeddings are unavailable).
         """
         records = self._tiered.all_records()
+        self._index_size = len(records)
+        self._embedding_vectors = {}
+        self._backend_used = "lexical"
+        if embedding and records:
+            backend = shared_backend()
+            vectors = backend.embed_many([r.content for r in records])
+            if vectors is not None:
+                for record, vec in zip(records, vectors):
+                    self._embedding_vectors[record.record_id] = vec
+                self._backend_used = "embedding"
+                return
         token_docs = [normalize(r.content) for r in records]
         self._idf = inverse_document_frequencies(token_docs) if token_docs else {}
         self._vectors: Dict[str, Dict[str, float]] = {}
@@ -250,20 +271,20 @@ class MemoryController:
             self._vectors[record.record_id] = {
                 t: w * self._idf.get(t, 1.0) for t, w in tf.items()
             }
-        self._index_size = len(records)
 
     def _ensure_semantic_index(self) -> None:
         """Rebuild the index when the record set changed since last use."""
         if self._index_size != len(self._tiered.all_records()):
-            self._rebuild_semantic_index()
+            self._rebuild_semantic_index(embedding=True)
 
     def semantic_search(self, query: str, top_k: int = 5,
-                        domain: Optional[str] = None) -> List[MemoryRecord]:
-        """Rank records by IDF-weighted semantic cosine; promote the hits.
+                        domain: Optional[str] = None
+                        ) -> List[MemoryRecord]:
+        """Rank records by semantic similarity; promote the hits.
 
-        Uses the deterministic concept-normalization layer (semantic.py), so a
-        query like "avoid the wall" matches a record stored as "hazard near
-        obstacle" even with no shared literal token.
+        Prefers the EMBEDDING backend (real learned vectors, so unseen
+        vocabulary matches) and falls back to the LEXICAL concept layer when no
+        local model is available. Both are deterministic for a fixed corpus.
 
         Args:
             query: natural-language query.
@@ -274,17 +295,33 @@ class MemoryController:
             Ranked list of the top-k matching records.
         """
         self._ensure_semantic_index()
-        q_tf = term_frequencies(normalize(query))
-        q_vec = {t: w * self._idf.get(t, 1.0) for t, w in q_tf.items()}
+        records = self._tiered.all_records()
         scored = []
-        for record in self._tiered.all_records():
-            if domain and record.domain != domain:
-                continue
-            sim = cosine(q_vec, self._vectors.get(record.record_id, {}))
-            if sim <= 0.0:
-                continue
-            score = sim * (0.6 + 0.4 * record.importance)
-            scored.append((score, record))
+        if self._backend_used == "embedding" and self._embedding_vectors:
+            q_vec = shared_backend().embed(query)
+            if q_vec is not None:
+                for record in records:
+                    if domain and record.domain != domain:
+                        continue
+                    vec = self._embedding_vectors.get(record.record_id)
+                    if not vec:
+                        continue
+                    sim = cosine_dense(q_vec, vec)
+                    if sim <= 0.0:
+                        continue
+                    score = sim * (0.6 + 0.4 * record.importance)
+                    scored.append((score, record))
+        if not scored:
+            q_tf = term_frequencies(normalize(query))
+            q_vec = {t: w * self._idf.get(t, 1.0) for t, w in q_tf.items()}
+            for record in records:
+                if domain and record.domain != domain:
+                    continue
+                sim = cosine(q_vec, self._vectors.get(record.record_id, {}))
+                if sim <= 0.0:
+                    continue
+                score = sim * (0.6 + 0.4 * record.importance)
+                scored.append((score, record))
         scored.sort(key=lambda item: (
             -item[0], -item[1].importance, item[1].created_cycle, item[1].record_id,
         ))

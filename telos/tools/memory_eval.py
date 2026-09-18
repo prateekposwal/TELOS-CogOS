@@ -73,6 +73,16 @@ _CASES: List[Dict[str, str]] = [
         "target": "governance gate vetoed and suppressed the action",
         "negative": "controlled the action selection ranking",
     },
+    {
+        # UNSEEN VOCABULARY: the query and the target share NO lexicon entry,
+        # no stem, and no literal token. A curated lexicon cannot solve this by
+        # construction; a learned embedding can. This is the case that isolates
+        # what real embeddings add over the concept layer.
+        "query": "inexplicable frobnicator anomaly",
+        "expected": "unseen",
+        "target": "quixotic tesselation discrepancy in the frobnicator",
+        "negative": "routine calibration of the frobnicator completed",
+    },
 ]
 
 # Unrelated distractors: no overlap with any query, present to make the task a
