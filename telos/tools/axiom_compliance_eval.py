@@ -82,12 +82,16 @@ PROPOSED_COMPLIANCE_FLOOR = 1.0
 #       healthy run does not meet ("no valid trace ⇒ cannot verify ⇒ failed").
 #   advisory_path_skipped — an advisory layer (DistributedCouncil) that would
 #       populate the signal is skipped or returns early; fail-closed.
+#       (4.11 also had a boundary bug inside the crew: unanimity gave
+#       group == isolated and diversity == 0, and a strict `>` rejected
+#       zero-cost consensus. Fixed at the root in CooperativeCouncil.)
 # FIXED by: canonical pipeline-component fallback in AxiomProver, storing the
 # ErrorAttributionEngine return + explicit not-applicable status, exposing the
 # canonical RelationalContext/SystemSelf, recording the performed local-optima
 # check, and recording a not-applicable CooperativeVerdict when the advisory
 # crew legitimately does not run. When the crew DOES run, 4.11 stays fail-closed
-# on a real unmet inequality (e.g. standard mode honestly reports 41/42).
+# on a real unmet inequality (a dominated crew still yields cooperative=False);
+# the unanimous/zero-diversity boundary is inclusive, so standard mode is 42/42.
 FAILING_AXIOM_DIAGNOSIS: Dict[str, Dict[str, str]] = {
     "2.7": {
         "category": "exposure_gap",
@@ -123,7 +127,10 @@ FAILING_AXIOM_DIAGNOSIS: Dict[str, Dict[str, str]] = {
         "evidence": "ctx.cooperative_verdict was written only inside _run_distributed_council; fast "
                     "mode sets skip_advisory_layers so the crew never ran, and the method's early "
                     "returns left it unset — fail-closed. Fixed: a not-applicable record is written "
-                    "whenever the crew is skipped; when it runs, a real cooperative=False still fails.",
+                    "whenever the crew is skipped. Standard mode then measured 41/42: on validated "
+                    "cycles the crew is unanimous (all DI==1.0), so group==isolated and diversity==0, "
+                    "and CooperativeCouncil's strict `>` rejected zero-cost consensus. Fixed at the "
+                    "root (boundary-inclusive `>=`); a dominated crew still yields cooperative=False.",
     },
     "6.3": {
         "category": "prover_input_incomplete",

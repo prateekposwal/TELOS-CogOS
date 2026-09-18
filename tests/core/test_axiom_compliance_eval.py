@@ -226,3 +226,16 @@ def test_live_compliance_floor_does_not_regress():
     assert payload["min_compliance"] >= 1.0
     assert payload["mean_compliance"] >= 1.0
     assert payload["healthy_cycles"] == payload["cycles_measured"]
+
+
+def test_standard_mode_live_compliance_is_full():
+    # REGRESSION: standard mode runs the advisory crew. On a validated cycle
+    # the crew is unanimous (every role's DI == 1.0), so
+    # group == isolated and alignment_cost == 0. The boundary-inclusive
+    # "cooperative" comparison keeps that honest cooperation from being
+    # reported as a Λ4.11 failure. Standard-mode live compliance must be
+    # 42/42 — this locks the root cause, not just the artifact.
+    payload = ace.evaluate(cycles=4, mode="standard", seed=42)
+    assert payload["worst_failed_axioms"] == []
+    assert payload["min_compliance"] >= 1.0
+    assert payload["healthy_cycles"] == payload["cycles_measured"]

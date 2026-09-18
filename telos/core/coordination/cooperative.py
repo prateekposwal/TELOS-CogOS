@@ -20,12 +20,20 @@ integrity through its role lens) and authority `w_i`:
     isolated_utility = max_i u_i                (the single best agent alone)
     diversity        = max u_i − min u_i        (how much the agents disagree)
     alignment_cost   = λ · diversity            (cost of reconciling them)
-    cooperative      = group_utility > isolated_utility − alignment_cost
+    cooperative      = group_utility >= isolated_utility − alignment_cost
 
 Cooperation is justified when the collective decision is not much worse than
 the best single agent, net of the cost of the disagreement between them. When
 one agent dominates and the rest disagree (large spread, low pooled mean),
 cooperation is NOT justified and the verdict is honestly `cooperative=False`.
+
+Boundary (the live unanimity case): with perfect agreement every agent has the
+same utility, so `group_utility == isolated_utility` and `diversity == 0` (hence
+`alignment_cost == 0`). The comparison is `>=`, not `>`: the group is *at least*
+as good as the best agent acting alone, so zero-cost unanimous cooperation is
+justified. A strict `>` would label maximal consensus as non-cooperative — the
+inverse of the axiom's intent. Non-cooperation is still detected whenever the
+pooled mean falls strictly below the best agent net of the alignment cost.
 
 This is a bounded MVP: in-process advisory agents, not federated external
 instances. It upgrades Λ4.11 from *aspirational* to an enforced scaffold with
@@ -52,7 +60,7 @@ class CooperativeVerdict:
         isolated_utility: best single agent's utility alone.
         alignment_cost: reconciliation cost (λ · diversity).
         diversity: spread between the most and least optimistic agent.
-        cooperative: True iff U_group > U_isolated − C_align.
+        cooperative: True iff U_group >= U_isolated − C_align (boundary inclusive).
     """
 
     n_agents: int
@@ -127,7 +135,11 @@ class CooperativeCouncil:
         isolated = max(utilities)
         diversity = max(utilities) - min(utilities)
         alignment_cost = self._lambda * diversity
-        cooperative = group > isolated - alignment_cost
+        # Boundary-inclusive: see the module docstring. A unanimous crew has
+        # group == isolated and alignment_cost == 0; `>` would call that
+        # non-cooperative. `>=` still rejects a dominated crew (group strictly
+        # below isolated - alignment_cost), preserving falsifiability.
+        cooperative = group >= isolated - alignment_cost
 
         return CooperativeVerdict(
             n_agents=n,
