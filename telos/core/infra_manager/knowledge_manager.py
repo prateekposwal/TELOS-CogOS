@@ -13,7 +13,22 @@ Handles:
 from __future__ import annotations
 
 import logging
+import os
 from typing import Optional, Dict, List, Any
+
+
+def _mood_single_source() -> bool:
+    """Whether mood→policy adjustment is single-sourced (env toggle).
+
+    Default (unset/0) preserves historical behavior (mood applied here AND in
+    InfrastructureManager). Set TELOS_POLICY_MOOD_SINGLE_SOURCE=1 so the
+    InfrastructureManager application is the only one.
+
+    Returns:
+        True when the duplicate KnowledgeManager application is disabled.
+    """
+    return os.environ.get("TELOS_POLICY_MOOD_SINGLE_SOURCE", "0") not in (
+        "", "0", "false", "False", "no")
 
 from telos.core.infra_manager.mission_policy import MissionPolicyManager
 from telos.core.knowledge.inference import KGInferenceEngine
@@ -209,16 +224,20 @@ class KnowledgeManager:
             # scales. A blind dedup was A/B-tested and made the threshold
             # slightly WORSE (trajectory effect), so it is left unchanged
             # pending a proper experiment. Labels added so the audit can see it.
-            risk_adj = self.system_self.get_risk_adjustment()
-            if risk_adj != 0.0:
-                self.policy.adjust_risk_tolerance(
-                    risk_adj, reason=f"mood:{self.system_self.mood}",
-                    caller="knowledge_manager")
-            expl_adj = self.system_self.get_exploration_adjustment()
-            if expl_adj != 0.0:
-                self.policy.adjust_exploration_budget(
-                    expl_adj, reason=f"mood:{self.system_self.mood}",
-                    caller="knowledge_manager")
+            # Env-gated (TELOS_POLICY_MOOD_SINGLE_SOURCE=1) so the double
+            # application can be A/B tested without a code edit; default keeps
+            # historical behavior. See research/POLICY.md.
+            if not _mood_single_source():
+                risk_adj = self.system_self.get_risk_adjustment()
+                if risk_adj != 0.0:
+                    self.policy.adjust_risk_tolerance(
+                        risk_adj, reason=f"mood:{self.system_self.mood}",
+                        caller="knowledge_manager")
+                expl_adj = self.system_self.get_exploration_adjustment()
+                if expl_adj != 0.0:
+                    self.policy.adjust_exploration_budget(
+                        expl_adj, reason=f"mood:{self.system_self.mood}",
+                        caller="knowledge_manager")
 
         percept = getattr(result, 'decision_trace', None)
         quality = getattr(percept, 'perception_quality', None) if percept else None

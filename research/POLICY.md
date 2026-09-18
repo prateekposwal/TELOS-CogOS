@@ -48,9 +48,33 @@ increase on stable periods. Net structural bias is **tighten**.
   instrument-first rule it is **left unchanged**, documented for a proper
   experiment, with labels added so the audit can see it.
 
+## The double-application A/B (done — decision: keep control)
+
+Toggle: `TELOS_POLICY_MOOD_SINGLE_SOURCE=1` disables the duplicate
+KnowledgeManager application (InfrastructureManager's ×0.3 remains the only
+one). Same workload, same seed:
+
+| Metric | control (double) | single-source |
+|---|---:|---:|
+| action emission | 0.893 | 0.893 |
+| no-op rate | 0.107 | 0.107 |
+| episodes | 16 | 16 |
+| mean DI | 1.000 | 1.000 |
+| low_integrity blocks | 0 | 0 |
+| risk_tolerance mean | **0.197** | 0.101 |
+| firewall DI threshold mean | **0.803** | 0.899 |
+
+**Throughput and health are identical; single-sourcing only makes the firewall
+stricter** (removing the full-strength application strips a *loosening* bias
+that mood:curious contributed). Per the acceptance rule ("no worse on
+throughput/evidence/safety"), **control is the better default** — it keeps the
+system more permissive at no cost. The duplicate is a design smell (one signal,
+two applications) but not a defect in effect; the env toggle is retained for
+future worlds where the bias may matter. No default change.
+
 ## LEFT
 
-- Decide (by experiment, not edit) whether the mood adjustment should be
-  single-sourced and scaled once, and whether `adjust_risk_by_uncertainty`
-  needs a symmetric loosen path. Now low-risk: DI is 1.0 and the threshold is
-  inert, so this is hygiene, not a throughput blocker.
+- `adjust_risk_by_uncertainty` remains tighten-only (no symmetric
+  loosen-on-certainty path). Harmless while DI = 1.0 and the threshold is
+  inert; a symmetric path is a possible future hygiene item, not a blocker.
+- The mood double-application stays by decision (A/B above), documented.
