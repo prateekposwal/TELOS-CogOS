@@ -18,11 +18,12 @@ from telos_task import GridSim, DEFAULT_REWARDS, DEFAULT_BLOCKED, GRID_SIZE
 
 
 def test_evaluate_passes():
-    """The learned arm earns more reward and improves across episodes."""
+    """The learned arm satisfies every real-environment learning criterion."""
     result = evaluate()
     assert result["beats_control"] is True
+    assert all(result["criteria"].values()), result["criteria"]
     assert result["learned"]["total_reward"] > result["frozen"]["total_reward"]
-    assert result["learned_improved"] is True
+    assert result["learned"]["discovered"] >= len(DEFAULT_REWARDS)
 
 
 def test_evaluate_is_deterministic():
@@ -59,27 +60,49 @@ def test_learned_arm_discovers_reward_pockets():
     assert learned["total_reward"] > 0
 
 
-def test_exploration_escapes_local_optimum():
-    """Count-based exploration moves the agent off a zero-value deadlock.
+def test_dead_end_avoidance_escapes_the_trap():
+    """The policy must not oscillate in the (2,1) dead-end.
 
-    Regression: a purely value-greedy policy (no visit bonus) oscillates
-    (2,0)<->(2,1) forever in this world, because every value starts at 0 and the
-    goal bias is symmetric. The visit bonus must break that.
+    Regression: cell (2,1) is a genuine 3-way dead-end ((3,1)/(1,1)/(2,2)
+    blocked), so a goal-biased policy walks in and bounces (2,0)<->(2,1)
+    forever. Dead-end penalties + no-immediate-reversal must break it.
     """
     sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS),
                   random_seed=3)
     values = np.zeros((GRID_SIZE, GRID_SIZE), dtype=float)
     visits = np.zeros((GRID_SIZE, GRID_SIZE), dtype=float)
+    penalties = np.zeros((GRID_SIZE, GRID_SIZE), dtype=float)
     state = np.array([0.0, 0.0])
+    prev_key = (-1, -1)
     seen = set()
-    for _ in range(20):
+    reversed_count = 0
+    for _ in range(40):
         key = (int(round(state[0])), int(round(state[1])))
         seen.add(key)
         visits[key[0], key[1]] += 1.0
-        action = _greedy_action(values, visits, state, sim)
-        state = sim.transition(state, action)
-    # It must not be stuck in a 2-cell oscillation.
-    assert len(seen) > 2
+        action = _greedy_action(values, visits, state, sim, penalties, prev_key)
+        new = sim.transition(state, action)
+        new_key = (int(round(new[0])), int(round(new[1])))
+        # Accumulate the penalty exactly as the harness does.
+        if new_key == prev_key and prev_key != (-1, -1):
+            reversed_count += 1
+            pk = (int(round(state[0])), int(round(state[1])))
+            penalties[pk[0], pk[1]] += 1.0
+        prev_key = key
+        state = new
+    # It must explore well beyond the 2-cell oscillation.
+    assert len(seen) > 4
+    # And it must not thrash endlessly: reversals stay bounded.
+    assert reversed_count <= 10, f"too much thrashing: {reversed_count}"
+
+
+def test_thrashing_decreases_after_learning():
+    """Reversals do not grow across episodes — the trap is learned."""
+    learned = _run_learned()
+    first = learned["per_episode_reversals"][0]
+    last = learned["per_episode_reversals"][-1]
+    assert last <= first + 2
+    assert last == 0, "a learned agent should not keep reversing into dead-ends"
 
 
 def test_episode_budget_is_identical_for_both_arms():

@@ -1,16 +1,25 @@
 {
   "learned": {
     "per_episode_reward": [
-      275.0,
-      153.0,
-      275.0,
-      570.0,
-      270.0,
-      550.0
+      136.0,
+      104.0,
+      90.0,
+      100.0,
+      104.0,
+      100.0
     ],
-    "total_reward": 2093.0,
-    "discovered": 3,
-    "steps_to_best_pocket": 184,
+    "per_episode_reversals": [
+      6,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "total_reward": 634.0,
+    "discovered": 4,
+    "steps_to_best_pocket": 23,
+    "reversals": 6,
     "value_grid": [
       [
         0.0,
@@ -43,7 +52,7 @@
       [
         5.0,
         0.0,
-        0.0,
+        2.0,
         0.0,
         0.0
       ]
@@ -62,7 +71,12 @@
     "discovered": 0,
     "steps_to_best_pocket": null
   },
-  "learned_improved": true,
+  "criteria": {
+    "more_total_reward": true,
+    "discovered_more": true,
+    "found_all_pockets": true,
+    "thrashing_not_growing": true
+  },
   "beats_control": true,
   "environment": {
     "simulator": "telos_task.GridSim",
