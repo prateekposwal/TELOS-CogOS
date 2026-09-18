@@ -26,6 +26,9 @@ import re
 from typing import Any, Dict, Iterable, List, Optional
 
 from telos.core.governance.recovery_types import GOVERNANCE_SUPPRESSION_REASONS
+from telos.core.memory.semantic import (
+    normalize, term_frequencies, inverse_document_frequencies, cosine,
+)
 from telos.core.memory.tiering import (
     MemoryRecord, TieredMemory,
     DEFAULT_HOT_LIMIT, DEFAULT_WARM_LIMIT, DEFAULT_COLD_LIMIT,
@@ -39,15 +42,21 @@ _WORD_RE = re.compile(r"[a-z0-9]+")
 
 
 def tokenize(text: str) -> List[str]:
-    """Lowercase word/number tokens of length >= 2.
+    """Lowercase word/number tokens of length >= 2, minus stopwords.
+
+    Stopwords are filtered here too (not only in the semantic layer): a shared
+    "the"/"at" should never be what makes a lexical match, or every record
+    looks relevant to every query.
 
     Args:
         text: the text to tokenize.
 
     Returns:
-        List of tokens.
+        List of content tokens.
     """
-    return [t for t in _WORD_RE.findall((text or "").lower()) if len(t) >= 2]
+    from telos.core.memory.semantic import STOPWORDS
+    return [t for t in _WORD_RE.findall((text or "").lower())
+            if len(t) >= 2 and t not in STOPWORDS]
 
 
 def _overlap(query_tokens: List[str], content_tokens: List[str]) -> float:
@@ -88,6 +97,10 @@ class MemoryController:
         self.inserted = 0
         self.rejected_governance_suppression = 0
         self.memory_consumed = 0
+        # Semantic retrieval index (lazily rebuilt when the record set changes).
+        self._idf: Dict[str, float] = {}
+        self._vectors: Dict[str, Dict[str, float]] = {}
+        self._index_size = -1
         if memory_path and os.path.isfile(memory_path):
             self._load(memory_path)
 
@@ -222,9 +235,92 @@ class MemoryController:
         )
         return self.insert(record)
 
+    def _rebuild_semantic_index(self) -> None:
+        """Rebuild the IDF-weighted vector index over the live records.
+
+        Rebuilt lazily whenever the record set changes, so IDF stays a true
+        corpus statistic without per-query cost.
+        """
+        records = self._tiered.all_records()
+        token_docs = [normalize(r.content) for r in records]
+        self._idf = inverse_document_frequencies(token_docs) if token_docs else {}
+        self._vectors: Dict[str, Dict[str, float]] = {}
+        for record, tokens in zip(records, token_docs):
+            tf = term_frequencies(tokens)
+            self._vectors[record.record_id] = {
+                t: w * self._idf.get(t, 1.0) for t, w in tf.items()
+            }
+        self._index_size = len(records)
+
+    def _ensure_semantic_index(self) -> None:
+        """Rebuild the index when the record set changed since last use."""
+        if self._index_size != len(self._tiered.all_records()):
+            self._rebuild_semantic_index()
+
+    def semantic_search(self, query: str, top_k: int = 5,
+                        domain: Optional[str] = None) -> List[MemoryRecord]:
+        """Rank records by IDF-weighted semantic cosine; promote the hits.
+
+        Uses the deterministic concept-normalization layer (semantic.py), so a
+        query like "avoid the wall" matches a record stored as "hazard near
+        obstacle" even with no shared literal token.
+
+        Args:
+            query: natural-language query.
+            top_k: maximum number of records to return.
+            domain: optional domain filter.
+
+        Returns:
+            Ranked list of the top-k matching records.
+        """
+        self._ensure_semantic_index()
+        q_tf = term_frequencies(normalize(query))
+        q_vec = {t: w * self._idf.get(t, 1.0) for t, w in q_tf.items()}
+        scored = []
+        for record in self._tiered.all_records():
+            if domain and record.domain != domain:
+                continue
+            sim = cosine(q_vec, self._vectors.get(record.record_id, {}))
+            if sim <= 0.0:
+                continue
+            score = sim * (0.6 + 0.4 * record.importance)
+            scored.append((score, record))
+        scored.sort(key=lambda item: (
+            -item[0], -item[1].importance, item[1].created_cycle, item[1].record_id,
+        ))
+        hits = [record for _score, record in scored[:max(0, top_k)]]
+        for record in hits:
+            self._tiered.access(record.record_id)
+        self.memory_consumed += len(hits)
+        return hits
+
     def search(self, query: str, top_k: int = 5,
                domain: Optional[str] = None) -> List[MemoryRecord]:
-        """Rank records by query overlap x importance; promote the hits.
+        """Rank records semantically, falling back to literal overlap.
+
+        The primary path is semantic_search (concept-normalized cosine); the
+        lexical fallback preserves behavior for callers passing already-exact
+        tokens and guarantees a non-empty result if the semantic index is empty.
+
+        Args:
+            query: natural-language query.
+            top_k: maximum number of records to return.
+            domain: optional domain filter.
+
+        Returns:
+            Ranked list of the top-k matching records.
+        """
+        hits = self.semantic_search(query, top_k=top_k, domain=domain)
+        if hits:
+            return hits
+        return self.lexical_search(query, top_k=top_k, domain=domain)
+
+    def lexical_search(self, query: str, top_k: int = 5,
+                       domain: Optional[str] = None) -> List[MemoryRecord]:
+        """Rank records by literal token overlap x importance; promote the hits.
+
+        This is the pre-semantic retrieval rule, kept as a first-class method so
+        it remains measurable — the semantic layer must beat it.
 
         Args:
             query: natural-language query.

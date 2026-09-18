@@ -78,18 +78,38 @@ def test_governance_suppressed_cycle_not_recorded(tmp_path):
 
 
 def test_memory_consumption_artifact_written(tmp_path, monkeypatch):
-    """shutdown() writes the consumption artifact proving real consumption."""
+    """shutdown() writes the consumption artifact with its real provenance.
+
+    A SHORT run must NOT claim sustained consumption: the artifact declares the
+    cycle span and requires min_cycles_required before
+    consumed_in_real_cycles is True. This is the honesty guard — a 5-cycle test
+    records 5 cycles, not a pass.
+
+    The test runs the pipeline in an isolated cwd so it never clobbers the
+    repo's real measured artifact (telos/audit/memory_consumption.json).
+    """
     import json
     import os
+    # Isolate the artifact path: the runtime writes repo-relative, so run from
+    # a temp cwd and create the expected directory structure there. The write
+    # itself is opt-in, so the repo's real measured artifact is never touched.
+    os.makedirs(os.path.join(str(tmp_path), "telos", "audit"), exist_ok=True)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("TELOS_WRITE_MEMORY_ARTIFACT", "1")
     pipe = _build_pipeline(tmp_path)
     state = np.array([0.0, 0.0])
     for _ in range(5):
         pipe.execute(state, user_name="mem")
-    monkeypatch.chdir(tmp_path)
     pipe.shutdown()
-    path = os.path.join("telos", "audit", "memory_consumption.json")
+    path = os.path.join(str(tmp_path), "telos", "audit", "memory_consumption.json")
     assert os.path.isfile(path)
     with open(path) as f:
         data = json.load(f)
-    assert data["consumed_in_real_cycles"] is True
     assert data["memory_consumed"] > 0
+    assert data["source"] == "runtime_pipeline"
+    assert data["cycles_observed"] == 5
+    assert data["min_cycles_required"] >= 50
+    assert data["consumed_in_real_cycles"] is False, \
+        "a 5-cycle test run must not claim sustained consumption"
+
+

@@ -29,6 +29,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger('telos_pipeline')
 
+# Minimum cycle span before decision-memory consumption counts as SUSTAINED
+# (not a short test run) in the capability scorecard's consumption artifact.
+MEMORY_CONSUMPTION_MIN_CYCLES = 50
+
 from telos.core.contracts.domain_model import DomainSimulator, DomainAdapter
 from telos.core.attention import BudgetManager
 from telos.core.attention.projection import AttentionProjectionEngine, AttentionAllocation
@@ -2585,19 +2589,28 @@ class TelosV14Pipeline:
     def _write_memory_consumption_artifact(self) -> None:
         """Write the machine-checkable proof that memory is consumed in cycles.
 
-        The capability scorecard's final memory point requires an artifact
-        showing real consumption (searches performed + outcomes recorded), not
-        file existence. This writes it at shutdown.
+        The capability scorecard's final memory point requires evidence of
+        SUSTAINED consumption, not a short test run. This writes the runtime's
+        own observation, tagged with its provenance and the cycle span, so the
+        scorecard can require a real span (min_cycles_required) rather than any
+        positive count.
         """
         controller = getattr(self, '_memory_controller', None)
         if controller is None:
+            return
+        # Only the long-running producer / an explicit measurement run should
+        # write the REPO artifact. A test or short CLI cycle must not clobber
+        # the measured evidence, so this is opt-in via the environment.
+        if os.environ.get("TELOS_WRITE_MEMORY_ARTIFACT") != "1":
             return
         path = os.path.join("telos", "audit", "memory_consumption.json")
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             stats = controller.stats()
             payload = {
+                "source": "runtime_pipeline",
                 "cycles": self._cycle_count,
+                "cycles_observed": self._cycle_count,
                 "memory_consumed": stats.get("memory_consumed", 0),
                 "inserted": stats.get("inserted", 0),
                 "rejected_governance_suppression": stats.get(
@@ -2609,7 +2622,9 @@ class TelosV14Pipeline:
                 "consumed_in_real_cycles": bool(
                     stats.get("memory_consumed", 0) > 0
                     and stats.get("inserted", 0) > 0
+                    and self._cycle_count >= MEMORY_CONSUMPTION_MIN_CYCLES
                 ),
+                "min_cycles_required": MEMORY_CONSUMPTION_MIN_CYCLES,
             }
             import json as _json
             with open(path, "w", encoding="utf-8") as f:

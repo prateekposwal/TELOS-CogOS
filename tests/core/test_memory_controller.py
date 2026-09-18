@@ -126,6 +126,7 @@ def test_serialization_roundtrip():
     assert rebuilt.memory_consumed == c.memory_consumed
 
 
-def test_tokenize_drops_short_tokens():
-    """Tokenization keeps words of length >= 2, lowercased."""
-    assert tokenize("A to BE or NOT") == ["to", "be", "or", "not"]
+def test_tokenize_drops_short_and_stopword_tokens():
+    """Tokenizer keeps content tokens, drops short words and stopwords."""
+    assert tokenize("A to BE or NOT") == []
+    assert tokenize("navigate to the corner goal") == ["navigate", "corner", "goal"]

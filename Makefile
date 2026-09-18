@@ -7,7 +7,7 @@
 PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
 export PYTHONPATH := .
 
-.PHONY: test test-core test-fallback test-all lint run audit coverage health check check-fast capabilities clean
+.PHONY: test test-core test-fallback test-all lint run audit coverage health check check-fast capabilities memory-consume clean
 
 test: test-core test-fallback
 
@@ -43,6 +43,11 @@ capabilities:
 	$(PYTHON) telos/tools/memory_eval.py --ci
 	$(PYTHON) telos/tools/learning_curve.py --ci
 	$(PYTHON) telos/tools/capability_scorecard.py --ci
+
+# Sustained memory measurement (slow: drives a real pipeline for many cycles).
+# Separate from `capabilities` so the fast gate stays fast; CI runs it.
+memory-consume:
+	$(PYTHON) telos/tools/memory_consumption_run.py --cycles 120 --ci
 
 # Release gate (periodic / CI): full suite + every invariant gate at full
 # duration. ~3 min. Use check-fast for a per-commit loop.

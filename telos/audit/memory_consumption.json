@@ -1,15 +1,18 @@
 {
-  "cycles": 4,
-  "memory_consumed": 6,
-  "inserted": 3,
-  "rejected_governance_suppression": 1,
+  "source": "dashboard_producer",
+  "cycles_observed": 10,
+  "memory_consumed": 24,
+  "inserted": 7,
+  "rejected_governance_suppression": 3,
   "tiered": {
-    "hot": 3,
+    "hot": 7,
     "warm": 0,
     "cold": 0,
-    "total": 3,
+    "total": 7,
     "evicted": 0,
     "summarized": 0
   },
-  "consumed_in_real_cycles": true
+  "consumed_in_real_cycles": false,
+  "min_cycles_required": 50,
+  "updated_at": 1789707062.730229
 }
