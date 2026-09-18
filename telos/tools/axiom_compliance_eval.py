@@ -17,10 +17,12 @@ DecisionTrace (`trace.axiom_results`). It writes the honest distribution to
 machine-checkable verdict for the MEASUREMENT itself.
 
 `--ci` exits 0 only when the measurement is well-formed (the requested cycles
-were measured, every measured cycle carried a full 42-axiom result set). It
-does NOT assert a compliance floor: the measured live compliance is written
-verbatim, and a proposed constitutional floor is reported separately with its
-pass/fail so the gap is visible rather than smoothed away.
+were measured, every measured cycle carried a full 42-axiom result set) AND the
+constitutional floor (`PROPOSED_COMPLIANCE_FLOOR`) is met. The floor was
+reported-not-enforced while live compliance was 28/42; the wiring/exposure
+fixes raised live compliance to 42/42, so the floor is now wired as a real
+gate. The measured live compliance is still written verbatim — the gate cannot
+smooth a degraded run.
 
 Run:
   PYTHONPATH=. ./.venv/bin/python telos/tools/axiom_compliance_eval.py --cycles 40
@@ -59,11 +61,17 @@ CRITERIA: List[str] = [
     "axiom_set_complete",
 ]
 
-# The constitutional ideal: every live cycle obeys all 42 axioms. Reported as a
-# proposed gate (NOT wired to --ci) so the measured value is visible honestly.
+# The constitutional ideal: every live cycle obeys all 42 axioms. Wired as a
+# real gate: `--ci` fails when the measured minimum falls below this floor.
+# (It was reported-not-enforced until the wiring/exposure fixes made the live
+# measurement legitimately 42/42.)
 PROPOSED_COMPLIANCE_FLOOR = 1.0
 
-# Per-axiom diagnosis of the 14 axioms that fail on live cycles. Categories:
+# Historical catalog of the 14 wiring/exposure gaps that made live per-cycle
+# compliance 28/42 (mean=min=0.667) before they were fixed. It is retained so
+# `evaluate` can annotate any RE-INTRODUCTION of a gap (a currently-failing
+# axiom that still matches a known category); an all-green run ships an empty
+# per-run diagnosis. Categories:
 #   prover_input_incomplete — the real component is wired onto the pipeline,
 #       but the live prover call never passes the kwarg the predicate reads and
 #       the predicate has no `pipeline` fallback (wiring gap, not a violation).
@@ -74,6 +82,12 @@ PROPOSED_COMPLIANCE_FLOOR = 1.0
 #       healthy run does not meet ("no valid trace ⇒ cannot verify ⇒ failed").
 #   advisory_path_skipped — an advisory layer (DistributedCouncil) that would
 #       populate the signal is skipped or returns early; fail-closed.
+# FIXED by: canonical pipeline-component fallback in AxiomProver, storing the
+# ErrorAttributionEngine return + explicit not-applicable status, exposing the
+# canonical RelationalContext/SystemSelf, recording the performed local-optima
+# check, and recording a not-applicable CooperativeVerdict when the advisory
+# crew legitimately does not run. When the crew DOES run, 4.11 stays fail-closed
+# on a real unmet inequality (e.g. standard mode honestly reports 41/42).
 FAILING_AXIOM_DIAGNOSIS: Dict[str, Dict[str, str]] = {
     "2.7": {
         "category": "exposure_gap",
@@ -106,9 +120,10 @@ FAILING_AXIOM_DIAGNOSIS: Dict[str, Dict[str, str]] = {
     },
     "4.11": {
         "category": "advisory_path_skipped",
-        "evidence": "ctx.cooperative_verdict is written in _run_distributed_council (runtime.py:2528); "
-                    "fast mode sets skip_advisory_layers so the crew never runs, and the method also "
-                    "returns early without a verdict/selected_intent — predicate stays fail-closed.",
+        "evidence": "ctx.cooperative_verdict was written only inside _run_distributed_council; fast "
+                    "mode sets skip_advisory_layers so the crew never ran, and the method's early "
+                    "returns left it unset — fail-closed. Fixed: a not-applicable record is written "
+                    "whenever the crew is skipped; when it runs, a real cooperative=False still fails.",
     },
     "6.3": {
         "category": "prover_input_incomplete",
@@ -375,10 +390,10 @@ def summarize(records: List[Optional[Dict[str, Any]]], requested_cycles: int,
             "measured_mean": round(mean_pct, 6),
             "measured_min": round(min_pct, 6),
             "passes": bool(passed_counts) and min_pct >= PROPOSED_COMPLIANCE_FLOOR,
-            "note": ("Not wired to --ci: --ci gates measurement well-formedness, "
-                     "not a compliance floor. The gate is reported so the gap is "
-                     "visible — the constitution is falsifiable and green on "
-                     "healthy synthetic input, but live traces are not yet 42/42."),
+            "enforced": True,
+            "note": ("Wired to --ci: --ci now requires both measurement "
+                     "well-formedness and this floor. Live traces reach 42/42 "
+                     "after the wiring/exposure fixes; a degraded run fails."),
         },
     }
 
@@ -400,7 +415,14 @@ def evaluate(cycles: int = 40, mode: str = "fast", seed: int = 42,
     records = _run_records(cycles, mode, seed)
     payload = summarize(records, cycles, mode, seed)
     payload["provenance"] = provenance(PRODUCER, CRITERIA)
-    payload["diagnosis"] = FAILING_AXIOM_DIAGNOSIS
+    # Diagnosis is attached only for axioms that are failing in THIS
+    # measurement (the constant is the known wiring-gap catalog). An all-green
+    # run therefore ships an empty diagnosis, not a stale list of fixed gaps.
+    failing_ids = [row["axiom"] for row in payload["worst_failed_axioms"]]
+    payload["diagnosis"] = {
+        aid: FAILING_AXIOM_DIAGNOSIS[aid]
+        for aid in failing_ids if aid in FAILING_AXIOM_DIAGNOSIS
+    }
 
     if determinism:
         second = _run_records(cycles, mode, seed)
@@ -417,6 +439,23 @@ def evaluate(cycles: int = 40, mode: str = "fast", seed: int = 42,
             "note": "single run; pass --determinism to compare two identical-seed runs",
         }
     return payload
+
+
+def floor_ok(payload: Dict[str, Any]) -> bool:
+    """Fail-closed constitutional-floor gate.
+
+    Args:
+        payload: the dict returned by `summarize`/`evaluate`.
+
+    Returns:
+        True only when the proposed compliance-floor block is present and
+        passes. A missing or malformed gate returns False (never a silent
+        pass).
+    """
+    gate = payload.get("proposed_compliance_gate")
+    if not isinstance(gate, dict):
+        return False
+    return gate.get("passes") is True
 
 
 def ci_ok(payload: Dict[str, Any]) -> bool:
@@ -467,7 +506,7 @@ def print_report(payload: Dict[str, Any]) -> None:
     for name, ok in payload["criteria"].items():
         print(f"  criterion {name:<24}{'PASS' if ok else 'FAIL':>6}")
     gate = payload["proposed_compliance_gate"]
-    print(f"  proposed compliance floor {gate['floor']:.1f} (not wired to --ci): "
+    print(f"  compliance floor {gate['floor']:.1f} (enforced by --ci): "
           f"mean={gate['measured_mean']:.3f} -> {'PASS' if gate['passes'] else 'FAIL'}")
     print("=" * 78)
     verdict = payload["verdict"]
@@ -490,7 +529,8 @@ if __name__ == "__main__":
     ap.add_argument("--determinism", action="store_true",
                     help="run a second identical pipeline and compare fingerprints")
     ap.add_argument("--ci", action="store_true",
-                    help="exit 1 unless the MEASUREMENT is well-formed (never a compliance floor)")
+                    help="exit 1 unless the MEASUREMENT is well-formed AND the "
+                         "live-compliance floor is met")
     ap.add_argument("--verbose", action="store_true", help="keep pipeline warnings")
     ap.add_argument("--json", default="telos/audit/axiom_compliance.json",
                     help="path to write the evaluation JSON")
@@ -523,4 +563,4 @@ if __name__ == "__main__":
                 print("axiom_compliance_eval: artifact failed read-back validation",
                       file=sys.stderr)
                 sys.exit(1)
-        sys.exit(0 if ci_ok(payload) else 1)
+        sys.exit(0 if (ci_ok(payload) and floor_ok(payload)) else 1)
