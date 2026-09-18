@@ -2241,6 +2241,15 @@ class TelosV14Pipeline:
         health = max(0.0, min(1.0, 1.0 - (self.budget_manager.consumed_ms / self.budget_manager.total_budget_ms
                          if self.budget_manager.total_budget_ms > 0 else 0.0)))
 
+        # Selection instrumentation (Phase 1, non-behavioral): record WHY the
+        # selected intent won (candidates, scores, mission progress, regime).
+        try:
+            from telos.core.decision.selection_trace import build_selection_decision
+            ctx.selection_decision = build_selection_decision(ctx, self)
+        except Exception as exc:
+            logger.warning("selection instrumentation failed: %s", exc)
+            ctx.selection_decision = None
+
         trace = build_trace(
             ctx=ctx, state=state,
             cycle_count=self._cycle_count,
