@@ -153,8 +153,10 @@ def _build_controller(records: List[MemoryRecord]) -> MemoryController:
         A populated MemoryController.
     """
     controller = MemoryController()
-    for record in records:
-        controller.insert(record)
+    # Batch ingestion through the controller's one ops API (insert_many).
+    # Parity with the old per-record loop is locked by
+    # tests/core/test_memory_controller.py::test_insert_many_matches_loop.
+    controller.insert_many(records)
     return controller
 
 

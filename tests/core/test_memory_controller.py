@@ -130,3 +130,37 @@ def test_tokenize_drops_short_and_stopword_tokens():
     """Tokenizer keeps content tokens, drops short words and stopwords."""
     assert tokenize("A to BE or NOT") == []
     assert tokenize("navigate to the corner goal") == ["navigate", "corner", "goal"]
+
+
+def test_insert_many_matches_loop_parity():
+    """insert_many is the batch form of insert: same stored records and same
+    counters as inserting one-by-one (the caller wired in memory_eval.py)."""
+    records = [
+        _rec("a", content="alpha grid", importance=0.3, cycle=0),
+        _rec("b", content="beta grid", importance=0.7, cycle=1),
+        _rec("c", content="gamma grid", importance=0.5, cycle=2),
+        # A governance-suppressed record must be refused by both paths.
+        _rec("blocked", content="blocked grid",
+             provenance={"caller": "x", "reason": "governance_intervention"}),
+    ]
+    batch = MemoryController()
+    accepted = batch.insert_many(records)
+
+    loop = MemoryController()
+    for record in records:
+        loop.insert(record)
+
+    assert accepted == 3
+    assert batch.inserted == loop.inserted == 3
+    assert (batch.rejected_governance_suppression
+            == loop.rejected_governance_suppression == 1)
+    assert ([r.record_id for r in batch.records()]
+            == [r.record_id for r in loop.records()])
+    assert batch.stats()["total"] == loop.stats()["total"]
+
+
+def test_insert_many_returns_zero_for_empty():
+    """An empty batch is a no-op, not an error."""
+    c = MemoryController()
+    assert c.insert_many([]) == 0
+    assert c.inserted == 0
