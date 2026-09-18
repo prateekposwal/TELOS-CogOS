@@ -161,3 +161,68 @@ def test_real_pipeline_deterministic_and_well_formed(tmp_path):
     measured = read_measurement(str(tmp_path), "axiom_compliance.json",
                                 tuple(ace.CRITERIA))
     assert measured is not None and measured.verdict_passed
+
+
+def test_floor_gate_is_wired_and_fail_closed():
+    # The constitutional floor is now a real gate: `floor_ok` fails closed on
+    # a missing/malformed gate and on any measurement below 42/42. `ci_ok`
+    # still checks measurement well-formedness only; the CLI requires both.
+    good = _payload([_record([])], 1)
+    assert good["proposed_compliance_gate"]["passes"] is True
+    assert ace.floor_ok(good) is True
+    assert ace.ci_ok(good) is True
+
+    degraded = _payload([_record(["2.7", "4.5"])], 1)
+    assert degraded["proposed_compliance_gate"]["passes"] is False
+    assert ace.floor_ok(degraded) is False
+    # The measurement itself is still well-formed (honest, not smoothed).
+    assert ace.ci_ok(degraded) is True
+
+    # Missing / malformed gate fails closed, never a silent pass.
+    assert ace.floor_ok({}) is False
+    assert ace.floor_ok({"proposed_compliance_gate": "nope"}) is False
+    assert ace.floor_ok({"proposed_compliance_gate": {"passes": "yes"}}) is False
+
+
+def test_diagnosis_is_attached_only_for_current_failures():
+    # The wiring-gap catalog stays the reference; an all-green run ships an
+    # empty per-run diagnosis rather than a stale list of fixed gaps.
+    assert set(ace.FAILING_AXIOM_DIAGNOSIS) >= {
+        "2.7", "4.5", "4.8", "4.9", "4.10", "4.11",
+        "6.3", "6.4", "6.5", "6.6", "6.7", "6.8", "6.9", "6.10"}
+    payload = ace.evaluate(cycles=2, mode="fast", seed=42)
+    assert payload["worst_failed_axioms"] == []
+    assert payload["diagnosis"] == {}
+
+
+def test_live_cycle_exposes_the_prover_inputs_on_ctx(tmp_path):
+    # Every value the fixed predicates read is written where they read it.
+    import numpy as np
+
+    pipe = ace._build(str(tmp_path), "fast", 42)
+    captured = {}
+    original = pipe._axiom_prover.verify
+
+    def _capture(trace, ctx, **kwargs):
+        captured["ctx"] = ctx
+        return original(trace, ctx, **kwargs)
+
+    pipe._axiom_prover.verify = _capture
+    pipe.execute(np.array([0.0, 0.0]), user_name="axiom-inputs-test")
+    ctx = captured["ctx"]
+    assert ctx.error_attribution_status in ("attributed", "not_applicable")
+    assert ctx.relational_context is not None
+    assert hasattr(ctx.relational_context, "relational_coherence")
+    assert ctx.local_optima_escape is not None
+    assert ctx.cooperative_verdict is not None
+
+
+def test_live_compliance_floor_does_not_regress():
+    # MEANING: the wiring/exposure fixes raised live per-cycle axiom
+    # compliance from 28/42 (mean=min=0.667) to 42/42 (1.0). If a future
+    # change silently starves the prover of a live component again, this
+    # assertion fails loudly instead of only the committed artifact drifting.
+    payload = ace.evaluate(cycles=8, mode="fast", seed=42)
+    assert payload["min_compliance"] >= 1.0
+    assert payload["mean_compliance"] >= 1.0
+    assert payload["healthy_cycles"] == payload["cycles_measured"]

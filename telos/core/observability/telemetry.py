@@ -189,7 +189,9 @@ class TelemetryCollector:
         escape = _field("local_optima_escape", None)
         if escape is not None and hasattr(escape, "get"):
             escape = dict(escape)
-        if escape:
+        # Only a real escape is an escape; a performed check that found no
+        # lock-in (escaped=False) must not inflate the escape count.
+        if escape and escape.get("escaped", True):
             self.record("local_optima_escape", 1.0, cycle,
                         tags={"escaped_from": escape.get("escaped_from", "unknown"),
                               "escaped_to": escape.get("escaped_to", "unknown")})
@@ -325,7 +327,7 @@ class TelemetryCollector:
                     "failures": len(d["knowledge_report"].get("avoid", [])),
                 }
             escape = d.get("local_optima_escape")
-            if escape:
+            if escape and escape.get("escaped", True):
                 entry["local_optima_escape"] = escape
             history.append(entry)
 

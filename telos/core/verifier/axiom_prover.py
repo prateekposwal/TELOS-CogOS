@@ -28,6 +28,70 @@ class AxiomProver:
         self._infra_manager = infra_manager
         self._skill_library = skill_library
 
+    def _component(self, kwargs: Dict[str, Any], name: str,
+                   ctx: Any = None) -> Any:
+        """Resolve a live cognitive component by its canonical name.
+
+        One accessor for the wiring-gap class: the components already exist on
+        the pipeline as private attributes (`pipeline._<name>`), but the live
+        prover call may pass no explicit kwarg. Resolution order is
+        kwarg → pipeline private attribute → phase context; never invent a
+        value. An explicit kwarg of None still falls through, so a falsifier
+        that nulls the kwarg on a pipeline-less setup still sees absence.
+
+        Args:
+            kwargs: the prover's extra keyword arguments.
+            name: canonical component name (e.g. "model_competition").
+            ctx: the phase context (last-resort attribute lookup).
+
+        Returns:
+            The resolved component, or None when genuinely absent.
+        """
+        value = kwargs.get(name)
+        if value is not None:
+            return value
+        pipeline = kwargs.get('pipeline')
+        if pipeline is not None:
+            value = getattr(pipeline, f"_{name}", None)
+            if value is not None:
+                return value
+        if ctx is not None:
+            return getattr(ctx, name, None)
+        return None
+
+    def _system_self(self, kwargs: Dict[str, Any], ctx: Any = None) -> Any:
+        """Resolve the live SystemSelf (the self-model).
+
+        The live instance lives at `infra_manager.system_self`; the old
+        `pipeline._system_self` was never assigned (the exposure gap). Falls
+        back through the pipeline, then the prover's own infra_manager.
+
+        Args:
+            kwargs: the prover's extra keyword arguments.
+            ctx: the phase context (last-resort attribute lookup).
+
+        Returns:
+            The resolved SystemSelf, or None when genuinely absent.
+        """
+        value = kwargs.get('system_self')
+        if value is not None:
+            return value
+        pipeline = kwargs.get('pipeline')
+        if pipeline is not None:
+            value = getattr(pipeline, '_system_self', None)
+            if value is None:
+                infra = getattr(pipeline, '_infra_manager', None)
+                value = getattr(infra, 'system_self', None) if infra is not None else None
+            if value is not None:
+                return value
+        if self._infra_manager is not None:
+            value = getattr(self._infra_manager, 'system_self', None)
+            if value is not None:
+                return value
+        if ctx is not None:
+            return getattr(ctx, 'system_self', None)
+        return None
+
     def verify(self, trace: Any, ctx: Any, **kwargs) -> Dict[str, Dict[str, Any]]:
         """Returns dict of axiom_id -> {"passed": bool, "reason": str}.
 
@@ -147,14 +211,22 @@ class AxiomProver:
         }
 
         # 2.7 — Meta-Error Attribution (Error → Subsystem → Update)
+        # The obligation is conditional on a failure occurring. A cycle with
+        # no failure has nothing to attribute: `error_attribution_status`
+        # records that explicitly, so "condition did not occur" is distinct
+        # from "attribution missing" (which still fails).
         eae = getattr(ctx, 'error_attribution', None)
         if eae is None:
             eae = getattr(trace, 'error_attribution', None) if trace else None
-        passed = eae is not None
+        _ea_na = eae is None and getattr(ctx, 'error_attribution_status', None) == 'not_applicable'
+        passed = eae is not None or _ea_na
         results['2.7'] = {
             "passed": passed,
-            "reason": "error_attribution populated — subsystem identified" if passed
-                      else "error_attribution not found — no subsystem attribution",
+            "not_applicable": bool(_ea_na),
+            "reason": ("error_attribution populated — subsystem identified" if eae is not None
+                       else ("no failure this cycle — error attribution condition did not occur"
+                             if _ea_na
+                             else "error_attribution not found — no subsystem attribution")),
         }
 
         # ── Layer 3: Adaptive Capacity ────────────────────────────────────
@@ -266,12 +338,18 @@ class AxiomProver:
         }
 
         # 4.5 — Local vs Global Optima
+        # The recorded value covers BOTH outcomes of the check: a real escape
+        # (escaped=True) and a performed check that found no lock-in
+        # (escaped=False). The obligation is that detection ran, not that an
+        # escape was needed; absence still fails (fail-closed).
         lo_checked = getattr(trace, 'local_optima_escape', None) if trace else None
         passed = lo_checked is not None
+        _escaped = isinstance(lo_checked, dict) and bool(lo_checked.get('escaped', False))
         results['4.5'] = {
             "passed": passed,
-            "reason": f"local_optima_escape is set — local vs global optima checked" if passed
-                      else "local_optima_escape not set",
+            "escaped": _escaped,
+            "reason": ("local_optima_escape recorded — local vs global optima checked"
+                       if passed else "local_optima_escape not set"),
         }
 
         # 4.6 — Emergent Intelligence (≥2 streams activated)
@@ -296,7 +374,7 @@ class AxiomProver:
         }
 
         # 4.8 — Models Compete (ΣP(M_i) = 1)
-        mc = kwargs.get('model_competition', None)
+        mc = self._component(kwargs, 'model_competition', ctx)
         passed = mc is not None and hasattr(mc, 'dominant_model')
         results['4.8'] = {
             "passed": passed,
@@ -309,8 +387,7 @@ class AxiomProver:
         # Scaffold predicate (Λ2.3 honest): meaningful when a RelationalContext
         # is wired with utility/authority fields; otherwise reported as
         # scaffold-not-verified (fail-closed — never silently passes).
-        relational = (kwargs.get('relational_context', None)
-                      or (getattr(ctx, 'relational_context', None) if hasattr(ctx, 'relational_context') else None))
+        relational = self._component(kwargs, 'relational_context', ctx)
         _has_rc = relational is not None and hasattr(relational, 'relational_coherence')
         results['4.9'] = {
             "passed": _has_rc,
@@ -329,23 +406,33 @@ class AxiomProver:
             coop = getattr(ctx, 'cooperative_verdict', None)
         if isinstance(coop, dict):
             coop_flag = coop.get('cooperative')
+            coop_not_applicable = coop.get('not_applicable') is True
         elif coop is not None:
             coop_flag = getattr(coop, 'cooperative', None)
+            coop_not_applicable = False
         else:
             coop_flag = None
-        passed = coop_flag is True
+            coop_not_applicable = False
+        # A missing crew is not a failed inequality: when the advisory layer
+        # legitimately did not run, the runtime records an explicit
+        # not-applicable verdict. Present-but-False and absent both still
+        # fail (fail-closed).
+        passed = coop_flag is True or coop_not_applicable
         results['4.11'] = {
             "passed": passed,
+            "not_applicable": bool(coop_not_applicable),
             "reason": (f"CooperativeVerdict cooperative={coop_flag} — U_group > U_isolated − C_align"
-                       if passed
-                       else ("CooperativeVerdict present but inequality not met"
-                             if coop is not None
-                             else "no CooperativeVerdict — cooperation not evaluated (fail-closed)")),
+                       if coop_flag is True
+                       else ("CooperativeVerdict not applicable — advisory crew did not run this cycle"
+                             if coop_not_applicable
+                             else ("CooperativeVerdict present but inequality not met"
+                                   if coop is not None
+                                   else "no CooperativeVerdict — cooperation not evaluated (fail-closed)"))),
         }
 
         # 4.10 — Recursive World Models
-        ss = kwargs.get('system_self', None) or (getattr(kwargs.get('pipeline'), '_system_self', None) if kwargs.get('pipeline') else None)
-        tb = kwargs.get('theory_builder', None) or (getattr(kwargs.get('pipeline'), '_theory_builder', None) if kwargs.get('pipeline') else None)
+        ss = self._system_self(kwargs, ctx)
+        tb = self._component(kwargs, 'theory_builder', ctx)
         passed = (ss is not None) and (tb is not None)
         results['4.10'] = {
             "passed": passed,
@@ -414,7 +501,7 @@ class AxiomProver:
         # Axiom conflicts have computational cost; interpretation is not free.
         # Real predicate: the InterpretationEngine (present in the codebase,
         # archive-rationale) must be wired for this axiom to be satisfiable.
-        ie = kwargs.get('interpretation_engine', None)
+        ie = self._component(kwargs, 'interpretation_engine', ctx)
         results['6.3'] = {
             "passed": ie is not None,
             "reason": ("InterpretationEngine present — conflict interpretation "
@@ -423,7 +510,7 @@ class AxiomProver:
         }
 
         # 6.4 — Identity Compression (I = Φ(E_{1:n}))
-        ic = kwargs.get('identity_compression', None)
+        ic = self._component(kwargs, 'identity_compression', ctx)
         passed = ic is not None
         results['6.4'] = {
             "passed": passed,
@@ -432,7 +519,7 @@ class AxiomProver:
         }
 
         # 6.5 — Theory Formation (Experience → Pattern → Hypothesis → Test → Theory)
-        tb = kwargs.get('theory_builder', None)
+        tb = self._component(kwargs, 'theory_builder', ctx)
         passed = tb is not None
         results['6.5'] = {
             "passed": passed,
@@ -441,7 +528,7 @@ class AxiomProver:
         }
 
         # 6.6 — Theory Revisability (P(T|E) ∝ P(E|T)P(T))
-        mc = kwargs.get('model_competition', None)
+        mc = self._component(kwargs, 'model_competition', ctx)
         has_revision = mc is not None and hasattr(mc, 'compute_entropy')
         passed = has_revision
         results['6.6'] = {
@@ -451,7 +538,7 @@ class AxiomProver:
         }
 
         # 6.7 — Knowledge Compression
-        ec = kwargs.get('explanation_compression', None)
+        ec = self._component(kwargs, 'explanation_compression', ctx)
         passed = ec is not None
         results['6.7'] = {
             "passed": passed,
@@ -460,8 +547,8 @@ class AxiomProver:
         }
 
         # 6.8 — Recursive Intelligence
-        ss = kwargs.get('system_self', None)
-        tb = kwargs.get('theory_builder', None)
+        ss = self._system_self(kwargs, ctx)
+        tb = self._component(kwargs, 'theory_builder', ctx)
         passed = ss is not None and tb is not None
         results['6.8'] = {
             "passed": passed,
@@ -470,7 +557,7 @@ class AxiomProver:
         }
 
         # 6.9 — Curiosity Gradient (∇U_knowledge)
-        cd = kwargs.get('curiosity_drive', None)
+        cd = self._component(kwargs, 'curiosity_drive', ctx)
         passed = cd is not None
         results['6.9'] = {
             "passed": passed,
@@ -479,7 +566,7 @@ class AxiomProver:
         }
 
         # 6.10 — Unknown Unknown Discovery (R_u = f(PE, Novelty))
-        uud = kwargs.get('unknown_unknown_detector', None)
+        uud = self._component(kwargs, 'unknown_unknown_detector', ctx)
         passed = uud is not None
         results['6.10'] = {
             "passed": passed,

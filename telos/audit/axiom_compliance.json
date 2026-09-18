@@ -5,101 +5,16 @@
   "cycles_with_trace": 40,
   "cycles_measured": 40,
   "expected_axioms": 42,
-  "mean_compliance": 0.666667,
-  "min_compliance": 0.666667,
-  "p10_compliance": 0.666667,
-  "mean_passed_axioms": 28.0,
-  "min_passed_axioms": 28,
-  "healthy_cycles": 0,
-  "degraded_cycles": 40,
-  "worst_failed_axioms": [
-    {
-      "axiom": "2.7",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "error_attribution not found \u2014 no subsystem attribution"
-    },
-    {
-      "axiom": "4.10",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "SystemSelf or TheoryBuilder missing \u2014 recursive models incomplete"
-    },
-    {
-      "axiom": "4.11",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "no CooperativeVerdict \u2014 cooperation not evaluated (fail-closed)"
-    },
-    {
-      "axiom": "4.5",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "local_optima_escape not set"
-    },
-    {
-      "axiom": "4.8",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "ModelCompetition not found \u2014 no model competition"
-    },
-    {
-      "axiom": "4.9",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "RelationalContext scaffold absent \u2014 axiom not verified"
-    },
-    {
-      "axiom": "6.10",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "UnknownUnknownDetector missing"
-    },
-    {
-      "axiom": "6.3",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "InterpretationEngine absent \u2014 interpretation energy not modeled"
-    },
-    {
-      "axiom": "6.4",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "IdentityCompression missing"
-    },
-    {
-      "axiom": "6.5",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "TheoryBuilder missing"
-    },
-    {
-      "axiom": "6.6",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "ModelCompetition missing or incomplete"
-    },
-    {
-      "axiom": "6.7",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "ExplanationCompression missing"
-    },
-    {
-      "axiom": "6.8",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "SystemSelf or TheoryBuilder missing"
-    },
-    {
-      "axiom": "6.9",
-      "failed_cycles": 40,
-      "fraction": 1.0,
-      "reason": "CuriosityDrive missing"
-    }
-  ],
-  "fail_count": 14,
-  "fingerprint": "48c60964fb04e989",
+  "mean_compliance": 1.0,
+  "min_compliance": 1.0,
+  "p10_compliance": 1.0,
+  "mean_passed_axioms": 42.0,
+  "min_passed_axioms": 42,
+  "healthy_cycles": 40,
+  "degraded_cycles": 0,
+  "worst_failed_axioms": [],
+  "fail_count": 0,
+  "fingerprint": "7da71fe4790c126c",
   "criteria": {
     "cycles_measured": true,
     "traces_present": true,
@@ -112,10 +27,11 @@
   },
   "proposed_compliance_gate": {
     "floor": 1.0,
-    "measured_mean": 0.666667,
-    "measured_min": 0.666667,
-    "passes": false,
-    "note": "Not wired to --ci: --ci gates measurement well-formedness, not a compliance floor. The gate is reported so the gap is visible \u2014 the constitution is falsifiable and green on healthy synthetic input, but live traces are not yet 42/42."
+    "measured_mean": 1.0,
+    "measured_min": 1.0,
+    "passes": true,
+    "enforced": true,
+    "note": "Wired to --ci: --ci now requires both measurement well-formedness and this floor. Live traces reach 42/42 after the wiring/exposure fixes; a degraded run fails."
   },
   "provenance": {
     "schema_version": 1,
@@ -128,68 +44,11 @@
       "axiom_set_complete"
     ]
   },
-  "diagnosis": {
-    "2.7": {
-      "category": "exposure_gap",
-      "evidence": "runtime.py:1810 calls ErrorAttributionEngine.attribute(...) but discards the returned attribution; neither ctx.error_attribution nor trace.error_attribution is ever set (grep: no assignment)."
-    },
-    "4.5": {
-      "category": "conditional_absence_fail_closed",
-      "evidence": "ctx.local_optima_escape is set only in phases/streams.py:296 when forced_exploration fires; a healthy run never triggers stuck-escape, so the predicate reports failure by absence."
-    },
-    "4.8": {
-      "category": "prover_input_incomplete",
-      "evidence": "pipeline._model_competition exists (runtime.py:350) but pipeline_finalize.run_axiom_prover passes only stream_results+pipeline; axiom_prover.py:299 reads kwargs['model_competition'] with no pipeline fallback."
-    },
-    "4.9": {
-      "category": "exposure_gap",
-      "evidence": "RelationalContext exists (reasoning/relational.py) and is embedded in ctx.identity_state['R_t'] (runtime.py:1973-1996) but ctx.relational_context is never set; axiom_prover.py:312-314 checks only kwargs/ctx.relational_context."
-    },
-    "4.10": {
-      "category": "exposure_gap",
-      "evidence": "The live SystemSelf is infra_manager.system_self (infrastructure_manager.py:60); axiom_prover.py:347 reads pipeline._system_self (never assigned) \u2014 wrong attribute."
-    },
-    "4.11": {
-      "category": "advisory_path_skipped",
-      "evidence": "ctx.cooperative_verdict is written in _run_distributed_council (runtime.py:2528); fast mode sets skip_advisory_layers so the crew never runs, and the method also returns early without a verdict/selected_intent \u2014 predicate stays fail-closed."
-    },
-    "6.3": {
-      "category": "prover_input_incomplete",
-      "evidence": "pipeline._interpretation_engine exists but axiom_prover.py:417 reads only kwargs['interpretation_engine'] with no pipeline fallback."
-    },
-    "6.4": {
-      "category": "prover_input_incomplete",
-      "evidence": "pipeline._identity_compression exists but axiom_prover.py:426 reads only kwargs['identity_compression'] with no pipeline fallback."
-    },
-    "6.5": {
-      "category": "prover_input_incomplete",
-      "evidence": "pipeline._theory_builder exists but axiom_prover.py:435 reads only kwargs['theory_builder'] with no pipeline fallback."
-    },
-    "6.6": {
-      "category": "prover_input_incomplete",
-      "evidence": "pipeline._model_competition exists but axiom_prover.py:444 reads only kwargs['model_competition'] with no pipeline fallback."
-    },
-    "6.7": {
-      "category": "prover_input_incomplete",
-      "evidence": "pipeline._explanation_compression exists but axiom_prover.py:456 reads only kwargs['explanation_compression'] with no pipeline fallback."
-    },
-    "6.8": {
-      "category": "exposure_gap",
-      "evidence": "axiom_prover.py:463 reads only kwargs['system_self']; the live SystemSelf is infra_manager.system_self and is never passed nor fallback-resolved."
-    },
-    "6.9": {
-      "category": "prover_input_incomplete",
-      "evidence": "pipeline._curiosity_drive exists but axiom_prover.py:473 reads only kwargs['curiosity_drive'] with no pipeline fallback."
-    },
-    "6.10": {
-      "category": "prover_input_incomplete",
-      "evidence": "pipeline._unknown_unknown_detector exists but axiom_prover.py:482 reads only kwargs['unknown_unknown_detector'] with no pipeline fallback."
-    }
-  },
+  "diagnosis": {},
   "determinism": {
     "runs": 1,
     "fingerprints": [
-      "48c60964fb04e989"
+      "7da71fe4790c126c"
     ],
     "identical": null,
     "note": "single run; pass --determinism to compare two identical-seed runs"

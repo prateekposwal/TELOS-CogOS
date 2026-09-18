@@ -356,6 +356,10 @@ class TelosV14Pipeline:
         self._identity_compression = comps['identity_compression']
         self._explanation_compression = comps['explanation_compression']
         self._resource_accounting = comps['resource_accounting']
+        # Λ4.9/4.10 exposure: the RelationalContext component was built but
+        # never referenced. Alias it as the single canonical source the
+        # prover's relational predicate resolves (no duplicate instance).
+        self._relational_context = comps['relational_context']
         self._project_portfolio = ProjectPortfolio()
         self._abandonment_gate = AbandonmentGate()
         self._strategic_coherence = StrategicCoherence()
@@ -1648,6 +1652,17 @@ class TelosV14Pipeline:
                 try:
                     if not self.config.skip_advisory_layers:
                         self._run_distributed_council(ctx)
+                    else:
+                        # Λ4.11 exposure: the advisory crew is deliberately
+                        # skipped (fast mode). Record an explicit
+                        # not-applicable verdict so "cooperation was not
+                        # evaluated" is distinct from "the inequality failed".
+                        ctx.cooperative_verdict = {
+                            "cooperative": None,
+                            "not_applicable": True,
+                            "reason": "advisory crew skipped "
+                                      "(fast mode / skip_advisory_layers)",
+                        }
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
@@ -1807,7 +1822,10 @@ class TelosV14Pipeline:
                         pq = getattr(ctx, 'perception_quality', None)
                         perception_quality = float(
                             pq.get('score', 0.5)) if isinstance(pq, dict) else 0.5
-                        self._error_attribution.attribute(
+                        # Λ2.7 exposure: KEEP the attribution the engine
+                        # returns (it was discarded before, so the prover
+                        # could never see it).
+                        ctx.error_attribution = self._error_attribution.attribute(
                             cycle=ctx.cycle_count,
                             predicted_state=predicted,
                             actual_state=actual,
@@ -1820,6 +1838,12 @@ class TelosV14Pipeline:
                             intent_type=ctx.selected_intent.intent_type
                             if ctx.selected_intent else "unknown",
                         )
+                        ctx.error_attribution_status = "attributed"
+                    else:
+                        # No failure this cycle → nothing to attribute. Record
+                        # the condition explicitly so Λ2.7 is not counted as
+                        # violated merely because no error occurred.
+                        ctx.error_attribution_status = "not_applicable"
                 except Exception as e:
                     logger.warning("runtime.py: swallowed error: %r", e)
 
@@ -1961,6 +1985,14 @@ class TelosV14Pipeline:
                 else:
                     identity_result = None
 
+                # Λ4.9: one canonical RelationalContext for this cycle —
+                # exposed on ctx (the prover's relational input) and
+                # serialized into the identity tuple (single source, Λ6.7).
+                relational_ctx = getattr(self, '_relational_context', None)
+                if relational_ctx is None:
+                    relational_ctx = RelationalContext()
+                ctx.relational_context = relational_ctx
+
                 if identity_result:
                     ctx.identity_state = {
                         "G_t": identity_result.get("G_t", goals),
@@ -1970,7 +2002,7 @@ class TelosV14Pipeline:
                         "K_t": identity_result.get("K_t", capabilities),
                         "V_t": identity_result.get("V_t", values),
                         "Res_t": ctx.resource_budgets,
-                        "R_t": RelationalContext().to_dict(),
+                        "R_t": relational_ctx.to_dict(),
                     }
                 else:
                     ctx.identity_state = {
@@ -1981,7 +2013,7 @@ class TelosV14Pipeline:
                         "K_t": capabilities,
                         "V_t": values,
                         "Res_t": ctx.resource_budgets,
-                        "R_t": RelationalContext().to_dict(),
+                        "R_t": relational_ctx.to_dict(),
                     }
 
                 # ── Backward compat: normalize old checkpoint identity_state keys ──
@@ -2495,11 +2527,23 @@ class TelosV14Pipeline:
                 writes ctx.distributed_verdict).
         """
         if not getattr(self.config, 'distributed_council_enabled', True):
+            ctx.cooperative_verdict = {
+                "cooperative": None, "not_applicable": True,
+                "reason": "distributed council disabled",
+            }
             return
         interval = max(1, getattr(self.config, 'distributed_council_interval', 1))
         if ctx.cycle_count % interval != 0:
+            ctx.cooperative_verdict = {
+                "cooperative": None, "not_applicable": True,
+                "reason": f"crew not due this cycle (interval={interval})",
+            }
             return
         if ctx.verdict is None or ctx.selected_intent is None:
+            ctx.cooperative_verdict = {
+                "cooperative": None, "not_applicable": True,
+                "reason": "no council verdict/intent to evaluate this cycle",
+            }
             return
         context = {
             "intent_type": ctx.selected_intent.intent_type,

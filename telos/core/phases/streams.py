@@ -295,8 +295,23 @@ class StreamPhase(Phase):
             # Tag PhaseContext so DecisionTrace picks it up
             ctx.local_optima_escape = {
                 "cycle": ctx.cycle_count,
+                "checked": True,
+                "escaped": True,
                 "escaped_from": calibrator.dominant_stream,
                 "escaped_to": forced_stream,
+            }
+        elif calibrator is not None and hasattr(calibrator, 'is_stuck'):
+            # Λ4.5 exposure: the local-vs-global check RAN this cycle and
+            # found no dominant-stream lock-in. Record the PERFORMED check
+            # (escaped=False) so the prover reads the detection outcome
+            # instead of failing merely because no escape was needed. A
+            # genuinely absent calibrator still leaves this unset (fail-closed).
+            ctx.local_optima_escape = {
+                "cycle": ctx.cycle_count,
+                "checked": True,
+                "escaped": False,
+                "stuck": False,
+                "dominant": calibrator.dominant_stream,
             }
 
         perception_intent = None
