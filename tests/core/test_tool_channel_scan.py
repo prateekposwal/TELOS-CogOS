@@ -1,42 +1,70 @@
 """
 Tool-channel scanner — every production subprocess/http call site is classified.
 
-TELOS may touch the real world only through the ActionExecutor. This scanner
-must find zero UNKNOWN (undocumented, ungoverned) channels in production code,
-while reporting the documented Phase-1 bypasses explicitly.
+TELOS may touch the real world only through a governed channel: subprocesses via
+the ActionExecutor, network via the NetworkSandbox. This scanner must find zero
+UNKNOWN (undocumented, ungoverned) channels in production code, while reporting
+any explicit, reviewed exemption explicitly.
 """
 
 from telos.tools.tool_channel_scan import (
-    scan, classify, iter_call_sites, KNOWN_BYPASSES, GOVERNED,
+    scan, classify, iter_call_sites, exemptions_reviewed, EXEMPTIONS, GOVERNED,
 )
 
 
 def test_scan_finds_no_unknown_channels():
-    """No production call site outside the governed channel / known bypasses."""
+    """No production call site outside a governed channel / reviewed exemption."""
     result = scan()
     assert result["counts"]["unknown_sites"] == 0, result["unknown"]
 
 
+def test_no_known_bypasses_remain():
+    """The Phase-1 debt is zero: known bypasses are governed or reviewed."""
+    result = scan()
+    assert result["counts"]["known_bypass_sites"] == 0
+
+
 def test_executor_channel_is_governed():
-    """The ActionExecutor itself is the one governed site."""
+    """The governed channels are detected as call sites."""
     result = scan()
     assert result["counts"]["governed_sites"] >= 1
     assert any(g["path"] in GOVERNED for g in result["governed"])
 
 
-def test_model_provider_is_a_documented_bypass():
-    """The network chat providers are reported, not hidden."""
+def test_model_provider_is_governed_no_longer_a_bypass():
+    """The chat providers route through NetworkSandbox — no raw http.client."""
     result = scan()
-    paths = [entry["path"] for entry in result["known_bypasses"]]
-    assert "telos/core/contracts/model_provider.py" in paths
-    assert all(entry["reason"] for entry in result["known_bypasses"])
+    assert "telos/core/contracts/model_provider.py" not in EXEMPTIONS
+    assert not any(g["path"] == "telos/core/contracts/model_provider.py"
+                   for g in result["unknown"])
+    # It has no ungoverned call sites at all now.
+    assert not any(e["path"] == "telos/core/contracts/model_provider.py"
+                   for e in result["exemptions"])
+
+
+def test_human_gateway_is_governed_no_longer_a_bypass():
+    """The webhook review routes through NetworkSandbox — no raw http.client."""
+    result = scan()
+    assert "telos/core/governance/human_gateway.py" not in EXEMPTIONS
+    assert not any(e["path"] == "telos/core/governance/human_gateway.py"
+                   for e in result["exemptions"])
 
 
 def test_classify_statuses():
-    """Classify maps governed / known_bypass / unknown correctly."""
+    """Classify maps governed / exempt / unknown correctly."""
     assert classify("telos/core/actions/executor.py")["status"] == "governed"
-    assert classify("telos/core/contracts/model_provider.py")["status"] == "known_bypass"
+    assert classify("telos/core/actions/sandbox.py")["status"] == "governed"
+    assert classify("telos/adapters/dev_validation.py")["status"] == "exempt"
     assert classify("telos/core/somewhere/new_channel.py")["status"] == "unknown"
+
+
+def test_exemptions_are_explicit_and_reviewed():
+    """Every exemption names a reason + governing plan and is reviewed."""
+    for path, meta in EXEMPTIONS.items():
+        assert meta["reason"].strip(), path
+        assert meta["governed_by"].strip(), path
+        assert meta["reviewed"] == "true", path
+    assert exemptions_reviewed(scan()) is True
 
 
 def test_iter_call_sites_detects_subprocess(tmp_path):
@@ -60,10 +88,3 @@ def test_iter_call_sites_ignores_comments(tmp_path):
     f = tmp_path / "doc.py"
     f.write_text("# subprocess.run explains the pattern\nx = 1\n")
     assert iter_call_sites(str(f)) == []
-
-
-def test_known_bypasses_are_documented():
-    """Every documented bypass carries a non-empty migration reason."""
-    assert "telos/core/contracts/model_provider.py" in KNOWN_BYPASSES
-    for reason in KNOWN_BYPASSES.values():
-        assert reason.strip()

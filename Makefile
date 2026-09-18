@@ -40,6 +40,7 @@ health:
 # learning curve, and the scorecard itself. Each exits nonzero on a miss.
 capabilities:
 	$(PYTHON) telos/tools/tool_channel_scan.py --ci
+	$(PYTHON) telos/tools/tool_governance_eval.py --ci
 	$(PYTHON) telos/tools/memory_eval.py --ci
 	$(PYTHON) telos/tools/learning_curve.py --ci
 	$(PYTHON) telos/tools/learning_env.py --ci

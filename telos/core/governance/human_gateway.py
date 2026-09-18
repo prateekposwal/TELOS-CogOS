@@ -41,12 +41,41 @@ class HumanGateway:
 
     def __init__(self, mode: str = "auto",
                  webhook_url: Optional[str] = None,
-                 auto_approve_threshold: float = 0.3):
+                 auto_approve_threshold: float = 0.3,
+                 sandbox: Any = None):
         self._mode = mode
         self._webhook_url = webhook_url
         self._auto_approve_threshold = auto_approve_threshold
         self._callbacks: List[Callable] = []
         self._reviews: List[Dict] = []
+        # The governed egress channel for the webhook mode. When not injected it
+        # is built lazily from the operator-configured webhook URL (the ONE
+        # declared endpoint), so the request still passes host/port/route/bounds
+        # gates instead of opening a raw http.client connection.
+        self._sandbox = sandbox
+
+    def _egress(self):
+        """The NetworkSandbox owning this gateway's declared webhook endpoint.
+
+        Returns:
+            A NetworkSandbox whose only egress rule is the operator-configured
+            webhook URL (exact host/port/route prefix, POST). An injected
+            sandbox always wins so an operator can widen the allowlist.
+        """
+        if self._sandbox is not None:
+            return self._sandbox
+        from telos.core.actions.sandbox import EgressRule, NetworkSandbox
+        import urllib.parse
+        parsed = urllib.parse.urlparse(self._webhook_url or "")
+        scheme = (parsed.scheme or "https").lower()
+        host = parsed.hostname or ""
+        port = parsed.port or (443 if scheme == "https" else 80)
+        route = parsed.path or "/"
+        self._sandbox = NetworkSandbox(rules=[
+            EgressRule(host=host, ports=(port,), routes=(route,),
+                       methods=("POST",)),
+        ])
+        return self._sandbox
 
     def on_review(self, callback: Callable) -> None:
         """Register callback fired on each review."""
@@ -151,23 +180,18 @@ class HumanGateway:
                 )
 
     def _webhook_review(self, data: Dict) -> HumanVerdict:
-        import http.client
         import json as _json
-        import urllib.parse
         try:
-            parsed = urllib.parse.urlparse(self._webhook_url)
-            conn = http.client.HTTPSConnection(parsed.netloc,
-                                               timeout=30)
-            conn.request("POST", parsed.path or "/",
-                         body=_json.dumps(data),
-                         headers={"Content-Type": "application/json"})
-            resp = conn.getresponse()
-            result = _json.loads(resp.read())
-            conn.close()
-            approved = result.get("approved", True)
+            result = self._egress().request(
+                "POST", self._webhook_url, body=_json.dumps(data),
+                headers={"Content-Type": "application/json"})
+            if not result.allowed:
+                raise RuntimeError(result.blocked_reason or "egress blocked")
+            payload = _json.loads(result.body)
+            approved = payload.get("approved", True)
             return HumanVerdict(
                 approved=approved,
-                override_reason=result.get("reason", "webhook_decision"),
+                override_reason=payload.get("reason", "webhook_decision"),
                 reviewer="webhook",
             )
         except Exception as e:

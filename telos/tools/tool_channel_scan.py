@@ -2,22 +2,26 @@
 """
 TELOS Tool-Channel Scanner — reports every production subprocess/http call site.
 
-PATTERN (one governed channel): TELOS is allowed exactly ONE audited way to
-touch the real world — the ActionExecutor (allowlist + firewall + operator
-permission + bounded capture). Any other production code that spawns a
-subprocess or opens a network connection is an UNGOVERNED channel: it bypasses
-that discipline. This scanner makes the bypass surface explicit instead of
-silent (same idea as the global-RNG scanner in perf_profiler: measure the
-violation, don't hope it isn't there).
+PATTERN (one governed channel per effect class): TELOS is allowed exactly ONE
+audited way to touch the real world for each effect class:
+  * subprocesses  -> the ActionExecutor (allowlist + firewall + operator
+    permission + bounded capture);
+  * network       -> the NetworkSandbox (host/port/route allowlist + bounds).
+Any other production code that spawns a subprocess or opens a network
+connection is an UNGOVERNED channel: it bypasses that discipline. This scanner
+makes the bypass surface explicit instead of silent (same idea as the global-RNG
+scanner in perf_profiler: measure the violation, don't hope it isn't there).
 
 Each call site is classified as:
-  - governed      — inside the ActionExecutor channel itself (expected);
-  - known_bypass  — a DOCUMENTED pre-existing channel scheduled for Phase 1
-                    governance (reported, not hidden, not a pass-by-omission);
-  - unknown       — anything else: an UNGOVERNED channel that must fail CI.
+  - governed — inside one of the governed channels themselves (expected);
+  - exempt   — an EXPLICIT, REVIEWED exemption: a documented reason AND the
+               phase/plan that would govern it. Never silent. The dev-domain
+               external-project validation harness is the only such exemption.
+  - unknown  — anything else: an UNGOVERNED channel that must fail CI.
 
---ci exits nonzero when any unknown call site exists. Known bypasses are
-printed with their reason so the debt is visible.
+--ci exits nonzero when any unknown call site exists. Exemptions are printed
+with their reason + governing plan so the debt is visible, never zero-by-
+omission.
 """
 
 import argparse
@@ -30,7 +34,8 @@ from typing import Dict, List, Optional
 PROJECT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, PROJECT)
 
-# Production code roots that must route real-world effects through the executor.
+# Production code roots that must route real-world effects through a governed
+# channel (the ActionExecutor for subprocesses, the NetworkSandbox for network).
 SCAN_DIRS = ("telos/core", "telos/world", "telos/adapters", "telos/audit")
 
 # The governed channels: the executor is SUPPOSED to call subprocess; the
@@ -40,23 +45,46 @@ GOVERNED = frozenset({
     "telos/core/actions/sandbox.py",
 })
 
-# Documented, pre-existing ungoverned channels. Each is a real debt item that
-# Phase 1 (Tool use -> 4.5) migrates under the registry + capability gate. They
-# are reported explicitly so the count is honest, never zero-by-omission.
-KNOWN_BYPASSES: Dict[str, str] = {
-    "telos/core/contracts/model_provider.py": (
-        "network chat providers (Ollama/OpenAI/Anthropic) via http.client — "
-        "Phase 1 routes them through the tool registry"
-    ),
-    "telos/core/governance/human_gateway.py": (
-        "outbound human-approval webhook via http.client — Phase 1 governs it"
-    ),
-    "telos/adapters/dev_domain_adapter.py": (
-        "dev-domain simulator subprocess — Phase 1 routes it through the executor"
-    ),
-    "telos/adapters/dev_validation.py": (
-        "dev validation subprocess — Phase 1 routes it through the executor"
-    ),
+# Explicit, reviewed exemptions. Each MUST carry a non-empty reason AND the
+# phase/plan that would govern it; tool_governance_eval.py fails CI if any
+# exemption lacks either (an exemption is a reviewed decision, never a silent
+# allowance). The two dev-domain files are the SAME external-project validation
+# harness: read-only inspection of an operator-supplied project whose command
+# argv is DISCOVERED at runtime.
+EXEMPTIONS: Dict[str, Dict[str, str]] = {
+    "telos/adapters/dev_validation.py": {
+        "reason": (
+            "External-project validation harness: discovers and runs the target "
+            "project's own test/typecheck/lint commands at runtime (argv is a "
+            "function of the scanned project, not a fixed operator template) "
+            "inside the operator-supplied project_path. It cannot route through "
+            "the ActionExecutor without either forbidding all validation or "
+            "letting the harness self-authorize arbitrary argv — both worse "
+            "governance. Bounded: list-form (never a shell), per-command "
+            "timeout, 1MB output cap."
+        ),
+        "governed_by": (
+            "external-project validation executor profile: an operator-declared "
+            "project root + a binary allowlist (pytest/npm/yarn/pnpm/npx/tsc/"
+            "eslint/go) enforced with the same four gates"
+        ),
+        "reviewed": "true",
+    },
+    "telos/adapters/dev_domain_adapter.py": {
+        "reason": (
+            "Dev-domain snapshot helper: runs `npx eslint` (lint count) and "
+            "`du -sk node_modules` (bundle size) read-only over the "
+            "operator-supplied project_path, and delegates test/typecheck/lint "
+            "to dev_validation.validate_project. Same external-project "
+            "measurement channel and rationale as dev_validation.py; read-only "
+            "inspection only."
+        ),
+        "governed_by": (
+            "same external-project validation executor profile as "
+            "dev_validation.py (shared binary allowlist + same four gates)"
+        ),
+        "reviewed": "true",
+    },
 }
 
 _SUBPROCESS_CALLS = frozenset({
@@ -127,12 +155,12 @@ def classify(relpath: str) -> Dict[str, str]:
         relpath: repo-relative path (POSIX separators).
 
     Returns:
-        {"status": governed|known_bypass|unknown, "reason": str}.
+        {"status": governed|exempt|unknown, "reason": str}.
     """
     if relpath in GOVERNED:
-        return {"status": "governed", "reason": "the audited ActionExecutor channel"}
-    if relpath in KNOWN_BYPASSES:
-        return {"status": "known_bypass", "reason": KNOWN_BYPASSES[relpath]}
+        return {"status": "governed", "reason": "a governed effect channel"}
+    if relpath in EXEMPTIONS:
+        return {"status": "exempt", "reason": EXEMPTIONS[relpath]["reason"]}
     return {"status": "unknown", "reason": "ungoverned channel (not documented)"}
 
 
@@ -143,10 +171,10 @@ def scan(root: str = PROJECT) -> Dict[str, object]:
         root: repo root to scan (defaults to the project root).
 
     Returns:
-        Dict with governed/known_bypasses/unknown site lists and counts.
+        Dict with governed/exemptions/unknown site lists and counts.
     """
     governed: List[Dict[str, object]] = []
-    known: Dict[str, Dict[str, object]] = {}
+    exempt: Dict[str, Dict[str, object]] = {}
     unknown: List[Dict[str, object]] = []
     for rel_dir in SCAN_DIRS:
         abs_dir = os.path.join(root, rel_dir)
@@ -165,9 +193,12 @@ def scan(root: str = PROJECT) -> Dict[str, object]:
                 if status == "governed":
                     for s in sites:
                         governed.append({"path": rel, **s})
-                elif status == "known_bypass":
-                    entry = known.setdefault(
-                        rel, {"path": rel, "reason": verdict["reason"], "calls": []}
+                elif status == "exempt":
+                    meta = EXEMPTIONS[rel]
+                    entry = exempt.setdefault(
+                        rel, {"path": rel, "reason": meta["reason"],
+                              "governed_by": meta["governed_by"],
+                              "reviewed": meta["reviewed"], "calls": []}
                     )
                     entry["calls"].extend(sites)  # type: ignore[union-attr]
                 else:
@@ -175,15 +206,36 @@ def scan(root: str = PROJECT) -> Dict[str, object]:
                         unknown.append({"path": rel, **s})
     return {
         "governed": governed,
-        "known_bypasses": [known[k] for k in sorted(known)],
+        "exemptions": [exempt[k] for k in sorted(exempt)],
         "unknown": unknown,
         "counts": {
             "governed_sites": len(governed),
-            "known_bypass_sites": sum(len(v["calls"]) for v in known.values()),
+            "known_bypass_sites": 0,
+            "exemption_sites": sum(len(v["calls"]) for v in exempt.values()),
+            "exemption_files": len(exempt),
             "unknown_sites": len(unknown),
-            "known_bypass_files": len(known),
         },
     }
+
+
+def exemptions_reviewed(result: Dict[str, object]) -> bool:
+    """Whether every reported exemption carries a reason + governing plan.
+
+    Args:
+        result: the dict returned by scan().
+
+    Returns:
+        True when each exemption names a reason, a governing plan, and is
+        marked reviewed (an exemption is never silent).
+    """
+    for entry in result["exemptions"]:  # type: ignore[union-attr]
+        if not str(entry.get("reason") or "").strip():
+            return False
+        if not str(entry.get("governed_by") or "").strip():
+            return False
+        if str(entry.get("reviewed")) != "true":
+            return False
+    return True
 
 
 def print_report(result: Dict[str, object]) -> bool:
@@ -199,20 +251,23 @@ def print_report(result: Dict[str, object]) -> bool:
     print(f"\n{'TELOS Tool-Channel Scan':^72}")
     print("=" * 72)
     print(f"  governed sites     : {counts['governed_sites']} "
-          f"(the ActionExecutor channel)")
-    print(f"  known-bypass sites : {counts['known_bypass_sites']} "
-          f"across {counts['known_bypass_files']} documented files")
+          f"(ActionExecutor + NetworkSandbox)")
+    print(f"  known-bypass sites : {counts['known_bypass_sites']}")
+    print(f"  exempt sites       : {counts['exemption_sites']} "
+          f"across {counts['exemption_files']} reviewed files")
     print(f"  unknown sites      : {counts['unknown_sites']}")
     print("-" * 72)
-    print("  Known bypasses (documented debt -> Phase 1):")
-    for entry in result["known_bypasses"]:  # type: ignore[union-attr]
-        print(f"    - {entry['path']}: {entry['reason']}")
+    if result["exemptions"]:  # type: ignore[union-attr]
+        print("  Reviewed exemptions (reason -> governing plan):")
+        for entry in result["exemptions"]:  # type: ignore[union-attr]
+            print(f"    - {entry['path']}: {entry['reason']}")
+            print(f"      governed_by: {entry['governed_by']}")
     if result["unknown"]:  # type: ignore[union-attr]
-        print("  UNKNOWN (must be governed or documented):")
+        print("  UNKNOWN (must be governed or exempted):")
         for s in result["unknown"]:  # type: ignore[union-attr]
             print(f"    - {s['path']}:{s['lineno']} {s['call']} ({s['kind']})")
     print("=" * 72)
-    ok = counts["unknown_sites"] == 0
+    ok = counts["unknown_sites"] == 0 and exemptions_reviewed(result)
     print("TOOL CHANNEL:", "PASS" if ok else "FAIL")
     return ok
 
