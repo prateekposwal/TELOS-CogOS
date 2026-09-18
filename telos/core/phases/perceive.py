@@ -188,6 +188,24 @@ class PerceivePhase(Phase):
         knowledge_report = pipeline._infra_manager.consult_knowledge(domain, cycle=ctx.cycle_count)
         world.metadata["knowledge_report"] = knowledge_report
 
+        # ── Phase 2: consult decision memory (CONSUMPTION, not just writes).
+        #    The query is the domain + outcome vocabulary, so past outcomes for
+        #    the situation at hand are recalled. A recall failure is logged and
+        #    never blocks perception (Λ2.3). ──
+        try:
+            consult = getattr(pipeline, 'consult_memory', None)
+            if callable(consult):
+                query = f"{domain} outcome"
+                recalled = consult(query, top_k=3)
+                world.metadata["memory_recall"] = [
+                    {"record_id": r.record_id, "content": r.content,
+                     "outcome": r.outcome}
+                    for r in recalled
+                ]
+                ctx.memory_recall = world.metadata["memory_recall"]
+        except Exception as e:
+            logger.warning(f"Cycle {ctx.cycle_count}: memory consultation failed: {e}")
+
         # P2.10: Inject session continuity essence into world for the next cycle
         if hasattr(ctx, 'session') and ctx.session and ctx.session.session_essence:
             world.metadata["session_essence"] = ctx.session.session_essence

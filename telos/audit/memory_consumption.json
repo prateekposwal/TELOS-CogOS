@@ -1,0 +1,15 @@
+{
+  "cycles": 4,
+  "memory_consumed": 6,
+  "inserted": 3,
+  "rejected_governance_suppression": 1,
+  "tiered": {
+    "hot": 3,
+    "warm": 0,
+    "cold": 0,
+    "total": 3,
+    "evicted": 0,
+    "summarized": 0
+  },
+  "consumed_in_real_cycles": true
+}

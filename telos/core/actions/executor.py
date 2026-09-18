@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Optional
 
 from telos.core.actions.registry import (
     AllowlistEntry, ToolSpec, ToolRegistry, DEFAULT_REGISTRY,
+    capability_profile_for,
 )
 from telos.core.governance.firewall import DecisionFirewall
 from telos.intent_ir import IntentIR
@@ -465,6 +466,47 @@ class ActionExecutor:
         self.output_limit = int(output_limit)
         self.timeout = float(timeout)
 
+    def _capability_gate(self, tool_name: str,
+                         capability: Any) -> Optional[Dict[str, Any]]:
+        """Per-tool capability authorization (Phase 1).
+
+        The registry declares which CapabilityAuthorization gates a tool
+        requires (by kind, or its explicit profile). This gate vetoes the tool
+        exactly as the council vetoes an action: a FAIL on any required gate is
+        a hard, non-tradeable block.
+
+        Args:
+            tool_name: the tool being requested.
+            capability: a CapabilityAuthorization (or any object exposing
+                ``gate(name)``), or None to skip the gate.
+
+        Returns:
+            A verdict dict when the gate ran and passed, else None (skip).
+
+        Raises:
+            ToolRejected: when a required capability gate is FAIL.
+        """
+        if capability is None:
+            return None
+        spec = self.allowlist.get(tool_name)
+        if spec is None:
+            return None
+        required = capability_profile_for(spec)
+        failed = []
+        checked = {}
+        for gate_name in required:
+            gate = capability.gate(gate_name) if hasattr(capability, "gate") else None
+            status = getattr(getattr(gate, "status", None), "value", None)
+            checked[gate_name] = status or "UNKNOWN"
+            if status == "FAIL":
+                failed.append(gate_name)
+        if failed:
+            raise ToolRejected(
+                f"capability gate vetoed tool {tool_name!r}: "
+                f"failed {'/'.join(failed)}"
+            )
+        return {"tool": tool_name, "required": required, "observed": checked}
+
     def build_argv(self, permission: ToolPermission) -> List[str]:
         """Validate a permission against the allowlist and build the argv.
 
@@ -586,13 +628,17 @@ class ActionExecutor:
         return verdict_dict
 
     def execute(self, permission: ToolPermission,
-                firewall: Optional[DecisionFirewall] = None) -> ActionExecution:
+                firewall: Optional[DecisionFirewall] = None,
+                capability: Any = None) -> ActionExecution:
         """Run the full gate sequence; return the audited outcome.
 
         Args:
             permission: the operator-granted tool request.
             firewall: the DecisionFirewall to audit through (REQUIRED for
                 execution — a missing firewall is itself a block).
+            capability: optional CapabilityAuthorization for the per-tool
+                capability gate (Phase 1). None skips the gate (pre-Phase-1
+                behavior); a FAIL on a required gate vetoes the tool.
 
         Returns:
             ActionExecution audit record: allowed=True only when every gate
@@ -609,7 +655,11 @@ class ActionExecutor:
         try:
             argv = self.build_argv(permission)
             record.command = " ".join(shlex.quote(a) for a in argv)
+            cap_verdict = self._capability_gate(permission.tool_name, capability)
             verdict = self._firewall_audit(firewall, permission.tool_name)
+            if cap_verdict is not None:
+                verdict = dict(verdict or {})
+                verdict["capability_gate"] = cap_verdict
             record.firewall_verdict = verdict
             entry_kind = self.allowlist[permission.tool_name].kind
         except ToolRejected as e:

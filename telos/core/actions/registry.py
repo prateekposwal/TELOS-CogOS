@@ -254,7 +254,42 @@ class ToolRegistry:
 DEFAULT_REGISTRY = ToolRegistry.default()
 
 
+# Capability profiles: which CapabilityAuthorization gates a tool family
+# requires to be PASS/LIMITED before the tool may run. Read by the executor's
+# per-tool gate (Phase 1). A profile names the gates that MUST be authorized;
+# a FAIL on any of them vetoes that tool exactly as a council veto blocks an
+# action (conjunctive, non-tradeable — mirroring CapabilityAuthorization).
+#
+# read-only observation tools require only observability; mutation/write tools
+# additionally require action_validity (the action is in the action space) and
+# authority (we are entitled to mutate). Network-capable families (added in a
+# later phase) will additionally require causal_confidence + recovery.
+CAPABILITY_PROFILES: Dict[str, List[str]] = {
+    "read_only": ["observability"],
+    "narrow_write": ["observability", "action_validity", "authority"],
+    "structured_write": ["observability", "action_validity", "authority"],
+    "network_read": ["observability", "causal_confidence"],
+    "network_write": ["observability", "action_validity", "authority",
+                      "causal_confidence", "recovery"],
+}
+
+
+def capability_profile_for(spec: "ToolSpec") -> List[str]:
+    """Return the capability gates a tool's kind requires.
+
+    Args:
+        spec: the tool spec (its declared ``capability`` wins when set,
+            otherwise its kind determines the profile).
+
+    Returns:
+        List of gate names that must be authorized for this tool.
+    """
+    if spec.capability and spec.capability in CAPABILITY_PROFILES:
+        return list(CAPABILITY_PROFILES[spec.capability])
+    return list(CAPABILITY_PROFILES.get(spec.kind, ["observability"]))
+
+
 __all__ = [
     "ToolSpec", "AllowlistEntry", "ToolRegistry", "DEFAULT_REGISTRY",
-    "VALID_KINDS",
+    "VALID_KINDS", "CAPABILITY_PROFILES", "capability_profile_for",
 ]

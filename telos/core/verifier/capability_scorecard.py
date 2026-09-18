@@ -138,6 +138,28 @@ def _memory_eval_beats_naive(root: str) -> bool:
         return False
 
 
+def _memory_consumed_in_real_cycles(root: str) -> bool:
+    """Whether the runtime artifact proves memory is consumed in real cycles.
+
+    Args:
+        root: repo root.
+
+    Returns:
+        True only when telos/audit/memory_consumption.json reports
+        consumed_in_real_cycles True with a positive recalled count.
+    """
+    path = os.path.join(root, "telos", "audit", "memory_consumption.json")
+    if not os.path.isfile(path):
+        return False
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return bool(data.get("consumed_in_real_cycles")) and \
+            int(data.get("memory_consumed", 0)) > 0
+    except (OSError, ValueError, TypeError):
+        return False
+
+
 def _git_tag_count(root: str) -> int:
     """Count git tags from the refs on disk (no subprocess).
 
@@ -298,13 +320,17 @@ def _score_memory(root: str) -> DimensionResult:
         # The retrieval point only counts when the eval actually passes.
         score -= 0.5
     # The final 0.5 requires memory consumed by REAL pipeline cycles, not just
-    # a fixture; until that runtime artifact exists the score is capped.
-    if not _exists(root, "telos/audit/memory_consumption.json"):
+    # a fixture; the runtime writes telos/audit/memory_consumption.json at
+    # shutdown with consumed_in_real_cycles=True.
+    if _memory_consumed_in_real_cycles(root):
+        score += 0.5
+        evidence.append("consumed in real cycles (memory_consumption.json)")
+    else:
         score = min(score, 4.5)
         evidence.append("capped 4.5 until memory is consumed in real cycles")
     return DimensionResult(
         name="memory", score=_clamp(score), target=TARGETS["memory"],
-        basis="stores + controller/tiering + measured retrieval eval; capped without runtime consumption",
+        basis="stores + controller/tiering + measured retrieval eval + runtime consumption",
         evidence=evidence,
     )
 
