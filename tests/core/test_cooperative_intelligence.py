@@ -23,10 +23,26 @@ def test_aligned_competent_crew_cooperates():
     assert v.cooperative is True
 
 
+def test_unanimous_crew_cooperates_at_the_zero_diversity_boundary():
+    # REGRESSION (standard-mode Λ4.11): a unanimous crew has group ==
+    # isolated and alignment_cost == 0. A strict `>` labelled maximal
+    # consensus as non-cooperative (1.0 > 1.0 is False). The boundary is
+    # inclusive: zero-cost unanimous cooperation is justified.
+    v = CooperativeCouncil().evaluate([_agent(1.0), _agent(1.0), _agent(1.0)])
+    assert v.diversity == 0.0 and v.alignment_cost == 0.0
+    assert v.group_utility == v.isolated_utility == 1.0
+    assert v.cooperative is True
+    # Unanimity at a lower utility is equally justified (it is the lack of
+    # disagreement, not the magnitude, that removes the alignment cost).
+    v2 = CooperativeCouncil().evaluate([_agent(0.42), _agent(0.42)])
+    assert v2.cooperative is True
+
+
 def test_dominated_crew_does_not_cooperate():
     # One dominant agent, the rest far behind: pooling the others drags the
     # collective well below the best — cooperation is not justified.
     v = CooperativeCouncil().evaluate([_agent(1.0), _agent(0.05), _agent(0.05)])
+    assert v.group_utility < v.isolated_utility - v.alignment_cost
     assert v.cooperative is False
 
 
