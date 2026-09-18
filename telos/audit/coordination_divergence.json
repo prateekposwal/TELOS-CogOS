@@ -1,0 +1,67 @@
+{
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/coordination_divergence_eval.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "healthy_unanimity",
+      "validated_axis_disagreement",
+      "marginal_evidence_divergence",
+      "manipulated_primary_divergence",
+      "lens_transform_active",
+      "authority_weighting",
+      "determinism"
+    ]
+  },
+  "criteria": {
+    "healthy_unanimity": true,
+    "validated_axis_disagreement": true,
+    "marginal_evidence_divergence": true,
+    "manipulated_primary_divergence": true,
+    "lens_transform_active": true,
+    "authority_weighting": true,
+    "determinism": true
+  },
+  "beats_baseline": true,
+  "verdict": {
+    "passed": true,
+    "passed_count": 7,
+    "total": 7
+  },
+  "scenarios": {
+    "healthy": {
+      "diversity": 0.0,
+      "group_utility": 1.0,
+      "isolated_utility": 1.0,
+      "consensus": 1.0,
+      "resolved_validated": true,
+      "n_agents": 5
+    },
+    "validated_axis": {
+      "diversity": 0.0,
+      "group_utility": 1.0,
+      "isolated_utility": 1.0,
+      "consensus": 0.8,
+      "resolved_validated": true,
+      "n_agents": 5
+    },
+    "marginal": {
+      "diversity": 0.0974,
+      "group_utility": 0.272678,
+      "isolated_utility": 0.3,
+      "consensus": 0.0,
+      "resolved_validated": false,
+      "n_agents": 5
+    },
+    "manipulated_primary": {
+      "diversity": 0.6,
+      "group_utility": 0.466667,
+      "isolated_utility": 0.9,
+      "consensus": 0.6,
+      "resolved_validated": false,
+      "n_agents": 5
+    }
+  },
+  "deterministic": true
+}

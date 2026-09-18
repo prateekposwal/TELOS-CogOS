@@ -95,6 +95,46 @@ class TestDistributedCouncilCore:
             0.2*1.0 + 0.25*0.8 + 0.3*0.7 + 0.8*0.6 + 0.7*0.5
         ) / 3.6) < 1e-9
 
+    def test_role_lenses_diverge_on_marginal_evidence(self):
+        """The crew is not a monoculture: on healthy all-pass evidence every
+        role DI is identical (true unanimity); on heavy dissent the role
+        lenses (dissent/pass multipliers) produce distinct DI values, so the
+        CooperativeCouncil Λ4.11 diversity is strictly positive."""
+        from telos.core.coordination.cooperative import CooperativeCouncil
+
+        healthy = [
+            ValidationSignal("Reality", passed=True, confidence=0.9,
+                             reason="ok", evidence_weight=0.3),
+            ValidationSignal("Constraint", passed=True, confidence=0.95,
+                             reason="ok", evidence_weight=0.2),
+            ValidationSignal("Memory", passed=True, confidence=0.7,
+                             reason="ok", evidence_weight=0.4),
+        ]
+        dc = DistributedCouncil()
+        dc.register_default_crew()
+        r_healthy = dc.run_perspectives(
+            _primary_verdict(validated=True, di=1.0, md=0.0, signals=healthy))
+        d_healthy = CooperativeCouncil().evaluate(r_healthy["agents"]).diversity
+        assert d_healthy == 0.0
+
+        dissent = [
+            ValidationSignal("Reality", passed=False, confidence=0.95,
+                             reason="contradiction", evidence_weight=0.8),
+            ValidationSignal("Constraint", passed=True, confidence=0.9,
+                             reason="ok", evidence_weight=0.2),
+            ValidationSignal("Evidence", passed=True, confidence=0.6,
+                             reason="ok", evidence_weight=0.15),
+        ]
+        dc2 = DistributedCouncil()
+        dc2.register_default_crew()
+        r_marg = dc2.run_perspectives(
+            _primary_verdict(validated=False, di=0.3, md=0.0, signals=dissent))
+        d_marg = CooperativeCouncil().evaluate(r_marg["agents"]).diversity
+        assert d_marg > 0.0
+        # Distinct role utilities: the lenses genuinely changed scoring.
+        utils = {a["decision_integrity"] for a in r_marg["agents"]}
+        assert len(utils) >= 2
+
     def test_primary_typo_compat(self):
         """PRIMARY is the canonical name; the deprecated PRIMARAY alias still
         resolves to the same value (telemetry/checkpoint compat)."""
