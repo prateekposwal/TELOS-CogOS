@@ -664,6 +664,34 @@ class TelosV14Pipeline:
         else:
             self._recovery_goal_seek_pending = False
 
+    def _record_council_outcome(self, ctx) -> None:
+        """Fold this cycle's outcome into the council's falsification ledger.
+
+        Canonical rule (Λ6.5): **governance suppression is NOT evidence about
+        the intent type.** A cycle the council or firewall blocked produced no
+        action BECAUSE it was vetoed — counting it as a "no-action outcome"
+        makes the council's own suppression the evidence for the next
+        suppression (EvidenceProvenanceValidator dissents on the
+        governance-caused no-op, DI floors to 0.3, and the firewall
+        `low_integrity` block recurs forever). Only a GENUINELY unblocked
+        no-action is evidence.
+
+        Args:
+            ctx: the phase context after the act phase.
+        """
+        i_type = (ctx.selected_intent.intent_type
+                  if ctx.selected_intent else "unknown")
+        total_na = self._council_total_no_action.setdefault(i_type, 0)
+        governance_suppressed = bool(
+            getattr(ctx, 'firewall_blocked', False)
+            or getattr(ctx, 'council_blocked', False))
+        if (ctx.selected_action is None
+                and not getattr(ctx, 'no_action', False)
+                and not governance_suppressed):
+            self._council_total_no_action[i_type] = total_na + 1
+        if getattr(ctx, 'firewall_blocked', False) or getattr(ctx, 'council_blocked', False):
+            self._council_recent_blocks = getattr(self, '_council_recent_blocks', 0) + 1
+
     def _intent_history_for_council(self, ctx) -> Dict[str, Any]:
         """Fold the system's falsification record into a per-cycle evidence
         context the council's EvidenceProvenanceValidator can read.
@@ -1627,13 +1655,7 @@ class TelosV14Pipeline:
                     # Fold the OUTCOME into the council's falsification ledger:
                     # only genuinely blocked cycles count as blocks; no-action
                     # cycles (action_taken==None) accumulate per intent type.
-                    i_type = (ctx.selected_intent.intent_type
-                              if ctx.selected_intent else "unknown")
-                    total_na = self._council_total_no_action.setdefault(i_type, 0)
-                    if ctx.selected_action is None and not getattr(ctx, 'no_action', False):
-                        self._council_total_no_action[i_type] = total_na + 1
-                    if ctx.firewall_blocked or ctx.council_blocked:
-                        self._council_recent_blocks = getattr(self, '_council_recent_blocks', 0) + 1
+                    self._record_council_outcome(ctx)
                 except Exception as e:
                     logger.warning("runtime.py: stagnation-recovery state update failed: %r", e)
 
@@ -2259,6 +2281,16 @@ class TelosV14Pipeline:
         except Exception as exc:
             logger.warning("act-gate instrumentation failed: %s", exc)
             ctx.act_gate = None
+
+        # Council/firewall instrumentation (non-behavioral): record the
+        # dissenters and the low_integrity source (DI threshold + domain) so
+        # the remaining suppression is audited, not assumed.
+        try:
+            from telos.core.decision.council_gate_trace import build_council_gate_record
+            ctx.council_gate = build_council_gate_record(ctx)
+        except Exception as exc:
+            logger.warning("council-gate instrumentation failed: %s", exc)
+            ctx.council_gate = None
 
         trace = build_trace(
             ctx=ctx, state=state,
