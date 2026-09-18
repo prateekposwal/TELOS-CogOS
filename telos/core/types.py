@@ -312,6 +312,16 @@ class PipelineConfig:
     quality_threshold: float = 0.35
     pattern_path: Optional[str] = None
     identity_path: Optional[str] = None
+    # Declared Layer-3 mission (canonical population path). When set and the
+    # MissionPortfolio is still empty at construction, runtime.py creates ONE
+    # active mission from this declaration — the single canonical source for a
+    # kernel whose objective is known a priori (e.g. the live GridWorld
+    # producer: navigate to the goal). None (default) = no declared mission, so
+    # the documented missionless-bootstrap path applies (Layers 1-2 still
+    # enforced). Declaring a mission makes Layer 3 genuinely evaluated.
+    mission_name: Optional[str] = None
+    mission_description: str = ""
+    mission_priority: float = 0.8
     ledger_path: Optional[str] = None
     experience_max_skills: int = 100
     experience_utility_threshold: float = 0.5

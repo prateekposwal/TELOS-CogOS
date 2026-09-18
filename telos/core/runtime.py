@@ -405,6 +405,21 @@ class TelosV14Pipeline:
             identity_core=self._identity_core,
         )
         self._mission_portfolio = MissionPortfolio()
+        # Canonical mission population (Λ4.1 Layer 3): a pipeline that declares
+        # its objective gets ONE active mission. Without this the portfolio is
+        # inert in production (only tests ever created missions) and the F(I)
+        # gate was locked into the missionless-bootstrap exemption forever.
+        if self.config.mission_name:
+            self._mission_portfolio.create_mission(
+                self.config.mission_name,
+                self.config.mission_description,
+                cycle=0,
+                priority=self.config.mission_priority,
+            )
+            logger.info(
+                "Mission: portfolio seeded with declared mission '%s'",
+                self.config.mission_name,
+            )
         self._mission_arbiter = MissionArbiter()
         self._mission_lifecycle = MissionLifecycleEngine()
         self._distributed_council = DistributedCouncil()

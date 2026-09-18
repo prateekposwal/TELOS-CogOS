@@ -149,7 +149,10 @@ def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
     Returns:
         A configured TelosV14Pipeline ready for execute().
     """
-    from telos_task import GridSim, GridAdpt, DEFAULT_BLOCKED, DEFAULT_REWARDS
+    from telos_task import (
+        GridSim, GridAdpt, DEFAULT_BLOCKED, DEFAULT_REWARDS,
+        MISSION_NAME, MISSION_DESCRIPTION,
+    )
     from telos.core.runtime import PipelineConfig, TelosV14Pipeline
     from telos.core.streams.implementations import (
         ReflexStream, PerceptionStream, MemoryStream, PlanningStream, TheoryStream,
@@ -167,6 +170,7 @@ def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
     pipeline = TelosV14Pipeline(PipelineConfig(
         adapter=GridAdpt(), simulator=sim,
         compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
+        mission_name=MISSION_NAME, mission_description=MISSION_DESCRIPTION,
         checkpoint_path=checkpoint_dir,
         knowledge_path=os.path.join(checkpoint_dir, "kg.json"),
         ledger_path=os.path.join(checkpoint_dir, "ledger.json"),
