@@ -76,6 +76,16 @@ from telos.core.ledger.world_ledger import WorldLedger
 from telos.core.governance.trust_manager import TrustManager
 from telos.core.governance.timing import InformationReadinessEngine, ReadinessCondition
 STAGNATION_RECOVERY_AFTER = 3  # consecutive no-action cycles before force-escape
+# Bounded inquiry dwell (Λ3.1 backstop). Inquiry types are exempt from the
+# SHORT stagnation threshold — their dwell is deliberate exploration. But an
+# UNBOUNDED dwell is a plateau: two inquiry types can alternate
+# (blended_inquiry <-> curiosity_explore), each clearing the firewall's
+# same-action loop window, so neither the firewall nor the per-family
+# stagnation ledger ever fires and the agent emits no action for hundreds of
+# cycles. After this many consecutive NO-ACTION cycles (any intent mix), arm
+# the same goal-seek escape even for inquiry types. The firewall still owns
+# true same-action traps (it catches those at 2, before this budget).
+INQUIRY_DWELL_BUDGET = 6
 
 # Ring size for the selection-level loop-family ledger (Λ3.1). Spans more
 # than an episode of blocker alternation (two types ~2-3 cycles each) plus
@@ -233,6 +243,9 @@ class TelosV14Pipeline:
         # across families = the most-arrested type's dwell.
         self._stagnant_no_action: Dict[str, int] = {}
         self._stagnant_no_action_cycles: int = 0
+        # Global (type-agnostic) consecutive no-action streak — the bounded
+        # inquiry-dwell backstop. Resets the moment an action flows.
+        self._consecutive_no_action_cycles: int = 0
         # Flag that records whether the CURRENTLY armed recovery was triggered
         # by no-action STAGNATION (governor-driven) rather than a firewall
         # action_loop trap. The injection guards must honour this independently
@@ -704,6 +717,7 @@ class TelosV14Pipeline:
         if ctx.selected_action is not None and not getattr(ctx, 'no_action', False):
             self._stagnant_no_action = {}
             self._stagnant_no_action_cycles = 0
+            self._consecutive_no_action_cycles = 0
             # An action flowed, so no stagnation loop is active — clear the
             # stagnation-armed flag (if a firewall trap were also active,
             # _update_loop_recovery_state manages its own arming).
@@ -717,6 +731,8 @@ class TelosV14Pipeline:
         # ever reached its arming threshold.
         if cur_type:
             self._stagnant_no_action[cur_type] = self._stagnant_no_action.get(cur_type, 0) + 1
+        # Type-agnostic streak: drives the bounded inquiry-dwell backstop.
+        self._consecutive_no_action_cycles += 1
         # Do NOT force-escape inquiry types nor recovery intents: their cycles
         # are deliberate exploration / an active escape, not a no-action
         # pathology (Λ6.5, mirrors the EvidenceProvenanceValidator exemption).
@@ -748,22 +764,44 @@ class TelosV14Pipeline:
                     self._stagnant_no_action.pop(cur_type, None)
                 self._stagnant_no_action_cycles = max(
                     self._stagnant_no_action.values(), default=0)
+                if blocked_by == "action_loop":
+                    # A same-action trap the FIREWALL already owns (fires at 2).
+                    # Do not let the global backstop race it — reset so the
+                    # backstop can never preempt the firewall's own escape.
+                    self._consecutive_no_action_cycles = 0
+                elif self._consecutive_no_action_cycles >= INQUIRY_DWELL_BUDGET:
+                    # Bounded inquiry dwell (Λ3.1 backstop): a deliberate
+                    # inquiry dwell is short. A whole dwell budget with NO
+                    # action emitted while enquiry types alternate (blocked_by
+                    # None) is a plateau the firewall's same-action detector
+                    # cannot see — arm the goal-seek escape.
+                    self._arm_goal_seek_recovery(ctx, "inquiry_dwell_budget")
                 return
         self._stagnant_no_action_cycles = max(
             self._stagnant_no_action.values(), default=0)
         if self._stagnant_no_action_cycles >= STAGNATION_RECOVERY_AFTER:
-            self._recovery_goal_seek_pending = True
-            self._recovery_stagnation_armed = True  # governor no-action loop (not firewall) armed the escape
-            self._recovery_armed_cycle = ctx.cycle_count
-            self._recovery_looped_type = (
-                ctx.selected_intent.intent_type if ctx.selected_intent else None
-            )
-            self._recovery_reason = "no_action_stagnation"
-            logger.warning(
-                f"Cycle {ctx.cycle_count}: {self._stagnant_no_action_cycles} consecutive "
-                f"no-action cycles on '{self._recovery_looped_type}' - goal-seek "
-                f"recovery armed for stagnation (Λ3.1)"
-            )
+            self._arm_goal_seek_recovery(ctx, "no_action_stagnation")
+
+    def _arm_goal_seek_recovery(self, ctx, reason: str) -> None:
+        """Arm the one-shot goal-seek escape with a recorded reason.
+
+        Args:
+            ctx: the phase context for the current cycle.
+            reason: the recorded arming reason ("no_action_stagnation" or
+                "inquiry_dwell_budget").
+        """
+        self._recovery_goal_seek_pending = True
+        self._recovery_stagnation_armed = True  # governor no-action loop (not firewall) armed the escape
+        self._recovery_armed_cycle = ctx.cycle_count
+        self._recovery_looped_type = (
+            ctx.selected_intent.intent_type if ctx.selected_intent else None
+        )
+        self._recovery_reason = reason
+        logger.warning(
+            f"Cycle {ctx.cycle_count}: {self._consecutive_no_action_cycles} consecutive "
+            f"no-action cycles on '{self._recovery_looped_type}' - goal-seek "
+            f"recovery armed for {reason} (Λ3.1)"
+        )
 
     @staticmethod
     def _option_intent_type(option: Any) -> Optional[str]:
