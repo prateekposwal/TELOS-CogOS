@@ -7,7 +7,7 @@
 PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
 export PYTHONPATH := .
 
-.PHONY: test test-core test-fallback test-all lint run audit coverage health clean
+.PHONY: test test-core test-fallback test-all lint run audit coverage health check clean
 
 test: test-core test-fallback
 
@@ -34,6 +34,15 @@ coverage:
 		--json telos/audit/branch_coverage.json
 
 health:
+	$(PYTHON) telos/tools/cognitive_health.py --cycles 150 --ci
+
+# One-command release gate: full suite + every invariant gate (self-audit,
+# constitution falsifiability, falsifiable theorems, cognitive health).
+check:
+	$(PYTHON) -m pytest tests/ -q
+	$(PYTHON) telos/tools/self_audit.py
+	$(PYTHON) telos/tools/falsify_axioms.py --ci
+	$(PYTHON) telos/tools/theorem_audit.py --cycles 20 --ci
 	$(PYTHON) telos/tools/cognitive_health.py --cycles 150 --ci
 
 clean:
