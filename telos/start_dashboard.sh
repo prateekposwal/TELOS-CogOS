@@ -107,7 +107,11 @@ cmd_start() {
     mv -f "$LOGFILE" "$LOGFILE.1" 2>/dev/null || true
     echo "TELOS dashboard: rotated oversized log to $LOGFILE.1" >&2
   fi
-  nohup python3 -u serve_dashboard.py >> "$LOGFILE" 2>&1 &
+  # Prefer the repo venv interpreter (has numpy/flask/websockets); a bare
+  # `python3` may resolve to an interpreter without the dependencies.
+  PY="$HERE/../.venv/bin/python"
+  [ -x "$PY" ] || PY="$(command -v python3)"
+  nohup "$PY" -u serve_dashboard.py >> "$LOGFILE" 2>&1 &
   echo $! > "$PIDFILE"
   for _ in $(seq 1 40); do
     if port_alive; then
