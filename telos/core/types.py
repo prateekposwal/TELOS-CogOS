@@ -401,6 +401,16 @@ class PipelineConfig:
     # operator configures the channel ON; an arbitrary shell command can never
     # self-authorize.
     operator_tool_permission: bool = False
+    # Phase 2 decision memory: where the MemoryController persists its tiered
+    # store (None = in-memory only). When set, tiered decision memory survives
+    # restarts alongside knowledge/ledger/identity.
+    memory_path: Optional[str] = None
+    # Per-tool capability authorization (Phase 1): when True, a tool whose
+    # registry spec declares a capability profile is checked against the
+    # cycle's CapabilityAuthorization (act-phase gates) before it may run. A
+    # FAIL vetoes that tool exactly as a council veto blocks an action. Default
+    # False keeps pre-Phase-1 behavior byte-identical for existing consumers.
+    per_tool_capability_gate: bool = False
 
 
 @dataclass

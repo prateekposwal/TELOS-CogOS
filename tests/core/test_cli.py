@@ -59,6 +59,12 @@ class _FakePipeline:
     def execute(self, state, user_name=None):
         return _FakeResult()
 
+    def memory_report(self):
+        return {}
+
+    def shutdown(self):
+        pass
+
 
 def test_cmd_run_formats_without_crashing(monkeypatch, capsys):
     """`run` builds a pipeline and prints DI/MD (stubbed here for speed)."""

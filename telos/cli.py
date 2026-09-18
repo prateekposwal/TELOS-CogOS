@@ -36,6 +36,8 @@ def main():
     run_p = sub.add_parser("run", help="Run one pipeline cycle")
     run_p.add_argument("--state", nargs="*", type=float, default=[0.0, 0.0],
                        help="Initial state vector (space-separated floats)")
+    run_p.add_argument("--cycles", "-n", type=int, default=1,
+                       help="Number of cycles to run (default 1)")
 
     args = parser.parse_args()
 
@@ -170,6 +172,7 @@ def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
         ledger_path=os.path.join(checkpoint_dir, "ledger.json"),
         identity_path=os.path.join(checkpoint_dir, "identity.json"),
         pattern_path=os.path.join(checkpoint_dir, "patterns.json"),
+        memory_path=os.path.join(checkpoint_dir, "memory.json"),
         deterministic_seed=42,  # reproducible one-shot runs
     ))
     skill_lib = SkillLibrary()
@@ -201,12 +204,32 @@ def _cmd_run(args):
     import numpy as np
 
     state = np.array(args.state, dtype=float)
-    print(f"\n⚡ TELOS Run — state: {state.tolist()}\n")
+    n_cycles = max(1, int(getattr(args, "cycles", 1) or 1))
+    print(f"\n⚡ TELOS Run — state: {state.tolist()} ({n_cycles} cycle(s))\n")
     pipeline = _build_gridworld_pipeline()
-    result = pipeline.execute(state, user_name="cli")
+    result = None
+    for i in range(n_cycles):
+        result = pipeline.execute(state, user_name="cli")
+        act = getattr(pipeline, "_last_trace", None)
+        selected = getattr(act, "selected_action", None) if act else None
+        if selected is not None:
+            try:
+                nxt = pipeline.config.simulator.transition(state, selected)
+                if 0.0 <= float(nxt[0]) <= 4.0 and 0.0 <= float(nxt[1]) <= 4.0:
+                    state = nxt
+            except Exception:
+                pass
     print(f"   DI: {result.decision_integrity:.3f}")
     print(f"   MD: {result.mission_drift:.3f}")
     print(f"   Blocked: {result.council_blocked or result.firewall_blocked}")
+    mem = pipeline.memory_report()
+    if mem:
+        print(f"   Memory: {mem.get('memory_consumed', 0)} recalled, "
+              f"{mem.get('inserted', 0)} stored ({mem.get('total', 0)} live)")
+    try:
+        pipeline.shutdown()
+    except Exception:
+        pass
     print()
 
 

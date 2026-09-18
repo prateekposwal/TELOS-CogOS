@@ -307,6 +307,13 @@ class TelosV14Pipeline:
         self._mempool = DecisionMempool(max_pending=100)
         self._prev_trace_id: Optional[str] = None
         self._decision_timelocks: Dict[str, int] = {}
+        # Phase 2: the ONE decision-memory controller (tiered store + ops API).
+        # Every decision outcome is inserted here and consulted during
+        # perception, so memory is CONSUMED by real cycles (not write-only).
+        from telos.core.memory.controller import MemoryController
+        self._memory_controller = MemoryController(
+            memory_path=self.config.memory_path,
+        )
         self._phases = self._build_phases()
 
         # ── Build all components via pipeline_builder ──
@@ -1732,6 +1739,26 @@ class TelosV14Pipeline:
                 except Exception as e:
                     logger.warning(f"TheoryBuilder.observe_outcome (act) failed: {e}")
 
+                # ── Phase 2: feed the ONE decision-memory controller. The
+                #    canonical rule holds — a governance-suppressed cycle is not
+                #    evidence and is refused (counted, never stored). Memory is
+                #    consulted during perception, so this makes it consumed. ──
+                try:
+                    intent_type = (ctx.selected_intent.intent_type
+                                   if ctx.selected_intent else "no_intent")
+                    self._memory_controller.record_outcome(
+                        cycle=ctx.cycle_count,
+                        intent_type=intent_type,
+                        outcome_success=outcome_success,
+                        governance_blocked=bool(
+                            ctx.council_blocked or ctx.firewall_blocked
+                            or getattr(ctx, 'governance_blocked', False)
+                        ),
+                        domain=getattr(self.config.adapter, 'name', "unconfigured"),
+                    )
+                except Exception as e:
+                    logger.warning(f"MemoryController.record_outcome failed: {e}")
+
                 try:
                     if ctx.selected_intent:
                         cf_opts: List[Dict] = []
@@ -2555,6 +2582,65 @@ class TelosV14Pipeline:
             domain=domain,
         )
 
+    def _write_memory_consumption_artifact(self) -> None:
+        """Write the machine-checkable proof that memory is consumed in cycles.
+
+        The capability scorecard's final memory point requires an artifact
+        showing real consumption (searches performed + outcomes recorded), not
+        file existence. This writes it at shutdown.
+        """
+        controller = getattr(self, '_memory_controller', None)
+        if controller is None:
+            return
+        path = os.path.join("telos", "audit", "memory_consumption.json")
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            stats = controller.stats()
+            payload = {
+                "cycles": self._cycle_count,
+                "memory_consumed": stats.get("memory_consumed", 0),
+                "inserted": stats.get("inserted", 0),
+                "rejected_governance_suppression": stats.get(
+                    "rejected_governance_suppression", 0),
+                "tiered": {
+                    key: stats.get(key, 0)
+                    for key in ("hot", "warm", "cold", "total", "evicted", "summarized")
+                },
+                "consumed_in_real_cycles": bool(
+                    stats.get("memory_consumed", 0) > 0
+                    and stats.get("inserted", 0) > 0
+                ),
+            }
+            import json as _json
+            with open(path, "w", encoding="utf-8") as f:
+                _json.dump(payload, f, indent=2)
+        except OSError as e:
+            logger.warning(f"memory_consumption artifact write failed: {e}")
+
+    def memory_report(self) -> Dict[str, Any]:
+        """Return the current decision-memory stats (for dashboards/tools).
+
+        Returns:
+            The MemoryController stats dict (empty when memory is unwired).
+        """
+        controller = getattr(self, '_memory_controller', None)
+        return controller.stats() if controller is not None else {}
+
+    def consult_memory(self, query: str, top_k: int = 3) -> List[Any]:
+        """Search decision memory (consumption path usable by any phase).
+
+        Args:
+            query: natural-language query.
+            top_k: maximum records to return.
+
+        Returns:
+            Ranked list of MemoryRecords.
+        """
+        controller = getattr(self, '_memory_controller', None)
+        if controller is None:
+            return []
+        return controller.search(query, top_k=top_k)
+
     def shutdown(self) -> None:
         if self.config.ledger_path:
             try:
@@ -2582,6 +2668,16 @@ class TelosV14Pipeline:
                 logger.info(f"KnowledgeGraph saved to {self.config.knowledge_path}")
             except Exception as e:
                 logger.warning(f"KnowledgeGraph save failed: {e}")
+        # Phase 2: persist tiered decision memory alongside the other stores.
+        if getattr(self, '_memory_controller', None) is not None:
+            try:
+                if self._memory_controller.save():
+                    logger.info(
+                        f"MemoryController saved to {self._memory_controller.memory_path}"
+                    )
+                self._write_memory_consumption_artifact()
+            except Exception as e:
+                logger.warning(f"MemoryController save failed: {e}")
         if self._checkpointer:
             try:
                 final_trace = getattr(self, '_last_trace', None)

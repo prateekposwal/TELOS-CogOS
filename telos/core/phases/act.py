@@ -764,9 +764,16 @@ class ActPhase(Phase):
             approved_message=spec.get("approved_message"),
             permission_id=spec.get("permission_id") or f"cycle_{ctx.cycle_count}",
         )
+        # Phase 1: pass this cycle's CapabilityAuthorization into the executor's
+        # per-tool gate when the operator enabled it. Default OFF keeps the
+        # pre-Phase-1 path byte-identical.
+        capability = None
+        if bool(getattr(pipeline.config, 'per_tool_capability_gate', False)):
+            capability = getattr(ctx, 'capability_authorization', None)
         execution = executor.execute(
             permission,
             firewall=pipeline._firewall,
+            capability=capability,
         )
         ctx.tool_audit = execution.to_dict()
         if ctx.firewall_verdict is not None:

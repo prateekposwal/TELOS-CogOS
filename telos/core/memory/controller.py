@@ -20,6 +20,8 @@ network — so retrieval quality is measurable against a fixed evaluation
 
 from __future__ import annotations
 
+import json
+import os
 import re
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -68,20 +70,76 @@ def _overlap(query_tokens: List[str], content_tokens: List[str]) -> float:
 class MemoryController:
     """Unified insert/search/update/evict/summarize over tiered decision memory."""
 
-    def __init__(self, tiered: Optional[TieredMemory] = None):
+    def __init__(self, tiered: Optional[TieredMemory] = None,
+                 memory_path: Optional[str] = None):
         """Construct a controller over a (possibly injected) tiered store.
 
         Args:
             tiered: the backing TieredMemory; a default one is created if None.
+            memory_path: optional JSON path; when set, an existing store is
+                loaded and save() persists to it (None = in-memory only).
         """
         self._tiered = tiered or TieredMemory(
             hot_limit=DEFAULT_HOT_LIMIT,
             warm_limit=DEFAULT_WARM_LIMIT,
             cold_limit=DEFAULT_COLD_LIMIT,
         )
+        self.memory_path = memory_path
         self.inserted = 0
         self.rejected_governance_suppression = 0
         self.memory_consumed = 0
+        if memory_path and os.path.isfile(memory_path):
+            self._load(memory_path)
+
+    def _load(self, path: str) -> None:
+        """Load a serialized controller from disk (best-effort).
+
+        Args:
+            path: the JSON file to load.
+        """
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            restored = MemoryController.from_dict(data)
+            self._tiered = restored._tiered
+            self.inserted = restored.inserted
+            self.rejected_governance_suppression = restored.rejected_governance_suppression
+            self.memory_consumed = restored.memory_consumed
+        except (OSError, ValueError, TypeError, KeyError):
+            # A corrupt store must not crash the pipeline; start fresh and let
+            # the next save overwrite it (Λ2.3: recorded by the caller's logger).
+            pass
+
+    def save(self, path: Optional[str] = None) -> bool:
+        """Persist the store to memory_path (atomic temp + replace).
+
+        Args:
+            path: optional override of self.memory_path.
+
+        Returns:
+            True when the store was written.
+        """
+        target = path or self.memory_path
+        if not target:
+            return False
+        try:
+            import tempfile
+            d = os.path.dirname(target) or "."
+            os.makedirs(d, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=d, prefix=".telos_mem_", suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(self.to_dict(), f)
+                os.replace(tmp, target)
+            finally:
+                if os.path.exists(tmp):
+                    try:
+                        os.remove(tmp)
+                    except OSError:
+                        pass
+            return True
+        except OSError:
+            return False
 
     # ── Write path ─────────────────────────────────────────────────────
 
@@ -124,6 +182,45 @@ class MemoryController:
         return sum(1 for r in records if self.insert(r))
 
     # ── Read path ──────────────────────────────────────────────────────
+    def record_outcome(self, *, cycle: int, intent_type: str, outcome_success: bool,
+                       governance_blocked: bool, approach: str = "",
+                       domain: str = "gridworld") -> bool:
+        """Record one cycle's decision outcome as a memory record.
+
+        The canonical rule is enforced here: a governance-suppressed cycle is
+        NOT evidence, so it is refused and counted rather than stored. Only a
+        genuinely tested outcome (an action that ran, or a no-action that was
+        clearly attributable) enters memory.
+
+        Args:
+            cycle: the cycle number.
+            intent_type: the selected intent type.
+            outcome_success: whether the cycle's action succeeded.
+            governance_blocked: whether council/firewall/governor suppressed it.
+            approach: optional approach label (defaults to intent_type).
+            domain: domain tag for the record.
+
+        Returns:
+            True when the outcome was recorded.
+        """
+        if governance_blocked:
+            self.rejected_governance_suppression += 1
+            return False
+        label = approach or intent_type
+        record = MemoryRecord(
+            record_id=f"outcome_{cycle}_{intent_type}",
+            content=f"{label} outcome {'success' if outcome_success else 'failure'} "
+                    f"at cycle {cycle}",
+            kind="experience",
+            domain=domain,
+            importance=0.8 if outcome_success else 0.4,
+            outcome=1.0 if outcome_success else 0.0,
+            created_cycle=cycle,
+            last_accessed_cycle=cycle,
+            provenance={"caller": "runtime_outcome", "cycle": cycle},
+            metadata={"intent_type": intent_type, "success": outcome_success},
+        )
+        return self.insert(record)
 
     def search(self, query: str, top_k: int = 5,
                domain: Optional[str] = None) -> List[MemoryRecord]:

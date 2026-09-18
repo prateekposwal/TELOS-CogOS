@@ -24,6 +24,8 @@ class PerceiveOutput:
     gate_verdict: Any
     knowledge_report: dict
     effective_n_worlds: int
+    # Phase 2: decision-memory recall for this cycle (list of recalled records)
+    memory_recall: Optional[List[Dict]] = None
 
 
 @dataclass
@@ -172,6 +174,9 @@ class PhaseContext:
     # Session Continuity Layer
     session: SessionContinuity = field(default_factory=SessionContinuity)
     chat_history: List[Dict] = field(default_factory=list)
+    # Phase 2: decision-memory recall for this cycle (records recalled during
+    # PERCEIVE). None until the first memory consultation of the cycle.
+    memory_recall: Optional[List[Dict]] = None
 
     # ── Inquiry Stream / Ω Operator fields ──────────────────────────────────
     inquiry_skipped: bool = False        # True when Ω < 0.5 (no question worth asking)
