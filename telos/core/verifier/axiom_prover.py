@@ -395,7 +395,7 @@ class AxiomProver:
                        if _has_rc else "RelationalContext scaffold absent — axiom not verified"),
         }
 
-        # 4.11 — Cooperative Intelligence (U_group > ΣU_i − C_align)
+        # 4.11 — Cooperative Intelligence (U_group − C_align >= U_isolated)
         # Implemented scaffold (telos/core/coordination/cooperative.py): the
         # CooperativeCouncil evaluates the DistributedCouncil crew's verdicts
         # and records whether the inequality holds. FAIL-CLOSED and
@@ -421,7 +421,7 @@ class AxiomProver:
         results['4.11'] = {
             "passed": passed,
             "not_applicable": bool(coop_not_applicable),
-            "reason": (f"CooperativeVerdict cooperative={coop_flag} — U_group > U_isolated − C_align"
+            "reason": (f"CooperativeVerdict cooperative={coop_flag} — U_group − C_align >= U_isolated"
                        if coop_flag is True
                        else ("CooperativeVerdict not applicable — advisory crew did not run this cycle"
                              if coop_not_applicable

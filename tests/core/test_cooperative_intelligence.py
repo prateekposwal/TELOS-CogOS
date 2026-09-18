@@ -2,8 +2,10 @@
 Λ4.11 Cooperative Intelligence — the inequality is enforced and falsifiable.
 
 Cooperation is justified only when the pooled collective clears the best
-single agent minus the cost of the crew's disagreement. The predicate must
-fail on a met-but-false verdict, not just on a missing one.
+single agent *net of* the cost of the crew's disagreement
+(``group − C_align >= isolated``, Λ4.11). Disagreement therefore raises the
+bar; a high-diversity crew can legitimately fail. The predicate must fail on a
+met-but-false verdict, not just on a missing one.
 """
 from types import SimpleNamespace
 
@@ -15,12 +17,27 @@ def _agent(di, weight=1.0):
     return {"decision_integrity": di, "weight": weight}
 
 
-def test_aligned_competent_crew_cooperates():
-    # Comparable, competent agents: collective ≈ best, tiny spread → justified.
-    v = CooperativeCouncil().evaluate([_agent(0.9), _agent(0.88), _agent(0.87)])
+def test_zero_cost_aligned_crew_cooperates():
+    # STRICT SEMANTICS (Λ4.11 "whenever alignment costs are sufficiently low"):
+    # a zero-disagreement crew pays no alignment cost, so the pooled collective
+    # (== the best agent) is justified. The cost is overcome trivially.
+    v = CooperativeCouncil().evaluate([_agent(0.9), _agent(0.9), _agent(0.9)])
     assert isinstance(v, CooperativeVerdict)
     assert v.n_agents == 3
+    assert v.alignment_cost == 0.0
     assert v.cooperative is True
+
+
+def test_spread_crew_must_overcome_its_alignment_cost():
+    # The strict reading turns disagreement into a real bar: the pooled mean
+    # (0.883) does NOT clear the best agent (0.9) once the 0.018 alignment cost
+    # is paid, so cooperation is honestly rejected. Under the old lenient form
+    # (group >= isolated - cost) this passed — which is the semantic error this
+    # task resolved.
+    v = CooperativeCouncil().evaluate([_agent(0.9), _agent(0.88), _agent(0.87)])
+    assert v.group_utility < v.isolated_utility
+    assert v.group_utility - v.alignment_cost < v.isolated_utility
+    assert v.cooperative is False
 
 
 def test_unanimous_crew_cooperates_at_the_zero_diversity_boundary():
@@ -42,7 +59,7 @@ def test_dominated_crew_does_not_cooperate():
     # One dominant agent, the rest far behind: pooling the others drags the
     # collective well below the best — cooperation is not justified.
     v = CooperativeCouncil().evaluate([_agent(1.0), _agent(0.05), _agent(0.05)])
-    assert v.group_utility < v.isolated_utility - v.alignment_cost
+    assert v.group_utility - v.alignment_cost < v.isolated_utility
     assert v.cooperative is False
 
 
@@ -77,6 +94,11 @@ def test_validation_axis_only_disagreement_is_now_visible():
     assert v.validation_disagreement == 0.4
     assert v.diversity == 0.4
     assert v.alignment_cost == 0.6 * 0.4
+    # STRICT SEMANTICS: the crew's DI is unanimous (group == isolated == 1.0),
+    # but the validation-axis disagreement imposes a real 0.24 cost that the
+    # crew does not overcome — so this md-cap cycle is honestly non-cooperative.
+    assert v.group_utility == v.isolated_utility == 1.0
+    assert v.cooperative is False
 
 
 def test_diversity_is_max_of_both_axes_and_bounded():
