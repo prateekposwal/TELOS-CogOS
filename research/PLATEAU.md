@@ -22,11 +22,19 @@ The current pattern is **not a deadlock** — it is a high-dwell limit cycle:
 
 | Metric | Measured (200 cycles, baseline) |
 |---|---|
-| no-op cycles (`selected_action` is None) | ~70% |
+| no-op cycles (`selected_action` is None) | ~70% ↓ **44.7%** corrected¹ |
 | max consecutive no-op streak | 8 (bounded — not unbounded) |
-| episodes completed | 6 |
-| selection mix | `blended_inquiry` + `curiosity_explore` ≈ **87%** |
-| governance blocks | `action_loop` 22, `low_integrity` 23 (~30%) |
+| episodes completed | 6 ↓ 10 corrected¹ |
+| selection mix | `blended_inquiry` + `curiosity_explore` ≈ **87–89%** |
+| governance blocks | `action_loop` ~27, `low_integrity` ~40 |
+
+¹ **Correction (see `SELECTION.md` Phase 4b):** the original numbers came from
+a benchmark harness that reset the state on `goal` without signalling the
+episode (`episode_reset`), which corrupted model fidelity and inflated the
+no-op rate. With the correct driver (`telos/tools/bench_loop.py`) the real
+no-op rate is **44.7%** and episodes **10**; the residual is firewall
+governance (`low_integrity`/`action_loop`) + inquiry dwell, not capability
+DEFER (which is **0**).
 
 Inquiry types are exempt from the short stagnation threshold (their dwell is
 deliberate exploration, Λ6.5), and the firewall's loop detector keys on the
