@@ -124,11 +124,17 @@ def main(argv=None) -> int:
     print("=" * 78)
     for row in report["rows"]:
         mark = "PASS" if row["passed"] else "FAIL"
-        print(f"[{mark}] {row['id']:<22} {row['measured']}")
+        print(f"[{mark}] {row['id']:<24} {row['measured']}")
         print(f"        <{row['name']}> null: {row['null']}")
+        print(f"        null_reachable: {row['null_reachable']}")
     print("=" * 78)
     print(f"THEOREM AUDIT: {'PASS' if report['passed'] else 'FAIL'}  "
           f"({sum(r['passed'] for r in report['rows'])}/{len(report['rows'])} theorems hold)")
+    by_reach: dict = {}
+    for row in report["rows"]:
+        by_reach[row["null_reachable"]] = by_reach.get(row["null_reachable"], 0) + 1
+    print("null reachability: " + ", ".join(
+        f"{k}={v}" for k, v in sorted(by_reach.items())))
     if not report["passed"] and args.ci:
         return 1
     return 0

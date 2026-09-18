@@ -172,7 +172,7 @@
       "effort": "XS",
       "impact": "low",
       "dependency": null,
-      "evidence": "AXIOMS.md = authoritative 42-axiom table (6 layers); system_self.py axioms_count=42; latent_cognition.md no longer exists (stale reference in earlier audit). THEOREMS.md references 42.",
+      "evidence": "AXIOMS.md = authoritative 42-axiom table (6 layers); system_self.py axioms_count=42; latent_cognition.md no longer exists (stale reference in earlier audit). PRINCIPLES.md (renamed from THEOREMS.md) references 42.",
       "created": "2026-08-02"
     },
     {

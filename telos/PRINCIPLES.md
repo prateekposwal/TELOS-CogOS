@@ -1,4 +1,12 @@
-# TELOS — Theorems & Principles of Systemic Intelligence
+# TELOS — Principles & Heuristics of Systemic Intelligence
+
+> **Not theorems.** This document collects TELOS's pillars, laws,
+> security defenses, data-flow patterns, identity model, and
+> commitment principle. These are **principles, heuristics, and design
+> contracts** — they are not falsifiable theorems. The null-bearing
+> falsifiable theorems live in `research/FALSIFIABLE_THEOREMS.md` and
+> are executed by `telos/tools/theorem_audit.py`. The v1 constructive
+> "theorems" are in `research/latent_cognition.md` (superseded).
 
 > *"An intelligent system is defined not by the number of visible capabilities it possesses, but by the invisible coordination of latent cognitive processes working toward a unified mission."*
 >
