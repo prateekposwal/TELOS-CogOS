@@ -50,7 +50,9 @@ class IdentityProjectionGate:
             intent_type: the intent_type argument for this call.
             project_id: the project_id argument for this call.
             mission_active: the mission_active argument for this call.
-            mission_ids: the mission_ids argument for this call.
+            mission_ids: ids in the active mission scope (active mission ids
+                plus the projects they own) — Layer 4 validates project_id
+                against this scope.
             narrative_role: the narrative_role argument for this call.
             missionless_bootstrap: DOCUMENTED pre-mission path (default False =
                 strict). When the system provably has ZERO missions in its
@@ -98,7 +100,10 @@ class IdentityProjectionGate:
             logger.debug(f"F(I) blocked {intent_type}: no active mission")
             return False
 
-        # Layer 4: Project validity (if specified)
+        # Layer 4: Project validity (if specified). `mission_ids` is the
+        # active mission scope — mission ids plus the ids of projects those
+        # missions own; a project not in that scope is not backed by an active
+        # mission and is projected out.
         if project_id and mission_ids and mission_ids[0] and project_id not in mission_ids:
             logger.debug(f"F(I) blocked {intent_type}: project {project_id} not in active missions")
             return False
@@ -113,7 +118,8 @@ class IdentityProjectionGate:
             Args:
                 intents: the candidate intents to project.
                 mission_active: the mission_active argument for this call.
-                mission_ids: the mission_ids argument for this call.
+                mission_ids: ids in the active mission scope (active mission
+                    ids plus the projects they own).
                 missionless_bootstrap: documented pre-mission path (see
                     is_admissible); skips only the mission-existence layer.
         """

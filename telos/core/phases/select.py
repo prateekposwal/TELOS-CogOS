@@ -821,13 +821,16 @@ class SelectPhase(Phase):
     def _identity_gate_context(self, pipeline):
         """Read the F(I) mission context used by the enforcement gate.
 
-        The live GridWorld kernel has no declared missions (empty portfolio).
-        Passing mission_active=False to the STRICT gate makes every non-reflex
-        intent inadmissible and would collapse selection to nothing — the
-        legitimate pre-mission (bootstrap) path. `missionless_bootstrap` keeps
-        Layers 1–2 (core values + narrative role) enforced and skips ONLY the
+        A pipeline that DECLARES an objective (PipelineConfig.mission_name) is
+        seeded with one active mission at construction, so Layer 3 is genuinely
+        evaluated. A pipeline still without a mission legitimately takes the
+        pre-mission (bootstrap) path: passing mission_active=False to the
+        STRICT gate would make every non-reflex intent inadmissible and
+        collapse selection to nothing, so `missionless_bootstrap` keeps Layers
+        1–2 (core values + narrative role) enforced and skips ONLY the
         mission-existence layer, asserted here because the portfolio provably
-        has zero active missions. It is recorded on ctx, never silent.
+        has zero active missions. Either way it is recorded on ctx, never
+        silent.
 
         Args:
             pipeline: the running pipeline.
@@ -840,7 +843,17 @@ class SelectPhase(Phase):
         portfolio = getattr(pipeline, '_mission_portfolio', None)
         active = portfolio.active_missions() if portfolio is not None else []
         mission_active = bool(active)
-        mission_ids = [getattr(m, 'id', None) for m in active]
+        # Layer-4 (project validity) validates a trajectory's project against
+        # the ACTIVE MISSION SCOPE: the active missions themselves plus the
+        # projects they own (projects are only ever created from an active
+        # mission via spawn_project). Passing bare mission ids here made the
+        # gate's project check compare a project id to mission ids and
+        # false-block every project-bearing cycle the moment a mission existed
+        # and a project was auto-spawned. (Λ4.1 Layer 4)
+        mission_ids = []
+        for m in active:
+            mission_ids.append(getattr(m, 'id', None))
+            mission_ids.extend(getattr(m, 'project_ids', []) or [])
         return gate, mission_active, mission_ids, not mission_active
 
     @staticmethod

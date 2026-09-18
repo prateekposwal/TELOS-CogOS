@@ -56,6 +56,12 @@ OLLAMA_MODEL = "phi3:mini"
 
 GOAL = np.array([4, 4])
 
+# Canonical Layer-3 mission declaration for the GridWorld kernel. ONE source
+# (Λ6.7): producer.py and cli.py import these; the pipeline seeds its
+# MissionPortfolio from them so F(I) Layer 3 is genuinely evaluated.
+MISSION_NAME = "navigate_to_goal"
+MISSION_DESCRIPTION = "Navigate the GridWorld agent to the goal cell."
+
 # ─── P0: Obstacles + Rewards + Terrain ──────────────────────────────────────────
 DEFAULT_BLOCKED: Set[Tuple[int, int]] = {(1, 1), (2, 2), (3, 1)}
 DEFAULT_REWARDS: Dict[Tuple[int, int], float] = {(0, 4): 10.0, (4, 0): 5.0, (2, 4): 3.0, (4, 2): 2.0}
@@ -694,6 +700,7 @@ def main():
     pipeline = TelosV14Pipeline(PipelineConfig(
         adapter=GridAdpt(), simulator=sim,
         compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
+        mission_name=MISSION_NAME, mission_description=MISSION_DESCRIPTION,
         checkpoint_path=CHECKPOINT_DIR,
         knowledge_path=KNOWLEDGE_PATH,
         ledger_path="/tmp/telos_ledger.json",

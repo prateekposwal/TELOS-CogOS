@@ -681,6 +681,7 @@ class DashboardProducer:
     def _build(self) -> None:
         from telos_task import (
             GridAdpt, GridSim, TERRAIN, DEFAULT_BLOCKED, DEFAULT_REWARDS, GOAL,
+            MISSION_NAME, MISSION_DESCRIPTION,
         )
         from telos.core.runtime import PipelineConfig, TelosV14Pipeline
         from telos.core.streams.implementations import (
@@ -706,6 +707,7 @@ class DashboardProducer:
         self._pipeline = TelosV14Pipeline(PipelineConfig(
             adapter=GridAdpt(), simulator=self._sim,
             compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
+            mission_name=MISSION_NAME, mission_description=MISSION_DESCRIPTION,
             checkpoint_path=CHECKPOINT_DIR,
             checkpoint_every_n=self._checkpoint_every_n,
             knowledge_path=KNOWLEDGE_PATH,
