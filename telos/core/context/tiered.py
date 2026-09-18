@@ -263,8 +263,6 @@ class TieredContext:
     # ── Properties ─────────────────────────────────────────────────────
 
     @property
-
-    @property
     def size(self) -> Dict[str, int]:
         """Return current size of each tier."""
         return {
