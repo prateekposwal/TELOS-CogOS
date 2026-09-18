@@ -1,4 +1,19 @@
 {
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/multi_agent_eval.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "rejection_with_reason",
+      "acceptance",
+      "independent_verifier",
+      "deterministic_conflict_resolution",
+      "delegation_recorded",
+      "bounded",
+      "determinism"
+    ]
+  },
   "criteria": {
     "rejection_with_reason": true,
     "acceptance": true,
@@ -9,6 +24,11 @@
     "determinism": true
   },
   "beats_baseline": true,
+  "verdict": {
+    "passed": true,
+    "passed_count": 7,
+    "total": 7
+  },
   "delegations": 6,
   "handoffs_accepted": 4,
   "handoffs_rejected": 2,

@@ -32,6 +32,13 @@ sys.path.insert(0, PROJECT)
 
 from telos.core.memory.controller import MemoryController  # noqa: E402
 from telos.core.memory.tiering import MemoryRecord  # noqa: E402
+from telos.core.verifier.measurement import provenance  # noqa: E402
+
+PRODUCER = "telos/tools/memory_eval.py"
+MEMORY_CRITERIA = (
+    "semantic_beats_lexical", "semantic_beats_naive",
+    "mrr_beats_lexical", "recall_at_1_ge_0_9",
+)
 
 # Each case: a paraphrase query, the record that SHOULD win, and a hard negative
 # that shares literal tokens with the query but is semantically wrong.
@@ -214,11 +221,24 @@ def evaluate() -> Dict[str, Any]:
         and sem["recall@1"] > nav["recall@1"]
         and sem["mrr"] > lex["mrr"]
     )
+    criteria = {
+        "semantic_beats_lexical": sem["recall@1"] > lex["recall@1"],
+        "semantic_beats_naive": sem["recall@1"] > nav["recall@1"],
+        "mrr_beats_lexical": sem["mrr"] > lex["mrr"],
+        "recall_at_1_ge_0_9": sem["recall@1"] >= 0.9,
+    }
     return {
+        "provenance": provenance(PRODUCER, list(MEMORY_CRITERIA)),
         "semantic": sem,
         "lexical": lex,
         "naive": nav,
+        "criteria": criteria,
         "beats_baselines": beats,
+        "verdict": {
+            "passed": all(criteria.values()),
+            "passed_count": sum(1 for v in criteria.values() if v),
+            "total": len(criteria),
+        },
         "queries": len(queries),
         "records": len(records),
     }

@@ -1,4 +1,15 @@
 {
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/learning_curve.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "successes_beats_control",
+      "slope_beats_control",
+      "skills_acquired"
+    ]
+  },
   "learned": {
     "outcomes": [
       0.85,
@@ -55,6 +66,16 @@
     ],
     "slope": -0.1101190476190476
   },
+  "criteria": {
+    "successes_beats_control": true,
+    "slope_beats_control": true,
+    "skills_acquired": true
+  },
   "beats_control": true,
+  "verdict": {
+    "passed": true,
+    "passed_count": 3,
+    "total": 3
+  },
   "tasks": 8
 }

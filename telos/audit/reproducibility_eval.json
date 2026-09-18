@@ -1,0 +1,31 @@
+{
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/reproducibility_eval.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "determinism_same_seed_identical",
+      "distinct_seed_differs",
+      "rng_isolation_zero_global"
+    ]
+  },
+  "criteria": {
+    "determinism_same_seed_identical": true,
+    "distinct_seed_differs": true,
+    "rng_isolation_zero_global": true
+  },
+  "verdict": {
+    "passed": true,
+    "passed_count": 3,
+    "total": 3
+  },
+  "metrics": {
+    "cycles": 15,
+    "fingerprint_seed42_a": "4ce1a6f54f2e4378",
+    "fingerprint_seed42_b": "4ce1a6f54f2e4378",
+    "fingerprint_seed43": "f72cdf3406106656",
+    "global_rng_hits": 0,
+    "global_rng_sites": []
+  }
+}

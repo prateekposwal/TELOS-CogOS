@@ -8,29 +8,58 @@
     "evidence": [
       "signals=3/3"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": false,
+    "artifact_backed": false,
+    "measurement_artifact": null,
+    "backing": "existence-only"
   },
   "self_governance": {
     "name": "self_governance",
     "score": 5.0,
     "target": null,
     "gap": null,
-    "basis": "blocking council + firewall + capability authorization + governor present",
+    "basis": "real firewall/capability/governor behavior measured by governance_eval.json",
     "evidence": [
-      "present=4/4"
+      "structure present=4/4",
+      "measured behaviors 11/11 (governance_eval.json)",
+      "measured: firewall blocks a low-integrity proposal",
+      "measured: firewall blocks a repeat-trap (action_loop) intent",
+      "measured: firewall upholds a council rejection",
+      "measured: firewall admits a legitimate clean proposal",
+      "measured: capability gate vetoes a low-fidelity proposal",
+      "measured: governor BLOCKs on a hard capability boundary",
+      "measured: governor maps clean capability to ACT",
+      "measured: governor DEFERs on a capability gap",
+      "measured: governor ABSTAINs on an UNMODELED state",
+      "measured: governor ESCALATEs when required",
+      "measured: two governance runs produce identical verdicts"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": true,
+    "artifact_backed": true,
+    "measurement_artifact": "telos/audit/governance_eval.json",
+    "backing": "independently_measured (first-party artifact)"
   },
   "verification_rigor": {
     "name": "verification_rigor",
-    "score": 4.5,
+    "score": 5.0,
     "target": null,
     "gap": null,
-    "basis": "axiom falsifier + theorem audit + external log audit + non-ergodicity",
+    "basis": "axiom falsifier + theorem audit EXECUTED by verification_eval.json",
     "evidence": [
-      "present=4/4"
+      "structure present=4/4",
+      "measured criteria 4/4 (verification_eval.json)",
+      "measured: all axioms pass on the healthy prover input",
+      "measured: every axiom can be made to fail (falsifiable)",
+      "measured: the falsifier sees the whole constitution (42)",
+      "measured: the theorem catalogue holds against its declared nulls"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": true,
+    "artifact_backed": true,
+    "measurement_artifact": "telos/audit/verification_eval.json",
+    "backing": "independently_measured (first-party artifact)"
   },
   "memory": {
     "name": "memory",
@@ -45,7 +74,11 @@
       "retrieval eval measured (beats naive)",
       "consumed in real cycles (memory_consumption.json)"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": true,
+    "artifact_backed": true,
+    "measurement_artifact": "telos/audit/memory_eval.json",
+    "backing": "independently_measured (first-party artifact)"
   },
   "learning": {
     "name": "learning",
@@ -61,18 +94,31 @@
       "measured learning curve (beats frozen control)",
       "REAL-environment learning (world-defined reward, beats control)"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": true,
+    "artifact_backed": true,
+    "measurement_artifact": "telos/audit/learning_env.json",
+    "backing": "independently_measured (first-party artifact)"
   },
   "reproducibility": {
     "name": "reproducibility",
     "score": 4.5,
     "target": null,
     "gap": null,
-    "basis": "perf contract + endurance gate + coverage + packaging; capped without external reproduction",
+    "basis": "determinism + seed sensitivity + RNG isolation MEASURED by reproducibility_eval.json; capped without external reproduction",
     "evidence": [
-      "present=4/4"
+      "structure present=4/4",
+      "measured criteria 3/3 (reproducibility_eval.json)",
+      "measured: same seed -> identical fingerprint",
+      "measured: a different seed changes the fingerprint",
+      "measured: zero global RNG calls in production paths",
+      "capped 4.5 without external reproduction"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": true,
+    "artifact_backed": true,
+    "measurement_artifact": "telos/audit/reproducibility_eval.json",
+    "backing": "independently_measured (first-party artifact)"
   },
   "multi_agent": {
     "name": "multi_agent",
@@ -91,7 +137,11 @@
       "measured: bounded collaboration (rounds + handoffs)",
       "measured: two independent runs identical"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": true,
+    "artifact_backed": true,
+    "measurement_artifact": "telos/audit/multi_agent_eval.json",
+    "backing": "independently_measured (first-party artifact)"
   },
   "tool_use": {
     "name": "tool_use",
@@ -107,7 +157,11 @@
       "per-tool capability authorization declared",
       "sandbox.py present"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": false,
+    "artifact_backed": false,
+    "measurement_artifact": null,
+    "backing": "existence-only"
   },
   "maturity": {
     "name": "maturity",
@@ -129,7 +183,11 @@
       "CI gates workflow",
       "version lock test"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": false,
+    "artifact_backed": false,
+    "measurement_artifact": null,
+    "backing": "existence-only"
   },
   "docs": {
     "name": "docs",
@@ -141,6 +199,10 @@
       "present=5/5",
       "known_issues_tracked=False"
     ],
-    "external": false
+    "external": false,
+    "independently_measured": false,
+    "artifact_backed": false,
+    "measurement_artifact": null,
+    "backing": "existence-only"
   }
 }

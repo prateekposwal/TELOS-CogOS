@@ -28,6 +28,12 @@ sys.path.insert(0, PROJECT)
 
 from telos.cli import _build_gridworld_pipeline  # noqa: E402
 from telos.core.runtime import MEMORY_CONSUMPTION_MIN_CYCLES  # noqa: E402
+from telos.core.verifier.measurement import provenance  # noqa: E402
+
+PRODUCER = "telos/tools/memory_consumption_run.py"
+CONSUMPTION_CRITERIA = (
+    "consumed_in_real_cycles", "span_met", "recalled", "stored", "bounded",
+)
 
 ARTIFACT = os.path.join(PROJECT, "telos", "audit", "memory_consumption.json")
 
@@ -64,6 +70,7 @@ def run(cycles: int = 120, checkpoint_dir: str = "/tmp/telos_mem_run") -> Dict[s
 
     report = pipeline.memory_report()
     payload = {
+        "provenance": provenance(PRODUCER, list(CONSUMPTION_CRITERIA)),
         "source": "memory_consumption_run",
         "cycles": cycles,
         "cycles_observed": cycles,
