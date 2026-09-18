@@ -134,3 +134,75 @@ def test_stats_bands():
     assert stats["total"] == 3
     assert stats["learned"] == 1
     assert stats["frontier"] >= 1
+
+
+def test_theory_gap_explicit_difficulty_is_honoured():
+    """An explicit per-hypothesis difficulty is used verbatim."""
+    cur = Curriculum()
+    cur.from_theory_gaps([
+        {"id": "h1", "action": "navigate", "confidence": 0.4,
+         "tests_passed": 3, "tests_failed": 2, "falsified": True,
+         "difficulty": 0.33},
+    ])
+    task = next(t for t in (cur.frontier() + cur.deferred())
+                if t.task_id == "gap_h1")
+    assert abs(task.difficulty - 0.33) < 1e-9
+
+
+def test_theory_gap_explicit_difficulty_is_clamped():
+    """Out-of-range explicit difficulties clamp into [0, 1]."""
+    cur = Curriculum()
+    cur.from_theory_gaps([
+        {"id": "hi", "action": "a", "falsified": True, "difficulty": 1.7},
+        {"id": "lo", "action": "b", "falsified": True, "difficulty": -0.4},
+    ])
+    tasks = {t.task_id: t for t in (cur.frontier() + cur.deferred())}
+    assert tasks["gap_hi"].difficulty == 1.0
+    assert tasks["gap_lo"].difficulty == 0.0
+
+
+def test_theory_gap_default_difficulty_is_independent_of_novelty():
+    """The default path derives difficulty from evidence, not from novelty.
+
+    A mixed set clears the whole-set independence guard (no ValueError), the
+    set is not the complement pattern, and two hypotheses with IDENTICAL
+    novelty (same confidence) can carry different difficulty because the
+    difficulty axis reads the pass/fail record instead.
+    """
+    cur = Curriculum()
+    cur.from_theory_gaps([
+        {"id": "falsified", "action": "a", "confidence": 0.2,
+         "tests_passed": 1, "tests_failed": 4, "falsified": True},
+        {"id": "untested", "action": "b", "confidence": 0.0,
+         "tests_passed": 0, "tests_failed": 0, "falsified": False},
+        {"id": "mostly_failed", "action": "c", "confidence": 0.2,
+         "tests_passed": 0, "tests_failed": 4, "falsified": False},
+        {"id": "mostly_passed", "action": "d", "confidence": 0.2,
+         "tests_passed": 4, "tests_failed": 0, "falsified": False},
+    ])
+    tasks = list(cur.frontier() + cur.deferred())
+    assert len(tasks) == 4
+    # No ValueError above: the set is not the complement pattern.
+    complements = sum(1 for t in tasks
+                      if abs(t.novelty - (1.0 - t.difficulty)) <= 0.02)
+    assert complements < len(tasks)
+    by_id = {t.task_id: t for t in tasks}
+    # Same novelty (confidence-only), different difficulty (evidence-driven).
+    assert (abs(by_id["gap_mostly_failed"].novelty
+                - by_id["gap_mostly_passed"].novelty) < 1e-9)
+    assert (by_id["gap_mostly_failed"].difficulty
+            > by_id["gap_mostly_passed"].difficulty)
+
+
+def test_theory_gap_complement_set_fails_loud():
+    """A complement set built through from_theory_gaps raises ValueError.
+
+    Falsified hypotheses carry novelty 0.85; supplying difficulty 0.15 makes
+    novelty == 1 - difficulty for every task, which must trip the guard.
+    """
+    cur = Curriculum()
+    with pytest.raises(ValueError):
+        cur.from_theory_gaps([
+            {"id": "h1", "action": "a", "falsified": True, "difficulty": 0.15},
+            {"id": "h2", "action": "b", "falsified": True, "difficulty": 0.15},
+        ])
