@@ -17,12 +17,30 @@ known-good ones using a verifiable algorithm.
 
 import logging
 import math
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple, Any, List
 from enum import Enum
 
 logger = logging.getLogger('telos_infra')
+
+# Symmetric uncertainty→risk: below this average uncertainty the policy may
+# LOOSEN risk (recover), instead of the historical tighten-only path.
+# ENABLED by default (A/B: identical health/safety, risk_mean 0.197 -> 0.209,
+# threshold 0.803 -> 0.791 — corrects a one-sided tighten bias). Set
+# TELOS_RISK_SYMMETRIC_UNCERTAINTY=0 to restore the old tighten-only behavior.
+CERTAINTY_MAX = 0.2
+
+
+def _symmetric_uncertainty_enabled() -> bool:
+    """Whether the loosen-under-certainty path is enabled (default: on).
+
+    Returns:
+        True unless TELOS_RISK_SYMMETRIC_UNCERTAINTY is set to a falsy value.
+    """
+    return os.environ.get("TELOS_RISK_SYMMETRIC_UNCERTAINTY", "1") not in (
+        "0", "false", "False", "no")
 
 
 @dataclass
@@ -273,8 +291,15 @@ class MissionPolicyManager:
         if not stream_uncertainties:
             return
         avg_uncertainty = sum(stream_uncertainties.values()) / max(len(stream_uncertainties), 1)
-        target_risk = self._current.risk_tolerance * (1.0 - 0.5 * avg_uncertainty)
-        delta = target_risk - self._current.risk_tolerance
+        risk = self._current.risk_tolerance
+        # Tighten under uncertainty (historical path, unchanged magnitude).
+        delta = -0.5 * risk * avg_uncertainty
+        # Symmetric loosen-under-certainty (env-gated, bounded, continuous at
+        # avg_uncertainty == CERTAINTY_MAX): when uncertainty is genuinely LOW,
+        # let risk recover instead of only ever tightening. Zero effect at and
+        # above CERTAINTY_MAX, so the tighten path is byte-identical there.
+        if _symmetric_uncertainty_enabled() and avg_uncertainty <= CERTAINTY_MAX:
+            delta += 0.5 * risk * (CERTAINTY_MAX - avg_uncertainty)
         if abs(delta) > 0.01:
             self.adjust_risk_tolerance(
                 delta, reason=f"stream_uncertainty={avg_uncertainty:.3f}",

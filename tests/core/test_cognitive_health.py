@@ -4,7 +4,7 @@ Consolidated cognitive-health gate — the four-instrument verdict.
 `evaluate` must pass on a healthy baseline and fail on any regressed metric.
 `collect` must run all four audits and return every check value.
 """
-from telos.tools.cognitive_health import CHECKS, collect, evaluate
+from telos.tools.cognitive_health import CHECKS, checks_for, collect, evaluate
 
 
 def _healthy():

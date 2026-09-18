@@ -36,14 +36,22 @@ coverage:
 health:
 	$(PYTHON) telos/tools/cognitive_health.py --cycles 150 --ci
 
-# One-command release gate: full suite + every invariant gate (self-audit,
-# constitution falsifiability, falsifiable theorems, cognitive health).
+# Release gate (periodic / CI): full suite + every invariant gate at full
+# duration. ~3 min. Use check-fast for a per-commit loop.
 check:
 	$(PYTHON) -m pytest tests/ -q
 	$(PYTHON) telos/tools/self_audit.py
 	$(PYTHON) telos/tools/falsify_axioms.py --ci
 	$(PYTHON) telos/tools/theorem_audit.py --cycles 20 --ci
 	$(PYTHON) telos/tools/cognitive_health.py --cycles 150 --ci
+
+# Per-commit gate: same invariant gates at reduced simulation duration.
+check-fast:
+	$(PYTHON) -m pytest tests/ -q
+	$(PYTHON) telos/tools/self_audit.py
+	$(PYTHON) telos/tools/falsify_axioms.py --ci
+	$(PYTHON) telos/tools/theorem_audit.py --cycles 10 --ci
+	$(PYTHON) telos/tools/cognitive_health.py --cycles 40 --ci
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

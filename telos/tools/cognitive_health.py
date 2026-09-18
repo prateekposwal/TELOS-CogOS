@@ -22,20 +22,35 @@ import json
 import sys
 from typing import Dict, List, Tuple
 
-# (name, measured, comparator, threshold) — thresholds sit just below the
-# 2026-09-18 corrected baseline so a real regression fails while noise passes.
-CHECKS: List[Tuple[str, float, str, float]] = [
-    ("action_emission_rate", 0.0, ">=", 0.75),
-    ("noop_rate", 0.0, "<=", 0.25),
-    ("episodes_completed", 0.0, ">=", 8),
-    ("mean_di", 0.0, ">=", 0.90),
-    ("model_fidelity_mean", 0.0, ">=", 0.90),
-    ("low_integrity_blocks", 0.0, "<=", 0.0),          # circular-evidence rule
-    ("evidence_validator_dissent", 0.0, "<=", 0.0),    # no circular dissent
-    ("capability_defers", 0.0, "<=", 0.0),             # after harness fix
-    ("risk_tolerance_at_floor", 0.0, "<=", 0.0),       # no threshold railing
-    ("unlabeled_policy_changes", 0.0, "<=", 0.0),      # telemetry complete
-]
+def checks_for(cycles: int) -> List[Tuple[str, float, str, float]]:
+    """Build the check table with duration-scaled thresholds.
+
+    Rates and zero-count invariants are duration-independent; only the
+    episode-completion count scales with the run length (baseline ≈ cycles/9).
+
+    Args:
+        cycles: the audit run length.
+
+    Returns:
+        A list of (name, placeholder, comparator, threshold) tuples.
+    """
+    return [
+        ("action_emission_rate", 0.0, ">=", 0.75),
+        ("noop_rate", 0.0, "<=", 0.25),
+        # baseline ~ cycles/9 episodes; require ~half that, floor 1.
+        ("episodes_completed", 0.0, ">=", max(1.0, cycles / 18.0)),
+        ("mean_di", 0.0, ">=", 0.90),
+        ("model_fidelity_mean", 0.0, ">=", 0.90),
+        ("low_integrity_blocks", 0.0, "<=", 0.0),          # circular-evidence rule
+        ("evidence_validator_dissent", 0.0, "<=", 0.0),    # no circular dissent
+        ("capability_defers", 0.0, "<=", 0.0),             # after harness fix
+        ("risk_tolerance_at_floor", 0.0, "<=", 0.0),       # no threshold railing
+        ("unlabeled_policy_changes", 0.0, "<=", 0.0),      # telemetry complete
+    ]
+
+
+# Default-duration table (kept for callers/tests that don't pass cycles).
+CHECKS: List[Tuple[str, float, str, float]] = checks_for(150)
 
 
 def collect(cycles: int) -> Dict[str, object]:
@@ -86,17 +101,18 @@ def collect(cycles: int) -> Dict[str, object]:
     }
 
 
-def evaluate(measured: Dict[str, float]) -> List[Dict[str, object]]:
+def evaluate(measured: Dict[str, float], cycles: int = 150) -> List[Dict[str, object]]:
     """Compare measured values to thresholds.
 
     Args:
         measured: the measured check values.
+        cycles: run length (scales the episode-completion threshold).
 
     Returns:
         One row per check with passed flag.
     """
     rows = []
-    for name, _placeholder, comparator, threshold in CHECKS:
+    for name, _placeholder, comparator, threshold in checks_for(cycles):
         value = float(measured.get(name, 0.0))
         passed = (value >= threshold) if comparator == ">=" else (value <= threshold)
         rows.append({"check": name, "measured": round(value, 4),
@@ -120,7 +136,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
 
     data = collect(args.cycles)
-    rows = evaluate(data["measured"])
+    rows = evaluate(data["measured"], args.cycles)
     healthy = all(r["passed"] for r in rows)
 
     print("\n            TELOS cognitive-health gate")
