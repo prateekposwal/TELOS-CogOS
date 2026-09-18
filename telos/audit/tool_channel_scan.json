@@ -1,16 +1,30 @@
 {
   "governed": [
     {
+      "path": "telos/core/actions/sandbox.py",
+      "lineno": 242,
+      "kind": "network",
+      "call": "http.client.HTTPSConnection"
+    },
+    {
+      "path": "telos/core/actions/sandbox.py",
+      "lineno": 244,
+      "kind": "network",
+      "call": "http.client.HTTPConnection"
+    },
+    {
       "path": "telos/core/actions/executor.py",
-      "lineno": 626,
+      "lineno": 725,
       "kind": "subprocess",
       "call": "subprocess.run"
     }
   ],
-  "known_bypasses": [
+  "exemptions": [
     {
       "path": "telos/adapters/dev_domain_adapter.py",
-      "reason": "dev-domain simulator subprocess \u2014 Phase 1 routes it through the executor",
+      "reason": "Dev-domain snapshot helper: runs `npx eslint` (lint count) and `du -sk node_modules` (bundle size) read-only over the operator-supplied project_path, and delegates test/typecheck/lint to dev_validation.validate_project. Same external-project measurement channel and rationale as dev_validation.py; read-only inspection only.",
+      "governed_by": "same external-project validation executor profile as dev_validation.py (shared binary allowlist + same four gates)",
+      "reviewed": "true",
       "calls": [
         {
           "lineno": 193,
@@ -26,7 +40,9 @@
     },
     {
       "path": "telos/adapters/dev_validation.py",
-      "reason": "dev validation subprocess \u2014 Phase 1 routes it through the executor",
+      "reason": "External-project validation harness: discovers and runs the target project's own test/typecheck/lint commands at runtime (argv is a function of the scanned project, not a fixed operator template) inside the operator-supplied project_path. It cannot route through the ActionExecutor without either forbidding all validation or letting the harness self-authorize arbitrary argv \u2014 both worse governance. Bounded: list-form (never a shell), per-command timeout, 1MB output cap.",
+      "governed_by": "external-project validation executor profile: an operator-declared project root + a binary allowlist (pytest/npm/yarn/pnpm/npx/tsc/eslint/go) enforced with the same four gates",
+      "reviewed": "true",
       "calls": [
         {
           "lineno": 102,
@@ -34,40 +50,14 @@
           "call": "subprocess.run"
         }
       ]
-    },
-    {
-      "path": "telos/core/contracts/model_provider.py",
-      "reason": "network chat providers (Ollama/OpenAI/Anthropic) via http.client \u2014 Phase 1 routes them through the tool registry",
-      "calls": [
-        {
-          "lineno": 68,
-          "kind": "network",
-          "call": "http.client.HTTPConnection"
-        },
-        {
-          "lineno": 194,
-          "kind": "network",
-          "call": "http.client.HTTPSConnection"
-        }
-      ]
-    },
-    {
-      "path": "telos/core/governance/human_gateway.py",
-      "reason": "outbound human-approval webhook via http.client \u2014 Phase 1 governs it",
-      "calls": [
-        {
-          "lineno": 159,
-          "kind": "network",
-          "call": "http.client.HTTPSConnection"
-        }
-      ]
     }
   ],
   "unknown": [],
   "counts": {
-    "governed_sites": 1,
-    "known_bypass_sites": 6,
-    "unknown_sites": 0,
-    "known_bypass_files": 4
+    "governed_sites": 3,
+    "known_bypass_sites": 0,
+    "exemption_sites": 3,
+    "exemption_files": 2,
+    "unknown_sites": 0
   }
 }

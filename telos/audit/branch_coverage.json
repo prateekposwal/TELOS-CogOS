@@ -1,44 +1,53 @@
 {
-  "overall_percent": 89.14,
-  "total_points": 22774,
-  "covered_points": 20301,
-  "files": 200,
+  "overall_percent": 89.55,
+  "total_points": 25765,
+  "covered_points": 23073,
+  "files": 217,
   "rows": [
     {
       "module": "telos/core/runtime.py",
-      "points": 1565,
-      "covered": 1275,
-      "uncovered": 290,
-      "percent": 81.47,
+      "points": 1676,
+      "covered": 1367,
+      "uncovered": 309,
+      "percent": 81.56,
       "weight": 5.0,
-      "impact": 1450.0
+      "impact": 1545.0
     },
     {
       "module": "telos/core/phases/select.py",
-      "points": 451,
-      "covered": 299,
-      "uncovered": 152,
-      "percent": 66.3,
+      "points": 593,
+      "covered": 446,
+      "uncovered": 147,
+      "percent": 75.21,
       "weight": 4.0,
-      "impact": 608.0
+      "impact": 588.0
     },
     {
       "module": "telos/core/phases/streams.py",
-      "points": 278,
-      "covered": 193,
+      "points": 282,
+      "covered": 197,
       "uncovered": 85,
-      "percent": 69.42,
+      "percent": 69.86,
       "weight": 4.0,
       "impact": 340.0
     },
     {
       "module": "telos/core/phases/act.py",
-      "points": 421,
-      "covered": 340,
-      "uncovered": 81,
-      "percent": 80.76,
+      "points": 426,
+      "covered": 343,
+      "uncovered": 83,
+      "percent": 80.52,
       "weight": 4.0,
-      "impact": 324.0
+      "impact": 332.0
+    },
+    {
+      "module": "telos/core/verifier/capability_scorecard.py",
+      "points": 571,
+      "covered": 492,
+      "uncovered": 79,
+      "percent": 86.16,
+      "weight": 4.0,
+      "impact": 316.0
     },
     {
       "module": "telos/core/knowledge/graph.py",
@@ -50,6 +59,15 @@
       "impact": 186.0
     },
     {
+      "module": "telos/core/infra_manager/stream_calibrator.py",
+      "points": 298,
+      "covered": 245,
+      "uncovered": 53,
+      "percent": 82.21,
+      "weight": 3.5,
+      "impact": 185.5
+    },
+    {
       "module": "telos/core/phases/synthesize.py",
       "points": 201,
       "covered": 157,
@@ -57,15 +75,6 @@
       "percent": 78.11,
       "weight": 4.0,
       "impact": 176.0
-    },
-    {
-      "module": "telos/core/infra_manager/stream_calibrator.py",
-      "points": 289,
-      "covered": 240,
-      "uncovered": 49,
-      "percent": 83.04,
-      "weight": 3.5,
-      "impact": 171.5
     },
     {
       "module": "telos/core/simulation/engine.py",
@@ -88,11 +97,11 @@
     {
       "module": "telos/core/infra_manager/checkpoint_manager.py",
       "points": 226,
-      "covered": 184,
-      "uncovered": 42,
-      "percent": 81.42,
+      "covered": 187,
+      "uncovered": 39,
+      "percent": 82.74,
       "weight": 3.5,
-      "impact": 147.0
+      "impact": 136.5
     },
     {
       "module": "telos/core/phases/council.py",
@@ -111,6 +120,15 @@
       "percent": 83.88,
       "weight": 3.0,
       "impact": 132.0
+    },
+    {
+      "module": "telos/core/infra_manager/knowledge_manager.py",
+      "points": 175,
+      "covered": 139,
+      "uncovered": 36,
+      "percent": 79.43,
+      "weight": 3.5,
+      "impact": 126.0
     },
     {
       "module": "telos/core/council/reflector.py",
@@ -158,13 +176,13 @@
       "impact": 92.0
     },
     {
-      "module": "telos/core/infra_manager/knowledge_manager.py",
-      "points": 169,
-      "covered": 143,
-      "uncovered": 26,
-      "percent": 84.62,
-      "weight": 3.5,
-      "impact": 91.0
+      "module": "telos/core/actions/executor.py",
+      "points": 511,
+      "covered": 422,
+      "uncovered": 89,
+      "percent": 82.58,
+      "weight": 1.0,
+      "impact": 89.0
     },
     {
       "module": "telos/core/council/internal_debate.py",
@@ -185,21 +203,39 @@
       "impact": 84.0
     },
     {
-      "module": "telos/core/actions/executor.py",
-      "points": 415,
-      "covered": 336,
-      "uncovered": 79,
-      "percent": 80.96,
-      "weight": 1.0,
-      "impact": 79.0
+      "module": "telos/core/memory/controller.py",
+      "points": 284,
+      "covered": 252,
+      "uncovered": 32,
+      "percent": 88.73,
+      "weight": 2.5,
+      "impact": 80.0
     },
     {
-      "module": "telos/core/contracts/model_provider.py",
-      "points": 143,
-      "covered": 79,
-      "uncovered": 64,
-      "percent": 55.24,
-      "weight": 1.0,
+      "module": "telos/core/phases/perceive.py",
+      "points": 145,
+      "covered": 127,
+      "uncovered": 18,
+      "percent": 87.59,
+      "weight": 4.0,
+      "impact": 72.0
+    },
+    {
+      "module": "telos/core/memory/tiering.py",
+      "points": 203,
+      "covered": 175,
+      "uncovered": 28,
+      "percent": 86.21,
+      "weight": 2.5,
+      "impact": 70.0
+    },
+    {
+      "module": "telos/core/phases/reflect.py",
+      "points": 150,
+      "covered": 134,
+      "uncovered": 16,
+      "percent": 89.33,
+      "weight": 4.0,
       "impact": 64.0
     },
     {
@@ -219,24 +255,6 @@
       "percent": 91.74,
       "weight": 3.5,
       "impact": 63.0
-    },
-    {
-      "module": "telos/core/phases/perceive.py",
-      "points": 134,
-      "covered": 119,
-      "uncovered": 15,
-      "percent": 88.81,
-      "weight": 4.0,
-      "impact": 60.0
-    },
-    {
-      "module": "telos/core/identity/projection_gate.py",
-      "points": 78,
-      "covered": 55,
-      "uncovered": 23,
-      "percent": 70.51,
-      "weight": 2.5,
-      "impact": 57.5
     },
     {
       "module": "telos/core/reasoning/interpretation_engine.py",
@@ -338,6 +356,15 @@
       "impact": 48.0
     },
     {
+      "module": "telos/core/council/distributed.py",
+      "points": 196,
+      "covered": 184,
+      "uncovered": 12,
+      "percent": 93.88,
+      "weight": 4.0,
+      "impact": 48.0
+    },
+    {
       "module": "telos/core/reasoning/theory/builder.py",
       "points": 321,
       "covered": 305,
@@ -365,12 +392,21 @@
       "impact": 40.0
     },
     {
-      "module": "telos/core/phases/reflect.py",
-      "points": 137,
-      "covered": 127,
+      "module": "telos/core/verifier/measurement.py",
+      "points": 103,
+      "covered": 93,
       "uncovered": 10,
-      "percent": 92.7,
+      "percent": 90.29,
       "weight": 4.0,
+      "impact": 40.0
+    },
+    {
+      "module": "telos/core/coordination/delegation.py",
+      "points": 220,
+      "covered": 204,
+      "uncovered": 16,
+      "percent": 92.73,
+      "weight": 2.5,
       "impact": 40.0
     },
     {
@@ -428,15 +464,6 @@
       "impact": 32.0
     },
     {
-      "module": "telos/core/verifier/theorem_audit.py",
-      "points": 82,
-      "covered": 74,
-      "uncovered": 8,
-      "percent": 90.24,
-      "weight": 4.0,
-      "impact": 32.0
-    },
-    {
       "module": "telos/core/verifier/decision_log_audit.py",
       "points": 86,
       "covered": 78,
@@ -451,6 +478,24 @@
       "covered": 94,
       "uncovered": 8,
       "percent": 92.16,
+      "weight": 4.0,
+      "impact": 32.0
+    },
+    {
+      "module": "telos/core/verifier/theorem_audit.py",
+      "points": 227,
+      "covered": 219,
+      "uncovered": 8,
+      "percent": 96.48,
+      "weight": 4.0,
+      "impact": 32.0
+    },
+    {
+      "module": "telos/core/verifier/axiom_prover.py",
+      "points": 261,
+      "covered": 253,
+      "uncovered": 8,
+      "percent": 96.93,
       "weight": 4.0,
       "impact": 32.0
     },
@@ -509,6 +554,33 @@
       "impact": 25.0
     },
     {
+      "module": "telos/core/coordination/cooperative.py",
+      "points": 72,
+      "covered": 62,
+      "uncovered": 10,
+      "percent": 86.11,
+      "weight": 2.5,
+      "impact": 25.0
+    },
+    {
+      "module": "telos/core/identity/projection_gate.py",
+      "points": 80,
+      "covered": 70,
+      "uncovered": 10,
+      "percent": 87.5,
+      "weight": 2.5,
+      "impact": 25.0
+    },
+    {
+      "module": "telos/core/memory/semantic.py",
+      "points": 95,
+      "covered": 85,
+      "uncovered": 10,
+      "percent": 89.47,
+      "weight": 2.5,
+      "impact": 25.0
+    },
+    {
       "module": "telos/core/decision/time_horizon.py",
       "points": 130,
       "covered": 120,
@@ -525,24 +597,6 @@
       "percent": 96.02,
       "weight": 2.5,
       "impact": 25.0
-    },
-    {
-      "module": "telos/core/governance/human_gateway.py",
-      "points": 109,
-      "covered": 103,
-      "uncovered": 6,
-      "percent": 94.5,
-      "weight": 4.0,
-      "impact": 24.0
-    },
-    {
-      "module": "telos/core/council/distributed.py",
-      "points": 170,
-      "covered": 164,
-      "uncovered": 6,
-      "percent": 96.47,
-      "weight": 4.0,
-      "impact": 24.0
     },
     {
       "module": "telos/core/ledger/skill_library.py",
@@ -590,6 +644,15 @@
       "impact": 20.0
     },
     {
+      "module": "telos/core/memory/embedding.py",
+      "points": 129,
+      "covered": 121,
+      "uncovered": 8,
+      "percent": 93.8,
+      "weight": 2.5,
+      "impact": 20.0
+    },
+    {
       "module": "telos/core/session/checkpoint_cli.py",
       "points": 71,
       "covered": 52,
@@ -626,6 +689,15 @@
       "impact": 17.5
     },
     {
+      "module": "telos/core/contracts/model_provider.py",
+      "points": 161,
+      "covered": 144,
+      "uncovered": 17,
+      "percent": 89.44,
+      "weight": 1.0,
+      "impact": 17.0
+    },
+    {
       "module": "telos/core/introspection/scheduler.py",
       "points": 196,
       "covered": 179,
@@ -633,15 +705,6 @@
       "percent": 91.33,
       "weight": 1.0,
       "impact": 17.0
-    },
-    {
-      "module": "telos/core/verifier/axiom_prover.py",
-      "points": 203,
-      "covered": 199,
-      "uncovered": 4,
-      "percent": 98.03,
-      "weight": 4.0,
-      "impact": 16.0
     },
     {
       "module": "telos/core/proof/trajectory_sufficiency.py",
@@ -662,6 +725,15 @@
       "impact": 15.0
     },
     {
+      "module": "telos/core/decision/selection_trace.py",
+      "points": 106,
+      "covered": 100,
+      "uncovered": 6,
+      "percent": 94.34,
+      "weight": 2.5,
+      "impact": 15.0
+    },
+    {
       "module": "telos/core/decision/omega_operator.py",
       "points": 174,
       "covered": 168,
@@ -672,10 +744,10 @@
     },
     {
       "module": "telos/core/infra_manager/mission_policy.py",
-      "points": 188,
-      "covered": 184,
+      "points": 196,
+      "covered": 192,
       "uncovered": 4,
-      "percent": 97.87,
+      "percent": 97.96,
       "weight": 3.5,
       "impact": 14.0
     },
@@ -698,6 +770,15 @@
       "impact": 13.0
     },
     {
+      "module": "telos/core/observability/telemetry.py",
+      "points": 212,
+      "covered": 199,
+      "uncovered": 13,
+      "percent": 93.87,
+      "weight": 1.0,
+      "impact": 13.0
+    },
+    {
       "module": "telos/core/scheduler.py",
       "points": 82,
       "covered": 70,
@@ -712,6 +793,15 @@
       "covered": 106,
       "uncovered": 12,
       "percent": 89.83,
+      "weight": 1.0,
+      "impact": 12.0
+    },
+    {
+      "module": "telos/core/pattern/core.py",
+      "points": 236,
+      "covered": 224,
+      "uncovered": 12,
+      "percent": 94.92,
       "weight": 1.0,
       "impact": 12.0
     },
@@ -734,20 +824,11 @@
       "impact": 11.0
     },
     {
-      "module": "telos/core/observability/telemetry.py",
-      "points": 208,
-      "covered": 197,
-      "uncovered": 11,
-      "percent": 94.71,
-      "weight": 1.0,
-      "impact": 11.0
-    },
-    {
-      "module": "telos/core/coordination/cooperative.py",
-      "points": 43,
-      "covered": 39,
+      "module": "telos/core/decision/policy_trace.py",
+      "points": 34,
+      "covered": 30,
       "uncovered": 4,
-      "percent": 90.7,
+      "percent": 88.24,
       "weight": 2.5,
       "impact": 10.0
     },
@@ -806,6 +887,15 @@
       "impact": 7.0
     },
     {
+      "module": "telos/core/infra_manager/failure_ledger.py",
+      "points": 106,
+      "covered": 104,
+      "uncovered": 2,
+      "percent": 98.11,
+      "weight": 3.5,
+      "impact": 7.0
+    },
+    {
       "module": "telos/core/context/knowledge_ingestion.py",
       "points": 110,
       "covered": 104,
@@ -842,11 +932,29 @@
       "impact": 5.0
     },
     {
+      "module": "telos/core/decision/act_gate_trace.py",
+      "points": 26,
+      "covered": 24,
+      "uncovered": 2,
+      "percent": 92.31,
+      "weight": 2.5,
+      "impact": 5.0
+    },
+    {
       "module": "telos/core/scale/ledger.py",
       "points": 71,
       "covered": 66,
       "uncovered": 5,
       "percent": 92.96,
+      "weight": 1.0,
+      "impact": 5.0
+    },
+    {
+      "module": "telos/core/learning/curriculum.py",
+      "points": 128,
+      "covered": 123,
+      "uncovered": 5,
+      "percent": 96.09,
       "weight": 1.0,
       "impact": 5.0
     },
@@ -896,11 +1004,11 @@
       "impact": 4.0
     },
     {
-      "module": "telos/core/pattern/core.py",
-      "points": 207,
-      "covered": 203,
+      "module": "telos/core/actions/sandbox.py",
+      "points": 128,
+      "covered": 124,
       "uncovered": 4,
-      "percent": 98.07,
+      "percent": 96.88,
       "weight": 1.0,
       "impact": 4.0
     },
@@ -912,6 +1020,24 @@
       "percent": 99.07,
       "weight": 4.0,
       "impact": 4.0
+    },
+    {
+      "module": "telos/core/governance/human_gateway.py",
+      "points": 122,
+      "covered": 121,
+      "uncovered": 1,
+      "percent": 99.18,
+      "weight": 4.0,
+      "impact": 4.0
+    },
+    {
+      "module": "telos/core/actions/registry.py",
+      "points": 66,
+      "covered": 63,
+      "uncovered": 3,
+      "percent": 95.45,
+      "weight": 1.0,
+      "impact": 3.0
     },
     {
       "module": "telos/core/session/persistence.py",
@@ -950,6 +1076,15 @@
       "impact": 3.0
     },
     {
+      "module": "telos/core/decision/council_gate_trace.py",
+      "points": 40,
+      "covered": 39,
+      "uncovered": 1,
+      "percent": 97.5,
+      "weight": 2.5,
+      "impact": 2.5
+    },
+    {
       "module": "telos/core/perception/quality.py",
       "points": 63,
       "covered": 61,
@@ -964,6 +1099,15 @@
       "covered": 65,
       "uncovered": 2,
       "percent": 97.01,
+      "weight": 1.0,
+      "impact": 2.0
+    },
+    {
+      "module": "telos/core/learning/acquisition.py",
+      "points": 85,
+      "covered": 83,
+      "uncovered": 2,
+      "percent": 97.65,
       "weight": 1.0,
       "impact": 2.0
     },
@@ -1032,8 +1176,8 @@
     },
     {
       "module": "telos/core/actions/__init__.py",
-      "points": 2,
-      "covered": 2,
+      "points": 3,
+      "covered": 3,
       "uncovered": 0,
       "percent": 100.0,
       "weight": 1.0,
@@ -1077,8 +1221,8 @@
     },
     {
       "module": "telos/core/coordination/__init__.py",
-      "points": 2,
-      "covered": 2,
+      "points": 3,
+      "covered": 3,
       "uncovered": 0,
       "percent": 100.0,
       "weight": 2.5,
@@ -1302,8 +1446,8 @@
     },
     {
       "module": "telos/core/infra_manager/audit_controller.py",
-      "points": 87,
-      "covered": 87,
+      "points": 100,
+      "covered": 100,
       "uncovered": 0,
       "percent": 100.0,
       "weight": 3.5,
@@ -1313,15 +1457,6 @@
       "module": "telos/core/infra_manager/cost_tracker.py",
       "points": 98,
       "covered": 98,
-      "uncovered": 0,
-      "percent": 100.0,
-      "weight": 3.5,
-      "impact": 0.0
-    },
-    {
-      "module": "telos/core/infra_manager/failure_ledger.py",
-      "points": 97,
-      "covered": 97,
       "uncovered": 0,
       "percent": 100.0,
       "weight": 3.5,
@@ -1400,12 +1535,30 @@
       "impact": 0.0
     },
     {
+      "module": "telos/core/learning/__init__.py",
+      "points": 3,
+      "covered": 3,
+      "uncovered": 0,
+      "percent": 100.0,
+      "weight": 1.0,
+      "impact": 0.0
+    },
+    {
       "module": "telos/core/ledger/__init__.py",
       "points": 5,
       "covered": 5,
       "uncovered": 0,
       "percent": 100.0,
       "weight": 1.0,
+      "impact": 0.0
+    },
+    {
+      "module": "telos/core/memory/__init__.py",
+      "points": 3,
+      "covered": 3,
+      "uncovered": 0,
+      "percent": 100.0,
+      "weight": 2.5,
       "impact": 0.0
     },
     {
@@ -1473,8 +1626,8 @@
     },
     {
       "module": "telos/core/phases/base.py",
-      "points": 134,
-      "covered": 134,
+      "points": 137,
+      "covered": 137,
       "uncovered": 0,
       "percent": 100.0,
       "weight": 4.0,
@@ -1770,8 +1923,8 @@
     },
     {
       "module": "telos/core/types.py",
-      "points": 153,
-      "covered": 153,
+      "points": 164,
+      "covered": 164,
       "uncovered": 0,
       "percent": 100.0,
       "weight": 5.0,
