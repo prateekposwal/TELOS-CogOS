@@ -1,15 +1,28 @@
 {
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/memory_consumption_run.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "consumed_in_real_cycles",
+      "span_met",
+      "recalled",
+      "stored",
+      "bounded"
+    ]
+  },
   "source": "memory_consumption_run",
   "cycles": 120,
   "cycles_observed": 120,
-  "memory_consumed": 354,
-  "inserted": 55,
-  "rejected_governance_suppression": 65,
+  "memory_consumed": 1434,
+  "inserted": 211,
+  "rejected_governance_suppression": 265,
   "tiered": {
     "hot": 16,
-    "warm": 39,
-    "cold": 0,
-    "total": 55,
+    "warm": 48,
+    "cold": 147,
+    "total": 211,
     "evicted": 0,
     "summarized": 0
   },

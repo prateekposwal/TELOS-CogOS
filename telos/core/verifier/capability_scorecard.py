@@ -2,12 +2,26 @@
 Capability Scorecard — measures TELOS's capability rubric from real signals.
 
 PATTERN (falsifiable self-assessment, Λ6.5): a capability score must be derived
-from an OBSERVABLE artifact, not asserted. Each dimension is scored from
-filesystem/registry signals that change only when the underlying capability
-changes. A score is tagged ``external=False`` unless an independently produced
-artifact backs it — so a TELOS-authored tool grading TELOS is never mistaken
-for external validation (research/FALSIFIABLE_THEOREMS.md applied to the
-roadmap).
+from an OBSERVABLE artifact, not asserted. A dimension that counts module paths
+says the modules EXIST, not that the capability WORKS; those dimensions are
+scored from behavioral harnesses that drive the real machinery and write a
+machine-checkable artifact (explicit criteria + verdict) with provenance.
+
+Each result distinguishes three claims, so a TELOS-authored tool grading TELOS
+is never mistaken for outside validation:
+
+  * ``artifact_backed`` — the score is credited from a real measurement
+    artifact (provenance-stamped, machine-checkable criteria + verdict);
+  * ``independently_measured`` — that artifact was written by a tool separate
+    from this scoring code path (a first-party harness process qualifies);
+  * ``external`` — the artifact's provenance declares a source OUTSIDE TELOS's
+    own first-party toolchain (``external``/``operator``). A first-party
+    harness does NOT earn this, even run as its own process — TELOS grading
+    TELOS is not external validation (research/FALSIFIABLE_THEOREMS.md).
+
+The three flags are computed in ``telos/core/verifier/measurement.py`` and are
+surfaced verbatim in ``capability_scorecard.json`` so a reader can see exactly
+what backs each score instead of a bare number.
 
 The "uplift" dimensions (tool_use, memory, learning, maturity, multi_agent)
 carry the architect's targets; the others report their self-assessed baseline.
@@ -21,6 +35,10 @@ import json
 import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+
+from telos.core.verifier.measurement import (
+    flags_from_provenance, read_measurement, read_provenance,
+)
 
 PROJECT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
@@ -58,6 +76,67 @@ _MULTI_AGENT_LABELS: Dict[str, str] = {
     "determinism": "two independent runs identical",
 }
 
+# The behavioral criteria the governance harness writes into
+# telos/audit/governance_eval.json. Locked to the writer by
+# tests/core/test_governance_eval.py.
+GOVERNANCE_CRITERIA: tuple = (
+    "low_integrity_blocked",
+    "repeat_trap_blocked",
+    "council_rejection_blocked",
+    "legitimate_admitted",
+    "low_fidelity_vetoed",
+    "hard_boundary_blocked",
+    "governor_act_on_clean",
+    "governor_defer_on_capability_gap",
+    "governor_abstain_on_unmodeled",
+    "governor_escalate_when_required",
+    "deterministic_replay",
+)
+
+_GOVERNANCE_LABELS: Dict[str, str] = {
+    "low_integrity_blocked": "firewall blocks a low-integrity proposal",
+    "repeat_trap_blocked": "firewall blocks a repeat-trap (action_loop) intent",
+    "council_rejection_blocked": "firewall upholds a council rejection",
+    "legitimate_admitted": "firewall admits a legitimate clean proposal",
+    "low_fidelity_vetoed": "capability gate vetoes a low-fidelity proposal",
+    "hard_boundary_blocked": "governor BLOCKs on a hard capability boundary",
+    "governor_act_on_clean": "governor maps clean capability to ACT",
+    "governor_defer_on_capability_gap": "governor DEFERs on a capability gap",
+    "governor_abstain_on_unmodeled": "governor ABSTAINs on an UNMODELED state",
+    "governor_escalate_when_required": "governor ESCALATEs when required",
+    "deterministic_replay": "two governance runs produce identical verdicts",
+}
+
+# The behavioral criteria the verification harness writes into
+# telos/audit/verification_eval.json.
+VERIFICATION_CRITERIA: tuple = (
+    "axioms_baseline_green",
+    "axioms_all_falsifiable",
+    "axiom_count_complete",
+    "theorems_all_hold",
+)
+
+_VERIFICATION_LABELS: Dict[str, str] = {
+    "axioms_baseline_green": "all axioms pass on the healthy prover input",
+    "axioms_all_falsifiable": "every axiom can be made to fail (falsifiable)",
+    "axiom_count_complete": "the falsifier sees the whole constitution (42)",
+    "theorems_all_hold": "the theorem catalogue holds against its declared nulls",
+}
+
+# The behavioral criteria the reproducibility harness writes into
+# telos/audit/reproducibility_eval.json.
+REPRODUCIBILITY_CRITERIA: tuple = (
+    "determinism_same_seed_identical",
+    "distinct_seed_differs",
+    "rng_isolation_zero_global",
+)
+
+_REPRODUCIBILITY_LABELS: Dict[str, str] = {
+    "determinism_same_seed_identical": "same seed -> identical fingerprint",
+    "distinct_seed_differs": "a different seed changes the fingerprint",
+    "rng_isolation_zero_global": "zero global RNG calls in production paths",
+}
+
 # The full rubric (the competitive table's dimensions).
 DIMENSIONS: List[str] = [
     "autonomy", "self_governance", "verification_rigor", "memory",
@@ -76,7 +155,13 @@ class DimensionResult:
         target: the uplift target, or None for baseline dimensions.
         basis: one-line explanation of how the score was derived.
         evidence: concrete signals (paths / counts) backing the score.
-        external: True only when an independent artifact backs the score.
+        external: True only when the backing artifact's provenance declares a
+            source OUTSIDE TELOS's first-party toolchain.
+        independently_measured: True when a tool OTHER than this scorer wrote
+            the backing artifact (a first-party harness qualifies).
+        artifact_backed: True when the score is credited from a validated,
+            machine-checkable measurement artifact (not a path check).
+        measurement: repo-relative path of the backing artifact, or None.
     """
 
     name: str
@@ -85,6 +170,9 @@ class DimensionResult:
     evidence: List[str] = field(default_factory=list)
     target: Optional[float] = None
     external: bool = False
+    independently_measured: bool = False
+    artifact_backed: bool = False
+    measurement: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
         """Serializable form for JSON output."""
@@ -96,6 +184,11 @@ class DimensionResult:
             "basis": self.basis,
             "evidence": self.evidence,
             "external": self.external,
+            "independently_measured": self.independently_measured,
+            "artifact_backed": self.artifact_backed,
+            "measurement_artifact": self.measurement,
+            "backing": _backing_label(
+                self.artifact_backed, self.independently_measured, self.external),
         }
 
 
@@ -122,6 +215,43 @@ def _clamp(value: float) -> float:
         The value bounded to [0, 5].
     """
     return max(0.0, min(5.0, value))
+
+
+def _backing_label(artifact_backed: bool, independently_measured: bool,
+                   external: bool) -> str:
+    """Human-readable label of what backs a score.
+
+    Args:
+        artifact_backed: a validated measurement artifact backs the score.
+        independently_measured: a non-scorer tool wrote that artifact.
+        external: the artifact's source is outside the first-party toolchain.
+
+    Returns:
+        A label: "external", "independently_measured (first-party artifact)",
+        "artifact_backed (self-measured)", or "existence-only".
+    """
+    if external:
+        return "external"
+    if artifact_backed and independently_measured:
+        return "independently_measured (first-party artifact)"
+    if artifact_backed:
+        return "artifact_backed (self-measured)"
+    return "existence-only"
+
+
+def _measurement_flags(root: str, relpath: str):
+    """Read an artifact's provenance into (backed, independent, external).
+
+    Args:
+        root: repo root.
+        relpath: repo-relative path of the artifact.
+
+    Returns:
+        The three flags; all False when the artifact/provenance is absent.
+    """
+    if not _exists(root, relpath):
+        return (False, False, False)
+    return flags_from_provenance(read_provenance(root, relpath))
 
 
 def _read(root: str, relpath: str) -> str:
@@ -414,10 +544,15 @@ def _score_memory(root: str) -> DimensionResult:
     else:
         score = min(score, 4.5)
         evidence.append("capped 4.5 until memory is consumed in real cycles")
+    backed, independent, external = _measurement_flags(
+        root, "telos/audit/memory_eval.json")
     return DimensionResult(
         name="memory", score=_clamp(score), target=TARGETS["memory"],
         basis="stores + controller/tiering + measured retrieval eval + runtime consumption",
         evidence=evidence,
+        external=external, independently_measured=independent,
+        artifact_backed=backed,
+        measurement="telos/audit/memory_eval.json" if backed else None,
     )
 
 
@@ -467,10 +602,15 @@ def _score_learning(root: str) -> DimensionResult:
             score += 0.5
     if not evidence:
         evidence.append("no learning machinery detected")
+    backed, independent, external = _measurement_flags(
+        root, "telos/audit/learning_env.json")
     return DimensionResult(
         name="learning", score=_clamp(score), target=TARGETS["learning"],
         basis="theory/skill machinery + curriculum + measured curve + real-env learning",
         evidence=evidence,
+        external=external, independently_measured=independent,
+        artifact_backed=backed,
+        measurement="telos/audit/learning_env.json" if backed else None,
     )
 
 
@@ -540,7 +680,12 @@ def _score_maturity(root: str) -> DimensionResult:
 
 
 def _score_governance(root: str) -> DimensionResult:
-    """Score self-governance from the blocking-gate modules.
+    """Score self-governance from MEASURED blocking/admitting behavior.
+
+    Structure earns only a small base; the rest is credited when the
+    governance harness demonstrated the real firewall/capability/governor
+    behavior and its machine-checkable verdict passed. A missing or failing
+    harness credits nothing beyond the base (never a silent pass).
 
     Args:
         root: repo root.
@@ -555,16 +700,45 @@ def _score_governance(root: str) -> DimensionResult:
         "telos/core/governance/governor.py",
     ]
     present = [m for m in mods if _exists(root, m)]
-    score = 5.0 * (len(present) / len(mods))
+    base = 1.0 * (len(present) / len(mods))
+    measured = read_measurement(
+        root, "telos/audit/governance_eval.json", GOVERNANCE_CRITERIA)
+    evidence = [f"structure present={len(present)}/{len(mods)}"]
+    if measured is None:
+        evidence.append(
+            "no machine-checkable governance_eval.json — existence-only base")
+        return DimensionResult(
+            name="self_governance", score=_clamp(base),
+            basis="governance modules present; behavioral measurement missing",
+            evidence=evidence)
+    evidence.append(
+        f"measured behaviors {measured.passed_count}/{measured.total} "
+        "(governance_eval.json)")
+    for name in GOVERNANCE_CRITERIA:
+        if measured.criteria.get(name):
+            evidence.append(f"measured: {_GOVERNANCE_LABELS[name]}")
+    score = base + (4.0 if measured.verdict_passed else 0.0)
+    if not measured.verdict_passed:
+        evidence.append(
+            "governance_eval verdict FAIL — measured component withheld")
     return DimensionResult(
         name="self_governance", score=_clamp(score),
-        basis="blocking council + firewall + capability authorization + governor present",
-        evidence=[f"present={len(present)}/{len(mods)}"],
-    )
+        basis="real firewall/capability/governor behavior measured by "
+              "governance_eval.json",
+        evidence=evidence,
+        external=measured.external,
+        independently_measured=measured.independently_measured,
+        artifact_backed=measured.artifact_backed,
+        measurement=measured.artifact)
 
 
 def _score_verification(root: str) -> DimensionResult:
-    """Score verification rigor from the adversarial-verification modules.
+    """Score verification rigor from EXECUTED adversarial verifiers.
+
+    Structure earns only a small base; the rest is credited when the
+    verification harness actually ran the axiom falsifier and theorem audit
+    and its machine-checkable verdict passed. A missing/failing harness
+    credits nothing beyond the base (never a silent pass).
 
     Args:
         root: repo root.
@@ -579,16 +753,44 @@ def _score_verification(root: str) -> DimensionResult:
         "telos/core/verifier/non_ergodicity.py",
     ]
     present = [m for m in mods if _exists(root, m)]
-    score = 4.5 * (len(present) / len(mods))
+    base = 1.0 * (len(present) / len(mods))
+    measured = read_measurement(
+        root, "telos/audit/verification_eval.json", VERIFICATION_CRITERIA)
+    evidence = [f"structure present={len(present)}/{len(mods)}"]
+    if measured is None:
+        evidence.append(
+            "no machine-checkable verification_eval.json — existence-only base")
+        return DimensionResult(
+            name="verification_rigor", score=_clamp(base),
+            basis="verifier modules present; behavioral measurement missing",
+            evidence=evidence)
+    evidence.append(
+        f"measured criteria {measured.passed_count}/{measured.total} "
+        "(verification_eval.json)")
+    for name in VERIFICATION_CRITERIA:
+        if measured.criteria.get(name):
+            evidence.append(f"measured: {_VERIFICATION_LABELS[name]}")
+    score = base + (4.0 if measured.verdict_passed else 0.0)
+    if not measured.verdict_passed:
+        evidence.append(
+            "verification_eval verdict FAIL — measured component withheld")
     return DimensionResult(
         name="verification_rigor", score=_clamp(score),
-        basis="axiom falsifier + theorem audit + external log audit + non-ergodicity",
-        evidence=[f"present={len(present)}/{len(mods)}"],
-    )
+        basis="axiom falsifier + theorem audit EXECUTED by verification_eval.json",
+        evidence=evidence,
+        external=measured.external,
+        independently_measured=measured.independently_measured,
+        artifact_backed=measured.artifact_backed,
+        measurement=measured.artifact)
 
 
 def _score_reproducibility(root: str) -> DimensionResult:
-    """Score reproducibility/measurement from the harness modules.
+    """Score reproducibility from MEASURED determinism + RNG isolation.
+
+    Structure earns only a small base; the rest is credited when the
+    reproducibility harness actually measured same-seed determinism, seed
+    sensitivity and zero global-RNG calls, with a passing verdict. External
+    reproduction still caps an otherwise-maximal score below 5.
 
     Args:
         root: repo root.
@@ -603,15 +805,41 @@ def _score_reproducibility(root: str) -> DimensionResult:
         "pyproject.toml",
     ]
     present = [m for m in mods if _exists(root, m)]
-    score = 5.0 * (len(present) / len(mods))
+    base = 1.0 * (len(present) / len(mods))
+    measured = read_measurement(
+        root, "telos/audit/reproducibility_eval.json",
+        REPRODUCIBILITY_CRITERIA)
+    evidence = [f"structure present={len(present)}/{len(mods)}"]
+    if measured is None:
+        evidence.append(
+            "no machine-checkable reproducibility_eval.json — existence-only base")
+        return DimensionResult(
+            name="reproducibility", score=_clamp(base),
+            basis="harness modules present; behavioral measurement missing",
+            evidence=evidence)
+    evidence.append(
+        f"measured criteria {measured.passed_count}/{measured.total} "
+        "(reproducibility_eval.json)")
+    for name in REPRODUCIBILITY_CRITERIA:
+        if measured.criteria.get(name):
+            evidence.append(f"measured: {_REPRODUCIBILITY_LABELS[name]}")
+    score = base + (4.0 if measured.verdict_passed else 0.0)
+    if not measured.verdict_passed:
+        evidence.append(
+            "reproducibility_eval verdict FAIL — measured component withheld")
     # External reproduction caps an otherwise-maximal score below 5.
     if not _exists(root, "research/reproduce"):
         score = min(score, 4.5)
+        evidence.append("capped 4.5 without external reproduction")
     return DimensionResult(
         name="reproducibility", score=_clamp(score),
-        basis="perf contract + endurance gate + coverage + packaging; capped without external reproduction",
-        evidence=[f"present={len(present)}/{len(mods)}"],
-    )
+        basis="determinism + seed sensitivity + RNG isolation MEASURED by "
+              "reproducibility_eval.json; capped without external reproduction",
+        evidence=evidence,
+        external=measured.external,
+        independently_measured=measured.independently_measured,
+        artifact_backed=measured.artifact_backed,
+        measurement=measured.artifact)
 
 
 def _score_autonomy(root: str) -> DimensionResult:
@@ -711,6 +939,8 @@ def _score_multi_agent(root: str) -> DimensionResult:
     # reproduction is the missing external artifact, so the honest ceiling for
     # measured-but-first-party coordination is 4.5.
     score = min(score, 4.5)
+    backed, independent, external = _measurement_flags(
+        root, "telos/audit/multi_agent_eval.json")
     return DimensionResult(
         name="multi_agent", score=_clamp(score),
         target=TARGETS["multi_agent"],
@@ -718,6 +948,9 @@ def _score_multi_agent(root: str) -> DimensionResult:
               "credited from measured multi_agent_eval.json; capped at 4.5 "
               "(first-party evidence)",
         evidence=evidence,
+        external=external, independently_measured=independent,
+        artifact_backed=backed,
+        measurement="telos/audit/multi_agent_eval.json" if backed else None,
     )
 
 
@@ -816,14 +1049,32 @@ def report_lines(root: Optional[str] = None) -> List[str]:
         r = card.get(name)
         if r is None:
             continue
-        ext = "external" if r.external else "self-assessed"
-        lines.append(f"  {name:<12} {r.score:.2f} -> {target:.1f}  [{ext}]")
+        backing = _backing_label(
+            r.artifact_backed, r.independently_measured, r.external)
+        lines.append(f"  {name:<12} {r.score:.2f} -> {target:.1f}  [{backing}]")
+    lines.append("-" * 74)
+    lines.append("Measurement backing (what actually backs each score):")
+    for name in DIMENSIONS:
+        r = card.get(name)
+        if r is None:
+            continue
+        backing = _backing_label(
+            r.artifact_backed, r.independently_measured, r.external)
+        artifact = r.measurement or "-"
+        lines.append(f"  {r.name:<22}{backing:<46}  {artifact}")
+    lines.append("  legend: external = artifact sourced outside TELOS's "
+                 "first-party toolchain;")
+    lines.append("          independently_measured = artifact written by a "
+                 "separate first-party harness;")
+    lines.append("          artifact_backed = machine-checkable criteria + "
+                 "verdict; existence-only = file/path count.")
     lines.append("NOTE: every competitor score in the comparison is a judgment "
                  "estimate; TELOS's own rows are self-measured.")
     return lines
 
 
 __all__ = [
-    "DIMENSIONS", "TARGETS", "MULTI_AGENT_CRITERIA", "DimensionResult",
+    "DIMENSIONS", "TARGETS", "MULTI_AGENT_CRITERIA", "GOVERNANCE_CRITERIA",
+    "VERIFICATION_CRITERIA", "REPRODUCIBILITY_CRITERIA", "DimensionResult",
     "compute_scorecard", "four_baselines", "report_lines",
 ]

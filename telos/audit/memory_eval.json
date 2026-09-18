@@ -1,4 +1,16 @@
 {
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/memory_eval.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "semantic_beats_lexical",
+      "semantic_beats_naive",
+      "mrr_beats_lexical",
+      "recall_at_1_ge_0_9"
+    ]
+  },
   "semantic": {
     "recall@1": 1.0,
     "precision@1": 1.0,
@@ -20,7 +32,18 @@
     "recall@3": 0.2857142857142857,
     "precision@3": 0.09523809523809523
   },
+  "criteria": {
+    "semantic_beats_lexical": true,
+    "semantic_beats_naive": true,
+    "mrr_beats_lexical": true,
+    "recall_at_1_ge_0_9": true
+  },
   "beats_baselines": true,
+  "verdict": {
+    "passed": true,
+    "passed_count": 4,
+    "total": 4
+  },
   "queries": 7,
   "records": 19
 }

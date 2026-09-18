@@ -1,0 +1,91 @@
+{
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/verification_eval.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "axioms_baseline_green",
+      "axioms_all_falsifiable",
+      "axiom_count_complete",
+      "theorems_all_hold"
+    ]
+  },
+  "criteria": {
+    "axioms_baseline_green": true,
+    "axioms_all_falsifiable": true,
+    "axiom_count_complete": true,
+    "theorems_all_hold": true
+  },
+  "verdict": {
+    "passed": true,
+    "passed_count": 4,
+    "total": 4
+  },
+  "metrics": {
+    "axioms_total": 42,
+    "axioms_falsifiable": 42,
+    "axioms_unfalsifiable": 0,
+    "healthy_failed": [],
+    "theorems_total": 7,
+    "theorems_passed": 7,
+    "theorem_rows": [
+      {
+        "id": "T1-determinism",
+        "name": "Determinism",
+        "statement": "Two identically-seeded runs over the same inputs produce identical decision fingerprints (architecture, not luck).",
+        "null": "Fingerprints differ across identical seeded runs.",
+        "measured": "934a67e9f4fbc2bc == 934a67e9f4fbc2bc",
+        "passed": true
+      },
+      {
+        "id": "T2-process",
+        "name": "Process over Outcomes",
+        "statement": "Every cycle exposes a decision_integrity in [0, 1] (the trajectory is scored, not just the terminal reward).",
+        "null": "Any cycle reports DI outside [0, 1] or omits it.",
+        "measured": "12/12 cycles in [0,1]",
+        "passed": true
+      },
+      {
+        "id": "T3-conservation",
+        "name": "Computational Conservation",
+        "statement": "Per-cycle compute consumed never exceeds the declared budget (\u03a3R_i \u2264 R_max).",
+        "null": "Any cycle consumes more than 1.1\u00d7 its budget.",
+        "measured": "max overrun ratio=0.00 over 12 cycles",
+        "passed": true
+      },
+      {
+        "id": "T4-possibility",
+        "name": "Possibility Preservation",
+        "statement": "At least one counterfactual alternative is stored every cycle (|F_t| \u2265 1).",
+        "null": "A cycle stores zero strategic options.",
+        "measured": "min options=29",
+        "passed": true
+      },
+      {
+        "id": "T5-emergent",
+        "name": "Emergent Intelligence",
+        "statement": "At least two cognitive streams activate per cycle (no single stream is 'I').",
+        "null": "A cycle activates fewer than two streams.",
+        "measured": "min activated streams/cycle=3",
+        "passed": true
+      },
+      {
+        "id": "T6-kintsugi",
+        "name": "Kintsugi (System Memory)",
+        "statement": "A recorded failure structurally blocks a matching future intent (recency-scaled dissent), and does not block unrelated intents.",
+        "null": "A matching intent passes \u2014 failure was logged, not integrated.",
+        "measured": "matching blocked=True, unrelated passes=True, no-ledger passes=True",
+        "passed": true
+      },
+      {
+        "id": "T7-delayed-causality",
+        "name": "Delayed Causality",
+        "statement": "The effective simulation horizon strictly exceeds the feedback lag (h_eff = max(h, \u03c4 + 1) > \u03c4).",
+        "null": "h_eff \u2264 \u03c4 for some configuration.",
+        "measured": "h_eff=5 > tau=0",
+        "passed": true
+      }
+    ]
+  }
+}

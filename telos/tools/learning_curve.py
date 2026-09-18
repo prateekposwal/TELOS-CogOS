@@ -30,6 +30,12 @@ sys.path.insert(0, PROJECT)
 from telos.core.learning.acquisition import SkillAcquisition  # noqa: E402
 from telos.core.learning.curriculum import Curriculum, CurriculumTask  # noqa: E402
 from telos.core.ledger.skill_library import SkillLibrary  # noqa: E402
+from telos.core.verifier.measurement import provenance  # noqa: E402
+
+PRODUCER = "telos/tools/learning_curve.py"
+CURVE_CRITERIA = (
+    "successes_beats_control", "slope_beats_control", "skills_acquired",
+)
 
 # Deterministic synthetic task stream: each task has a true difficulty and a
 # "verification" outcome that rises as its prerequisite skill is held. No RNG.
@@ -204,10 +210,22 @@ def evaluate() -> Dict[str, Any]:
         and learned_slope > frozen_slope
         and learned["acquired"] > 0
     )
+    criteria = {
+        "successes_beats_control": learned["successes"] > frozen["successes"],
+        "slope_beats_control": learned_slope > frozen_slope,
+        "skills_acquired": learned["acquired"] > 0,
+    }
     return {
+        "provenance": provenance(PRODUCER, list(CURVE_CRITERIA)),
         "learned": {**learned, "slope": learned_slope},
         "frozen": {**frozen, "slope": frozen_slope},
+        "criteria": criteria,
         "beats_control": beats,
+        "verdict": {
+            "passed": all(criteria.values()),
+            "passed_count": sum(1 for v in criteria.values() if v),
+            "total": len(criteria),
+        },
         "tasks": len(TASKS),
     }
 

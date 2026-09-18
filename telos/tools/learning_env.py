@@ -44,6 +44,13 @@ import numpy as np  # noqa: E402
 from telos_task import (  # noqa: E402
     GridSim, GRID_SIZE, DEFAULT_REWARDS, DEFAULT_BLOCKED, GOAL,
 )
+from telos.core.verifier.measurement import provenance  # noqa: E402
+
+PRODUCER = "telos/tools/learning_env.py"
+LEARNING_ENV_CRITERIA = (
+    "more_total_reward", "discovered_more", "found_all_pockets",
+    "thrashing_not_growing",
+)
 
 START = np.array([0.0, 0.0])
 EPISODE_STEPS = 60
@@ -281,10 +288,16 @@ def evaluate() -> Dict[str, Any]:
     }
     beats = all(criteria.values())
     return {
+        "provenance": provenance(PRODUCER, list(LEARNING_ENV_CRITERIA)),
         "learned": learned,
         "frozen": frozen,
         "criteria": criteria,
         "beats_control": beats,
+        "verdict": {
+            "passed": all(criteria.values()),
+            "passed_count": sum(1 for v in criteria.values() if v),
+            "total": len(criteria),
+        },
         "environment": {
             "simulator": "telos_task.GridSim",
             "reward_source": "telos_task.DEFAULT_REWARDS",

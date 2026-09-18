@@ -1,4 +1,16 @@
 {
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/learning_env.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "more_total_reward",
+      "discovered_more",
+      "found_all_pockets",
+      "thrashing_not_growing"
+    ]
+  },
   "learned": {
     "per_episode_reward": [
       136.0,
@@ -78,6 +90,11 @@
     "thrashing_not_growing": true
   },
   "beats_control": true,
+  "verdict": {
+    "passed": true,
+    "passed_count": 4,
+    "total": 4
+  },
   "environment": {
     "simulator": "telos_task.GridSim",
     "reward_source": "telos_task.DEFAULT_REWARDS",

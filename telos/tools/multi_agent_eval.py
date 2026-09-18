@@ -34,6 +34,9 @@ PROJECT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file
 sys.path.insert(0, PROJECT)
 
 from telos.core.coordination.delegation import CoordinationProtocol  # noqa: E402
+from telos.core.verifier.measurement import provenance  # noqa: E402
+
+PRODUCER = "telos/tools/multi_agent_eval.py"
 
 MAX_ROUNDS = 3
 MAX_HANDOFFS = 4
@@ -181,8 +184,14 @@ def evaluate() -> Dict[str, Any]:
     criteria = _criteria(run1, deterministic)
     audit = run1["audit"]
     return {
+        "provenance": provenance(PRODUCER, list(criteria)),
         "criteria": criteria,
         "beats_baseline": all(criteria.values()),
+        "verdict": {
+            "passed": all(criteria.values()),
+            "passed_count": sum(1 for v in criteria.values() if v),
+            "total": len(criteria),
+        },
         "delegations": audit["delegations"],
         "handoffs_accepted": audit["handoffs_accepted"],
         "handoffs_rejected": audit["handoffs_rejected"],
