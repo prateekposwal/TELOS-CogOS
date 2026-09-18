@@ -7,6 +7,8 @@ single agent *net of* the cost of the crew's disagreement
 bar; a high-diversity crew can legitimately fail. The predicate must fail on a
 met-but-false verdict, not just on a missing one.
 """
+import io
+import os
 from types import SimpleNamespace
 
 from telos.core.coordination.cooperative import CooperativeCouncil, CooperativeVerdict
@@ -148,3 +150,53 @@ def test_registry_marks_4_11_as_scaffold_not_aspirational():
     assert entry["enforcement"] == "scaffold"
     from telos.core.axioms.registry import accounting
     assert accounting()["aspirational"] == 0
+
+
+# ── Semantics decision (docs vs code): isolated = max_i U_i, not ΣU_i ──────
+# Λ4.11's *Meaning* column says collective optimization exceeds *isolated*
+# optimization — the best a single agent can do alone. Λ6.11 uses max(U_i) for
+# "the best option" and cooperative.py computes isolated_utility = max_i u_i.
+# The ΣU_i notation was a slip: against the weighted-mean group utility it is
+# either degenerate-false for every crew (mean ≤ max ≤ Σ for N ≥ 2) or, with a
+# summed group, collapses to a zero-disagreement test — never the substantive,
+# falsifiable synergy claim. These tests lock the max reading in docs AND code.
+
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+
+def _read(relpath):
+    with io.open(os.path.join(_REPO, relpath), encoding="utf-8") as f:
+        return f.read()
+
+
+def test_axioms_md_4_11_formal_uses_max_not_sum():
+    row = next(line for line in _read("telos/AXIOMS.md").splitlines()
+               if line.startswith("| 4.11 |"))
+    assert "max_i U_i" in row, row
+    assert "\u03a3U_i" not in row and "\u03a3 U_i" not in row, row
+
+
+def test_cooperative_module_docstring_matches_axioms_md():
+    text = _read("telos/core/coordination/cooperative.py")
+    assert "U_group \u2212 C_align \u2265 max_i U_i" in text
+    assert "U_group \u2212 C_align \u2265 \u03a3 U_i" not in text
+
+
+def test_isolated_utility_is_max_not_sum():
+    utils = [0.9, 0.88, 0.87]
+    v = CooperativeCouncil().evaluate([_agent(u) for u in utils])
+    assert v.isolated_utility == max(utils)
+    assert v.isolated_utility != sum(utils)
+
+
+def test_sum_reading_would_be_degenerate_not_the_implemented_semantics():
+    # The implemented (max) reading is a real test that can pass on a healthy
+    # crew ...
+    crew = [_agent(0.9), _agent(0.9), _agent(0.9)]
+    v = CooperativeCouncil().evaluate(crew)
+    assert v.cooperative is True
+    # ... whereas the same pooled group compared against the *sum* of per-agent
+    # utilities cannot: mean − cost < Σ u_i for every N ≥ 2. That is why ΣU_i
+    # was the notation slip, not the predicate.
+    assert v.group_utility - v.alignment_cost < sum(
+        a["decision_integrity"] for a in crew)
