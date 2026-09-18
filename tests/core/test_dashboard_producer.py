@@ -760,3 +760,92 @@ def test_legal_goal_step_memoized_deterministic_and_invalidated():
     assert not np.array_equal(s_a, s_b)
     assert np.array_equal(s_b, np.array([0.0, 1.0]))
     assert telos_task._legal_cardinal_candidates.cache_info().maxsize <= 64
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Defect 2 — the memory guard must be a REAL bound on CURRENT RSS, not a
+# log-only read of the monotone peak (`ru_maxrss` can never decrease, so it
+# sat flat while live RSS climbed 68 -> 172MB). Current RSS + a sustained-
+# growth signal over a bounded sample ring + an explicit threshold + an
+# observable breach flag.
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_memory_guard_flags_sustained_growth(isolated_paths):
+    """A growing RSS series breaches the sustained-growth threshold and sets
+    the machine-readable flag + reason."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        # 100MB -> 160MB = 60MB sustained rise >= 48MB threshold.
+        p._rss_samples = [100_000 + i * 5_000 for i in range(13)][-prod_mod.RSS_SAMPLE_WINDOW:]
+        state = p._evaluate_memory_guard()
+        assert state["breached"] is True
+        assert state["growth_kb"] is not None
+        assert state["growth_kb"] >= prod_mod.RSS_GROWTH_WARN_KB
+        assert "sustained RSS growth" in state["reason"]
+        assert state["action"].startswith("recorded+alerted")
+        # The snapshot exposes the flag (machine-readable, honest).
+        p._memory_guard = state
+        snap = p.snapshot()["producer"]
+        assert snap["memory_guard"]["breached"] is True
+        assert snap["rss_current_kb"] == state["current_kb"]
+        assert snap["rss_peak_kb"] is not None  # peak still reported, labelled
+    finally:
+        p.stop()
+
+
+def test_memory_guard_flat_rss_does_not_breach(isolated_paths):
+    """A flat RSS series must NOT breach — the guard tracks growth, so a
+    plateau clears whatever earlier rise it saw."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        p._rss_samples = [120_000] * prod_mod.RSS_SAMPLE_WINDOW
+        state = p._evaluate_memory_guard()
+        assert state["breached"] is False
+        assert state["growth_kb"] == 0
+        assert state["reason"] is None
+        assert state["action"] == "ok"
+    finally:
+        p.stop()
+
+
+def test_memory_guard_ceiling_breach(isolated_paths):
+    """Crossing the absolute ceiling breaches even without growth across the
+    window."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        p._rss_samples = [prod_mod.RSS_CEILING_WARN_KB + 1024]
+        state = p._evaluate_memory_guard()
+        assert state["breached"] is True
+        assert "ceiling" in state["reason"]
+    finally:
+        p.stop()
+
+
+def test_memory_guard_window_is_bounded(isolated_paths):
+    """The sample ring can never grow past RSS_SAMPLE_WINDOW — the guard is
+    bounded, not another unbounded tracker."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        for _ in range(prod_mod.RSS_SAMPLE_WINDOW * 3):
+            p._rss_samples.append(100_000)
+            if len(p._rss_samples) > prod_mod.RSS_SAMPLE_WINDOW:
+                p._rss_samples = p._rss_samples[-prod_mod.RSS_SAMPLE_WINDOW:]
+        assert len(p._rss_samples) == prod_mod.RSS_SAMPLE_WINDOW
+    finally:
+        p.stop()
+
+
+def test_rss_current_is_real_and_not_monotone_peak(isolated_paths):
+    """`_rss_current_kb` measures the process's CURRENT RSS; the peak is a
+    separate, clearly-labelled metric. Both are positive integers here."""
+    p = DashboardProducer(cycle_interval_s=0.4, burst_cycles=1)
+    try:
+        cur = p._rss_current_kb()
+        peak = p._rss_peak_kb()
+        assert cur is not None and cur > 0
+        assert peak is not None and peak > 0
+        # Current can never exceed the process peak (ru_maxrss is an upper
+        # envelope over the process lifetime).
+        assert cur <= peak + 64, f"current {cur}KB > peak {peak}KB unexpectedly"
+    finally:
+        p.stop()

@@ -17,11 +17,15 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PORT=8765
 PIDFILE="/tmp/telos_dashboard.pid"
 LOGFILE="/tmp/telos_dashboard.log"
-# Log rotation: keep the live log bounded so a week-long run cannot grow a
-# 122MB unbounded append (the wedge session's log was 122MB). On start, if
-# the log exceeds this size, rotate it to LOGFILE.1 (single rotated copy
-# kept) and start fresh.
+# Log retention (Defect 1): rotation must BOUND disk, not hoard a single
+# forever-growing uncompressed copy (observed: telos_dashboard.log.1 = 544MB,
+# plus a ~60MB live log — 1 rotated copy kept forever, never compressed).
+# Policy: rotate the live log only when it exceeds ROTATE_LOG_BYTES; COMPRESS
+# every rotation; keep the newest MAX_ROTATED_LOGS compressed rotations;
+# delete older ones. Applied at startup and after every rotation. Legacy
+# uncompressed rotations are compressed on the next start.
 ROTATE_LOG_BYTES=52428800   # 50MB
+MAX_ROTATED_LOGS=3          # newest N compressed rotations retained
 
 port_alive() {
   curl -sf -o /dev/null "http://localhost:${PORT}/"
@@ -88,6 +92,50 @@ cmd_stop() {
   fi
 }
 
+prune_rotated_logs() {
+  # 1. Compress any uncompressed rotated log (legacy LOGFILE.1, LOGFILE.2, ...).
+  #    A compression failure must never abort startup — record and continue.
+  local f
+  for f in "$LOGFILE".[0-9]*; do
+    [ -e "$f" ] || continue
+    case "$f" in *.gz) continue ;; esac
+    if gzip -f "$f" 2>/dev/null; then
+      echo "TELOS dashboard: compressed rotated log $f -> $f.gz" >&2
+    else
+      echo "TELOS dashboard: WARNING could not compress $f" >&2
+    fi
+  done
+  # 2. Keep only the newest MAX_ROTATED_LOGS compressed rotations (mtime order).
+  local files
+  files="$(ls -1t "$LOGFILE".[0-9]*.gz 2>/dev/null || true)"
+  [ -n "$files" ] || return 0
+  local i=0
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    i=$((i + 1))
+    if [ "$i" -gt "$MAX_ROTATED_LOGS" ]; then
+      rm -f "$f" && echo "TELOS dashboard: pruned old rotated log $f" >&2
+    fi
+  done <<< "$files"
+}
+
+rotate_log() {
+  local size ts comp
+  size="$(stat -f%z "$LOGFILE" 2>/dev/null || echo 0)"
+  if [ -f "$LOGFILE" ] && [ "$size" -gt "$ROTATE_LOG_BYTES" ]; then
+    ts="$(date +%Y%m%dT%H%M%S)"
+    comp="$LOGFILE.$ts.gz"
+    if gzip -c "$LOGFILE" > "$comp" 2>/dev/null; then
+      : > "$LOGFILE"
+      echo "TELOS dashboard: rotated oversized log to $comp" >&2
+    else
+      rm -f "$comp"
+      echo "TELOS dashboard: WARNING log rotation failed; leaving $LOGFILE in place" >&2
+    fi
+  fi
+  prune_rotated_logs
+}
+
 cmd_start() {
   # The port is authoritative: if it answers, the dashboard is serving even
   # if the pidfile is stale/zombie — never start a second instance.
@@ -103,10 +151,10 @@ cmd_start() {
     fi
   fi
   cd "$HERE"
-  if [ -f "$LOGFILE" ] && [ "$(stat -f%z "$LOGFILE" 2>/dev/null || echo 0)" -gt "$ROTATE_LOG_BYTES" ]; then
-    mv -f "$LOGFILE" "$LOGFILE.1" 2>/dev/null || true
-    echo "TELOS dashboard: rotated oversized log to $LOGFILE.1" >&2
-  fi
+  # Bound rotated-log disk at every start (compress legacy copies, prune the
+  # oldest), then rotate the live log if oversized.
+  prune_rotated_logs
+  rotate_log
   # Prefer the repo venv interpreter (has numpy/flask/websockets); a bare
   # `python3` may resolve to an interpreter without the dependencies.
   PY="$HERE/../.venv/bin/python"
@@ -127,6 +175,12 @@ cmd_start() {
   echo "Dashboard did not answer on http://localhost:${PORT} - see $LOGFILE" >&2
   return 1
 }
+
+# Tests source this file with TELOS_LAUNCHER_LIB_ONLY=1 to exercise the
+# rotation helpers without launching the dashboard.
+if [ "${TELOS_LAUNCHER_LIB_ONLY:-0}" = "1" ]; then
+  return 0 2>/dev/null || true
+fi
 
 case "${1:-start}" in
   start)   cmd_start ;;
