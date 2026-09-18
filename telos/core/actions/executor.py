@@ -33,13 +33,15 @@ import os
 import re
 import shlex
 import subprocess
-import sys
 import time
 import numpy as np
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from telos.core.actions.registry import (
+    AllowlistEntry, ToolSpec, ToolRegistry, DEFAULT_REGISTRY,
+)
 from telos.core.governance.firewall import DecisionFirewall
 from telos.intent_ir import IntentIR
 from telos.world.world import World
@@ -93,99 +95,13 @@ def _to_text(value: Any) -> str:
 
 
 
-@dataclass
-class AllowlistEntry:
-    """One allowlisted tool: its argv template and its write classification.
-
-    template: argv list; placeholders {n}, {path}, {message} are validated
-        before substitution (int range / path containment / safe charset).
-    kind: "read_only" for observation commands, "narrow_write" for
-        operator-scoped mutations (git add / git commit inside the workspace).
-    description: human-readable statement of what this tool may do.
-    """
-    template: List[str]
-    kind: str
-    description: str
-
-
 # ── The hard allowlist (prefix-anchored argv, no shell interpretation) ──────
-ACTION_ALLOWLIST: Dict[str, AllowlistEntry] = {
-    "git_status": AllowlistEntry(
-        template=["git", "status", "--porcelain"],
-        kind="read_only",
-        description="Report the repository's working-tree/index changes (porcelain).",
-    ),
-    "git_branch": AllowlistEntry(
-        template=["git", "branch", "--show-current"],
-        kind="read_only",
-        description="Report the currently checked-out branch name.",
-    ),
-    "git_log": AllowlistEntry(
-        template=["git", "log", "-n", "{n}", "--oneline"],
-        kind="read_only",
-        description="List the N most recent commits, one line each (N in 1..30).",
-    ),
-    "git_diff": AllowlistEntry(
-        template=["git", "diff"],
-        kind="read_only",
-        description="Show the unified diff of unstaged changes (read-only).",
-    ),
-    "run_tests": AllowlistEntry(
-        template=[sys.executable, "-m", "pytest", "{path}", "-q", "--tb=short"],
-        kind="read_only",
-        description="Run pytest on a path INSIDE the operator's workspace root.",
-    ),
-    "write_file": AllowlistEntry(
-        template=["write_file", "{patch}"],
-        kind="structured_write",
-        description=(
-            "Apply a SUBMITTED structured minimal patch (path + old_lines + "
-            "new_lines) to an EXISTING TRACKED file inside the workspace. "
-            "Never accepts freeform shell; a blocked write writes nothing."
-        ),
-    ),
-    "git_add": AllowlistEntry(
-        template=["git", "add", "{path}"],
-        kind="narrow_write",
-        description="Stage a path INSIDE the workspace (prerequisite of git_commit).",
-    ),
-    "git_commit": AllowlistEntry(
-        template=["git", "commit", "-m", "{message}"],
-        kind="narrow_write",
-        description="Create a commit whose message the council approved (<=200 chars).",
-    ),
-    # ── Extended real toolchain (same discipline as every tool above) ──────
-    "tsc_check": AllowlistEntry(
-        template=["tsc", "--noEmit", "{path}"],
-        kind="read_only",
-        description="Type-check a path (tsconfig/project) INSIDE the workspace with --noEmit.",
-    ),
-    "eslint_check": AllowlistEntry(
-        template=["eslint", "{path}"],
-        kind="read_only",
-        description="Lint a path INSIDE the workspace with eslint.",
-    ),
-    "npm_test": AllowlistEntry(
-        template=["npm", "--prefix", "{path}", "test"],
-        kind="read_only",
-        description="Run `npm test` in a package INSIDE the workspace (--prefix confined).",
-    ),
-    "npm_build": AllowlistEntry(
-        template=["npm", "--prefix", "{path}", "run", "build"],
-        kind="read_only",
-        description="Run `npm run build` in a package INSIDE the workspace (--prefix confined).",
-    ),
-    "make_target": AllowlistEntry(
-        template=["make", "{target}"],
-        kind="read_only",
-        description="Run a make target whose Makefile lives INSIDE the workspace cwd.",
-    ),
-    "go_test": AllowlistEntry(
-        template=["go", "test", "./..."],
-        kind="read_only",
-        description="Run `go test ./...` in a subdirectory of the workspace (cwd governed).",
-    ),
-}
+# The tool set is declared EXACTLY ONCE in telos/core/actions/registry.py; this
+# mapping is a projection of the canonical ToolRegistry so the executor, the
+# audit tooling, and the documentation can never drift apart. Every entry is a
+# ToolSpec (alias AllowlistEntry) with an argv template, kind, description, and
+# family.
+ACTION_ALLOWLIST: Dict[str, AllowlistEntry] = DEFAULT_REGISTRY.as_allowlist()
 
 
 def _validate_n(value: str) -> str:
@@ -828,6 +744,7 @@ class ActionExecutor:
 
 
 __all__ = [
-    "ACTION_ALLOWLIST", "AllowlistEntry", "ToolPermission", "ActionExecution",
+    "ACTION_ALLOWLIST", "AllowlistEntry", "ToolSpec", "ToolRegistry",
+    "ToolPermission", "ActionExecution",
     "ActionExecutor", "ToolRejected",
 ]

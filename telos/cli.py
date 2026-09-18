@@ -17,6 +17,10 @@ def main():
     parser = argparse.ArgumentParser(
         description="TELOS Cognitive Operating System — CLI"
     )
+    from telos import __version__
+    parser.add_argument(
+        "--version", action="version", version=f"TELOS CogOS {__version__}"
+    )
     sub = parser.add_subparsers(dest="command", help="Available commands")
 
     # telos consult
@@ -123,26 +127,83 @@ def _cmd_status():
 
     print(f"  Python:           {sys.version}")
     try:
-        from telos import GENESIS
-        print(f"  Genesis:          {GENESIS}")
-    except ImportError:
+        from telos.core.genesis import ANCHOR
+        print(f"  Genesis:          {ANCHOR.public_name} "
+              f"(creator: {ANCHOR.creator})")
+    except Exception:
         pass
     print()
 
 
+def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
+    """Build a real GridWorld pipeline with the canonical streams + validators.
+
+    Mirrors the pipeline construction used by telos_task.py and the perf
+    profiler so `telos run` executes a genuine governed cycle (no stubs).
+
+    Args:
+        checkpoint_dir: directory for the pipeline's persisted state.
+
+    Returns:
+        A configured TelosV14Pipeline ready for execute().
+    """
+    from telos_task import GridSim, GridAdpt, DEFAULT_BLOCKED, DEFAULT_REWARDS
+    from telos.core.runtime import PipelineConfig, TelosV14Pipeline
+    from telos.core.streams.implementations import (
+        ReflexStream, PerceptionStream, MemoryStream, PlanningStream, TheoryStream,
+    )
+    from telos.core.streams.inquiry_stream import InquiryStream
+    from telos.core.council.validators import (
+        RealityValidator, ConstraintValidator, MemoryAdvisor,
+        MissionDriftDetector, EvidenceProvenanceValidator,
+    )
+    from telos.core.ledger.skill_library import SkillLibrary
+    from telos.core.simulation import CounterfactualEngine
+
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS))
+    pipeline = TelosV14Pipeline(PipelineConfig(
+        adapter=GridAdpt(), simulator=sim,
+        compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
+        checkpoint_path=checkpoint_dir,
+        knowledge_path=os.path.join(checkpoint_dir, "kg.json"),
+        ledger_path=os.path.join(checkpoint_dir, "ledger.json"),
+        identity_path=os.path.join(checkpoint_dir, "identity.json"),
+        pattern_path=os.path.join(checkpoint_dir, "patterns.json"),
+        deterministic_seed=42,  # reproducible one-shot runs
+    ))
+    skill_lib = SkillLibrary()
+    sim_engine = CounterfactualEngine(sim)
+    for stream in (
+        ReflexStream(skill_lib), PerceptionStream(skill_lib),
+        MemoryStream(skill_lib), PlanningStream(skill_lib, sim_engine=sim_engine),
+        InquiryStream(skill_lib),
+        TheoryStream(skill_lib,
+                     theory_builder=getattr(pipeline, "_theory_builder", None)),
+    ):
+        pipeline.register_stream(stream)
+    for validator in (
+        RealityValidator(), ConstraintValidator(), MemoryAdvisor(skill_lib),
+        MissionDriftDetector(drift_threshold=5.0), EvidenceProvenanceValidator(),
+    ):
+        pipeline.register_validator(validator)
+    return pipeline
+
+
 def _cmd_run(args):
     """Execute a single pipeline cycle.
+
         Args:
             args: the args argument for this call.
     """
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
     import numpy as np
-    from telos.telos_task import run_pipeline
 
-    state = np.array(args.state)
+    state = np.array(args.state, dtype=float)
     print(f"\n⚡ TELOS Run — state: {state.tolist()}\n")
-    result = run_pipeline(state)
+    pipeline = _build_gridworld_pipeline()
+    result = pipeline.execute(state, user_name="cli")
     print(f"   DI: {result.decision_integrity:.3f}")
     print(f"   MD: {result.mission_drift:.3f}")
     print(f"   Blocked: {result.council_blocked or result.firewall_blocked}")

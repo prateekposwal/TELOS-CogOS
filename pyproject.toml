@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "telos-cogos"
+version = "0.1.0"
+description = "TELOS — a self-governing cognitive operating system built on the Laws of Systemic Intelligence."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Research use only — see LICENSE" }
+authors = [{ name = "Prateek Poswal" }]
+keywords = ["cognitive-architecture", "agent", "governance", "axioms", "reasoning"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = ["numpy>=1.21"]
+
+[project.scripts]
+telos = "telos.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/prateekposwal/TELOS-CogOS"
+
+[tool.setuptools.packages.find]
+include = ["telos*"]
+exclude = ["tests*", "archive*"]
