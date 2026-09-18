@@ -18,17 +18,19 @@ from typing import Optional, Dict, List, Any
 
 
 def _mood_single_source() -> bool:
-    """Whether mood→policy adjustment is single-sourced (env toggle).
+    """Whether mood→policy adjustment is single-sourced (default: ON).
 
-    Default (unset/0) preserves historical behavior (mood applied here AND in
-    InfrastructureManager). Set TELOS_POLICY_MOOD_SINGLE_SOURCE=1 so the
-    InfrastructureManager application is the only one.
+    ONE canonical application lives in `InfrastructureManager.observe`
+    (caller="system_self", ×0.3). Applying the SAME SystemSelf mood adjustment
+    here as well double-counted one signal at two scales. Default is now
+    single-source; set TELOS_POLICY_MOOD_SINGLE_SOURCE=0 to restore the
+    historical double application (A/B arm).
 
     Returns:
         True when the duplicate KnowledgeManager application is disabled.
     """
-    return os.environ.get("TELOS_POLICY_MOOD_SINGLE_SOURCE", "0") not in (
-        "", "0", "false", "False", "no")
+    return os.environ.get("TELOS_POLICY_MOOD_SINGLE_SOURCE", "1") not in (
+        "0", "false", "False", "no")
 
 from telos.core.infra_manager.mission_policy import MissionPolicyManager
 from telos.core.knowledge.inference import KGInferenceEngine
