@@ -79,7 +79,16 @@ def test_verdict_serializes():
 
 
 def _crewed_agent(di, validated, weight=1.0):
-    """An agent as the real DistributedCouncil emits it (DI + validated)."""
+    """An agent as the real DistributedCouncil emits it (DI + validated).
+
+    Args:
+        di: decision integrity through the role lens.
+        validated: the role's validated flag.
+        weight: consensus authority weight.
+
+    Returns:
+        The agent as a dict.
+    """
     return {"decision_integrity": di, "validated": validated, "weight": weight}
 
 
@@ -153,13 +162,15 @@ def test_registry_marks_4_11_as_scaffold_not_aspirational():
 
 
 # ── Semantics decision (docs vs code): isolated = max_i U_i, not ΣU_i ──────
-# Λ4.11's *Meaning* column says collective optimization exceeds *isolated*
-# optimization — the best a single agent can do alone. Λ6.11 uses max(U_i) for
-# "the best option" and cooperative.py computes isolated_utility = max_i u_i.
-# The ΣU_i notation was a slip: against the weighted-mean group utility it is
-# either degenerate-false for every crew (mean ≤ max ≤ Σ for N ≥ 2) or, with a
-# summed group, collapses to a zero-disagreement test — never the substantive,
-# falsifiable synergy claim. These tests lock the max reading in docs AND code.
+# Λ4.11's isolated side is the best single agent = max_i U_i (Λ6.11 uses
+# max(U_i) for "the best option"); cooperative.py computes isolated_utility =
+# max_i u_i. The ΣU_i reading was a slip. The group side is a CONSENSUS — the
+# authority-weighted mean over role lenses of ONE primary decision — so
+# mean ≤ max: strict superadditivity (group > max) is NOT modelled and must not
+# be manufactured by summing per-lens scores (that double-counts the one
+# decision). The axiom's *Meaning* column was corrected to state this (option
+# B: the claim was excessive, not the code). These tests lock the max reading,
+# the consensus-not-total identity, and the corrected claim in docs AND code.
 
 _REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -200,3 +211,71 @@ def test_sum_reading_would_be_degenerate_not_the_implemented_semantics():
     # was the notation slip, not the predicate.
     assert v.group_utility - v.alignment_cost < sum(
         a["decision_integrity"] for a in crew)
+
+
+# ── Superadditivity-gap resolution (option B): U_group is a consensus, NOT a
+# total. The crew is N role lenses over ONE primary decision, so a per-lens sum
+# would double-count that decision. These locks make the architectural finding
+# executable: the pooled value can never strictly exceed the best lens, the
+# predicate's exact reduction is "no measured divergence", and the axiom text
+# no longer claims strict superadditivity.
+
+def test_group_utility_is_a_consensus_mean_not_a_total():
+    # ARCHITECTURAL LOCK: the crew is N lenses over ONE decision, so the pooled
+    # value is a mean — it can never be a summable total that exceeds the best
+    # lens. mean ≤ max, always.
+    crew = [_agent(0.9), _agent(0.8), _agent(0.7)]
+    v = CooperativeCouncil().evaluate(crew)
+    assert abs(v.group_utility - (0.9 + 0.8 + 0.7) / 3) < 1e-9
+    assert v.group_utility <= v.isolated_utility
+    assert v.group_utility < sum(a["decision_integrity"] for a in crew)
+
+
+def test_strict_superadditivity_is_not_expressible():
+    # The gap this resolves: no weighted mean can strictly exceed the max, so
+    # "collective optimization exceeds isolated optimization" is a claim this
+    # architecture cannot keep. The corrected claim is the inclusive `>=`.
+    for utils in ([1.0, 0.05, 0.05], [0.9, 0.88, 0.87], [0.5, 0.5, 0.5]):
+        v = CooperativeCouncil().evaluate([_agent(u) for u in utils])
+        assert v.group_utility <= v.isolated_utility + 1e-12
+
+
+def test_cooperative_iff_measured_divergence_is_zero():
+    # The honest reduction of the implemented predicate under (B): because
+    # mean ≤ max and cost ≥ 0, `mean − cost >= max` holds exactly at zero
+    # measured divergence (on either axis) and fails on any divergence.
+    unanimous = CooperativeCouncil().evaluate([_agent(0.7), _agent(0.7)])
+    assert unanimous.diversity == 0.0 and unanimous.cooperative is True
+    spread = CooperativeCouncil().evaluate([_agent(0.9), _agent(0.8)])
+    assert spread.diversity > 0.0 and spread.cooperative is False
+    # Zero DI spread but a validated-flag split (the other axis) still fails.
+    axis = CooperativeCouncil().evaluate(
+        [_crewed_agent(1.0, True), _crewed_agent(1.0, False)])
+    assert axis.di_spread == 0.0 and axis.diversity > 0.0
+    assert axis.cooperative is False
+
+
+def test_axioms_md_4_11_meaning_is_consensus_not_superadditivity():
+    # The corrected *Meaning* column: consensus/not-modeled, and the old
+    # strict-superadditivity phrase is gone.
+    row = next(line for line in _read("telos/AXIOMS.md").splitlines()
+               if line.startswith("| 4.11 |"))
+    low = row.lower()
+    assert "consensus" in low
+    assert "not modelled" in low
+    assert "exceeds isolated optimization" not in low
+
+
+def test_distributed_crew_documented_as_lenses_over_one_decision():
+    # The architectural basis for choosing (B): every role re-scores the SAME
+    # primary evidence, so the lens scores are NOT separable contributions.
+    raw = _read("telos/core/council/distributed.py")
+    flat = " ".join(raw.split())  # docstring phrases wrap across lines
+    assert "SAME primary council evidence" in flat
+    assert "role-specific weighting profile" in flat
+
+
+def test_cooperative_module_docstring_records_consensus_not_total():
+    text = _read("telos/core/coordination/cooperative.py")
+    assert "consensus, NOT a total" in text
+    assert "double-count" in text

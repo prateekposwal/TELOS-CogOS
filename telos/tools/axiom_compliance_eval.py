@@ -62,19 +62,22 @@ CRITERIA: List[str] = [
 ]
 
 # The constitutional ideal: every live cycle obeys all 42 axioms, EXCEPT the
-# axioms whose predicate is itself a *conditional* claim. Λ4.11 reads
-# "collective optimization exceeds isolated optimization whenever alignment
-# costs are sufficiently low": under the strict semantics the cost must be
-# overcome on the group side (`group - C_align >= isolated`), so a crew whose
-# disagreement raises C_align above its surplus is a legitimate, recorded
-# violation — not a wiring/exposure defect. `--ci` therefore requires:
+# axioms whose predicate is itself a *conditional* claim. Λ4.11's corrected
+# reading matches its lens architecture: the DistributedCouncil crew re-scores
+# ONE primary decision through N role lenses, so its pooled utility is a
+# consensus (weighted mean ≤ the best lens), not a summable total and not
+# strict superadditivity. Under the strict predicate
+# (`group - C_align >= isolated`) the inequality holds exactly at zero measured
+# divergence, so a divergent (md-cap) cycle, where the validation axis raises
+# C_align, is a legitimate recorded violation — not a wiring/exposure defect.
+# `--ci` therefore requires:
 #   (a) every NON-conditional axiom passes on every measured cycle (floor 1.0),
 #   (b) no axiom outside CONDITIONALLY_VIOLABLE_AXIOMS appears in a failing set,
 #   (c) at least one measured cycle passes the conditional axiom too, so the
 #       predicate can never silently become always-false (still falsifiable).
-# BEFORE the strict reading the floor was a flat 42/42 for both modes; the
-# standard-mode drop to 41/42 on high-diversity (md-cap) cycles is the honest
-# consequence of the semantical correction, recorded loudly in the artifact.
+# The standard-mode drop below 42/42 on a divergent (md-cap) cycle is the
+# honest consequence of the lens architecture + strict semantics, recorded
+# loudly in the artifact.
 PROPOSED_COMPLIANCE_FLOOR = 1.0
 
 # Axioms whose predicate is a conditional claim and may fail a live cycle
@@ -138,13 +141,15 @@ FAILING_AXIOM_DIAGNOSIS: Dict[str, Dict[str, str]] = {
     },
     "4.11": {
         "category": "conditional_violation",
-        "evidence": "Λ4.11 is a conditional claim ('collective optimization exceeds isolated "
-                    "optimization whenever alignment costs are sufficiently low'). Under the strict "
-                    "semantics the cost is overcome on the group side (group − C_align >= isolated): "
-                    "a crew whose disagreement raises C_align above its surplus legitimately fails. "
-                    "The live md-cap cycle is the signature — every role DI is 1.0, but one "
-                    "conservative validation-axis dissent gives diversity 0.4 (C_align 0.24), so "
-                    "group−C_align = 0.76 < isolated = 1.0. This is a recorded conditional failure, "
+        "evidence": "Λ4.11's corrected reading matches its lens architecture: the "
+                    "DistributedCouncil crew re-scores ONE primary decision through N role lenses, "
+                    "so group_utility is a consensus (weighted mean ≤ the best lens) — NOT a "
+                    "summable total and NOT strict superadditivity. Because mean ≤ max and "
+                    "C_align ≥ 0, the strict predicate (group − C_align >= isolated) holds exactly "
+                    "at zero measured divergence; any divergence legitimately fails it. The live "
+                    "md-cap cycle is the signature — every role DI is 1.0, but one conservative "
+                    "validation-axis dissent gives diversity 0.4 (C_align 0.24), so "
+                    "group−C_align = 0.76 < isolated = 1.0. This is a recorded conditional outcome, "
                     "NOT a wiring gap: the not-applicable record for a skipped crew is unchanged and "
                     "the axiom remains falsifiable (the 4.11 sabotager flips it).",
     },
