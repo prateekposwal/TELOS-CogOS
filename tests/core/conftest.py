@@ -19,11 +19,25 @@ from telos.core.contracts.domain_model import DomainSimulator
 
 
 class MockSimulator(DomainSimulator):
-    """Minimal simulator for testing the core runtime."""
+    """Minimal simulator for testing the core runtime.
+
+    Owns a private RNG (like every production simulator): reading the global
+    `np.random` stream made simulate()/legal_transitions() non-deterministic and
+    order-dependent, which flaked tests that assume simulate() always yields
+    worlds (the global state depended on whatever ran first in the suite).
+    """
 
     name = "mock"
     state_dim = 2
     action_dim = 2
+
+    def __init__(self, seed: int = 1234):
+        """Construct a mock simulator with an isolated RNG.
+
+        Args:
+            seed: seed for the private RandomState (deterministic by default).
+        """
+        self._rng = np.random.RandomState(seed)
 
     def world_spec(self):
         from telos.core.contracts.domain_model import WorldSpec
@@ -44,7 +58,7 @@ class MockSimulator(DomainSimulator):
         pass
 
     def legal_transitions(self, state: np.ndarray) -> List[np.ndarray]:
-        return [state + np.random.randn(*state.shape) * 0.1 for _ in range(5)]
+        return [state + self._rng.randn(*state.shape) * 0.1 for _ in range(5)]
 
     def transition(self, state: np.ndarray, action: np.ndarray) -> np.ndarray:
         return state + action * 0.1
@@ -53,7 +67,7 @@ class MockSimulator(DomainSimulator):
         worlds = []
         s = state.copy()
         for _ in range(min(horizon, 5)):
-            s = s + np.random.randn(*s.shape) * 0.05
+            s = s + self._rng.randn(*s.shape) * 0.05
             worlds.append(World(state=s.copy(), metadata={"simulated": True}))
         return worlds
 

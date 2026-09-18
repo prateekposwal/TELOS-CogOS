@@ -73,3 +73,6 @@ reports/data-engineering/daily-*.md
 
 # Live decision-log + transparency report (runtime artifacts regenerated
 # every producer cycle — never a stable source of truth in git)
+
+# Quickstart example local state (regenerated on each run)
+examples/.quickstart_state/

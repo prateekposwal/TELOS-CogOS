@@ -36,6 +36,7 @@ class TelemetryCollector:
         self._max_points = max_points
         self._cycle_metrics: Dict[int, Dict] = {}
         self._escape_count: int = 0
+        self._phase_failures: int = 0
 
     def record(self, name: str, value: float,
                cycle: int = 0,
@@ -58,10 +59,30 @@ class TelemetryCollector:
         if len(self._points) > self._max_points:
             self._points = self._points[-self._max_points:]
 
+    def record_phase_failure(self, phase_name: str, error: str,
+                             cycle: int = 0) -> None:
+        """Record a crashed phase as a telemetry point (Λ2.3, failures as assets).
+
+        The runtime's watchdog calls this when a phase raises, so a crash is an
+        observable record (counted + tagged) rather than a silent break.
+
+        Args:
+            phase_name: the phase that crashed.
+            error: the error text (bounded to 200 chars).
+            cycle: the cycle the failure occurred on.
+        """
+        self._phase_failures += 1
+        self.record(
+            "phase_failure", 1.0, cycle=cycle,
+            tags={"phase": phase_name, "error": str(error)[:200]},
+        )
+
     def record_cycle(self, cycle: int, trace: Any) -> None:
         """Record all metrics from a DecisionTrace.
-            Args:
-                cycle: the current cycle count
+
+        Args:
+            cycle: the current cycle count.
+            trace: the DecisionTrace for the cycle (None is a no-op).
         """
         if trace is None:
             return

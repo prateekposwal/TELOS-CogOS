@@ -27,3 +27,16 @@ jobs:
 
       - name: Release gate (make check)
         run: make check
+
+      - name: Capability gates
+        run: |
+          python telos/tools/tool_channel_scan.py --ci
+          python telos/tools/memory_eval.py --ci
+          python telos/tools/learning_curve.py --ci
+          python telos/tools/capability_scorecard.py --ci
+
+      - name: Packaging smoke (editable install + CLI)
+        run: |
+          pip install -e .
+          telos --version
+          python -m telos --help

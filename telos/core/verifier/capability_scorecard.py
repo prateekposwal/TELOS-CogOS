@@ -435,6 +435,15 @@ def _score_maturity(root: str) -> DimensionResult:
     if examples:
         score += 0.4
         evidence.append("examples/quickstart.py")
+    if _exists(root, "RELEASE.md"):
+        score += 0.2
+        evidence.append("RELEASE.md (versioning + release process)")
+    if _exists(root, ".github/workflows/gates.yml"):
+        score += 0.2
+        evidence.append("CI gates workflow")
+    if _exists(root, "tests/core/test_version.py"):
+        score += 0.1
+        evidence.append("version lock test")
     external_artifact = None
     for candidate in ("research/reproduce", "reproduction_verification.json"):
         if _exists(root, candidate):
