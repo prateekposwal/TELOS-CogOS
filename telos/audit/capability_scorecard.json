@@ -34,31 +34,32 @@
   },
   "memory": {
     "name": "memory",
-    "score": 5.0,
+    "score": 4.5,
     "target": 5.0,
-    "gap": 0.0,
+    "gap": 0.5,
     "basis": "stores + controller/tiering + measured retrieval eval + runtime consumption",
     "evidence": [
       "memory stores present=5/5",
       "unified controller",
       "tiered decision memory",
       "retrieval eval present but not passing",
-      "consumed in real cycles (memory_consumption.json)"
+      "capped 4.5 until memory is consumed in real cycles"
     ],
     "external": false
   },
   "learning": {
     "name": "learning",
-    "score": 4.5,
+    "score": 5.0,
     "target": 4.0,
-    "gap": -0.5,
-    "basis": "theory/skill machinery + curriculum + measured learning curve vs control",
+    "gap": -1.0,
+    "basis": "theory/skill machinery + curriculum + measured curve + real-env learning",
     "evidence": [
       "theory builder",
       "falsifiable experiment",
       "curriculum generation",
       "verified skill acquisition",
-      "measured learning curve (beats frozen control)"
+      "measured learning curve (beats frozen control)",
+      "REAL-environment learning (world-defined reward, beats control)"
     ],
     "external": false
   },

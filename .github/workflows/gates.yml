@@ -33,7 +33,11 @@ jobs:
           python telos/tools/tool_channel_scan.py --ci
           python telos/tools/memory_eval.py --ci
           python telos/tools/learning_curve.py --ci
+          python telos/tools/learning_env.py --ci
           python telos/tools/capability_scorecard.py --ci
+
+      - name: Sustained memory consumption
+        run: python telos/tools/memory_consumption_run.py --cycles 120 --ci
 
       - name: Packaging smoke (editable install + CLI)
         run: |
