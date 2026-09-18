@@ -137,6 +137,35 @@ _REPRODUCIBILITY_LABELS: Dict[str, str] = {
     "rng_isolation_zero_global": "zero global RNG calls in production paths",
 }
 
+# An independent (external/operator) reproduction is the ONLY evidence that
+# legitimately lifts the maturity ceiling above the first-party cap. It must be
+# a provenance-stamped, machine-checkable JSON artifact (see measurement.py)
+# located at one of these repo-relative paths; a first-party harness does NOT
+# qualify no matter where it sits.
+REPRODUCTION_ARTIFACT_PATHS: tuple = (
+    "reproduction_verification.json",
+    "research/reproduce/reproduction_verification.json",
+)
+
+# The criteria an independent reproduction artifact must report and pass. A
+# missing/torn/partial artifact, or one whose verdict does not pass, credits
+# nothing (fail closed).
+REPRODUCTION_CRITERIA: tuple = (
+    "independent_environment",
+    "fingerprint_reproduced",
+    "axioms_reproduced",
+)
+
+# The honest first-party ceiling: packaging/release/CLI structure can never
+# exceed this on its own. Adoption (users/stars/issues) is not measurable from
+# the repo, and 5.0 is reserved for it — never awarded by this scorer.
+_FIRST_PARTY_MATURITY_CEILING = 4.0
+
+# The uplift granted when a VALIDATED external/operator artifact passes. With
+# the first-party maximum (4.4) this yields 4.9, so maturity can rise above the
+# 4.0 cap on genuine independent provenance but still cannot reach 5.0.
+_EXTERNAL_REPRODUCTION_UPLIFT = 0.5
+
 # The full rubric (the competitive table's dimensions).
 DIMENSIONS: List[str] = [
     "autonomy", "self_governance", "verification_rigor", "memory",
@@ -614,11 +643,50 @@ def _score_learning(root: str) -> DimensionResult:
     )
 
 
+def _validated_external_reproduction(root: str):
+    """Read the first VALIDATED external/operator reproduction artifact.
+
+    Fail-closed by construction: a missing, malformed, torn, or
+    partially-written artifact makes ``read_measurement`` return None; an
+    artifact that does not declare an out-of-toolchain source (``external`` /
+    ``operator``) or whose machine-checkable verdict does not pass is skipped.
+    Only genuine independent provenance can lift the maturity ceiling.
+
+    Args:
+        root: repo root.
+
+    Returns:
+        The validated Measurement, or None when no qualifying artifact exists.
+    """
+    for relpath in REPRODUCTION_ARTIFACT_PATHS:
+        measured = read_measurement(root, relpath, REPRODUCTION_CRITERIA)
+        if measured is None:
+            continue
+        if not measured.external or not measured.verdict_passed:
+            continue
+        return measured
+    return None
+
+
 def _score_maturity(root: str) -> DimensionResult:
     """Score the maturity/adoption dimension from release-artifact signals.
 
-    External reproduction and adoption are NOT solo-closable, so the score is
-    capped below 5.0 until an independent artifact exists.
+    The first-party structure (packaging, version, tags, examples, release
+    process, CI, version lock) can never reach 5.0 on its own. The cap is
+    CONDITIONAL, not structural:
+
+      * with NO validated external/operator reproduction artifact the score is
+        capped at the honest first-party ceiling ``4.0`` (documented partial
+        value: max first-party structure is 4.4, withheld above 4.0);
+      * with a validated artifact whose provenance ``source`` is ``external``
+        or ``operator`` AND whose machine-checkable criteria all pass, the
+        uplift (+0.5) is granted and the 4.0 cap lifts — the honest ceiling
+        becomes 4.9, because adoption (users/stars/issues) is still not
+        measurable and 5.0 stays reserved for it.
+
+    A first-party harness is ``independently_measured`` but NOT ``external``,
+    so it can never trigger the uplift. A missing, malformed, torn, or
+    otherwise unreadable artifact credits nothing (fail closed).
 
     Args:
         root: repo root.
@@ -661,22 +729,34 @@ def _score_maturity(root: str) -> DimensionResult:
     if _exists(root, "tests/core/test_version.py"):
         score += 0.1
         evidence.append("version lock test")
-    external_artifact = None
-    for candidate in ("research/reproduce", "reproduction_verification.json"):
-        if _exists(root, candidate):
-            external_artifact = candidate
-            break
-    if external_artifact:
-        score += 0.5
-        evidence.append(f"external reproduction artifact: {external_artifact}")
-    # Adoption (users/stars/issues) is not measurable from the repo: never
-    # awarded here, and the score is capped so 5.0 cannot be self-declared.
-    score = min(score, 4.0)
+    # Adoption (users/stars/issues) is not measurable from the repo and is
+    # never awarded here. Without validated independent reproduction the
+    # first-party structure is capped at 4.0.
+    reproduction = _validated_external_reproduction(root)
+    if reproduction is None:
+        score = min(score, _FIRST_PARTY_MATURITY_CEILING)
+        evidence.append(
+            "capped 4.0: no validated external/operator reproduction artifact")
+        return DimensionResult(
+            name="maturity", score=_clamp(score), target=TARGETS["maturity"],
+            basis="packaging/release/CLI signals; capped at the 4.0 first-party "
+                  "ceiling until a validated external/operator reproduction "
+                  "artifact passes its criteria",
+            evidence=evidence)
+    score += _EXTERNAL_REPRODUCTION_UPLIFT
+    evidence.append(
+        f"validated external reproduction: {reproduction.artifact} "
+        f"({reproduction.passed_count}/{reproduction.total} criteria)")
     return DimensionResult(
         name="maturity", score=_clamp(score), target=TARGETS["maturity"],
-        basis="packaging/release/CLI signals; capped at 4.0 without external reproduction + adoption",
-        evidence=evidence, external=bool(external_artifact),
-    )
+        basis="packaging/release/CLI signals + validated independent "
+              "reproduction; the 4.0 first-party ceiling lifts on external "
+              "provenance (5.0 reserved for adoption, not awarded here)",
+        evidence=evidence,
+        external=reproduction.external,
+        independently_measured=reproduction.independently_measured,
+        artifact_backed=reproduction.artifact_backed,
+        measurement=reproduction.artifact)
 
 
 def _score_governance(root: str) -> DimensionResult:
@@ -1075,6 +1155,7 @@ def report_lines(root: Optional[str] = None) -> List[str]:
 
 __all__ = [
     "DIMENSIONS", "TARGETS", "MULTI_AGENT_CRITERIA", "GOVERNANCE_CRITERIA",
-    "VERIFICATION_CRITERIA", "REPRODUCIBILITY_CRITERIA", "DimensionResult",
+    "VERIFICATION_CRITERIA", "REPRODUCIBILITY_CRITERIA",
+    "REPRODUCTION_ARTIFACT_PATHS", "REPRODUCTION_CRITERIA", "DimensionResult",
     "compute_scorecard", "four_baselines", "report_lines",
 ]
