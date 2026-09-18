@@ -11,15 +11,25 @@ the primary council's evidence genuinely all passes, but "diversity is always
 0.0" is only honest if the crew is *capable* of diverging. This harness
 measures that capability directly instead of assuming it.
 
+WIDENED METRIC (this harness predated the fix): ``diversity`` now combines both
+axes of crew dissent — the per-role decision-integrity spread (``di_spread``)
+and the normalized validated-set split (``validation_disagreement``):
+
+    diversity = min(1, max(di_spread, validation_disagreement))
+
+so an all-pass crew whose conservative lens still blocks on ``md_cap`` now
+reports non-zero diversity even though every role DI is identical.
+
 It exercises the REAL crew (``DistributedCouncil.run_perspectives`` over a
 primary ``CouncilVerdict``-shaped input) on four scenarios and records the
 ``CooperativeCouncil`` verdict for each:
 
   - HEALTHY:           all evidence passes → every role DI == 1.0, diversity 0.
   - VALIDATED_AXIS:    all evidence passes but mission_drift exceeds the
-                       conservative role's ``md_cap`` → diversity 0 on the DI
-                       axis, yet ``consensus < 1``: the crew DOES disagree on
-                       the validation axis. (This is the exact live signature.)
+                       conservative role's ``md_cap`` → ``di_spread == 0``, yet
+                       the crew disagrees on the validation axis, so the
+                       widened ``diversity > 0`` and ``consensus < 1``. (This is
+                       the exact live signature the old metric was blind to.)
   - MARGINAL:          mixed evidence with a heavy dissenting validator → the
                        role lenses (dissent multiplier / pass multiplier /
                        evidence weight) produce distinct DI values →
@@ -72,6 +82,20 @@ CRITERIA: List[str] = [
     "lens_transform_active",
     "authority_weighting",
     "determinism",
+]
+
+# Every per-scenario record's exact field set. The reader-side schema-linkage
+# test imports this so a writer/reader key drift (the recurring failure mode
+# this project has hit) fails loudly instead of silently dropping an axis.
+SCENARIO_FIELDS: List[str] = [
+    "diversity",
+    "di_spread",
+    "validation_disagreement",
+    "group_utility",
+    "isolated_utility",
+    "consensus",
+    "resolved_validated",
+    "n_agents",
 ]
 
 
@@ -186,6 +210,12 @@ def _criteria(run: Dict[str, Dict[str, Any]],
     def _div(rec: Dict[str, Any]) -> float:
         return float(rec["cooperative"]["diversity"])
 
+    def _di_spread(rec: Dict[str, Any]) -> float:
+        return float(rec["cooperative"]["di_spread"])
+
+    def _val_disagree(rec: Dict[str, Any]) -> float:
+        return float(rec["cooperative"]["validation_disagreement"])
+
     lens_active = (
         len(set(round(u, 6) for u in marginal["utilities"])) >= 2
         or len(set(round(u, 6) for u in manip["utilities"])) >= 2
@@ -201,8 +231,13 @@ def _criteria(run: Dict[str, Dict[str, Any]],
         "healthy_unanimity": (
             _div(healthy) == 0.0 and healthy["n_agents"] >= 5
         ),
+        # The widened metric must SEE this case: DI spread is zero but the
+        # validated-set split is positive, so diversity is positive.
         "validated_axis_disagreement": (
-            _div(axis) == 0.0 and float(axis["consensus"]) < 1.0
+            _div(axis) > 0.0
+            and _di_spread(axis) == 0.0
+            and _val_disagree(axis) > 0.0
+            and float(axis["consensus"]) < 1.0
         ),
         "marginal_evidence_divergence": _div(marginal) > 0.0,
         "manipulated_primary_divergence": _div(manip) > 0.0,
@@ -237,6 +272,9 @@ def evaluate() -> Dict[str, Any]:
         "scenarios": {
             name: {
                 "diversity": round(rec["cooperative"]["diversity"], 6),
+                "di_spread": round(rec["cooperative"]["di_spread"], 6),
+                "validation_disagreement": round(
+                    rec["cooperative"]["validation_disagreement"], 6),
                 "group_utility": round(rec["cooperative"]["group_utility"], 6),
                 "isolated_utility": round(rec["cooperative"]["isolated_utility"], 6),
                 "consensus": rec["consensus"],
@@ -262,10 +300,12 @@ def print_report(result: Dict[str, Any]) -> bool:
     print("=" * 74)
     print("  crew: PRIMARY/SKEPTIC/EXPLORER/CONSERVATIVE/ANALYST (+DOMAIN_EXPERT)")
     print("-" * 74)
-    print(f"  {'scenario':<26}{'diversity':>10}{'consensus':>11}{'agents':>8}")
+    print(f"  {'scenario':<22}{'diversity':>10}{'di_spread':>10}"
+          f"{'val_split':>10}{'consensus':>10}{'agents':>7}")
     for name, rec in result["scenarios"].items():
-        print(f"  {name:<26}{rec['diversity']:>10.4f}{rec['consensus']:>11}"
-              f"{rec['n_agents']:>8}")
+        print(f"  {name:<22}{rec['diversity']:>10.4f}{rec['di_spread']:>10.4f}"
+              f"{rec['validation_disagreement']:>10.4f}{rec['consensus']:>10}"
+              f"{rec['n_agents']:>7}")
     print("-" * 74)
     print(f"  {'criterion':<40}{'result':>10}")
     for name, passed in result["criteria"].items():

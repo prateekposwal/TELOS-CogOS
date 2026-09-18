@@ -55,7 +55,57 @@ def test_verdict_serializes():
     v = CooperativeCouncil().evaluate([_agent(0.9), _agent(0.8)])
     d = v.to_dict()
     assert set(d) == {"n_agents", "group_utility", "isolated_utility",
-                      "alignment_cost", "diversity", "cooperative"}
+                      "alignment_cost", "diversity", "di_spread",
+                      "validation_disagreement", "cooperative"}
+
+
+def _crewed_agent(di, validated, weight=1.0):
+    """An agent as the real DistributedCouncil emits it (DI + validated)."""
+    return {"decision_integrity": di, "validated": validated, "weight": weight}
+
+
+def test_validation_axis_only_disagreement_is_now_visible():
+    # THE regression this widening fixes: every role DI is 1.0 (di_spread 0),
+    # yet one conservative lens dissents on `validated` (md_cap fired). The
+    # old metric reported diversity = 0.0; the widened metric must not.
+    agents = [_crewed_agent(1.0, True)] * 4 + [_crewed_agent(1.0, False)]
+    v = CooperativeCouncil().evaluate(agents)
+    assert v.di_spread == 0.0
+    assert v.validation_disagreement > 0.0
+    assert v.diversity > 0.0
+    # One dissenter of five: 2 * 1/5 == 0.4.
+    assert v.validation_disagreement == 0.4
+    assert v.diversity == 0.4
+    assert v.alignment_cost == 0.6 * 0.4
+
+
+def test_diversity_is_max_of_both_axes_and_bounded():
+    # DI axis dominates.
+    v = CooperativeCouncil().evaluate(
+        [_crewed_agent(1.0, True), _crewed_agent(0.0, True)])
+    assert v.di_spread == 1.0 and v.validation_disagreement == 0.0
+    assert v.diversity == 1.0
+    # Validation axis dominates.
+    v2 = CooperativeCouncil().evaluate(
+        [_crewed_agent(0.9, True), _crewed_agent(0.85, False)])
+    assert v2.di_spread < v2.validation_disagreement
+    assert v2.diversity == v2.validation_disagreement
+
+
+def test_unanimous_rejection_is_not_disagreement():
+    # All roles block: unanimous, not diverse. Guards against a naive
+    # `1 - consensus` definition that would call agreement maximal dissent.
+    v = CooperativeCouncil().evaluate(
+        [_crewed_agent(0.3, False), _crewed_agent(0.3, False)])
+    assert v.validation_disagreement == 0.0 and v.diversity == 0.0
+
+
+def test_diversity_stays_bounded_on_perfect_split():
+    # Even split on both axes can never exceed 1.0.
+    v = CooperativeCouncil().evaluate([
+        _crewed_agent(1.0, True), _crewed_agent(0.0, False)])
+    assert v.diversity <= 1.0
+    assert v.validation_disagreement == 1.0
 
 
 def test_prover_4_11_passes_only_on_true_verdict():

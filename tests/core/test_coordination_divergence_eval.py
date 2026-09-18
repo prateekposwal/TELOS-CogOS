@@ -22,12 +22,34 @@ def test_evaluate_measures_both_axes():
     assert scenarios["healthy"]["diversity"] == 0.0
     assert scenarios["healthy"]["n_agents"] >= 5
     # All-pass evidence + high mission drift: DI spread is 0, but the crew
-    # still disagrees on the validation axis (conservative md_cap).
-    assert scenarios["validated_axis"]["diversity"] == 0.0
+    # still disagrees on the validation axis (conservative md_cap), so the
+    # widened diversity is positive — the exact case the old metric missed.
+    assert scenarios["validated_axis"]["di_spread"] == 0.0
+    assert scenarios["validated_axis"]["validation_disagreement"] > 0.0
+    assert scenarios["validated_axis"]["diversity"] > 0.0
     assert scenarios["validated_axis"]["consensus"] < 1.0
     # The decisive evidence: the crew DOES diverge on marginal/adversarial input.
     assert scenarios["marginal"]["diversity"] > 0.0
     assert scenarios["manipulated_primary"]["diversity"] > 0.0
+
+
+def test_widened_diversity_is_max_of_both_reported_axes():
+    """The serialized scalar equals max(di_spread, validation_disagreement)."""
+    result = cde.evaluate()
+    for rec in result["scenarios"].values():
+        assert rec["diversity"] == round(
+            min(1.0, max(rec["di_spread"], rec["validation_disagreement"])), 6), rec
+        assert 0.0 <= rec["diversity"] <= 1.0
+
+
+def test_writer_scenario_fields_match_declared_schema():
+    """Every scenario record carries exactly the declared field set (no drift)."""
+    result = cde.evaluate()
+    for name, rec in result["scenarios"].items():
+        assert set(rec) == set(cde.SCENARIO_FIELDS), name
+    # The two axes the widening introduced are actually reported.
+    assert "di_spread" in cde.SCENARIO_FIELDS
+    assert "validation_disagreement" in cde.SCENARIO_FIELDS
 
 
 def test_writer_keys_match_declared_criteria():
