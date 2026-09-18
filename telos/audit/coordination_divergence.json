@@ -32,6 +32,8 @@
   "scenarios": {
     "healthy": {
       "diversity": 0.0,
+      "di_spread": 0.0,
+      "validation_disagreement": 0.0,
       "group_utility": 1.0,
       "isolated_utility": 1.0,
       "consensus": 1.0,
@@ -39,7 +41,9 @@
       "n_agents": 5
     },
     "validated_axis": {
-      "diversity": 0.0,
+      "diversity": 0.4,
+      "di_spread": 0.0,
+      "validation_disagreement": 0.4,
       "group_utility": 1.0,
       "isolated_utility": 1.0,
       "consensus": 0.8,
@@ -48,6 +52,8 @@
     },
     "marginal": {
       "diversity": 0.0974,
+      "di_spread": 0.0974,
+      "validation_disagreement": 0.0,
       "group_utility": 0.272678,
       "isolated_utility": 0.3,
       "consensus": 0.0,
@@ -55,7 +61,9 @@
       "n_agents": 5
     },
     "manipulated_primary": {
-      "diversity": 0.6,
+      "diversity": 0.8,
+      "di_spread": 0.6,
+      "validation_disagreement": 0.8,
       "group_utility": 0.466667,
       "isolated_utility": 0.9,
       "consensus": 0.6,

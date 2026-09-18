@@ -18,9 +18,28 @@ integrity through its role lens) and authority `w_i`:
 
     group_utility    = Σ w_i·u_i / Σ w_i        (the pooled collective)
     isolated_utility = max_i u_i                (the single best agent alone)
-    diversity        = max u_i − min u_i        (how much the agents disagree)
+    di_spread        = max u_i − min u_i        (per-role decision-integrity spread)
+    validation_disagreement = 2·min(yes, no)/N  (validated-set split, [0,1])
+    diversity        = min(1, max(di_spread, validation_disagreement))
     alignment_cost   = λ · diversity            (cost of reconciling them)
     cooperative      = group_utility >= isolated_utility − alignment_cost
+
+The diversity scalar captures BOTH axes of crew dissent in one canonical
+number (see ``CooperativeVerdict.diversity``):
+
+  * ``di_spread`` — the spread of the role utilities (the original metric).
+  * ``validation_disagreement`` — the split in the roles' ``validated`` votes,
+    normalized so unanimity (all pass OR all block) is 0.0 and an even split is
+    1.0. This is the axis the original metric was blind to: a crew can report
+    identical decision-integrity through every lens yet still disagree on
+    ``validated`` (the live signature: all DIs 1.0 while CONSERVATIVE's
+    ``md_cap`` fires and the crew consensus is 0.833).
+
+Taking the per-axis maximum (rather than a sum) keeps the scalar interpretable
+as "the largest disagreement along either axis" and bounded to [0,1] because
+both axes are themselves in [0,1]. A pure-utility crew with no exposed
+``validated`` flag contributes 0.0 on the validation axis, so the metric
+degrades exactly to the original ``max u_i − min u_i``.
 
 Cooperation is justified when the collective decision is not much worse than
 the best single agent, net of the cost of the disagreement between them. When
@@ -59,7 +78,10 @@ class CooperativeVerdict:
         group_utility: pooled collective utility (authority-weighted mean).
         isolated_utility: best single agent's utility alone.
         alignment_cost: reconciliation cost (λ · diversity).
-        diversity: spread between the most and least optimistic agent.
+        diversity: widened disagreement scalar — max of the per-role utility
+            spread and the normalized validated-set split, in [0, 1].
+        di_spread: per-role decision-integrity spread (max − min utility).
+        validation_disagreement: normalized validated-vote split in [0, 1].
         cooperative: True iff U_group >= U_isolated − C_align (boundary inclusive).
     """
 
@@ -69,6 +91,10 @@ class CooperativeVerdict:
     alignment_cost: float
     diversity: float
     cooperative: bool
+    # Widened-metric components appended (defaulted) so the original six-field
+    # positional construction stays valid for any external caller.
+    di_spread: float = 0.0
+    validation_disagreement: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the verdict to a plain dict."""
@@ -78,6 +104,8 @@ class CooperativeVerdict:
             "isolated_utility": round(self.isolated_utility, 6),
             "alignment_cost": round(self.alignment_cost, 6),
             "diversity": round(self.diversity, 6),
+            "di_spread": round(self.di_spread, 6),
+            "validation_disagreement": round(self.validation_disagreement, 6),
             "cooperative": self.cooperative,
         }
 
@@ -101,6 +129,40 @@ def _field(agent: Any, name: str, default: float) -> float:
         return float(value)
     except (TypeError, ValueError):
         return float(default)
+
+
+def _validated_disagreement(agents: List[Any]) -> float:
+    """Measure disagreement on the validated axis, normalized to [0, 1].
+
+    Reads each agent's ``validated`` flag (present on the real
+    ``AgentVerdict.to_dict()`` results the crew emits). The split is the
+    minority vote fraction scaled by 2, so that a unanimous crew — all pass
+    OR all block — yields 0.0, and an even split yields 1.0. This is the axis
+    the original ``max u_i − min u_i`` metric could not see: identical
+    per-role decision integrity with divergent ``validated`` votes.
+
+    Args:
+        agents: list of AgentVerdict objects or their to_dict() results.
+
+    Returns:
+        The normalized validated-set split in [0, 1]; 0.0 when no agent
+        exposes a ``validated`` flag (a pure-utility crew).
+    """
+    flags: List[bool] = []
+    for a in agents:
+        if isinstance(a, dict):
+            if "validated" in a:
+                flags.append(bool(a["validated"]))
+        else:
+            value = getattr(a, "validated", None)
+            if value is not None:
+                flags.append(bool(value))
+    n = len(flags)
+    if n == 0:
+        return 0.0
+    yes = sum(1 for f in flags if f)
+    minority = min(yes, n - yes)
+    return 2.0 * minority / n
 
 
 class CooperativeCouncil:
@@ -133,7 +195,11 @@ class CooperativeCouncil:
         total_w = sum(weights) or float(n)
         group = sum(u * w for u, w in zip(utilities, weights)) / total_w
         isolated = max(utilities)
-        diversity = max(utilities) - min(utilities)
+        di_spread = max(utilities) - min(utilities)
+        validation_disagreement = _validated_disagreement(agents)
+        # Single canonical scalar: the largest disagreement along either axis.
+        # Both components are already in [0, 1], so the max is too.
+        diversity = min(1.0, max(di_spread, validation_disagreement))
         alignment_cost = self._lambda * diversity
         # Boundary-inclusive: see the module docstring. A unanimous crew has
         # group == isolated and alignment_cost == 0; `>` would call that
@@ -147,6 +213,8 @@ class CooperativeCouncil:
             isolated_utility=isolated,
             alignment_cost=alignment_cost,
             diversity=diversity,
+            di_spread=di_spread,
+            validation_disagreement=validation_disagreement,
             cooperative=bool(cooperative),
         )
 
