@@ -177,7 +177,9 @@ class SystemHealthManager:
 
         if self._degradation_cycles >= 5 and not self._watchful_mode and not self.policy.current.recovery_mode:
             self._watchful_mode = True
-            self.policy.adjust_risk_tolerance(-0.05)
+            self.policy.adjust_risk_tolerance(
+                -0.05, reason="watchful_mode:di_degrading",
+                caller="health_manager")
             logger.warning(
                 f"Predictive: DI degrading for {self._degradation_cycles} cycles — "
                 f"entering watchful mode (risk_tolerance reduced by 0.05)"

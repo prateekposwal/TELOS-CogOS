@@ -155,6 +155,7 @@ def build_trace(
         selection_decision=getattr(ctx, "selection_decision", None),
         act_gate=getattr(ctx, "act_gate", None),
         council_gate=getattr(ctx, "council_gate", None),
+        policy_trace=getattr(ctx, "policy_trace", None),
         # ── Inquiry Stream / Ω Operator fields ──────────────────────────────
         inquiry_skipped=getattr(ctx, 'inquiry_skipped', False),
         selected_question=getattr(ctx, 'selected_question', None),

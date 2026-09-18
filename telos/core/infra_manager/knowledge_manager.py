@@ -147,9 +147,13 @@ class KnowledgeManager:
             report["quality_adjustment"] = 0.0
 
         if report.get("adjust_risk"):
-            self.policy.adjust_risk_tolerance(report["adjust_risk"])
+            self.policy.adjust_risk_tolerance(
+                report["adjust_risk"], reason="consult_knowledge",
+                caller="knowledge_manager")
         if report.get("adjust_exploration"):
-            self.policy.adjust_exploration_budget(report["adjust_exploration"])
+            self.policy.adjust_exploration_budget(
+                report["adjust_exploration"], reason="consult_knowledge",
+                caller="knowledge_manager")
 
         logger.info(f"[ConsultKnowledge] {report['summary']}")
         return report
@@ -198,12 +202,23 @@ class KnowledgeManager:
                 md=getattr(dt, 'mission_drift', 0.0),
                 was_blocked=result.council_blocked or result.firewall_blocked,
             )
+            # NOTE (documented finding, NOT yet changed — see research/POLICY.md):
+            # the mood→risk/exploration adjustment is applied from TWO sites:
+            # InfrastructureManager.observe (×0.3, caller="system_self") and
+            # here (full strength). That double-counts one signal at two
+            # scales. A blind dedup was A/B-tested and made the threshold
+            # slightly WORSE (trajectory effect), so it is left unchanged
+            # pending a proper experiment. Labels added so the audit can see it.
             risk_adj = self.system_self.get_risk_adjustment()
             if risk_adj != 0.0:
-                self.policy.adjust_risk_tolerance(risk_adj)
+                self.policy.adjust_risk_tolerance(
+                    risk_adj, reason=f"mood:{self.system_self.mood}",
+                    caller="knowledge_manager")
             expl_adj = self.system_self.get_exploration_adjustment()
             if expl_adj != 0.0:
-                self.policy.adjust_exploration_budget(expl_adj)
+                self.policy.adjust_exploration_budget(
+                    expl_adj, reason=f"mood:{self.system_self.mood}",
+                    caller="knowledge_manager")
 
         percept = getattr(result, 'decision_trace', None)
         quality = getattr(percept, 'perception_quality', None) if percept else None
