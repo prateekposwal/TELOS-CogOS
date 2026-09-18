@@ -158,7 +158,7 @@ layer where contributors hold voting rights proportional to verified contributio
 codifies licensing, curation, access, and revenue-sharing rules. Decisions emerge from **coordination of many
 independent agents**, not from a central curator (Λ4.6: no single stream is "the commons"; the collective
 decision *is* the intelligence). Cooperation is sustainable because the **alignment cost of collective
-optimization is kept below the group surplus** (Λ4.11: U_group > ΣU_i − C_align): a transparent rule ledger makes
+optimization is kept below the group surplus** (Λ4.11: U_group − C_align ≥ ΣU_i): a transparent rule ledger makes
 curation and sharing cheaply verifiable, so contributing is individually rational. The commons issues usage
 licenses, prices access, and redistributes revenue to contributors via the shared ledger — Reddit's "community
 governs an asset" pattern, but where the asset is data and governance is enforceable rather than advisory.

@@ -27,11 +27,16 @@
   },
   "proposed_compliance_gate": {
     "floor": 1.0,
+    "conditional_axioms": [
+      "4.11"
+    ],
+    "nonconditional_violations": [],
+    "conditional_failed_cycles": {},
     "measured_mean": 1.0,
     "measured_min": 1.0,
     "passes": true,
     "enforced": true,
-    "note": "Wired to --ci: --ci now requires both measurement well-formedness and this floor. Live traces reach 42/42 after the wiring/exposure fixes; a degraded run fails."
+    "note": "Wired to --ci: --ci requires measurement well-formedness AND (a) every non-conditional axiom passes every cycle, (b) no non-conditional axiom appears in any failing set, and (c) a conditional axiom (\u039b4.11) still passes on at least one cycle (never always-false). High-diversity standard-mode cycles may legitimately fail 4.11; that is recorded, not smoothed."
   },
   "provenance": {
     "schema_version": 1,

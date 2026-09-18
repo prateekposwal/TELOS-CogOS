@@ -31,6 +31,13 @@ def test_evaluate_measures_both_axes():
     # The decisive evidence: the crew DOES diverge on marginal/adversarial input.
     assert scenarios["marginal"]["diversity"] > 0.0
     assert scenarios["manipulated_primary"]["diversity"] > 0.0
+    # STRICT Λ4.11 SEMANTICS (group − C_align >= isolated): disagreement is a
+    # real cost the crew must overcome. Unanimous healthy input cooperates; the
+    # md-cap validation-axis split (diversity 0.4 -> C_align 0.24) does NOT.
+    assert scenarios["healthy"]["cooperative"] is True
+    assert scenarios["validated_axis"]["cooperative"] is False
+    assert scenarios["validated_axis"]["alignment_cost"] == 0.6 * 0.4
+    assert scenarios["manipulated_primary"]["cooperative"] is False
 
 
 def test_widened_diversity_is_max_of_both_reported_axes():

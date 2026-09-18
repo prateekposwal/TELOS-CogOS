@@ -178,6 +178,22 @@ def test_floor_gate_is_wired_and_fail_closed():
     # The measurement itself is still well-formed (honest, not smoothed).
     assert ace.ci_ok(degraded) is True
 
+    # Λ4.11 is conditionally violable: a cycle failing ONLY 4.11 is legitimate
+    # (the crew did not overcome its alignment cost) and the gate passes — but
+    # only because the conditional predicate still holds on the other cycle.
+    conditional = _payload([_record(["4.11"]), _record([])], 2)
+    assert conditional["proposed_compliance_gate"]["passes"] is True
+    assert ace.floor_ok(conditional) is True
+    # An always-false conditional predicate is NOT a pass: if every cycle fails
+    # 4.11 the gate fails closed (the axiom must stay falsifiable, not dead).
+    dead = _payload([_record(["4.11"]), _record(["4.11"])], 2)
+    assert dead["proposed_compliance_gate"]["passes"] is False
+    assert ace.floor_ok(dead) is False
+    # A non-conditional failure alongside 4.11 still fails, and is named.
+    mixed = _payload([_record(["4.11", "2.7"]), _record([])], 2)
+    assert mixed["proposed_compliance_gate"]["passes"] is False
+    assert mixed["proposed_compliance_gate"]["nonconditional_violations"] == ["2.7"]
+
     # Missing / malformed gate fails closed, never a silent pass.
     assert ace.floor_ok({}) is False
     assert ace.floor_ok({"proposed_compliance_gate": "nope"}) is False
@@ -228,14 +244,20 @@ def test_live_compliance_floor_does_not_regress():
     assert payload["healthy_cycles"] == payload["cycles_measured"]
 
 
-def test_standard_mode_live_compliance_is_full():
-    # REGRESSION: standard mode runs the advisory crew. On a validated cycle
-    # the crew is unanimous (every role's DI == 1.0), so
-    # group == isolated and alignment_cost == 0. The boundary-inclusive
-    # "cooperative" comparison keeps that honest cooperation from being
-    # reported as a Λ4.11 failure. Standard-mode live compliance must be
-    # 42/42 — this locks the root cause, not just the artifact.
+def test_standard_mode_conditional_4_11_floor():
+    # STRICT-SEMANTICS REGRESSION: standard mode runs the advisory crew. On a
+    # unanimous cycle (all DI == 1.0, no validation split) alignment_cost is 0
+    # and the crew cooperates. On an md-cap cycle the validation-axis split
+    # raises C_align above the crew's surplus, so Λ4.11 legitimately fails that
+    # cycle. The harness must (a) still report every NON-conditional axiom green
+    # on every cycle, and (b) pass its conditional floor while recording the
+    # 4.11 failures — never smoothing them away.
     payload = ace.evaluate(cycles=4, mode="standard", seed=42)
-    assert payload["worst_failed_axioms"] == []
-    assert payload["min_compliance"] >= 1.0
-    assert payload["healthy_cycles"] == payload["cycles_measured"]
+    failed_ids = {row["axiom"] for row in payload["worst_failed_axioms"]}
+    assert failed_ids <= {"4.11"}, payload["worst_failed_axioms"]
+    gate = payload["proposed_compliance_gate"]
+    assert gate["nonconditional_violations"] == []
+    assert gate["passes"] is True
+    assert ace.floor_ok(payload) is True
+    # The conditional predicate is not always-false: at least one cycle passes.
+    assert payload["healthy_cycles"] >= 1

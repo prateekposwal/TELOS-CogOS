@@ -3,13 +3,24 @@ Cooperative Intelligence (Λ4.11) — bounded multi-agent aggregation.
 
 AXIOM 4.11
 ----------
-    U_group > Σ U_i − C_align
+    U_group − C_align ≥ Σ U_i
 
 Collective optimization beats isolated optimization **whenever alignment
 costs are sufficiently low**. This module makes that inequality executable:
 it takes the independent per-agent verdicts already produced by the
 DistributedCouncil crew and decides whether *cooperating* is justified for
 this decision, or whether the agents' disagreement is too costly.
+
+Sign of the alignment term (semantics decision; source of truth = AXIOMS.md
+4.11's *Meaning* column + Λ5.3): C_align is a **cost**. Λ5.3 defines it as the
+interaction cost ``λ·D(I_A, I_B)`` and Λ5.1's J enters it as the penalty
+``−εC_align``. The axiom's proposition is that cooperation holds "whenever
+alignment costs are sufficiently low", so the cost must be **overcome on the
+group side**: a larger disagreement makes cooperation HARDER to justify. The
+formal string previously shown here (``U_group > Σ U_i − C_align``) placed the
+cost on the isolated side, which made high-cost/high-diversity crews *more*
+likely to pass — the inverse of the axiom's stated meaning. Corrected at the
+root.
 
 Formalization (bounded, per-decision)
 -------------------------------------
@@ -22,7 +33,7 @@ integrity through its role lens) and authority `w_i`:
     validation_disagreement = 2·min(yes, no)/N  (validated-set split, [0,1])
     diversity        = min(1, max(di_spread, validation_disagreement))
     alignment_cost   = λ · diversity            (cost of reconciling them)
-    cooperative      = group_utility >= isolated_utility − alignment_cost
+    cooperative      = (group_utility − alignment_cost) >= isolated_utility
 
 The diversity scalar captures BOTH axes of crew dissent in one canonical
 number (see ``CooperativeVerdict.diversity``):
@@ -41,18 +52,20 @@ both axes are themselves in [0,1]. A pure-utility crew with no exposed
 ``validated`` flag contributes 0.0 on the validation axis, so the metric
 degrades exactly to the original ``max u_i − min u_i``.
 
-Cooperation is justified when the collective decision is not much worse than
-the best single agent, net of the cost of the disagreement between them. When
-one agent dominates and the rest disagree (large spread, low pooled mean),
-cooperation is NOT justified and the verdict is honestly `cooperative=False`.
+Cooperation is justified only when the collective decision, after paying the
+cost of the crew's disagreement, still meets the best single agent acting
+alone (`group − C_align >= isolated`). Disagreement raises `C_align`, so a
+high-diversity crew must clear a *higher* bar. When one agent dominates and the
+rest disagree (large spread, low pooled mean), the cost is not overcome and the
+verdict is honestly `cooperative=False`.
 
 Boundary (the live unanimity case): with perfect agreement every agent has the
 same utility, so `group_utility == isolated_utility` and `diversity == 0` (hence
-`alignment_cost == 0`). The comparison is `>=`, not `>`: the group is *at least*
-as good as the best agent acting alone, so zero-cost unanimous cooperation is
-justified. A strict `>` would label maximal consensus as non-cooperative — the
-inverse of the axiom's intent. Non-cooperation is still detected whenever the
-pooled mean falls strictly below the best agent net of the alignment cost.
+`alignment_cost == 0`). The comparison is `>=`, not `>`: zero-cost unanimous
+cooperation is justified (the group is *at least* as good as the best agent
+acting alone). A strict `>` would label maximal consensus as non-cooperative —
+the inverse of the axiom's intent. Non-cooperation is still detected whenever
+the pooled mean net of the alignment cost falls strictly below the best agent.
 
 This is a bounded MVP: in-process advisory agents, not federated external
 instances. It upgrades Λ4.11 from *aspirational* to an enforced scaffold with
@@ -82,7 +95,7 @@ class CooperativeVerdict:
             spread and the normalized validated-set split, in [0, 1].
         di_spread: per-role decision-integrity spread (max − min utility).
         validation_disagreement: normalized validated-vote split in [0, 1].
-        cooperative: True iff U_group >= U_isolated − C_align (boundary inclusive).
+        cooperative: True iff U_group − C_align >= U_isolated (cost overcome; boundary inclusive).
     """
 
     n_agents: int
@@ -201,11 +214,12 @@ class CooperativeCouncil:
         # Both components are already in [0, 1], so the max is too.
         diversity = min(1.0, max(di_spread, validation_disagreement))
         alignment_cost = self._lambda * diversity
-        # Boundary-inclusive: see the module docstring. A unanimous crew has
-        # group == isolated and alignment_cost == 0; `>` would call that
-        # non-cooperative. `>=` still rejects a dominated crew (group strictly
-        # below isolated - alignment_cost), preserving falsifiability.
-        cooperative = group >= isolated - alignment_cost
+        # Strict cost semantics (Λ4.11, see the module docstring): the crew must
+        # overcome its alignment cost — `group - cost >= isolated`. A unanimous
+        # crew has cost == 0 and passes at the boundary (`>=`); a high-diversity
+        # crew whose cost exceeds its surplus correctly fails. Falsifiability is
+        # preserved: a dominated or too-diverse crew yields cooperative=False.
+        cooperative = (group - alignment_cost) >= isolated
 
         return CooperativeVerdict(
             n_agents=n,
