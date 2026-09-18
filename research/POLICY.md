@@ -64,13 +64,22 @@ one). Same workload, same seed:
 | risk_tolerance mean | **0.197** | 0.101 |
 | firewall DI threshold mean | **0.803** | 0.899 |
 
-**Throughput and health are identical; single-sourcing only makes the firewall
-stricter** (removing the full-strength application strips a *loosening* bias
-that mood:curious contributed). Per the acceptance rule ("no worse on
-throughput/evidence/safety"), **control is the better default** — it keeps the
-system more permissive at no cost. The duplicate is a design smell (one signal,
-two applications) but not a defect in effect; the env toggle is retained for
-future worlds where the bias may matter. No default change.
+Throughput and health are identical; single-sourcing only changes the firewall
+*posture* (removing the full-strength application strips a *loosening* bias).
+
+**Decision: single-source is now the DEFAULT** (`TELOS_POLICY_MOOD_SINGLE_SOURCE`
+defaults to on). Rationale: one signal must be applied once — applying the same
+`SystemSelf` mood adjustment at two scales (`×0.3` and `×1.0`) is a correctness
+smell, and the posture shift is safe (health/evidence unchanged at 10/10, DI
+1.0, and a stricter firewall is the conservative direction). The exact same
+health was re-verified with the single-source default. `=0` restores the
+historical double application for A/B or if a future world prefers the extra
+loosening.
+
+Note (why this is safe now, and was riskier before): when the firewall was
+being driven by the *circular-evidence* loop (`research/COUNCIL_GATE.md`), a
+stricter threshold kept the loop alive. That loop is fixed, DI is 1.0, and the
+threshold is inert — so posture changes no longer suppress action.
 
 ## Symmetric uncertainty→risk (done — enabled)
 

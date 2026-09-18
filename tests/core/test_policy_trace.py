@@ -29,11 +29,11 @@ def test_unavailable_without_policy():
 def test_mood_single_source_env_toggle(monkeypatch):
     from telos.core.infra_manager import knowledge_manager as km
     monkeypatch.delenv("TELOS_POLICY_MOOD_SINGLE_SOURCE", raising=False)
-    assert km._mood_single_source() is False  # default preserves behavior
+    assert km._mood_single_source() is True   # single-source is the default now
+    monkeypatch.setenv("TELOS_POLICY_MOOD_SINGLE_SOURCE", "0")
+    assert km._mood_single_source() is False  # opt-out restores double
     monkeypatch.setenv("TELOS_POLICY_MOOD_SINGLE_SOURCE", "1")
     assert km._mood_single_source() is True
-    monkeypatch.setenv("TELOS_POLICY_MOOD_SINGLE_SOURCE", "0")
-    assert km._mood_single_source() is False
 
 
 def test_labeled_change_surfaces():
