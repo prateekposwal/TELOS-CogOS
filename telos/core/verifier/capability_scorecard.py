@@ -117,14 +117,20 @@ def _read(root: str, relpath: str) -> str:
 
 
 def _memory_eval_beats_naive(root: str) -> bool:
-    """Whether the measured memory eval shows the controller beating naive.
+    """Whether the measured memory eval shows the CONTROLLER beating baselines.
+
+    Reads the schema `memory_eval.py` actually emits: `beats_baselines` plus the
+    `semantic` arm's `recall@1`. (An earlier version read `beats_naive` /
+    `controller`, which the eval stopped emitting — so this silently returned
+    False and the memory score did not count the retrieval evidence at all.
+    `tests/core/test_scorecard_eval_schema.py` now locks the two together.)
 
     Args:
         root: repo root.
 
     Returns:
         True only when telos/audit/memory_eval.json exists, reports
-        beats_naive, and the controller's recall@1 is >= 0.9.
+        beats_baselines, and the semantic recall@1 is >= 0.9.
     """
     path = os.path.join(root, "telos", "audit", "memory_eval.json")
     if not os.path.isfile(path):
@@ -132,8 +138,8 @@ def _memory_eval_beats_naive(root: str) -> bool:
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return bool(data.get("beats_naive")) and \
-            float(data.get("controller", {}).get("recall@1", 0.0)) >= 0.9
+        return bool(data.get("beats_baselines")) and \
+            float(data.get("semantic", {}).get("recall@1", 0.0)) >= 0.9
     except (OSError, ValueError, TypeError):
         return False
 
