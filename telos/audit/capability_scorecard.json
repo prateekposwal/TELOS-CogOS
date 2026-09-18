@@ -168,7 +168,7 @@
     "score": 4.0,
     "target": 5.0,
     "gap": 1.0,
-    "basis": "packaging/release/CLI signals; capped at 4.0 without external reproduction + adoption",
+    "basis": "packaging/release/CLI signals; capped at the 4.0 first-party ceiling until a validated external/operator reproduction artifact passes its criteria",
     "evidence": [
       "pyproject.toml",
       "LICENSE",
@@ -181,7 +181,8 @@
       "examples/quickstart.py",
       "RELEASE.md (versioning + release process)",
       "CI gates workflow",
-      "version lock test"
+      "version lock test",
+      "capped 4.0: no validated external/operator reproduction artifact"
     ],
     "external": false,
     "independently_measured": false,
