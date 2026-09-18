@@ -76,13 +76,20 @@
   },
   "multi_agent": {
     "name": "multi_agent",
-    "score": 2.0,
-    "target": null,
-    "gap": null,
-    "basis": "advisory distributed council + coordination (scaffold)",
+    "score": 4.5,
+    "target": 4.5,
+    "gap": 0.0,
+    "basis": "advisory crew + bounded delegation/verification/resolution, credited from measured multi_agent_eval.json; capped at 4.5 (first-party evidence)",
     "evidence": [
-      "distributed=True",
-      "coordination=True"
+      "telos/core/council/distributed.py (advisory crew)",
+      "telos/core/coordination/delegation.py (bounded protocol)",
+      "measured: independent rejection with a recorded reason",
+      "measured: independent acceptance of a valid proposal",
+      "measured: verifier cannot audit its own proposal",
+      "measured: deterministic conflict resolution",
+      "measured: recorded delegation between agents",
+      "measured: bounded collaboration (rounds + handoffs)",
+      "measured: two independent runs identical"
     ],
     "external": false
   },

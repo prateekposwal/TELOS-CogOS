@@ -2542,6 +2542,10 @@ class TelosV14Pipeline:
             "agents": [a["agent_id"] + ":" + a["role"] for a in result["agents"]],
             "registered_agents": self._distributed_council.to_dict()["registered_agents"],
             "voting_agents": self._distributed_council.to_dict()["voting_agents"],
+            # Bounded, deterministic coordination: the recorded independent
+            # verification (accept/reject + reason) and the conflict resolution
+            # over the crew's positions. Advisory only.
+            "coordination": result.get("coordination"),
         }
         # Advisory disagreement escalation: only on low-confidence decisions,
         # and it NEVER blocks — the primary council remains binding.

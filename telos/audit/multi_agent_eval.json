@@ -1,0 +1,23 @@
+{
+  "criteria": {
+    "rejection_with_reason": true,
+    "acceptance": true,
+    "independent_verifier": true,
+    "deterministic_conflict_resolution": true,
+    "delegation_recorded": true,
+    "bounded": true,
+    "determinism": true
+  },
+  "beats_baseline": true,
+  "delegations": 6,
+  "handoffs_accepted": 4,
+  "handoffs_rejected": 2,
+  "acceptances": 1,
+  "rejections_with_reason": 2,
+  "conflicts_resolved": 2,
+  "rounds_used": 3,
+  "max_rounds": 3,
+  "handoff_budget": 4,
+  "bounded": true,
+  "deterministic": true
+}

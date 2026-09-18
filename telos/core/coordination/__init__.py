@@ -13,9 +13,16 @@ and audited by verify_scale_invariance() — the Scale-Invariance Principle
 """
 
 from telos.core.coordination.coordinator import PipelineCoordinator, SubPipelineConfig, CoordinationResult
+from telos.core.coordination.delegation import (
+    CoordinationProtocol, HandoffRecord, VerificationRecord, ResolutionRecord,
+)
 
 __all__ = [
     "PipelineCoordinator",
     "SubPipelineConfig",
     "CoordinationResult",
+    "CoordinationProtocol",
+    "HandoffRecord",
+    "VerificationRecord",
+    "ResolutionRecord",
 ]
