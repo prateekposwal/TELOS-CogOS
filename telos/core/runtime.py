@@ -2250,6 +2250,16 @@ class TelosV14Pipeline:
             logger.warning("selection instrumentation failed: %s", exc)
             ctx.selection_decision = None
 
+        # ACT-gate instrumentation (non-behavioral): record WHY the cycle did
+        # or did not emit an action (governor mode, failed gates, model
+        # fidelity), so the throughput bottleneck is measured, not guessed.
+        try:
+            from telos.core.decision.act_gate_trace import build_act_gate_record
+            ctx.act_gate = build_act_gate_record(ctx)
+        except Exception as exc:
+            logger.warning("act-gate instrumentation failed: %s", exc)
+            ctx.act_gate = None
+
         trace = build_trace(
             ctx=ctx, state=state,
             cycle_count=self._cycle_count,

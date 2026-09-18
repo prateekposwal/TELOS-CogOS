@@ -79,11 +79,14 @@ def run(policy: str, cycles: int, dump: Optional[str] = None) -> Dict[str, objec
     from telos.tools.theorem_audit import _build
     from telos.core.decision.selection_trace import is_inquiry_intent
 
+    from telos.tools.bench_loop import drive
+    from telos_task import GOAL, GRID_SIZE
+
     workdir = tempfile.mkdtemp(prefix=f"telos_sel_{policy}_")
-    pump, state = _build(workdir)
+    pump, _ = _build(workdir)
     pump.config.selection_policy = policy
     pump._mission_progress_fn = _mission_progress_fn(pump)
-    sim = pump.config.simulator
+    diameter = float(np.sqrt(2.0) * (GRID_SIZE - 1))
 
     selected_inquiry = 0
     selected_exec = 0
@@ -97,9 +100,9 @@ def run(policy: str, cycles: int, dump: Optional[str] = None) -> Dict[str, objec
     regimes = Counter()
     dump_rows = []
 
-    for _ in range(cycles):
-        res = pump.execute(np.array(state, dtype=float), user_name="selection-audit")
-        trace = res.decision_trace
+    for step in drive(pump, cycles, user_name="selection-audit"):
+        res = step["result"]
+        trace = step["trace"]
         if trace is None:
             continue
         n += 1
@@ -117,25 +120,20 @@ def run(policy: str, cycles: int, dump: Optional[str] = None) -> Dict[str, objec
                 selected_exec += 1
 
         action = trace.selected_action
+        s_before = step["state_before"]
+        s_after = step["state_after"]
         if action is None:
             noop += 1
-        elif not res.firewall_blocked:
-            ns = sim.transition(state, action)
-            if not np.array_equal(ns, state):
-                moves += 1
-            # observed progress (before -> after), normalized by diameter
-            from telos_task import GOAL, GRID_SIZE
-            diameter = float(np.sqrt(2.0) * (GRID_SIZE - 1))
-            progress_sum += (float(np.linalg.norm(GOAL - state))
-                             - float(np.linalg.norm(GOAL - ns))) / diameter
-            state = ns
+        elif not res.firewall_blocked and not np.array_equal(s_after, s_before):
+            moves += 1
+            progress_sum += (float(np.linalg.norm(GOAL - s_before))
+                             - float(np.linalg.norm(GOAL - s_after))) / diameter
 
         if dump:
             dump_rows.append(decision)
 
-        if sim.terminal(state):
+        if step["terminal"]:
             episodes += 1
-            state = np.array([0.0, 0.0])
 
     if dump:
         with open(dump, "w") as fh:

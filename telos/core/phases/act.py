@@ -309,6 +309,13 @@ class ActPhase(Phase):
                 causal_confidence=causal_status,
                 recovery=recovery_status,
                 authority=authority_status,
+                # Non-behavioral detail (surfaced in telemetry only): the gate
+                # decisions above are unaffected by `details`.
+                details={
+                    "model_fidelity": f"value={model_fidelity}, tested={tested}",
+                    "observability": f"{observability_status.value}",
+                    "risk_coverage": f"md={md:.3f}, catastrophe={catastrophe}",
+                },
             )
 
         # ── Epistemic state (Phase 5) ──

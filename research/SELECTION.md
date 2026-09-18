@@ -88,6 +88,35 @@ The next real throughput task is **ACT suppression**, not selection scoring:
 Only after ACT emits actions does selection priority become the binding
 constraint.
 
+## Phase 4b — corrected harness (the episode-reset artifact)
+
+The ACT-gate instrument then revealed a **measurement bug in the benchmark
+harness itself**: the drivers reset the GridWorld state to the origin on
+terminal (`goal`) WITHOUT signalling the episode to the pipeline. The model had
+predicted a landing near the goal; the next observation was the origin → a huge
+spurious reality gap → `model_fidelity` collapsed → the ACT gate DEFERred.
+
+The live producer does this correctly (`episode_reset=True` on the next
+`execute`). The shared driver is now `telos/tools/bench_loop.py` (the one
+correct loop).
+
+| Metric | Flawed harness | Corrected (`episode_reset`) |
+|---|---:|---:|
+| action emitted | 30.0% | **55.3%** |
+| `model_fidelity` DEFERs | 92/150 | **0/150** |
+| model fidelity (mean) | 0.455 | **1.000** |
+| no-op rate | 70.0% | **44.7%** |
+| episodes completed | 5 | **10** |
+
+So the "model_fidelity is the bottleneck" reading was **mostly a harness
+artifact** — instrument-first caught it before any gate was changed. What
+remains after correction:
+
+- inquiry still out-selects executable intents (~89%) — real, but the A/B is
+  still **null** (mission_progress non-discriminative);
+- the remaining ~45% no-op is **firewall governance** (`low_integrity` ≈40,
+  `action_loop` ≈27) + inquiry dwell — not capability DEFER.
+
 ## Honest status
 
 - Phase 1–3: **shipped** (instrumentation + gated policy + tests).

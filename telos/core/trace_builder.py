@@ -153,6 +153,7 @@ def build_trace(
         capabilities_k=(getattr(ctx, 'identity_state', {}) or {}).get('K_t'),
         j_term_breakdown=getattr(ctx, "j_term_breakdown", None),
         selection_decision=getattr(ctx, "selection_decision", None),
+        act_gate=getattr(ctx, "act_gate", None),
         # ── Inquiry Stream / Ω Operator fields ──────────────────────────────
         inquiry_skipped=getattr(ctx, 'inquiry_skipped', False),
         selected_question=getattr(ctx, 'selected_question', None),

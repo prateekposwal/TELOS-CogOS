@@ -94,6 +94,8 @@ class DecisionTrace:
     j_term_breakdown: Optional[Dict[str, float]] = None
     # Selection instrumentation (Phase 1, non-behavioral): WHY this intent won.
     selection_decision: Optional[Dict] = None
+    # ACT-gate instrumentation (non-behavioral): WHY a cycle did not execute.
+    act_gate: Optional[Dict] = None
 
     # ── Inquiry Stream / Ω Operator trace fields ────────────────────────────
     inquiry_skipped: bool = False
@@ -238,6 +240,7 @@ class DecisionTrace:
             "capabilities_k": self.capabilities_k,
             "j_term_breakdown": self.j_term_breakdown,
             "selection_decision": self.selection_decision,
+            "act_gate": self.act_gate,
             # Inquiry fields
             "inquiry_skipped": self.inquiry_skipped,
             "selected_question": self.selected_question,
