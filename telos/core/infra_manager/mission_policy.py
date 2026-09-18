@@ -276,7 +276,9 @@ class MissionPolicyManager:
         target_risk = self._current.risk_tolerance * (1.0 - 0.5 * avg_uncertainty)
         delta = target_risk - self._current.risk_tolerance
         if abs(delta) > 0.01:
-            self.adjust_risk_tolerance(delta)
+            self.adjust_risk_tolerance(
+                delta, reason=f"stream_uncertainty={avg_uncertainty:.3f}",
+                caller="adjust_risk_by_uncertainty")
 
     def adjust_exploration_budget(self, delta: float, reason: str = "", caller: str = "", cycle: int = 0) -> None:
         """Adjust exploration budget within [0.0, 1.0].

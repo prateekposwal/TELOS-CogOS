@@ -288,7 +288,9 @@ class InfrastructureManager:
             recent = self.failures.get_recent_failures(n=5)
             recent_failures = len(recent)
             if recent_failures >= 3 and self._mutation_guard.check('risk_tolerance', -0.1):
-                self.policy.adjust_risk_tolerance(-0.1)
+                self.policy.adjust_risk_tolerance(
+                    -0.1, reason=f"recent_failures={recent_failures}",
+                    caller="infrastructure_manager")
                 logger.info("InfraManager: reduced risk tolerance due to recent failures")
 
         # Increase exploration after stable periods
@@ -296,7 +298,9 @@ class InfrastructureManager:
             recent_di = self.audit.stats.get("di_trend", 1.0)
             recent_md = self.audit.stats.get("md_trend", 0.0)
             if recent_di > 0.9 and recent_md < 1.0 and self._mutation_guard.check('exploration_budget', 0.05):
-                self.policy.adjust_exploration_budget(0.05)
+                self.policy.adjust_exploration_budget(
+                    0.05, reason=f"stable_period:di={recent_di:.2f},md={recent_md:.2f}",
+                    caller="infrastructure_manager")
 
         # Delegate knowledge recording to KnowledgeManager
         failure = self.knowledge_mgr.observe(result, failure, trace)

@@ -98,6 +98,8 @@ class DecisionTrace:
     act_gate: Optional[Dict] = None
     # Council/firewall instrumentation (non-behavioral): dissenters + block.
     council_gate: Optional[Dict] = None
+    # Mission-policy instrumentation (non-behavioral): FW DI threshold source.
+    policy_trace: Optional[Dict] = None
 
     # ── Inquiry Stream / Ω Operator trace fields ────────────────────────────
     inquiry_skipped: bool = False
@@ -244,6 +246,7 @@ class DecisionTrace:
             "selection_decision": self.selection_decision,
             "act_gate": self.act_gate,
             "council_gate": self.council_gate,
+            "policy_trace": self.policy_trace,
             # Inquiry fields
             "inquiry_skipped": self.inquiry_skipped,
             "selected_question": self.selected_question,

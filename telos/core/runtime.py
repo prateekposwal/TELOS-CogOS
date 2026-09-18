@@ -2292,6 +2292,15 @@ class TelosV14Pipeline:
             logger.warning("council-gate instrumentation failed: %s", exc)
             ctx.council_gate = None
 
+        # Mission-policy instrumentation (non-behavioral): the firewall DI
+        # threshold and its up-driver (risk_tolerance + recent mutations).
+        try:
+            from telos.core.decision.policy_trace import build_policy_trace
+            ctx.policy_trace = build_policy_trace(self)
+        except Exception as exc:
+            logger.warning("policy instrumentation failed: %s", exc)
+            ctx.policy_trace = None
+
         trace = build_trace(
             ctx=ctx, state=state,
             cycle_count=self._cycle_count,
