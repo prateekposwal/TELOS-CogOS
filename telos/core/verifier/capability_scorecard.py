@@ -16,6 +16,7 @@ are explicit so the arithmetic is auditable and cannot be quietly tuned.
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -113,6 +114,28 @@ def _read(root: str, relpath: str) -> str:
             return f.read()
     except OSError:
         return ""
+
+
+def _memory_eval_beats_naive(root: str) -> bool:
+    """Whether the measured memory eval shows the controller beating naive.
+
+    Args:
+        root: repo root.
+
+    Returns:
+        True only when telos/audit/memory_eval.json exists, reports
+        beats_naive, and the controller's recall@1 is >= 0.9.
+    """
+    path = os.path.join(root, "telos", "audit", "memory_eval.json")
+    if not os.path.isfile(path):
+        return False
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return bool(data.get("beats_naive")) and \
+            float(data.get("controller", {}).get("recall@1", 0.0)) >= 0.9
+    except (OSError, ValueError, TypeError):
+        return False
 
 
 def _git_tag_count(root: str) -> int:
@@ -256,19 +279,32 @@ def _score_memory(root: str) -> DimensionResult:
     has_controller = _exists(root, "telos/core/memory/controller.py")
     has_tiering = _exists(root, "telos/core/memory/tiering.py")
     has_eval = _exists(root, "telos/tools/memory_eval.py")
+    eval_ok = _memory_eval_beats_naive(root)
     score = 3.5  # base: real, capped stores (knowledge/ledger/memory)
     evidence = [f"memory stores present={len(present)}/{len(stores)}"]
-    for label, cond in (("unified controller", has_controller),
-                        ("tiered decision memory", has_tiering),
-                        ("retrieval-quality eval", has_eval)):
-        if cond:
-            score += 0.5
-            evidence.append(label)
-    if has_controller and has_tiering and has_eval:
-        evidence.append("Letta-class mechanisms complete")
+    if has_controller:
+        score += 0.5
+        evidence.append("unified controller")
+    if has_tiering:
+        score += 0.5
+        evidence.append("tiered decision memory")
+    if has_eval:
+        score += 0.5
+        evidence.append(
+            "retrieval eval measured (beats naive)" if eval_ok
+            else "retrieval eval present but not passing"
+        )
+    if not eval_ok:
+        # The retrieval point only counts when the eval actually passes.
+        score -= 0.5
+    # The final 0.5 requires memory consumed by REAL pipeline cycles, not just
+    # a fixture; until that runtime artifact exists the score is capped.
+    if not _exists(root, "telos/audit/memory_consumption.json"):
+        score = min(score, 4.5)
+        evidence.append("capped 4.5 until memory is consumed in real cycles")
     return DimensionResult(
         name="memory", score=_clamp(score), target=TARGETS["memory"],
-        basis="stores + controller/tiering/retrieval-eval completeness",
+        basis="stores + controller/tiering + measured retrieval eval; capped without runtime consumption",
         evidence=evidence,
     )
 
