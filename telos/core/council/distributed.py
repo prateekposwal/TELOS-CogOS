@@ -283,14 +283,102 @@ class DistributedCouncil:
         aggregate = self.aggregate()
         votes = list(self._agent_votes.values())
         validated_count = sum(1 for v in votes if v.validated)
+        # Real multi-agent coordination (bounded, deterministic, recorded):
+        # an independent agent verifies the primary proposal, and the crew's
+        # disagreement is resolved by a hard-veto/weighted rule. Advisory only
+        # (Λ1.2) — the primary council's blocking power is untouched; this
+        # changes the ADVISORY aggregate and is recorded in the trace.
+        coordination = self._coordinate(votes, primary_di, primary_signals)
         return {
-            "validated": aggregate.validated,
+            "validated": coordination["resolved_validated"],
             "decision_integrity": aggregate.decision_integrity,
             "mission_drift": aggregate.mission_drift,
             "signals": aggregate.signals,
             "agents": [v.to_dict() for v in votes],
             "consensus": round(validated_count / max(len(votes), 1), 3),
             "n_agents": len(votes),
+            "coordination": coordination,
+        }
+
+    def _coordinate(self, votes: List[AgentVerdict], primary_di: float,
+                    primary_signals: List[Dict]) -> Dict[str, Any]:
+        """Run the bounded delegation/verification/resolution protocol.
+
+        The primary delegates independent verification to the skeptic (a real,
+        recorded handoff). The verifier accepts or rejects the primary proposal
+        from its content alone. The crew's positions are then resolved by a
+        deterministic hard-veto/weighted rule. Never raises: a failed advisory
+        coordination layer is logged and degrades to the raw aggregate.
+
+        Args:
+            votes: the per-agent verdicts that voted this cycle.
+            primary_di: the primary council's decision integrity.
+            primary_signals: the primary council's normalized signal dicts.
+
+        Returns:
+            A coordination dict with verification, handoff, resolution, audit,
+            and the resolved advisory boolean.
+        """
+        try:
+            from telos.core.coordination.delegation import CoordinationProtocol
+        except Exception as exc:  # never let the advisory layer break a cycle
+            logger.warning("CoordinationProtocol unavailable: %s", exc)
+            return self._coordination_fallback(votes)
+
+        protocol = CoordinationProtocol(max_rounds=2,
+                                        max_handoffs=max(2, len(votes) + 1))
+        for vote in votes:
+            protocol.register_agent(vote.agent_id, vote.role.value, vote.weight)
+        protocol.advance_round()
+
+        ids = [v.agent_id for v in votes]
+        verifier = "skeptic" if "skeptic" in ids else next(
+            (i for i in ids if i != "primary"), "primary")
+        handoff = protocol.delegate(
+            "independently verify the primary proposal", "primary", verifier,
+            response={"verifier": verifier})
+        evidence = [s for s in primary_signals if s.get("passed")]
+        violates = [str(s.get("reason", "unspecified"))
+                    for s in primary_signals if not s.get("passed")]
+        verification = protocol.verify({
+            "proposal_id": "primary-proposal",
+            "author": "primary",
+            "evidence": evidence,
+            "violates": violates,
+            "confidence": float(primary_di),
+        }, verifier)
+        resolution = protocol.resolve([
+            {"agent_id": v.agent_id, "role": v.role.value,
+             "validated": v.validated, "weight": v.weight}
+            for v in votes
+        ])
+        return {
+            "handoff": handoff.to_dict(),
+            "verification": verification.to_dict(),
+            "resolution": resolution.to_dict(),
+            "resolved_validated": resolution.validated,
+            "audit": protocol.audit(),
+        }
+
+    @staticmethod
+    def _coordination_fallback(votes: List[AgentVerdict]) -> Dict[str, Any]:
+        """Degrade gracefully to the raw weighted majority.
+
+        Args:
+            votes: the per-agent verdicts that voted this cycle.
+
+        Returns:
+            A coordination dict whose resolved boolean is the weighted majority.
+        """
+        total = sum(v.weight for v in votes) or 1.0
+        validated_weight = sum(v.weight for v in votes if v.validated)
+        return {
+            "handoff": None,
+            "verification": None,
+            "resolution": {"method": "fallback", "validated":
+                           validated_weight > total / 2},
+            "resolved_validated": validated_weight > total / 2,
+            "audit": {"bounded": True, "delegations": 0, "verifications": 0},
         }
 
     def aggregate(self) -> AgentVerdict:

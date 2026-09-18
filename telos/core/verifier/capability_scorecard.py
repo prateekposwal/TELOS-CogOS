@@ -9,9 +9,10 @@ artifact backs it — so a TELOS-authored tool grading TELOS is never mistaken
 for external validation (research/FALSIFIABLE_THEOREMS.md applied to the
 roadmap).
 
-The four "uplift" dimensions (tool_use, memory, learning, maturity) carry the
-architect's targets; the others report their self-assessed baseline. Weights
-are explicit so the arithmetic is auditable and cannot be quietly tuned.
+The "uplift" dimensions (tool_use, memory, learning, maturity, multi_agent)
+carry the architect's targets; the others report their self-assessed baseline.
+Weights are explicit so the arithmetic is auditable and cannot be quietly
+tuned.
 """
 
 from __future__ import annotations
@@ -30,6 +31,31 @@ TARGETS: Dict[str, float] = {
     "memory": 5.0,
     "learning": 4.0,
     "maturity": 5.0,
+    "multi_agent": 4.5,
+}
+
+# The measured criteria the multi-agent eval writes into
+# telos/audit/multi_agent_eval.json. Locked to the writer by
+# tests/core/test_multi_agent_coordination.py (schema-linkage guard: this
+# project was previously bitten by writer/reader key drift).
+MULTI_AGENT_CRITERIA: tuple = (
+    "rejection_with_reason",
+    "acceptance",
+    "independent_verifier",
+    "deterministic_conflict_resolution",
+    "delegation_recorded",
+    "bounded",
+    "determinism",
+)
+
+_MULTI_AGENT_LABELS: Dict[str, str] = {
+    "rejection_with_reason": "independent rejection with a recorded reason",
+    "acceptance": "independent acceptance of a valid proposal",
+    "independent_verifier": "verifier cannot audit its own proposal",
+    "deterministic_conflict_resolution": "deterministic conflict resolution",
+    "delegation_recorded": "recorded delegation between agents",
+    "bounded": "bounded collaboration (rounds + handoffs)",
+    "determinism": "two independent runs identical",
 }
 
 # The full rubric (the competitive table's dimensions).
@@ -610,8 +636,39 @@ def _score_autonomy(root: str) -> DimensionResult:
     )
 
 
+def _multi_agent_eval_criteria(root: str) -> Dict[str, bool]:
+    """Read the measured multi-agent coordination criteria from the artifact.
+
+    The score is credited from an OBSERVED protocol run, not from files that
+    mention agents — the same measured-artifact pattern as memory and learning.
+    Missing / malformed / partially-passing artifacts credit nothing beyond the
+    structural base (never a silent pass).
+
+    Args:
+        root: repo root.
+
+    Returns:
+        Mapping criterion -> passed for the canonical criteria, or {} when the
+        artifact is missing or unreadable. Only a criteria mapping that carries
+        every canonical key is returned, so a reader/writer key drift fails
+        closed.
+    """
+    path = os.path.join(root, "telos", "audit", "multi_agent_eval.json")
+    if not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        criteria = data.get("criteria")
+        if not isinstance(criteria, dict):
+            return {}
+        return {name: bool(criteria.get(name)) for name in MULTI_AGENT_CRITERIA}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
 def _score_multi_agent(root: str) -> DimensionResult:
-    """Score multi-agent maturity from coordination signals.
+    """Score multi-agent maturity from structures + measured coordination.
 
     Args:
         root: repo root.
@@ -620,12 +677,47 @@ def _score_multi_agent(root: str) -> DimensionResult:
         The DimensionResult for multi_agent.
     """
     distributed = _exists(root, "telos/core/council/distributed.py")
-    coordination = _exists(root, "telos/core/coordination/coordinator.py")
-    score = (1.0 if distributed else 0.0) + (1.0 if coordination else 0.0)
+    delegation = _exists(root, "telos/core/coordination/delegation.py")
+    # Base: the real advisory crew with weighted aggregation. Without the
+    # measured eval this is where the score stays (the pre-measurement value).
+    score = 1.5 if distributed else 0.0
+    evidence: List[str] = []
+    if distributed:
+        evidence.append("telos/core/council/distributed.py (advisory crew)")
+    if delegation:
+        score += 0.5
+        evidence.append(
+            "telos/core/coordination/delegation.py (bounded protocol)")
+    criteria = _multi_agent_eval_criteria(root)
+    if criteria:
+        total = len(MULTI_AGENT_CRITERIA)
+        passed = 0
+        for name in MULTI_AGENT_CRITERIA:
+            if criteria.get(name):
+                passed += 1
+                evidence.append(
+                    f"measured: {_MULTI_AGENT_LABELS[name]}")
+        # The measured component is worth 2.5: all criteria pass -> 4.5 total
+        # (target). Partial passes scale down honestly; a missing artifact
+        # credits nothing.
+        score += 2.5 * (passed / total)
+        if passed < total:
+            evidence.append(
+                f"multi_agent_eval present but only {passed}/{total} "
+                "criteria pass")
+    else:
+        evidence.append("no measured multi-agent eval (structure-only credit)")
+    # First-party evidence alone can never reach 5.0: independent multi-agent
+    # reproduction is the missing external artifact, so the honest ceiling for
+    # measured-but-first-party coordination is 4.5.
+    score = min(score, 4.5)
     return DimensionResult(
         name="multi_agent", score=_clamp(score),
-        basis="advisory distributed council + coordination (scaffold)",
-        evidence=[f"distributed={distributed}", f"coordination={coordination}"],
+        target=TARGETS["multi_agent"],
+        basis="advisory crew + bounded delegation/verification/resolution, "
+              "credited from measured multi_agent_eval.json; capped at 4.5 "
+              "(first-party evidence)",
+        evidence=evidence,
     )
 
 
@@ -687,13 +779,13 @@ def compute_scorecard(root: Optional[str] = None) -> Dict[str, DimensionResult]:
 
 
 def four_baselines(root: Optional[str] = None) -> Dict[str, float]:
-    """Return just the four uplift targets and their measured baselines.
+    """Return the uplift targets and their measured baselines.
 
     Args:
         root: repo root (defaults to the project root).
 
     Returns:
-        Mapping dimension -> measured score for the four target dimensions.
+        Mapping dimension -> measured score for every target dimension.
     """
     card = compute_scorecard(root)
     return {name: card[name].score for name in TARGETS if name in card}
@@ -732,6 +824,6 @@ def report_lines(root: Optional[str] = None) -> List[str]:
 
 
 __all__ = [
-    "DIMENSIONS", "TARGETS", "DimensionResult", "compute_scorecard",
-    "four_baselines", "report_lines",
+    "DIMENSIONS", "TARGETS", "MULTI_AGENT_CRITERIA", "DimensionResult",
+    "compute_scorecard", "four_baselines", "report_lines",
 ]
