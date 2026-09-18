@@ -31,6 +31,7 @@ jobs:
       - name: Capability gates
         run: |
           python telos/tools/tool_channel_scan.py --ci
+          python telos/tools/tool_governance_eval.py --ci
           python telos/tools/memory_eval.py --ci
           python telos/tools/learning_curve.py --ci
           python telos/tools/learning_env.py --ci

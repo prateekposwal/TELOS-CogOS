@@ -82,3 +82,54 @@ def test_stats_counts_reviews():
     gw.review(intent="b", council_signals=[], decision_integrity=0.5)
     s = gw.stats
     assert s["total_reviews"] == 2 and s["approved"] == 2 and s["denied"] == 0
+
+
+def test_webhook_routes_through_governed_sandbox_with_parity():
+    """The webhook POST now leaves via NetworkSandbox — same body, same parse.
+
+    Parity proof: the exact review payload (`intent`, `decision_integrity`,
+    `council_signals`) is POSTed to the operator-configured endpoint and the
+    same `{approved, reason}` response is honoured (reviewer == "webhook").
+    """
+    import json as _json
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from telos.core.actions.sandbox import EgressRule, NetworkSandbox
+
+    captured = {}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length", 0))
+            captured["body"] = _json.loads(self.rfile.read(n))
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(_json.dumps(
+                {"approved": False, "reason": "human says no"}).encode())
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        port = server.server_address[1]
+        sb = NetworkSandbox(rules=[EgressRule(
+            host="127.0.0.1", ports=(port,), routes=("/review",),
+            methods=("POST",))])
+        gw = HumanGateway(mode="webhook",
+                          webhook_url=f"http://127.0.0.1:{port}/review",
+                          sandbox=sb)
+        v = gw.review(intent="do thing",
+                      council_signals=[{"validator": "x", "passed": False}],
+                      decision_integrity=0.2)
+        assert v.approved is False
+        assert v.reviewer == "webhook"
+        assert v.override_reason == "human says no"
+        assert captured["body"]["intent"] == "do thing"
+        assert captured["body"]["decision_integrity"] == 0.2
+    finally:
+        server.shutdown()

@@ -137,6 +137,57 @@ AXIOM_COMPLIANCE_CRITERIA: tuple = (
 
 AXIOM_COMPLIANCE_ARTIFACT = "telos/audit/axiom_compliance.json"
 
+# The behavioral criteria the tool-governance harness writes into
+# telos/audit/tool_governance_eval.json. Locked to the writer by
+# tests/core/test_tool_governance_eval.py (schema-linkage guard: this project
+# was previously bitten by writer/reader key drift).
+TOOL_GOVERNANCE_CRITERIA: tuple = (
+    "scanner_unknown_zero",
+    "scanner_exemptions_reviewed",
+    "sandbox_blocks_unlisted_host",
+    "sandbox_blocks_unlisted_route",
+    "sandbox_blocks_plain_http_nonloopback",
+    "sandbox_blocks_oversized_body",
+    "sandbox_allows_declared_loopback",
+    "executor_blocks_unlisted_tool",
+    "executor_blocks_unpermitted_source",
+    "executor_blocks_without_firewall",
+    "executor_blocks_capability_fail",
+    "registry_declares_families",
+    "registry_declares_capability_profiles",
+    "provenance_machine_checkable",
+)
+
+_TOOL_GOVERNANCE_LABELS: Dict[str, str] = {
+    "scanner_unknown_zero": "zero unknown tool channels reported",
+    "scanner_exemptions_reviewed": "every exemption names a reason + plan",
+    "sandbox_blocks_unlisted_host": "sandbox refuses an unlisted host",
+    "sandbox_blocks_unlisted_route": "sandbox refuses an unlisted route",
+    "sandbox_blocks_plain_http_nonloopback":
+        "sandbox refuses plain http off loopback",
+    "sandbox_blocks_oversized_body": "sandbox refuses an oversized body",
+    "sandbox_allows_declared_loopback":
+        "sandbox admits a declared loopback request",
+    "executor_blocks_unlisted_tool": "executor refuses an unlisted tool",
+    "executor_blocks_unpermitted_source":
+        "executor refuses an unrecognized permission source",
+    "executor_blocks_without_firewall":
+        "executor refuses without a firewall audit",
+    "executor_blocks_capability_fail":
+        "executor refuses on a FAIL capability gate",
+    "registry_declares_families": "registry declares tool families",
+    "registry_declares_capability_profiles":
+        "registry declares a capability profile per tool",
+    "provenance_machine_checkable":
+        "the eval artifact is machine-checkable provenance",
+}
+
+# Structure-only base for tool_use: the executor module backing the channel is
+# all that is credited without the behavioral artifact. The measured component
+# (3.5) is credited ONLY when tool_governance_eval.json passes (fail closed).
+_TOOL_USE_STRUCTURE_BASE = 1.0
+_TOOL_USE_MEASURED_WEIGHT = 3.5
+
 # verification_rigor decomposition (max 5.0 = 1.0 structure + 3.0 adversarial
 # falsifier/theorem audit + 1.0 live per-cycle compliance). Live compliance is
 # credited in proportion to the WORST measured cycle (min_compliance), so a
@@ -471,40 +522,15 @@ def _tool_families(root: str) -> Optional[int]:
         return None
 
 
-def _registry_specs(root: str) -> Optional[list]:
-    """Return the canonical tool specs (or None when unimportable).
-
-    Args:
-        root: repo root (unused).
-
-    Returns:
-        List of ToolSpec, or None.
-    """
-    try:
-        from telos.core.actions.registry import DEFAULT_REGISTRY
-        return list(DEFAULT_REGISTRY.as_allowlist().values())
-    except Exception:
-        return None
-
-
-def _unknown_tool_channels(root: str) -> Optional[int]:
-    """Count unknown (ungoverned) tool channels from the channel scanner.
-
-    Args:
-        root: repo root.
-
-    Returns:
-        Unknown-site count, or None when the scanner cannot be imported.
-    """
-    try:
-        from telos.tools.tool_channel_scan import scan
-        return int(scan(root)["counts"]["unknown_sites"])  # type: ignore[index]
-    except Exception:
-        return None
-
-
 def _score_tool_use(root: str) -> DimensionResult:
-    """Score the tool-use dimension from registry + channel signals.
+    """Score the tool-use dimension from MEASURED channel governance.
+
+    Structure earns only a small base (the executor module that backs the
+    channel). The measured component is credited ONLY from a passing
+    ``telos/audit/tool_governance_eval.json``: the harness drives the REAL
+    NetworkSandbox and ActionExecutor and proves they block what they must.
+    A missing, malformed, or FAILING artifact credits nothing beyond the base
+    (fail closed) — the score can never be reached merely because a path exists.
 
     Args:
         root: repo root.
@@ -512,40 +538,46 @@ def _score_tool_use(root: str) -> DimensionResult:
     Returns:
         The DimensionResult for tool_use.
     """
-    specs = _registry_specs(root)
+    executor_present = _exists(root, "telos/core/actions/executor.py")
     families = _tool_families(root)
-    unknown = _unknown_tool_channels(root)
-    has_network_family = False
-    has_per_tool_capability = False
-    if specs:
-        has_network_family = any(s.family.startswith("network") for s in specs)
-        has_per_tool_capability = any(s.capability for s in specs)
-    has_sandbox = _exists(root, "telos/core/actions/sandbox.py")
-
-    score = 2.0  # base: audited executor with allowlist + firewall gates
-    evidence = ["telos/core/actions/executor.py (4 hard gates)"]
+    evidence: List[str] = ["telos/core/actions/executor.py (4 hard gates)"]
     if families is not None:
         evidence.append(f"registry families={families}")
-        if families >= 3:
-            score += 0.5
-    if unknown is not None:
-        evidence.append(f"unknown ungoverned channels={unknown}")
-        if unknown == 0:
-            score += 0.5
-    if has_network_family:
-        score += 0.5
-        evidence.append("network tool family governed")
-    if has_per_tool_capability:
-        score += 0.75
-        evidence.append("per-tool capability authorization declared")
-    if has_sandbox:
-        score += 0.75
-        evidence.append("sandbox.py present")
+    base = _TOOL_USE_STRUCTURE_BASE if executor_present else 0.0
+    measured = read_measurement(
+        root, "telos/audit/tool_governance_eval.json",
+        TOOL_GOVERNANCE_CRITERIA)
+    if measured is None:
+        evidence.append(
+            "no machine-checkable tool_governance_eval.json — "
+            "behavioral measurement missing (fail closed)")
+        return DimensionResult(
+            name="tool_use", score=_clamp(base), target=TARGETS["tool_use"],
+            basis="executor structure present; behavioral channel "
+                  "measurement missing",
+            evidence=evidence)
+    score = base
+    evidence.append(
+        f"measured criteria {measured.passed_count}/{measured.total} "
+        "(tool_governance_eval.json)")
+    if measured.verdict_passed:
+        score += _TOOL_USE_MEASURED_WEIGHT
+        for name in TOOL_GOVERNANCE_CRITERIA:
+            if measured.criteria.get(name):
+                evidence.append(f"measured: {_TOOL_GOVERNANCE_LABELS[name]}")
+    else:
+        evidence.append(
+            "tool_governance_eval verdict FAIL — measured component "
+            "withheld (fail closed)")
     return DimensionResult(
         name="tool_use", score=_clamp(score), target=TARGETS["tool_use"],
-        basis="registry families + ungoverned-channel count + capability/sandbox coverage",
+        basis="ActionExecutor + NetworkSandbox gates MEASURED by "
+              "tool_governance_eval.json; structure-only base otherwise",
         evidence=evidence,
-    )
+        external=measured.external,
+        independently_measured=measured.independently_measured,
+        artifact_backed=measured.artifact_backed,
+        measurement=measured.artifact if measured.artifact_backed else None)
 
 
 def _score_memory(root: str) -> DimensionResult:
@@ -1229,6 +1261,7 @@ def report_lines(root: Optional[str] = None) -> List[str]:
 __all__ = [
     "DIMENSIONS", "TARGETS", "MULTI_AGENT_CRITERIA", "GOVERNANCE_CRITERIA",
     "VERIFICATION_CRITERIA", "AXIOM_COMPLIANCE_CRITERIA",
+    "TOOL_GOVERNANCE_CRITERIA",
     "AXIOM_COMPLIANCE_ARTIFACT", "REPRODUCIBILITY_CRITERIA",
     "REPRODUCTION_ARTIFACT_PATHS", "REPRODUCTION_CRITERIA", "DimensionResult",
     "compute_scorecard", "four_baselines", "report_lines",

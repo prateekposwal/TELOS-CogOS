@@ -11,13 +11,53 @@ from __future__ import annotations
 import json
 import logging
 import os
-import time
 import urllib.parse
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger('telos_model')
+
+
+class ModelProviderError(RuntimeError):
+    """Raised when a provider request cannot be performed.
+
+    A network request leaves the process ONLY through the governed
+    :class:`~telos.core.actions.sandbox.NetworkSandbox` (host/port/route
+    allowlist + bounded payloads). A sandbox refusal, a transport failure, or an
+    unparseable response all surface here instead of a raw socket exception.
+    """
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _sandbox_post(sandbox, url: str, payload: str,
+                  headers: Optional[Dict[str, str]]):
+    """Perform one POST through the governed egress sandbox.
+
+    Args:
+        sandbox: the NetworkSandbox that owns this provider's egress.
+        url: the absolute request URL.
+        payload: the JSON request body.
+        headers: request headers (Authorization etc.).
+
+    Returns:
+        (parsed_json_dict, duration_ms).
+
+    Raises:
+        ModelProviderError: when the sandbox refuses/fails the request or the
+            response body is not valid JSON.
+    """
+    result = sandbox.request("POST", url, body=payload, headers=headers)
+    if not result.allowed:
+        raise ModelProviderError(
+            result.blocked_reason or "network request was blocked")
+    try:
+        return json.loads(result.body), result.duration_ms
+    except (ValueError, TypeError) as e:
+        raise ModelProviderError(f"invalid provider response: {e}")
 
 
 @dataclass
@@ -54,19 +94,23 @@ class OllamaProvider(ModelProvider):
 
     def __init__(self, model: str = "qwen2:0.5b",
                  host: str = "localhost", port: int = 11434,
-                 timeout: int = 30):
+                 timeout: int = 30, sandbox=None):
         self._model = model
         self._host = host
         self._port = port
         self._timeout = timeout
+        self._sandbox = sandbox
+
+    def _egress(self):
+        """The governed egress channel (lazy; default allowlist)."""
+        if self._sandbox is None:
+            from telos.core.actions.sandbox import NetworkSandbox
+            self._sandbox = NetworkSandbox(timeout=self._timeout)
+        return self._sandbox
 
     def ask(self, messages: List[Dict[str, str]],
             temperature: float = 0.7, max_tokens: int = 256,
             **kwargs) -> ModelResponse:
-        import http.client
-        t0 = time.time()
-        conn = http.client.HTTPConnection(self._host, self._port,
-                                          timeout=self._timeout)
         payload = json.dumps({
             "model": self._model,
             "messages": messages,
@@ -74,12 +118,12 @@ class OllamaProvider(ModelProvider):
             "options": {"temperature": temperature,
                         "num_predict": max_tokens},
         })
-        conn.request("POST", "/api/chat", body=payload,
-                     headers={"Content-Type": "application/json"})
-        resp = conn.getresponse()
-        data = json.loads(resp.read())
-        conn.close()
-        latency = (time.time() - t0) * 1000
+        data, latency = _sandbox_post(
+            self._egress(),
+            f"http://{self._host}:{self._port}/api/chat",
+            payload,
+            {"Content-Type": "application/json"},
+        )
         content = data.get("message", {}).get("content", "")
         return ModelResponse(
             content=content,
@@ -97,18 +141,26 @@ class OpenAIProvider(ModelProvider):
     def __init__(self, model: str = "gpt-4o",
                  api_key: Optional[str] = None,
                  base_url: Optional[str] = None,
-                 timeout: int = 60):
+                 timeout: int = 60, sandbox=None):
         self._model = model
         self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self._base_url = base_url
         self._timeout = timeout
+        self._sandbox = sandbox
+
+    def _egress(self):
+        """The governed egress channel (lazy; default allowlist)."""
+        if self._sandbox is None:
+            from telos.core.actions.sandbox import NetworkSandbox
+            self._sandbox = NetworkSandbox(timeout=self._timeout)
+        return self._sandbox
 
     def ask(self, messages: List[Dict[str, str]],
             temperature: float = 0.7, max_tokens: int = 256,
             **kwargs) -> ModelResponse:
-        t0 = time.time()
         host = "api.openai.com"
         path = "/v1/chat/completions"
+        scheme = "https"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self._api_key}",
@@ -126,17 +178,11 @@ class OpenAIProvider(ModelProvider):
                 host = parsed.netloc
             if parsed.path:
                 path = parsed.path.rstrip("/") + "/chat/completions"
-            is_https = parsed.scheme in ("https", "")
-            conn_factory = http.client.HTTPSConnection if is_https else http.client.HTTPConnection
-        else:
-            conn_factory = http.client.HTTPSConnection
+            scheme = "https" if parsed.scheme in ("https", "") else "http"
+        port = 443 if scheme == "https" else 80
+        url = f"{scheme}://{host}:{port}{path}"
 
-        conn = conn_factory(host, timeout=self._timeout)
-        conn.request("POST", path, body=payload, headers=headers)
-        resp = conn.getresponse()
-        data = json.loads(resp.read())
-        conn.close()
-        latency = (time.time() - t0) * 1000
+        data, latency = _sandbox_post(self._egress(), url, payload, headers)
         choice = data.get("choices", [{}])[0]
         content = choice.get("message", {}).get("content", "")
         usage = data.get("usage", {})
@@ -157,17 +203,22 @@ class AnthropicProvider(ModelProvider):
 
     def __init__(self, model: str = "claude-sonnet-4-20250514",
                  api_key: Optional[str] = None,
-                 timeout: int = 60):
+                 timeout: int = 60, sandbox=None):
         self._model = model
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self._timeout = timeout
+        self._sandbox = sandbox
+
+    def _egress(self):
+        """The governed egress channel (lazy; default allowlist)."""
+        if self._sandbox is None:
+            from telos.core.actions.sandbox import NetworkSandbox
+            self._sandbox = NetworkSandbox(timeout=self._timeout)
+        return self._sandbox
 
     def ask(self, messages: List[Dict[str, str]],
             temperature: float = 0.7, max_tokens: int = 256,
             **kwargs) -> ModelResponse:
-        import http.client
-
-        t0 = time.time()
         system_msg = ""
         chat_messages = []
         for m in messages:
@@ -191,14 +242,12 @@ class AnthropicProvider(ModelProvider):
             "x-api-key": self._api_key,
             "anthropic-version": "2023-06-01",
         }
-        conn = http.client.HTTPSConnection("api.anthropic.com",
-                                           timeout=self._timeout)
-        conn.request("POST", "/v1/messages",
-                     body=json.dumps(payload), headers=headers)
-        resp = conn.getresponse()
-        data = json.loads(resp.read())
-        conn.close()
-        latency = (time.time() - t0) * 1000
+        data, latency = _sandbox_post(
+            self._egress(),
+            "https://api.anthropic.com:443/v1/messages",
+            json.dumps(payload),
+            headers,
+        )
         content = ""
         for block in data.get("content", []):
             if block.get("type") == "text":

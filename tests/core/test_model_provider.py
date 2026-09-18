@@ -10,9 +10,11 @@ import json
 import http.client
 import pytest
 
+from telos.core.actions.sandbox import EgressRule, NetworkSandbox
 from telos.core.contracts.model_provider import (
     ModelProvider,
     ModelResponse,
+    ModelProviderError,
     OllamaProvider,
     OpenAIProvider,
     AnthropicProvider,
@@ -63,10 +65,19 @@ class TestOllamaProvider:
         assert p.name() == "ollama/llama3"
 
     def test_ask_parses_chat_response(self, monkeypatch):
+        """Parity: the SAME request leaves through the governed sandbox.
+
+        The provider no longer opens http.client directly; it routes through
+        NetworkSandbox, which performs the exact same POST (method, path, body,
+        headers) and parses the exact same response. A loopback rule authorizes
+        the test endpoint; the socket itself is faked so nothing leaves the box.
+        """
         captured = {}
 
         class FakeResponse:
-            def read(self):
+            status = 200
+
+            def read(self, *args):
                 return json.dumps({"message": {"content": "hello world"}}).encode()
 
         class FakeConnection:
@@ -88,13 +99,17 @@ class TestOllamaProvider:
                 captured["closed"] = True
 
         monkeypatch.setattr(http.client, "HTTPConnection", FakeConnection)
-        p = OllamaProvider(model="ollama-test", host="h", port=4567, timeout=2)
+        sandbox = NetworkSandbox(rules=[EgressRule(
+            host="127.0.0.1", ports=(4567,), routes=("/api/",),
+            methods=("POST",))])
+        p = OllamaProvider(model="ollama-test", host="127.0.0.1", port=4567,
+                           timeout=2, sandbox=sandbox)
         resp = p.ask([{"role": "user", "content": "hi"}], temperature=0.4, max_tokens=16)
 
         assert resp.content == "hello world"
         assert resp.model == "ollama-test"
         assert resp.latency_ms >= 0.0
-        assert captured["host"] == "h"
+        assert captured["host"] == "127.0.0.1"
         assert captured["port"] == 4567
         assert captured["method"] == "POST"
         assert captured["path"] == "/api/chat"
@@ -102,6 +117,13 @@ class TestOllamaProvider:
         assert captured["body"]["stream"] is False
         assert captured["body"]["options"] == {"temperature": 0.4, "num_predict": 16}
         assert captured["closed"] is True
+
+    def test_unlisted_host_is_blocked_by_the_sandbox_before_any_socket(self):
+        """A non-allowlisted provider host is refused (no connection opens)."""
+        p = OllamaProvider(host="evil.example.com", port=11434)
+        with pytest.raises(ModelProviderError) as exc:
+            p.ask([{"role": "user", "content": "hi"}])
+        assert "loopback" in str(exc.value) or "egress denied" in str(exc.value)
 
 
 class TestOpenAIProvider:
@@ -194,3 +216,60 @@ class TestRouterProvider:
 
         r = RouterProvider(FakeProvider(), FakeProvider())
         assert r.name() == "router(fast=n,capable=n)"
+
+class TestGovernedEgressParity:
+    """Each cloud provider leaves through NetworkSandbox with identical shape."""
+
+    def _patch(self, monkeypatch, captured, response_json):
+        class FakeResponse:
+            status = 200
+
+            def read(self, *args):
+                return json.dumps(response_json).encode()
+
+        class FakeConnection:
+            def __init__(self, host, port, timeout):
+                captured["host"] = host
+                captured["port"] = port
+
+            def request(self, method, path, body, headers):
+                captured["method"] = method
+                captured["path"] = path
+                captured["body"] = json.loads(body)
+                captured["headers"] = headers
+
+            def getresponse(self):
+                return FakeResponse()
+
+            def close(self):
+                pass
+
+        monkeypatch.setattr(http.client, "HTTPSConnection", FakeConnection)
+
+    def test_anthropic_same_request_via_sandbox(self, monkeypatch):
+        captured = {}
+        self._patch(monkeypatch, captured,
+                    {"content": [{"type": "text", "text": "hi"}],
+                     "usage": {"input_tokens": 3, "output_tokens": 2}})
+        p = AnthropicProvider(api_key="k")
+        r = p.ask([{"role": "system", "content": "sys"},
+                   {"role": "user", "content": "yo"}])
+        assert r.content == "hi" and r.tokens_in == 3 and r.tokens_out == 2
+        assert captured["host"] == "api.anthropic.com"
+        assert captured["port"] == 443
+        assert captured["path"] == "/v1/messages"
+        assert captured["headers"]["x-api-key"] == "k"
+        assert captured["body"]["system"] == "sys"
+
+    def test_openai_same_request_via_sandbox(self, monkeypatch):
+        captured = {}
+        self._patch(monkeypatch, captured,
+                    {"choices": [{"message": {"content": "ok"}}],
+                     "usage": {"prompt_tokens": 1, "completion_tokens": 2}})
+        p = OpenAIProvider(api_key="k")
+        r = p.ask([{"role": "user", "content": "yo"}])
+        assert r.content == "ok" and r.tokens_in == 1 and r.tokens_out == 2
+        assert captured["host"] == "api.openai.com"
+        assert captured["port"] == 443
+        assert captured["path"] == "/v1/chat/completions"
+        assert captured["headers"]["Authorization"] == "Bearer k"
