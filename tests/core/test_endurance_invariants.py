@@ -303,3 +303,126 @@ class TestRetentionCaps:
         # indices remain consistent with the (shifted) records list
         assert fl.get_failures_by_type("firewall_block") == fl._failures
 
+
+
+# ────────────────────────────────────────────────────────────────────────
+# 9. Load-aware guard — SKIPPED under load, never a false FAIL
+# ────────────────────────────────────────────────────────────────────────
+class TestLoadGuard:
+    """The endurance gate must measure TELOS, not the host's contention.
+
+    Under high host load the load-sensitive checks (memory_stability,
+    checkpoint_latency) must report SKIPPED with the measured load as
+    evidence — never PASS, never FAIL. --force / --ignore-load bypasses the
+    guard so a release gate can demand a real measurement; a genuine leak
+    still FAILs whenever the check actually runs.
+    """
+
+    HIGH = (32.0, 30.0, 28.0)   # /8 cpus = 4.0 load/cpu
+    LOW = (0.4, 0.3, 0.3)       # /8 cpus = 0.05 load/cpu
+
+    @staticmethod
+    def _results(load: dict, leak_per_cycle: float = 0.0) -> dict:
+        return {
+            "cycles": 100, "mode": "fast", "elapsed_s": 1.0,
+            "cycle_mean_ms": 5.0, "cycle_p95_ms": 6.0, "cycle_max_ms": 7.0,
+            "trace_serializations_per_cycle": 0.0,
+            "kg_nodes": 10, "escapes": 0,
+            "load": load,
+            "di_tail_mean": 1.0, "di_min": 0.3,
+            "leak_blocks_per_cycle": leak_per_cycle,
+            "warm_blocks": 600000, "end_blocks": 600000,
+            "rss_end_kb": 80000, "rss_drift_frac": 0.01,
+            "rng_global_hits": 0, "determinism_ok": True,
+            "determinism_fp": "abc",
+            "telemetry_ring_len": 10,
+            "kg_edges": 10, "kg_edge_types": {"x": 3},
+            "kg_adjacency_symmetric": True,
+            "checkpoint_mean_ms": 50.0, "checkpoint_files": 2,
+            "checkpoint_chain_ok": True,
+            "axioms": 42, "axioms_md_reads": 0, "max_trap_streak": 1,
+        }
+
+    def _load(self, monkeypatch, values, cpus=8):
+        monkeypatch.setattr(os, "getloadavg", lambda: values)
+        monkeypatch.setattr(os, "cpu_count", lambda: cpus)
+        monkeypatch.setattr(
+            "telos.tools.endurance._read_swap_mb", lambda: (0, 0))
+        monkeypatch.setattr(
+            "telos.tools.endurance._count_heavy_procs", lambda t=25.0: 0)
+        from telos.tools.endurance import read_load
+        return read_load()
+
+    def test_high_load_skips_load_sensitive(self, monkeypatch):
+        from telos.tools.endurance import check
+        load = self._load(monkeypatch, self.HIGH)
+        assert load["load_per_cpu"] >= 0.75
+        checks = check(self._results(load), ignore_load=False)
+        assert checks["memory_stability"][0] == "SKIPPED"
+        assert checks["checkpoint_latency"][0] == "SKIPPED"
+        # evidence carries the load number
+        assert str(load["load_per_cpu"]) in checks["memory_stability"][2]
+
+    def test_non_load_sensitive_still_run_under_load(self, monkeypatch):
+        from telos.tools.endurance import check
+        load = self._load(monkeypatch, self.HIGH)
+        checks = check(self._results(load), ignore_load=False)
+        assert checks["di_stability"][0] == "PASS"
+        assert checks["axiom_integrity"][0] == "PASS"
+        assert checks["rng_global"][0] == "PASS"
+
+    def test_normal_load_runs_and_can_pass(self, monkeypatch):
+        from telos.tools.endurance import check, load_reason
+        load = self._load(monkeypatch, self.LOW)
+        assert load_reason(load) == ""
+        checks = check(self._results(load), ignore_load=False)
+        assert checks["memory_stability"][0] == "PASS"
+        assert checks["checkpoint_latency"][0] == "PASS"
+
+    def test_normal_load_can_fail(self, monkeypatch):
+        from telos.tools.endurance import check
+        load = self._load(monkeypatch, self.LOW)
+        checks = check(self._results(load, leak_per_cycle=10.0),
+                       ignore_load=False)
+        assert checks["memory_stability"][0] == "FAIL"
+
+    def test_force_bypasses_guard(self, monkeypatch):
+        from telos.tools.endurance import check
+        load = self._load(monkeypatch, self.HIGH)
+        checks = check(self._results(load), ignore_load=True)
+        assert checks["memory_stability"][0] != "SKIPPED"
+        assert checks["checkpoint_latency"][0] != "SKIPPED"
+
+    def test_genuine_leak_still_fails_under_force(self, monkeypatch):
+        from telos.tools.endurance import check
+        load = self._load(monkeypatch, self.HIGH)
+        checks = check(self._results(load, leak_per_cycle=10.0),
+                       ignore_load=True)
+        assert checks["memory_stability"][0] == "FAIL"
+
+    def test_overall_is_incomplete_not_pass_when_skipped(self, monkeypatch):
+        from telos.tools.endurance import check, print_table
+        load = self._load(monkeypatch, self.HIGH)
+        checks = check(self._results(load), ignore_load=False)
+        assert print_table(self._results(load), checks) == "INCOMPLETE"
+
+    def test_overall_pass_when_quiet_and_clean(self, monkeypatch):
+        from telos.tools.endurance import check, print_table
+        load = self._load(monkeypatch, self.LOW)
+        checks = check(self._results(load), ignore_load=False)
+        assert print_table(self._results(load), checks) == "PASS"
+
+    def test_custom_threshold_configures_guard(self, monkeypatch):
+        from telos.tools.endurance import read_load, load_reason
+        load = self._load(monkeypatch, self.LOW)
+        # with a stricter guard the same quiet load trips the threshold
+        assert load_reason(load, {"max_load_per_cpu": 0.01,
+                                  "max_swap_frac": 1.0}) != ""
+
+    def test_exit_codes_three_states(self):
+        from telos.tools.endurance import verdict_exit_code
+        assert verdict_exit_code("PASS") == 0
+        assert verdict_exit_code("FAIL") == 1
+        assert verdict_exit_code("INCOMPLETE") == 0        # skip != failure
+        assert verdict_exit_code("INCOMPLETE", strict=True) == 2
+        assert verdict_exit_code("FAIL", strict=True) == 1  # fail beats strict

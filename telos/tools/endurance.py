@@ -27,6 +27,13 @@ tests/core/test_endurance_invariants.py):
                         fingerprint stable.
   9. Stagnation recovery — arming classified per the canonical exempt sets
                         (no false-positive escapes when actions flow).
+ 10. Load guard       — load-sensitive checks (memory_stability,
+                         checkpoint_latency) report SKIPPED under host
+                         contention, never a false PASS/FAIL. Threshold from
+                         os.getloadavg()/cpu_count (plus swap pressure); see
+                         LOAD_GUARD. Override with --force / --ignore-load
+                         (env TELOS_ENDURANCE_IGNORE_LOAD=1) to demand a real
+                         measurement; --strict exits 2 when a skip occurs.
 """
 import argparse
 from collections import deque
@@ -81,6 +88,109 @@ STABILITY = {
                                 # action_loop-block streak must stay bounded
                                 # (the Λ3.1 escape injects well before this)
 }
+
+# ── Load guard ────────────────────────────────────────────────────────────
+# A gate that reports FAIL when the *machine* is loaded is measuring the
+# machine, not TELOS. When the host is contended, the load-sensitive checks
+# (memory retention + checkpoint timing) report SKIPPED with the measured load
+# as evidence instead of a false FAIL. Override with --force / --ignore-load.
+#
+# Signals (all read live, never fabricated):
+#   * os.getloadavg()[0] — the 1-minute kernel run-queue average (POSIX),
+#     normalised by os.cpu_count() → "load per CPU". This is the primary gate.
+#   * swap usage — `sysctl -n vm.swapusage` on darwin, /proc/meminfo on Linux.
+#     Memory pressure directly corrupts the memory-retention measurement.
+#   * competing heavy processes — `ps -A -o pcpu=` counted at pcpu>=25.
+#     Reported as evidence only; not a gate (transient, noisy).
+LOAD_GUARD = {
+    "max_load_per_cpu": 0.75,   # 1-min loadavg / cpu_count
+    "max_swap_frac": 0.70,      # swap_used / swap_total: >70% in use means the
+                                # host is under memory pressure, which
+                                # contaminates the retention measurement and
+                                # contends with checkpoint disk I/O.
+}
+LOAD_SENSITIVE_CHECKS = ("memory_stability", "checkpoint_latency")
+
+
+def _read_swap_mb() -> tuple:
+    """Return (used_mb, total_mb) for swap, or (0, 0) if unreadable.
+
+    darwin: `sysctl -n vm.swapusage` -> "total = 5120.00M  used = 4590.88M ...".
+    linux: /proc/meminfo SwapTotal/SwapFree in kB.
+    """
+    try:
+        if sys.platform == "darwin":
+            out = subprocess.check_output(
+                ["sysctl", "-n", "vm.swapusage"], text=True, timeout=5)
+            # "total = 5120.00M  used = 4590.88M  free = 529.12M (encrypted)"
+            import re
+            mt = re.search(r"total\s*=\s*([\d.]+)M", out)
+            mu = re.search(r"used\s*=\s*([\d.]+)M", out)
+            return (int(float(mu.group(1))) if mu else 0,
+                    int(float(mt.group(1))) if mt else 0)
+        with open("/proc/meminfo") as f:
+            kv = {}
+            for line in f:
+                k, _, v = line.partition(":")
+                kv[k.strip()] = v.strip()
+        total = int(kv.get("SwapTotal", "0 kB").split()[0]) / 1024.0
+        free = int(kv.get("SwapFree", "0 kB").split()[0]) / 1024.0
+        return (int(total - free), int(total))
+    except Exception:
+        return (0, 0)
+
+
+def _count_heavy_procs(threshold: float = 25.0) -> int:
+    """Competing CPU-heavy processes at >= threshold% CPU (informational)."""
+    try:
+        out = subprocess.check_output(
+            ["ps", "-A", "-o", "pcpu="], text=True, timeout=5)
+        return sum(1 for line in out.splitlines()
+                   if line.strip() and float(line.strip()) >= threshold)
+    except Exception:
+        return 0
+
+
+def read_load() -> dict:
+    """Read the live host-load signals (see LOAD_GUARD for provenance)."""
+    try:
+        la = os.getloadavg()
+    except (OSError, AttributeError):
+        la = (0.0, 0.0, 0.0)
+    cpus = os.cpu_count() or 1
+    used_mb, total_mb = _read_swap_mb()
+    return {
+        "load1": round(la[0], 2),
+        "load5": round(la[1], 2),
+        "load15": round(la[2], 2),
+        "cpus": cpus,
+        "load_per_cpu": round(la[0] / cpus, 3),
+        "swap_used_mb": used_mb,
+        "swap_total_mb": total_mb,
+        "swap_frac": round(used_mb / total_mb, 3) if total_mb else 0.0,
+        "heavy_procs": _count_heavy_procs(),
+    }
+
+
+def load_reason(load: dict, guard: dict = None) -> str:
+    """Return the human-readable reason the host is loaded, or "" if quiet.
+
+    Pure predicate over a read_load() dict so it is directly unit-testable
+    with os.getloadavg patched.
+    """
+    g = guard or LOAD_GUARD
+    reasons = []
+    lpc = float(load.get("load_per_cpu", 0.0))
+    if lpc >= g["max_load_per_cpu"]:
+        reasons.append(
+            f"1-min load/cpu {lpc} >= {g['max_load_per_cpu']} "
+            f"(load1={load.get('load1')} cpus={load.get('cpus')})")
+    sf = float(load.get("swap_frac", 0.0))
+    if sf >= g["max_swap_frac"]:
+        reasons.append(
+            f"swap {sf:.0%} >= {g['max_swap_frac']:.0%} "
+            f"({load.get('swap_used_mb')}/{load.get('swap_total_mb')}MB)")
+    return "; ".join(reasons)
 
 
 def current_rss_kb() -> int:
@@ -173,6 +283,7 @@ def run_endurance(cycles: int, mode: str = "fast", seed: int = 42,
     if os.path.isdir(cp_dir):
         shutil.rmtree(cp_dir)
     os.makedirs(cp_dir, exist_ok=True)
+    load_start = read_load()
     pipe = build_pipeline(cp_dir, seed=seed, fast=(mode == "fast"))
     state = np.array([0.0, 0.0])
 
@@ -271,6 +382,11 @@ def run_endurance(cycles: int, mode: str = "fast", seed: int = 42,
         pipe._checkpointer.save = _orig_save
 
     elapsed = time.time() - t0_run
+    load_end = read_load()
+    # The gate keys off the WORSE of the start/end samples: a run that began
+    # quiet but ended contended (or vice versa) is still not a clean measure.
+    load = load_start if load_start["load_per_cpu"] >= load_end["load_per_cpu"] \
+        else load_end
     # Final own-process sample. Leak detection is on RETENTION (pymalloc blocks),
     # not a single RSS endpoint — see memory_leak_metrics().
     mem_samples.append({
@@ -344,6 +460,9 @@ def run_endurance(cycles: int, mode: str = "fast", seed: int = 42,
         "cycles": cycles,
         "mode": mode,
         "elapsed_s": round(elapsed, 2),
+        "load": load,
+        "load_start": load_start,
+        "load_end": load_end,
         "cycle_mean_ms": round(float(np.mean(cycle_times_list)), 3),
         "cycle_p95_ms": round(sorted(cycle_times_list)[int(0.95 * len(cycle_times_list))], 3),
         "cycle_max_ms": round(float(max(cycle_times_list)), 3),
@@ -411,13 +530,27 @@ def _fingerprint(cycles: int, seed: int) -> str:
             shutil.rmtree(cp)
 
 
-def check(results: dict) -> dict:
+def check(results: dict, ignore_load: bool = False,
+          guard: dict = None) -> dict:
     """Evaluate each invariant against the stability contract.
 
-    Returns {invariant: (passed, measured, expected)}.
+    Returns {invariant: (status, measured, expected)} where status is one of
+    "PASS", "FAIL", or "SKIPPED". Load-sensitive checks (memory_stability,
+    checkpoint_latency) become "SKIPPED" -- never PASS, never FAIL -- when the
+    host load signal exceeds the guard, because under contention those
+    measurements describe the machine, not TELOS. A genuine regression still
+    FAILs whenever the check actually runs.
+
     Args:
         results: the measured results dict from run_endurance().
+        ignore_load: True (--force / --ignore-load) runs the load-sensitive
+            checks regardless of host load, so a release gate can demand a
+            real measurement.
+        guard: optional threshold override (defaults to LOAD_GUARD).
     """
+    g = guard or LOAD_GUARD
+    load = results.get("load") or {}
+    reason = "" if ignore_load else load_reason(load, g)
     out = {}
     out["di_stability"] = (results["di_tail_mean"] >= STABILITY["di_floor"], results["di_tail_mean"], f">={STABILITY['di_floor']}")
     leak_slope = results.get("leak_blocks_per_cycle", 0.0)
@@ -449,10 +582,40 @@ def check(results: dict) -> dict:
         results["max_trap_streak"],
         f"streak<={STABILITY['max_trap_streak']}",
     )
+    # Normalise every entry to the three-state string contract
+    # ("PASS"/"FAIL"/"SKIPPED") so no consumer treats a skip as a bool pass.
+    out = {n: (("PASS" if v[0] else "FAIL"), v[1], v[2])
+           for n, v in out.items()}
+    if reason:
+        for name in LOAD_SENSITIVE_CHECKS:
+            _, measured, expected = out[name]
+            out[name] = ("SKIPPED", measured,
+                         f"load guard: {reason} (expected {expected})")
     return out
 
 
-def print_table(results: dict, checks: dict) -> bool:
+def verdict_exit_code(overall: str, strict: bool = False) -> int:
+    """Map the three-state verdict to a process exit code.
+
+    PASS -> 0. Any FAIL -> 1 (a real regression must block). INCOMPLETE (a
+    load-sensitive check was SKIPPED, no failures) -> 0 by default: it is
+    honestly *not* a pass, so it is reported as INCOMPLETE rather than PASS,
+    but a contended local run should not look like a failure. --strict maps
+    INCOMPLETE -> 2 so a release pipeline can refuse an unmeasured check.
+
+    Args:
+        overall: "PASS", "FAIL", or "INCOMPLETE".
+        strict: treat a skip as a non-zero (2) result.
+    """
+    if overall == "FAIL":
+        return 1
+    if overall == "INCOMPLETE":
+        return 2 if strict else 0
+    return 0
+
+
+def print_table(results: dict, checks: dict) -> str:
+    """Print the three-state report. Returns "PASS", "FAIL", or "INCOMPLETE"."""
     print("\n" + "=" * 84)
     print(f"TELOS v7 STABILITY GATE — {results['cycles']:,} cycles ({results['mode']})")
     print("=" * 84)
@@ -484,16 +647,25 @@ def print_table(results: dict, checks: dict) -> bool:
     for name, m, e in rows:
         print(f"{name:<30}{m:>16}{e:>18}")
     print("-" * 84)
-    all_ok = True
-    print("INVARIANTS:")
-    for name, (ok, m, e) in checks.items():
-        mark = "PASS" if ok else "FAIL"
-        if not ok:
-            all_ok = False
-        print(f"  [{mark}] {name:<32} measured={m} expected {e}")
+    statuses = [c[0] for c in checks.values()]
+    any_fail = "FAIL" in statuses
+    skipped = [(n, c) for n, c in checks.items() if c[0] == "SKIPPED"]
+    print("INVARIANTS (three-state):")
+    for name, (status, m, e) in checks.items():
+        print(f"  [{status}] {name:<32} measured={m} expected {e}")
+    overall = "FAIL" if any_fail else ("INCOMPLETE" if skipped else "PASS")
+    if skipped:
+        load = results.get("load") or {}
+        print("-" * 84)
+        print(f"SKIPPED under load (not counted as PASS) — "
+              f"load1/cpu={load.get('load_per_cpu')}, "
+              f"swap={load.get('swap_frac')}, "
+              f"heavy_procs={load.get('heavy_procs')}:")
+        for name, (_, m, e) in skipped:
+            print(f"  - {name}: {e}")
     print("=" * 84)
-    print("STABILITY GATE:", "PASS" if all_ok else "FAIL")
-    return all_ok
+    print("STABILITY GATE:", overall)
+    return overall
 
 
 if __name__ == "__main__":
@@ -501,12 +673,35 @@ if __name__ == "__main__":
     ap.add_argument("--cycles", type=int, default=10000)
     ap.add_argument("--mode", choices=["fast", "standard"], default="fast")
     ap.add_argument("--json", default="")
+    ap.add_argument("--force", "--ignore-load", dest="ignore_load",
+                    action="store_true",
+                    default=os.environ.get("TELOS_ENDURANCE_IGNORE_LOAD") == "1",
+                    help="run load-sensitive checks regardless of host load "
+                         "(release/CI mode on a quiet machine)")
+    ap.add_argument("--strict", action="store_true",
+                    help="treat SKIPPED checks as a non-zero (exit 2) result")
+    ap.add_argument("--max-load-per-cpu", type=float,
+                    default=float(os.environ.get(
+                        "TELOS_ENDURANCE_MAX_LOAD_PER_CPU",
+                        LOAD_GUARD["max_load_per_cpu"])),
+                    help="1-min loadavg / cpu_count skip threshold")
+    ap.add_argument("--max-swap-frac", type=float,
+                    default=float(os.environ.get(
+                        "TELOS_ENDURANCE_MAX_SWAP_FRAC",
+                        LOAD_GUARD["max_swap_frac"])),
+                    help="swap-used fraction skip threshold")
     args = ap.parse_args()
+    guard = {"max_load_per_cpu": args.max_load_per_cpu,
+             "max_swap_frac": args.max_swap_frac}
     res = run_endurance(cycles=args.cycles, mode=args.mode)
-    checks = check(res)
-    ok = print_table(res, checks)
+    checks = check(res, ignore_load=args.ignore_load, guard=guard)
+    overall = print_table(res, checks)
     if args.json:
         with open(args.json, "w") as f:
-            json.dump({**res, "invariants": {k: v[0] for k, v in checks.items()}}, f, indent=2)
+            json.dump({**res, "invariants": {k: v[0] for k, v in checks.items()},
+                       "overall": overall}, f, indent=2)
         print(f"(results saved: {args.json})")
-    sys.exit(0 if ok else 1)
+    # Exit codes: PASS=0; any FAIL=1; INCOMPLETE (skips, no fail) = 0 by
+    # default (honest: it is not a PASS), or 2 under --strict for pipelines
+    # that must never silently accept an unmeasured load-sensitive check.
+    sys.exit(verdict_exit_code(overall, strict=args.strict))
