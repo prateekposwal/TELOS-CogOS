@@ -216,7 +216,7 @@ that broke it deserves to be a **theorem**, not just a code comment:
 
 - `README.md`, `TELOS_V7.md` — system + kernel milestone
 - `telos/AXIOMS.md` — the 42 axioms
-- `telos/THEOREMS.md` — pillars, Λ4.7, security defenses, DFI patterns, identity model, commitment principle
+- `telos/PRINCIPLES.md` — pillars, Λ4.7, security defenses, DFI patterns, identity model, commitment principle (principles/heuristics, not theorems)
 - `telos/discoveries/IDENTITY_DESIGN_PAPER.md` — Identity Projection Theorem
 - `telos/discoveries/REPRESENTATIONAL_ECOLOGY.md` — ecology framework
 - `telos/discoveries/VISION_v2_INTEGRATION.md` — three-tier hooks

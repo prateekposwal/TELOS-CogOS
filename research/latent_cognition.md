@@ -2,11 +2,19 @@
 
 ## Abstract
 
-We present the **Laws of Systemic Intelligence**, a formally axiomatized cognitive architecture implemented as the TELOS Cognitive Operating System. The system comprises twenty axioms organized into four architectural layers — Foundational (Λ₁), Dynamics (Λ₂), Lifecycle (Λ₃), and Intelligence (Λ₄) — supported by nineteen mathematical theorems proving axiom satisfaction by construction.
+We present the **Laws of Systemic Intelligence**, a formally axiomatized cognitive architecture implemented as the TELOS Cognitive Operating System. The system comprises twenty axioms organized into four architectural layers — Foundational (Λ₁), Dynamics (Λ₂), Lifecycle (Λ₃), and Intelligence (Λ₄) — supported by twenty mathematical theorems proving axiom satisfaction by construction.
 
 The architecture introduces four novel computational primitives: (1) a **Blocking Council** where validators prevent action rather than advise it, inverting the standard advisory-agent pattern; (2) **Kintsugi Memory** where failures are recorded as structural assets that constrain the decision manifold rather than errors to be discarded; (3) an **Infrastructure Manager** as a meta-cognitive layer that adjusts system parameters without modifying pipeline logic, enabling closed-form self-modification without neural plasticity; and (4) **Evidence-Weighted Influence** where cognitive stream authority is determined by historical calibration rather than fixed priority.
 
 The system is implemented as 67 passing tests across 11 test files, with zero runtime dependencies beyond NumPy. We demonstrate that the architecture is domain-independent by verifying the same pipeline produces correct behavior across GridWorld, Chess, and Synthetic domains while maintaining axiom satisfaction under domain swap.
+
+> **Status note (2026-09-18).** This paper describes the **v1 20-axiom** system.
+> That constitution has been **superseded** by the current **42-axiom** system
+> (`telos/AXIOMS.md`), and the twenty "theorems" below are **constructive**
+> existence proofs ("a validator exists ⇒ the axiom holds"), not falsifiable
+> predictions. The null-bearing restatement of the load-bearing claims lives in
+> `research/FALSIFIABLE_THEOREMS.md` and is executed against the live runtime by
+> `telos/tools/theorem_audit.py`.
 
 ---
 
@@ -390,6 +398,11 @@ where $f_r$ = failure rate, $g_r$ = governance block rate, $\bar{h}$ = mean heal
 ---
 
 ## 4. Mathematical Theorems
+
+> The twenty items in this section are *constructive* proofs for the v1
+> 20-axiom system. They are existence arguments, not null-bearing
+> invariants; see the Status note above and
+> `research/FALSIFIABLE_THEOREMS.md` for the falsifiable restatement.
 
 ### Theorem 1 (Axiom 1.1 — Architecture Produces Outcomes)
 
