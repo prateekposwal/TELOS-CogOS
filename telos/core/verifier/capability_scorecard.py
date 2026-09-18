@@ -123,6 +123,28 @@ _VERIFICATION_LABELS: Dict[str, str] = {
     "theorems_all_hold": "the theorem catalogue holds against its declared nulls",
 }
 
+# The PER-CYCLE compliance artifact a REAL running pipeline writes into
+# telos/audit/axiom_compliance.json (telos/tools/axiom_compliance_eval.py).
+# verification_eval proves the constitution is falsifiable and green on a
+# synthetic healthy input; this artifact proves whether live traces actually
+# obey the axioms. The two are different claims and both back verification
+# rigor. Locked to the writer by tests/core/test_axiom_compliance_eval.py.
+AXIOM_COMPLIANCE_CRITERIA: tuple = (
+    "cycles_measured",
+    "traces_present",
+    "axiom_set_complete",
+)
+
+AXIOM_COMPLIANCE_ARTIFACT = "telos/audit/axiom_compliance.json"
+
+# verification_rigor decomposition (max 5.0 = 1.0 structure + 3.0 adversarial
+# falsifier/theorem audit + 1.0 live per-cycle compliance). Live compliance is
+# credited in proportion to the WORST measured cycle (min_compliance), so a
+# pipeline that obeys only 28/42 on every cycle can never score the full point:
+# verification claims that are not true of the running system are not awarded.
+_VERIFICATION_ADVERSARIAL_WEIGHT = 3.0
+_VERIFICATION_LIVE_WEIGHT = 1.0
+
 # The behavioral criteria the reproducibility harness writes into
 # telos/audit/reproducibility_eval.json.
 REPRODUCIBILITY_CRITERIA: tuple = (
@@ -812,13 +834,47 @@ def _score_governance(root: str) -> DimensionResult:
         measurement=measured.artifact)
 
 
-def _score_verification(root: str) -> DimensionResult:
-    """Score verification rigor from EXECUTED adversarial verifiers.
+def _live_compliance(root: str) -> tuple:
+    """Read the live per-cycle compliance artifact.
 
-    Structure earns only a small base; the rest is credited when the
-    verification harness actually ran the axiom falsifier and theorem audit
-    and its machine-checkable verdict passed. A missing/failing harness
-    credits nothing beyond the base (never a silent pass).
+    Fail-closed: a missing, malformed, torn, or not-well-formed artifact
+    returns (False, 0.0) so the live-compliance component credits nothing.
+
+    Args:
+        root: repo root.
+
+    Returns:
+        (well_formed, min_compliance) where min_compliance is the worst
+        measured cycle's passed/42 ratio, clamped to [0, 1].
+    """
+    measured = read_measurement(
+        root, AXIOM_COMPLIANCE_ARTIFACT, AXIOM_COMPLIANCE_CRITERIA)
+    if measured is None or not measured.verdict_passed:
+        # A structurally valid but FAILING measurement is not well-formed
+        # evidence; credit nothing (fail closed).
+        return (False, 0.0)
+    try:
+        with open(os.path.join(root, AXIOM_COMPLIANCE_ARTIFACT),
+                  "r", encoding="utf-8") as f:
+            data = json.load(f)
+        value = float(data.get("min_compliance", 0.0))
+    except (OSError, ValueError, TypeError):
+        return (False, 0.0)
+    return (True, max(0.0, min(1.0, value)))
+
+
+def _score_verification(root: str) -> DimensionResult:
+    """Score verification rigor from EXECUTED adversarial verifiers AND the
+    live per-cycle axiom compliance of the real pipeline.
+
+    Structure earns only a small base. The adversarial component (3.0) is
+    credited when the verification harness actually ran the axiom falsifier
+    and theorem audit and its verdict passed. The live component (1.0) is
+    credited in proportion to the WORST measured cycle's axiom compliance
+    (axiom_compliance.json) — so a system that obeys only 28/42 on live
+    cycles cannot claim maximal verification rigor. Any missing/failing/
+    not-well-formed artifact credits nothing for its component (never a
+    silent pass).
 
     Args:
         root: repo root.
@@ -850,13 +906,30 @@ def _score_verification(root: str) -> DimensionResult:
     for name in VERIFICATION_CRITERIA:
         if measured.criteria.get(name):
             evidence.append(f"measured: {_VERIFICATION_LABELS[name]}")
-    score = base + (4.0 if measured.verdict_passed else 0.0)
+    adversarial = _VERIFICATION_ADVERSARIAL_WEIGHT if measured.verdict_passed else 0.0
     if not measured.verdict_passed:
         evidence.append(
-            "verification_eval verdict FAIL — measured component withheld")
+            "verification_eval verdict FAIL — adversarial component withheld")
+    live_ok, live_min = _live_compliance(root)
+    if live_ok:
+        live = _VERIFICATION_LIVE_WEIGHT * live_min
+        evidence.append(
+            f"live per-cycle axiom compliance min={live_min:.3f} "
+            "(axiom_compliance.json)")
+        if live_min < 1.0:
+            evidence.append(
+                "live compliance below 42/42 — live component credited "
+                "proportionally, never silently full")
+    else:
+        live = 0.0
+        evidence.append(
+            "no well-formed axiom_compliance.json — live compliance "
+            "component withheld (fail closed)")
+    score = base + adversarial + live
     return DimensionResult(
         name="verification_rigor", score=_clamp(score),
-        basis="axiom falsifier + theorem audit EXECUTED by verification_eval.json",
+        basis="axiom falsifier + theorem audit EXECUTED by verification_eval.json "
+              "+ live per-cycle axiom compliance measured by axiom_compliance.json",
         evidence=evidence,
         external=measured.external,
         independently_measured=measured.independently_measured,
@@ -1155,7 +1228,8 @@ def report_lines(root: Optional[str] = None) -> List[str]:
 
 __all__ = [
     "DIMENSIONS", "TARGETS", "MULTI_AGENT_CRITERIA", "GOVERNANCE_CRITERIA",
-    "VERIFICATION_CRITERIA", "REPRODUCIBILITY_CRITERIA",
+    "VERIFICATION_CRITERIA", "AXIOM_COMPLIANCE_CRITERIA",
+    "AXIOM_COMPLIANCE_ARTIFACT", "REPRODUCIBILITY_CRITERIA",
     "REPRODUCTION_ARTIFACT_PATHS", "REPRODUCTION_CRITERIA", "DimensionResult",
     "compute_scorecard", "four_baselines", "report_lines",
 ]

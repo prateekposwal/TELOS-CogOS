@@ -43,17 +43,19 @@
   },
   "verification_rigor": {
     "name": "verification_rigor",
-    "score": 5.0,
+    "score": 4.67,
     "target": null,
     "gap": null,
-    "basis": "axiom falsifier + theorem audit EXECUTED by verification_eval.json",
+    "basis": "axiom falsifier + theorem audit EXECUTED by verification_eval.json + live per-cycle axiom compliance measured by axiom_compliance.json",
     "evidence": [
       "structure present=4/4",
       "measured criteria 4/4 (verification_eval.json)",
       "measured: all axioms pass on the healthy prover input",
       "measured: every axiom can be made to fail (falsifiable)",
       "measured: the falsifier sees the whole constitution (42)",
-      "measured: the theorem catalogue holds against its declared nulls"
+      "measured: the theorem catalogue holds against its declared nulls",
+      "live per-cycle axiom compliance min=0.667 (axiom_compliance.json)",
+      "live compliance below 42/42 \u2014 live component credited proportionally, never silently full"
     ],
     "external": false,
     "independently_measured": true,
