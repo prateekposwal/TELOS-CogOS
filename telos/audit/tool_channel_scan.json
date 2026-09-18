@@ -1,0 +1,73 @@
+{
+  "governed": [
+    {
+      "path": "telos/core/actions/executor.py",
+      "lineno": 626,
+      "kind": "subprocess",
+      "call": "subprocess.run"
+    }
+  ],
+  "known_bypasses": [
+    {
+      "path": "telos/adapters/dev_domain_adapter.py",
+      "reason": "dev-domain simulator subprocess \u2014 Phase 1 routes it through the executor",
+      "calls": [
+        {
+          "lineno": 193,
+          "kind": "subprocess",
+          "call": "subprocess.run"
+        },
+        {
+          "lineno": 244,
+          "kind": "subprocess",
+          "call": "subprocess.run"
+        }
+      ]
+    },
+    {
+      "path": "telos/adapters/dev_validation.py",
+      "reason": "dev validation subprocess \u2014 Phase 1 routes it through the executor",
+      "calls": [
+        {
+          "lineno": 102,
+          "kind": "subprocess",
+          "call": "subprocess.run"
+        }
+      ]
+    },
+    {
+      "path": "telos/core/contracts/model_provider.py",
+      "reason": "network chat providers (Ollama/OpenAI/Anthropic) via http.client \u2014 Phase 1 routes them through the tool registry",
+      "calls": [
+        {
+          "lineno": 68,
+          "kind": "network",
+          "call": "http.client.HTTPConnection"
+        },
+        {
+          "lineno": 194,
+          "kind": "network",
+          "call": "http.client.HTTPSConnection"
+        }
+      ]
+    },
+    {
+      "path": "telos/core/governance/human_gateway.py",
+      "reason": "outbound human-approval webhook via http.client \u2014 Phase 1 governs it",
+      "calls": [
+        {
+          "lineno": 159,
+          "kind": "network",
+          "call": "http.client.HTTPSConnection"
+        }
+      ]
+    }
+  ],
+  "unknown": [],
+  "counts": {
+    "governed_sites": 1,
+    "known_bypass_sites": 6,
+    "unknown_sites": 0,
+    "known_bypass_files": 4
+  }
+}

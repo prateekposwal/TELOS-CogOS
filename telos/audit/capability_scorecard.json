@@ -1,0 +1,124 @@
+{
+  "autonomy": {
+    "name": "autonomy",
+    "score": 3.5,
+    "target": null,
+    "gap": null,
+    "basis": "self-directed inquiry + curiosity + live producer loop",
+    "evidence": [
+      "signals=3/3"
+    ],
+    "external": false
+  },
+  "self_governance": {
+    "name": "self_governance",
+    "score": 5.0,
+    "target": null,
+    "gap": null,
+    "basis": "blocking council + firewall + capability authorization + governor present",
+    "evidence": [
+      "present=4/4"
+    ],
+    "external": false
+  },
+  "verification_rigor": {
+    "name": "verification_rigor",
+    "score": 4.5,
+    "target": null,
+    "gap": null,
+    "basis": "axiom falsifier + theorem audit + external log audit + non-ergodicity",
+    "evidence": [
+      "present=4/4"
+    ],
+    "external": false
+  },
+  "memory": {
+    "name": "memory",
+    "score": 3.5,
+    "target": 5.0,
+    "gap": 1.5,
+    "basis": "stores + controller/tiering/retrieval-eval completeness",
+    "evidence": [
+      "memory stores present=5/5"
+    ],
+    "external": false
+  },
+  "learning": {
+    "name": "learning",
+    "score": 3.0,
+    "target": 4.0,
+    "gap": 1.0,
+    "basis": "theory/skill machinery + curriculum + measured learning curve",
+    "evidence": [
+      "theory builder",
+      "falsifiable experiment"
+    ],
+    "external": false
+  },
+  "reproducibility": {
+    "name": "reproducibility",
+    "score": 4.5,
+    "target": null,
+    "gap": null,
+    "basis": "perf contract + endurance gate + coverage + packaging; capped without external reproduction",
+    "evidence": [
+      "present=4/4"
+    ],
+    "external": false
+  },
+  "multi_agent": {
+    "name": "multi_agent",
+    "score": 2.0,
+    "target": null,
+    "gap": null,
+    "basis": "advisory distributed council + coordination (scaffold)",
+    "evidence": [
+      "distributed=True",
+      "coordination=True"
+    ],
+    "external": false
+  },
+  "tool_use": {
+    "name": "tool_use",
+    "score": 3.0,
+    "target": 4.5,
+    "gap": 1.5,
+    "basis": "registry families + ungoverned-channel count + capability/sandbox coverage",
+    "evidence": [
+      "telos/core/actions/executor.py (4 hard gates)",
+      "registry families=5",
+      "unknown ungoverned channels=0"
+    ],
+    "external": false
+  },
+  "maturity": {
+    "name": "maturity",
+    "score": 3.1,
+    "target": 5.0,
+    "gap": 1.9,
+    "basis": "packaging/release/CLI signals; capped at 4.0 without external reproduction + adoption",
+    "evidence": [
+      "pyproject.toml",
+      "LICENSE",
+      "CHANGELOG.md",
+      "telos/cli.py",
+      "telos/__main__.py",
+      "README.md",
+      "__version__",
+      "git tags=0"
+    ],
+    "external": false
+  },
+  "docs": {
+    "name": "docs",
+    "score": 4.0,
+    "target": null,
+    "gap": null,
+    "basis": "architecture + axioms + readme + changelog; drift not auto-detected",
+    "evidence": [
+      "present=5/5",
+      "known_issues_tracked=False"
+    ],
+    "external": false
+  }
+}
