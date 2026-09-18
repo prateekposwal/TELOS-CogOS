@@ -7,7 +7,7 @@
 PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
 export PYTHONPATH := .
 
-.PHONY: test test-core test-fallback test-all lint run audit clean
+.PHONY: test test-core test-fallback test-all lint run audit coverage clean
 
 test: test-core test-fallback
 
@@ -28,6 +28,10 @@ run:
 
 audit:
 	$(PYTHON) telos/tools/self_audit.py
+
+coverage:
+	$(PYTHON) telos/tools/branch_coverage.py --scope core --top 20 \
+		--json telos/audit/branch_coverage.json
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
