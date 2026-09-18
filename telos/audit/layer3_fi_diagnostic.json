@@ -3,16 +3,19 @@
   "non_mutating": true,
   "cycles": 150,
   "seed": 42,
-  "live_bootstrap_rule": "missionless_bootstrap = not mission_active",
+  "live_bootstrap_rule": "missionless_bootstrap = not mission_defined",
   "canonical_gate": "telos/core/identity/projection_gate.py::IdentityProjectionGate.is_admissible",
   "weak_gate": "telos/core/decision/commitment_optimizer.py::CommitmentOptimizer.is_trajectory_admissible",
   "live_path_calls": "canonical IdentityProjectionGate (via SelectPhase._enforce_identity_projection)",
   "reachability": {
-    "L3_mission_check_reachable_in_live_path": false,
-    "proof": "select.py::_identity_gate_context returns missionless_bootstrap = not mission_active; the predicate's L3 guard is 'not mission_active and not missionless_bootstrap' = 'not mission_active and mission_active' = False unconditionally",
-    "L1_L2_reachable_structurally": true,
-    "L1_L2_reachable_for_live_intents": false,
-    "L1_L2_note": "L1/L2 only fire on adversarial substrings ('steal'/'deceive'/'exploit'+'explore'+'harm') or a non-default narrative role; the default role is 'agent' and no live stream emits those substrings"
+    "L3_mission_check_reachable_in_live_path": true,
+    "proof": "select.py::_identity_gate_context now returns missionless_bootstrap = not mission_defined (GENUINE bootstrap only); a kernel that declared an objective but has no active mission scope presents mission_active=False, mission_defined=True, missionless_bootstrap=False, which the L3 guard 'not mission_active and not genuine_bootstrap' satisfies -> the mission-less trajectory is projected out",
+    "L1_reachable_structurally": true,
+    "L1_reachable_for_live_intents": false,
+    "L1_note": "L1 fires only on literal adversarial substrings ('steal'/'deceive'/'exploit'+'explore'+'harm'); no live stream emits those",
+    "L2_reachable_structurally": true,
+    "L2_reachable_for_live_intents": false,
+    "L2_note": "the default role 'agent' now has a real compatibility predicate (agency-ceding intents: abdicate/surrender/self_destruct/self_terminate/delegate_all); it is conservative and no live stream emits those, so L2 is live-capable but inert for live traffic (defense-in-depth)"
   },
   "workloads": {
     "with_mission": {
@@ -58,7 +61,7 @@
         "L3_active_mission": 0,
         "L4_project_scope": 0
       },
-      "L3_reachable_in_live_path": false,
+      "L3_wiring_reachable": true,
       "projected_out_total": 0,
       "rejected_selected_total": 0,
       "safe_fallback_total": 0,
@@ -1159,7 +1162,7 @@
         "L3_active_mission": 0,
         "L4_project_scope": 0
       },
-      "L3_reachable_in_live_path": false,
+      "L3_wiring_reachable": true,
       "projected_out_total": 0,
       "rejected_selected_total": 0,
       "safe_fallback_total": 0,
@@ -2225,8 +2228,9 @@
   },
   "adversarial": {
     "mission_active": true,
+    "mission_defined": true,
     "mission_ids": [
-      "mission_1789758392862_0"
+      "mission_1789760841927_0"
     ],
     "narrative_role": "agent",
     "normal": {
@@ -2247,6 +2251,32 @@
       "replacement": "plan_trajectory",
       "fallback": false
     }
+  },
+  "l3_enforcement": {
+    "before_mission_completed": {
+      "mission_active": true,
+      "mission_defined": true,
+      "missionless_bootstrap": false
+    },
+    "after_mission_completed": {
+      "mission_active": false,
+      "mission_defined": true,
+      "missionless_bootstrap": false
+    },
+    "live_shaped_intent": "plan_trajectory",
+    "enforcement": {
+      "mission_active": false,
+      "mission_defined": true,
+      "missionless_bootstrap": false,
+      "projected_out": [
+        "plan_trajectory"
+      ],
+      "rejected_selected": "plan_trajectory",
+      "replacement": "reflex",
+      "fallback": true
+    },
+    "L3_rejected_live_shaped_intent": true,
+    "replacement": "reflex"
   },
   "boundary": [
     {
@@ -2271,14 +2301,39 @@
       }
     },
     {
-      "case": "just_outside: plan_trajectory + no mission + bootstrap True",
+      "case": "genuine_bootstrap: plan_trajectory + no objective ever",
       "actual": true,
       "expected": true,
       "pass": true,
       "inputs": {
         "intent_type": "plan_trajectory",
         "mission_active": false,
-        "missionless_bootstrap": true
+        "missionless_bootstrap": true,
+        "mission_defined": false
+      }
+    },
+    {
+      "case": "defined_no_active: plan_trajectory + objective, no active scope",
+      "actual": false,
+      "expected": false,
+      "pass": true,
+      "inputs": {
+        "intent_type": "plan_trajectory",
+        "mission_active": false,
+        "missionless_bootstrap": false,
+        "mission_defined": true
+      }
+    },
+    {
+      "case": "misset_bootstrap_cannot_bypass: flag True but objective defined",
+      "actual": false,
+      "expected": false,
+      "pass": true,
+      "inputs": {
+        "intent_type": "plan_trajectory",
+        "mission_active": false,
+        "missionless_bootstrap": true,
+        "mission_defined": true
       }
     },
     {
@@ -2315,6 +2370,28 @@
         "intent_type": "explore_dangerous",
         "mission_active": true,
         "narrative_role": "guardian"
+      }
+    },
+    {
+      "case": "default_agent_role: surrender_control",
+      "actual": false,
+      "expected": false,
+      "pass": true,
+      "inputs": {
+        "intent_type": "surrender_control",
+        "mission_active": true,
+        "narrative_role": "agent"
+      }
+    },
+    {
+      "case": "default_agent_role: plan_trajectory admitted",
+      "actual": true,
+      "expected": true,
+      "pass": true,
+      "inputs": {
+        "intent_type": "plan_trajectory",
+        "mission_active": true,
+        "narrative_role": "agent"
       }
     },
     {
@@ -2357,42 +2434,20 @@
         "intent_type": "reflex",
         "mission_active": false
       }
-    },
-    {
-      "case": "live_tautology: missionless_bootstrap=not mission_active (True)",
-      "actual": true,
-      "expected": true,
-      "pass": true,
-      "inputs": {
-        "intent_type": "plan_trajectory",
-        "mission_active": true,
-        "missionless_bootstrap": false
-      }
-    },
-    {
-      "case": "live_tautology: missionless_bootstrap=not mission_active (False)",
-      "actual": true,
-      "expected": true,
-      "pass": true,
-      "inputs": {
-        "intent_type": "plan_trajectory",
-        "mission_active": false,
-        "missionless_bootstrap": true
-      }
     }
   ],
   "classification": {
-    "verdict": "MIX",
-    "primary": "C (wiring gap)",
-    "primary_evidence": "L3 mission check is a tautology in the live path: missionless_bootstrap = not mission_active makes 'not mission_active and not missionless_bootstrap' unsatisfiable",
-    "secondary": "B (permissive defaults for Layers 1-2)",
-    "secondary_evidence": "Layer 1 matches literal substrings only; the default narrative role 'agent' is absent from the role map, so L1/L2 never fire for live intents",
+    "verdict": "FIXED",
+    "primary": "C (wiring gap) \u2014 FIXED",
+    "primary_evidence": "select.py::_identity_gate_context now returns missionless_bootstrap = not mission_defined (GENUINE bootstrap only, no objective ever declared); a declared objective with no active mission scope now satisfies the L3 guard and is projected out. The old wiring set missionless_bootstrap = not mission_active, making 'not mission_active and not missionless_bootstrap' unsatisfiable",
+    "secondary": "B (permissive L1) \u2014 L2 default role now has a real predicate",
+    "secondary_evidence": "Layer 1 matches literal substrings only (upstream streams never emit adversarial types \u2014 genuine defense-in-depth). Layer 2's default role 'agent' now has a real, conservative compatibility predicate (agency-ceding intents); it is live-capable but inert for live traffic, i.e. legitimate defense-in-depth, not tautology",
     "D_scope": "Layer 1 only: upstream streams never emit adversarial intent types",
     "live_F_I_failures": 0,
     "live_rejections": 0,
-    "inadmissible_live_intents_possible": false,
-    "headline": "No live intent can ever be identity-inadmissible: Layer 3 is structurally bypassed and Layers 1-2 only reject adversarial strings the producer never emits",
-    "fix_recommended": true,
-    "fix_deferred": "per task constraint \u00a77/\u00a710 \u2014 classification only"
+    "inadmissible_live_intents_possible": true,
+    "headline": "Layer 3 is no longer a tautology: a kernel that declared an objective but currently has no active mission scope projects a mission-less live-shaped intent out and replaces it with the safe reflex keeper. The default live run (objective ACTIVE) is unchanged \u2014 the mission scope is present, so live intents remain admissible",
+    "fix_recommended": false,
+    "fix_applied": true
   }
 }

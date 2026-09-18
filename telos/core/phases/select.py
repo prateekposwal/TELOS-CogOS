@@ -818,26 +818,68 @@ class SelectPhase(Phase):
     # inadmissible trajectory was still selected. Enforcement now projects the
     # inadmissible space out.
 
+    @staticmethod
+    def _mission_is_defined(pipeline, portfolio=None):
+        """Whether the kernel has EVER defined an objective (Layer-3 scope).
+
+        This is the REAL mission-scope signal the gate needs, and the reason
+        the old wiring was a tautology. Distinguishes:
+          * "no mission ever defined" — a genuine pre-mission bootstrap, where
+            Layer 3 has nothing to reference; and
+          * "a mission was defined but none is currently active" — the scope
+            exists, so a mission-less trajectory MUST be projected out.
+
+        An objective is defined when the pipeline declares one
+        (PipelineConfig.mission_name/-_description) OR the portfolio holds any
+        mission at all (active OR historic — a completed/failed mission still
+        proves an objective was defined, so the mission-existence layer stays
+        strict).
+
+        Args:
+            pipeline: the running pipeline.
+            portfolio: optional pre-fetched mission portfolio (avoids a second
+                attribute lookup).
+
+        Returns:
+            True when an objective scope has ever been defined.
+        """
+        config = getattr(pipeline, 'config', None)
+        if config is not None and (
+                getattr(config, 'mission_name', None)
+                or getattr(config, 'mission_description', None)):
+            return True
+        if portfolio is None:
+            portfolio = getattr(pipeline, '_mission_portfolio', None)
+        if portfolio is not None:
+            missions = getattr(portfolio, '_missions', None)
+            if missions:
+                return True
+            active_fn = getattr(portfolio, 'active_missions', None)
+            if callable(active_fn) and active_fn():
+                return True
+        return False
+
     def _identity_gate_context(self, pipeline):
         """Read the F(I) mission context used by the enforcement gate.
 
         A pipeline that DECLARES an objective (PipelineConfig.mission_name) is
         seeded with one active mission at construction, so Layer 3 is genuinely
-        evaluated. A pipeline still without a mission legitimately takes the
-        pre-mission (bootstrap) path: passing mission_active=False to the
-        STRICT gate would make every non-reflex intent inadmissible and
-        collapse selection to nothing, so `missionless_bootstrap` keeps Layers
-        1–2 (core values + narrative role) enforced and skips ONLY the
-        mission-existence layer, asserted here because the portfolio provably
-        has zero active missions. Either way it is recorded on ctx, never
-        silent.
+        evaluated. `missionless_bootstrap` is now the GENUINE-bootstrap signal
+        ONLY — True iff no objective has ever been defined. A kernel that
+        declared an objective but whose portfolio currently has no active
+        mission passes missionless_bootstrap=False, so Layer 3 can (and must)
+        project a mission-less trajectory out. The old wiring set
+        `missionless_bootstrap = not mission_active`, which made the gate's
+        Layer-3 guard `not mission_active and not missionless_bootstrap` ≡
+        `not mission_active and mission_active` — an unconditional bypass. The
+        real scope signal `mission_defined` is returned and recorded too.
 
         Args:
             pipeline: the running pipeline.
 
         Returns:
             Tuple (gate-or-None, mission_active, mission_ids,
-            missionless_bootstrap).
+            missionless_bootstrap, mission_defined).
         """
         gate = getattr(pipeline, '_identity_projection_gate', None)
         portfolio = getattr(pipeline, '_mission_portfolio', None)
@@ -854,7 +896,11 @@ class SelectPhase(Phase):
         for m in active:
             mission_ids.append(getattr(m, 'id', None))
             mission_ids.extend(getattr(m, 'project_ids', []) or [])
-        return gate, mission_active, mission_ids, not mission_active
+        mission_defined = self._mission_is_defined(pipeline, portfolio)
+        # Genuine bootstrap ONLY: no objective has ever been defined.
+        missionless_bootstrap = not mission_defined
+        return (gate, mission_active, mission_ids, missionless_bootstrap,
+                mission_defined)
 
     @staticmethod
     def _identity_fallback_intent():
@@ -900,8 +946,8 @@ class SelectPhase(Phase):
             ctx: the phase context (reads/writes ctx.intents +
                 ctx.selected_intent).
         """
-        gate, mission_active, mission_ids, bootstrap = self._identity_gate_context(
-            pipeline)
+        gate, mission_active, mission_ids, bootstrap, mission_defined = (
+            self._identity_gate_context(pipeline))
         if gate is None:
             return
 
@@ -920,6 +966,7 @@ class SelectPhase(Phase):
                 mission_ids=mission_ids,
                 narrative_role=narrative_role,
                 missionless_bootstrap=bootstrap,
+                mission_defined=mission_defined,
             )
 
         projected_out = []
@@ -948,6 +995,7 @@ class SelectPhase(Phase):
 
         ctx.identity_projection = {
             "mission_active": mission_active,
+            "mission_defined": mission_defined,
             "missionless_bootstrap": bootstrap,
             "projected_out": projected_out,
             "rejected_selected": rejected,

@@ -18,6 +18,28 @@ from telos.core.identity.system_self import IdentityCore, IdentityNarrative
 
 logger = logging.getLogger('telos_projection_gate')
 
+# Layer-3 exemption set: intent types that carry no mission-service claim
+# (reflex keeper, idle theory ticks, recall) and therefore cannot be
+# "mission-less" in the Layer-3 sense. ONE canonical source (Λ6.7).
+MISSION_EXEMPT = ("reflex", "theory_idle", "memory_recall")
+
+# Layer-2 role -> incompatible intent-type substrings. ONE canonical source.
+# A specialized role forbids its anti-pattern (explorer must not exploit-refine,
+# guardian must not take dangerous exploration). The default generalist role
+# 'agent' forbids intents that CEDE AGENCY or terminate the agent — an agent is
+# by identity the acting party, so abdicating control contradicts who it is.
+# This is role-specific and distinct from Layer 1 (which covers integrity
+# 'steal'/'deceive' and the exploit+explore+harm humility pattern); it is
+# deliberately conservative: no live GridWorld stream emits these types, so
+# Layer 2 remains defense-in-depth, but it is no longer structurally inert.
+ROLE_INCOMPATIBLE: Dict[str, List[str]] = {
+    "explorer": ["exploit", "refine", "optimize"],
+    "mathematician": ["exploit", "random_walk"],
+    "guardian": ["explore_dangerous", "high_risk"],
+    "agent": ["abdicate", "surrender", "self_destruct", "self_terminate",
+              "delegate_all"],
+}
+
 
 class IdentityProjectionGate:
     """F(I) — determines which trajectories are admissible.
@@ -37,7 +59,8 @@ class IdentityProjectionGate:
     def is_admissible(self, intent_type: str, project_id: Optional[str] = None,
                       mission_active: bool = False, mission_ids: Optional[List[str]] = None,
                       narrative_role: Optional[str] = None,
-                      missionless_bootstrap: bool = False) -> bool:
+                      missionless_bootstrap: bool = False,
+                      mission_defined: bool = False) -> bool:
         """F(I) projection: is this trajectory admissible?
 
         Checks trajectory τ against all 6 identity layers:
@@ -54,14 +77,23 @@ class IdentityProjectionGate:
                 plus the projects they own) — Layer 4 validates project_id
                 against this scope.
             narrative_role: the narrative_role argument for this call.
-            missionless_bootstrap: DOCUMENTED pre-mission path (default False =
-                strict). When the system provably has ZERO missions in its
-                portfolio, Layer 3 has nothing to reference: the mission
-                existence check is not applicable. This flag keeps Layers 1–2
-                (core values + narrative role) enforced while skipping Layer 3
-                — it is NOT a silent bypass (the caller asserts zero active
-                missions explicitly). A system WITH missions must pass False so
-                a mission-less trajectory is correctly projected out.
+            missionless_bootstrap: DOCUMENTED GENUINE-bootstrap path (default
+                False = strict). True ONLY when the kernel has NEVER defined an
+                objective — no declared mission name/description and no mission
+                ever created. Then Layer 3 has nothing to reference and is
+                skipped while Layers 1–2 remain enforced. It is NOT "no mission
+                currently active": a kernel that DECLARED an objective but whose
+                portfolio currently has no active mission must pass False, so a
+                mission-less trajectory is projected out. Passing True together
+                with mission_defined=True is a caller error and is IGNORED
+                (treated as strict) — a mis-set flag can never re-open the
+                Layer-3 bypass.
+            mission_defined: whether the kernel declares/has hosted an
+                objective (PipelineConfig.mission_name/-_description, or any
+                mission ever created in the portfolio). This is the REAL
+                mission-scope signal: it distinguishes "no objective exists"
+                (genuine bootstrap) from "an objective exists but no active
+                mission currently backs this trajectory" (must be enforced).
         """
         if intent_type in ("reflex", "halt", "emergency_stop"):
             return True
@@ -83,21 +115,27 @@ class IdentityProjectionGate:
 
         # Layer 2: Narrative role consistency
         if narrative_role:
-            role_incompatible = {
-                "explorer": ["exploit", "refine", "optimize"],
-                "mathematician": ["exploit", "random_walk"],
-                "guardian": ["explore_dangerous", "high_risk"],
-            }
-            incompatible = role_incompatible.get(narrative_role, [])
+            incompatible = ROLE_INCOMPATIBLE.get(narrative_role, [])
             if any(inc in intent_type for inc in incompatible):
                 logger.debug(f"F(I) blocked {intent_type}: incompatible with role '{narrative_role}'")
                 return False
 
-        # Layer 3: Active mission check. Skipped ONLY on the documented
-        # mission-less bootstrap path (see the flag docstring above).
-        if (not mission_active and not missionless_bootstrap
-                and intent_type not in ("reflex", "theory_idle", "memory_recall")):
-            logger.debug(f"F(I) blocked {intent_type}: no active mission")
+        # Layer 3: Active mission-scope check.
+        #
+        # The check is about the kernel's REAL objective scope, not a bare
+        # on/off flag. A non-exempt trajectory is mission-less (projected out)
+        # when the kernel has a defined objective but the trajectory is not
+        # backed by a currently-active mission scope.
+        #
+        # The old live caller set `missionless_bootstrap = not mission_active`,
+        # which made this guard `not mission_active and mission_active` ≡ False
+        # — an unconditional bypass (tautology). Genuine bootstrap now means
+        # "no objective has EVER been defined", and is honored only when no
+        # objective exists, so a mis-set flag cannot re-open the bypass.
+        genuine_bootstrap = missionless_bootstrap and not mission_defined
+        if (not mission_active and not genuine_bootstrap
+                and intent_type not in MISSION_EXEMPT):
+            logger.debug(f"F(I) blocked {intent_type}: no active mission scope")
             return False
 
         # Layer 4: Project validity (if specified). `mission_ids` is the
@@ -112,7 +150,8 @@ class IdentityProjectionGate:
 
     def project_intents(self, intents: List[Any], mission_active: bool = False,
                         mission_ids: Optional[List[str]] = None,
-                        missionless_bootstrap: bool = False) -> List[Any]:
+                        missionless_bootstrap: bool = False,
+                        mission_defined: bool = False) -> List[Any]:
         """Filter a list of intents through F(I), returning only admissible ones.
 
             Args:
@@ -120,8 +159,10 @@ class IdentityProjectionGate:
                 mission_active: the mission_active argument for this call.
                 mission_ids: ids in the active mission scope (active mission
                     ids plus the projects they own).
-                missionless_bootstrap: documented pre-mission path (see
+                missionless_bootstrap: documented GENUINE-bootstrap path (see
                     is_admissible); skips only the mission-existence layer.
+                mission_defined: whether an objective has ever been defined;
+                    the real mission-scope signal for Layer 3.
         """
         admissible = []
         for intent in intents:
@@ -133,7 +174,8 @@ class IdentityProjectionGate:
 
             if self.is_admissible(intent_type, mission_active=mission_active,
                                  mission_ids=mission_ids, narrative_role=self._narrative.role,
-                                 missionless_bootstrap=missionless_bootstrap):
+                                 missionless_bootstrap=missionless_bootstrap,
+                                 mission_defined=mission_defined):
                 admissible.append(intent)
             else:
                 logger.info(f"F(I) projected out: {intent_type}")
