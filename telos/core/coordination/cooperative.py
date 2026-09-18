@@ -5,17 +5,33 @@ AXIOM 4.11
 ----------
     U_group − C_align ≥ max_i U_i
 
-Collective optimization beats isolated optimization **whenever alignment
-costs are sufficiently low**. This module makes that inequality executable:
-it takes the independent per-agent verdicts already produced by the
-DistributedCouncil crew and decides whether *cooperating* is justified for
-this decision, or whether the agents' disagreement is too costly.
+ARCHITECTURE FINDING — why U_group is a consensus, NOT a total
+-------------------------------------------------------------
+The DistributedCouncil crew is N role LENSES over ONE primary decision
+(``distributed.py``: "each role re-scores the SAME primary council evidence
+through a role-specific weighting profile"), not N independent agents with
+separable contributions. Summing the per-lens utilities would count the one
+decision N times — an inflated "total" with no meaning. So U_group is the
+authority-weighted MEAN of the per-lens utilities (a consensus), and for a
+mean ``mean ≤ max`` always. Strict superadditivity (U_group > max_i U_i) is
+therefore not expressible by this crew, and is deliberately NOT fabricated
+by summing the same decision's scores.
+
+What the inequality actually models: cooperative aggregation is justified
+only when the consensus, net of the alignment cost of the crew's measured
+disagreement, is AT LEAST the best single lens acting alone. Because
+``mean ≤ max`` and ``alignment_cost ≥ 0``, ``mean − cost ≥ max`` holds
+exactly when measured divergence is zero (all lens utilities equal AND no
+validated-flag split); any measured divergence fails it. That reduction is a
+property of the lens architecture, recorded honestly — not a synergy claim
+and not a code defect. (This is the (B) resolution of the superadditivity
+gap: the total is not meaningful here, so the claim was corrected, not the
+predicate.)
 
 Sign of the alignment term (semantics decision; source of truth = AXIOMS.md
 4.11's *Meaning* column + Λ5.3): C_align is a **cost**. Λ5.3 defines it as the
 interaction cost ``λ·D(I_A, I_B)`` and Λ5.1's J enters it as the penalty
-``−εC_align``. The axiom's proposition is that cooperation holds "whenever
-alignment costs are sufficiently low", so the cost must be **overcome on the
+``−εC_align``. The corrected axiom requires the cost to be **overcome on the
 group side**: a larger disagreement makes cooperation HARDER to justify. The
 formal string previously shown here (``U_group > max_i U_i − C_align``) placed the
 cost on the isolated side, which made high-cost/high-diversity crews *more*
@@ -29,7 +45,7 @@ best individual can achieve without cooperating. A sum would count every agent
 again after the group already pooled them and, against the weighted-mean group
 utility (mean ≤ max ≤ Σ for N ≥ 2), is either degenerate-false for every crew
 or — with a summed group — reduces to a mere zero-disagreement test. Neither
-is the substantive, falsifiable synergy claim the Meaning column states. The
+is the substantive, falsifiable claim the corrected Meaning column states. The
 executable predicate already used ``max_i u_i``; the formal notation was the
 only slip, reconciled here at the root.
 
@@ -38,13 +54,15 @@ Formalization (bounded, per-decision)
 Given N agents, each with a utility estimate `u_i ∈ [0,1]` (its decision
 integrity through its role lens) and authority `w_i`:
 
-    group_utility    = Σ w_i·u_i / Σ w_i        (the pooled collective)
+    group_utility    = Σ w_i·u_i / Σ w_i        (consensus mean over lenses;
+                                                 NOT a total — see above)
     isolated_utility = max_i u_i                (the single best agent alone)
     di_spread        = max u_i − min u_i        (per-role decision-integrity spread)
     validation_disagreement = 2·min(yes, no)/N  (validated-set split, [0,1])
     diversity        = min(1, max(di_spread, validation_disagreement))
     alignment_cost   = λ · diversity            (cost of reconciling them)
     cooperative      = (group_utility − alignment_cost) >= isolated_utility
+                       ⇔ measured divergence == 0  (mean ≤ max; cost ≥ 0)
 
 The diversity scalar captures BOTH axes of crew dissent in one canonical
 number (see ``CooperativeVerdict.diversity``):
@@ -99,7 +117,9 @@ class CooperativeVerdict:
 
     Attributes:
         n_agents: number of agents in the crew.
-        group_utility: pooled collective utility (authority-weighted mean).
+        group_utility: consensus utility — authority-weighted mean of the
+            per-lens decision integrity over ONE primary decision (NOT a
+            summable total; see the module docstring's architecture finding).
         isolated_utility: best single agent's utility alone.
         alignment_cost: reconciliation cost (λ · diversity).
         diversity: widened disagreement scalar — max of the per-role utility
@@ -217,6 +237,9 @@ class CooperativeCouncil:
             return CooperativeVerdict(0, 0.0, 0.0, 0.0, 0.0, False)
 
         total_w = sum(weights) or float(n)
+        # Λ4.11 consensus (NOT a total): the crew is N role lenses over ONE
+        # decision, so summing would double-count it. mean ≤ max always, hence
+        # strict superadditivity is not modelled (see the module docstring).
         group = sum(u * w for u, w in zip(utilities, weights)) / total_w
         isolated = max(utilities)
         di_spread = max(utilities) - min(utilities)
