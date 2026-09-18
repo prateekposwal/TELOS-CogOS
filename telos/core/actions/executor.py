@@ -34,6 +34,7 @@ import re
 import shlex
 import subprocess
 import time
+import json
 import numpy as np
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -103,6 +104,31 @@ def _to_text(value: Any) -> str:
 # ToolSpec (alias AllowlistEntry) with an argv template, kind, description, and
 # family.
 ACTION_ALLOWLIST: Dict[str, AllowlistEntry] = DEFAULT_REGISTRY.as_allowlist()
+
+
+# Network URL/tool bounds (validated before any socket opens).
+MAX_URL_CHARS = 2048
+
+
+def _validate_url(value: str) -> str:
+    """Validate an {url} placeholder for the governed network tools.
+
+    Args:
+        value: the raw URL candidate.
+
+    Returns:
+        The validated URL, or raises ToolRejected.
+    """
+    if not isinstance(value, str) or not value.strip():
+        raise ToolRejected("network tool requires a non-empty url")
+    if len(value) > MAX_URL_CHARS:
+        raise ToolRejected(f"url exceeds {MAX_URL_CHARS} chars")
+    # Defense in depth: no whitespace/control chars, and an explicit scheme.
+    if any(ch.isspace() or ord(ch) < 32 for ch in value):
+        raise ToolRejected("url contains whitespace/control characters")
+    if not (value.startswith("https://") or value.startswith("http://")):
+        raise ToolRejected("url must be absolute (https:// or http://)")
+    return value
 
 
 def _validate_n(value: str) -> str:
@@ -260,6 +286,10 @@ class ToolPermission:
     _validated_patch: Any = field(default=None, repr=False, compare=False)
     # Transient: the validated (contained) cwd produced by build_argv.
     _validated_cwd: Any = field(default=None, repr=False, compare=False)
+    # Transient: the validated URL produced by build_argv (network tools).
+    _validated_url: Any = field(default=None, repr=False, compare=False)
+    # Transient: the validated request body produced by build_argv.
+    _validated_body: Any = field(default=None, repr=False, compare=False)
 
 
 @dataclass
@@ -451,7 +481,8 @@ class ActionExecutor:
     def __init__(self, workspace_root: str,
                  allowlist: Optional[Dict[str, AllowlistEntry]] = None,
                  output_limit: int = DEFAULT_OUTPUT_LIMIT,
-                 timeout: float = DEFAULT_TIMEOUT_SECONDS):
+                 timeout: float = DEFAULT_TIMEOUT_SECONDS,
+                 sandbox: Any = None):
         """Construct an executor bound to one operator workspace.
 
         Args:
@@ -460,11 +491,14 @@ class ActionExecutor:
             allowlist: optional override of the global ACTION_ALLOWLIST.
             output_limit: bounded stdout/stderr capture per command in bytes.
             timeout: per-command timeout in seconds.
+            sandbox: optional NetworkSandbox for the network tool family
+                (created lazily on first network tool use when None).
         """
         self.workspace_root = str(Path(workspace_root).resolve())
         self.allowlist = dict(ACTION_ALLOWLIST if allowlist is None else allowlist)
         self.output_limit = int(output_limit)
         self.timeout = float(timeout)
+        self._sandbox = sandbox
 
     def _capability_gate(self, tool_name: str,
                          capability: Any) -> Optional[Dict[str, Any]]:
@@ -551,6 +585,15 @@ class ActionExecutor:
                     template[idx] = _validate_message(msg)
                 elif ph == "target":
                     template[idx] = _validate_target(str(raw))
+                elif ph == "url":
+                    template[idx] = _validate_url(str(raw))
+                    permission._validated_url = template[idx]
+                elif ph == "body":
+                    body_str = raw if isinstance(raw, str) else json.dumps(raw)
+                    if len(body_str.encode("utf-8")) > 256 * 1024:
+                        raise ToolRejected("network request body exceeds 262144 bytes")
+                    template[idx] = body_str
+                    permission._validated_body = body_str
                 elif ph == "patch":
                     # write_file carries a structured patch dict (args[0]).
                     # Parse JSON if the caller passed a string; accept a dict.
@@ -672,6 +715,12 @@ class ActionExecutor:
         if entry_kind == "structured_write":
             return self._execute_structured_write(permission, record, started)
 
+        # Network tools do NOT spawn a subprocess either: they leave ONLY via
+        # the governed NetworkSandbox (host/port/route allowlist + bounds).
+        if entry_kind in ("network_read", "network_write") \
+                or self.allowlist[permission.tool_name].family in ("network_read", "network_write"):
+            return self._execute_network(permission, record, started)
+
         try:
             proc = subprocess.run(
                 argv,
@@ -692,6 +741,44 @@ class ActionExecutor:
             return record
 
         record.allowed = True
+        record.duration_ms = (time.monotonic() - started) * 1000.0
+        return record
+
+    def _execute_network(self, permission: ToolPermission,
+                         record: ActionExecution,
+                         started: float) -> ActionExecution:
+        """Perform a governed network request through the NetworkSandbox.
+
+        The sandbox is the ONLY egress channel: it re-validates host/port/route
+        against its own allowlist and bounds the payloads. A sandbox refusal is
+        a block record (nothing left the process).
+
+        Args:
+            permission: the network tool request (its _validated_url/_body were
+                set during build_argv).
+            record: the in-progress ActionExecution audit record.
+            started: monotonic start time for duration accounting.
+
+        Returns:
+            The final ActionExecution: allowed=True only on a real response.
+        """
+        url = getattr(permission, '_validated_url', None)
+        body = getattr(permission, '_validated_body', None) or ""
+        if not url:
+            record.blocked_reason = "network tool validated url missing (governance_blocked_cycle)"
+            record.duration_ms = (time.monotonic() - started) * 1000.0
+            return record
+        if self._sandbox is None:
+            from telos.core.actions.sandbox import NetworkSandbox
+            self._sandbox = NetworkSandbox(timeout=self.timeout)
+        method = "GET" if permission.tool_name == "http_get" else "POST"
+        result = self._sandbox.request(method, url, body=body)
+        record.returncode = result.status if result.status is not None else None
+        if result.allowed:
+            record.allowed = True
+            record.stdout = result.body[:self.output_limit]
+        else:
+            record.blocked_reason = result.blocked_reason
         record.duration_ms = (time.monotonic() - started) * 1000.0
         return record
 

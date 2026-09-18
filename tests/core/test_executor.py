@@ -301,12 +301,14 @@ class TestAllowlistShape:
     def test_allowlist_contains_only_expected_tools(self):
         assert sorted(ACTION_ALLOWLIST) == [
             "eslint_check", "git_add", "git_branch", "git_commit", "git_diff",
-            "git_log", "git_status", "go_test", "make_target", "npm_build",
-            "npm_test", "run_tests", "tsc_check", "write_file",
+            "git_log", "git_status", "go_test", "http_get", "http_post",
+            "make_target", "npm_build", "npm_test", "run_tests", "tsc_check",
+            "write_file",
         ]
         for entry in ACTION_ALLOWLIST.values():
             assert isinstance(entry.template, list)
-            assert entry.kind in ("read_only", "narrow_write", "structured_write")
+            assert entry.kind in ("read_only", "narrow_write", "structured_write",
+                                  "network_read", "network_write")
             assert entry.description
 
     def test_no_template_contains_shell_operators(self):

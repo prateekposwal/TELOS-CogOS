@@ -33,9 +33,11 @@ sys.path.insert(0, PROJECT)
 # Production code roots that must route real-world effects through the executor.
 SCAN_DIRS = ("telos/core", "telos/world", "telos/adapters", "telos/audit")
 
-# The one governed channel: the executor is SUPPOSED to call subprocess.
+# The governed channels: the executor is SUPPOSED to call subprocess; the
+# sandbox is SUPPOSED to call http.client (it IS the network gate).
 GOVERNED = frozenset({
     "telos/core/actions/executor.py",
+    "telos/core/actions/sandbox.py",
 })
 
 # Documented, pre-existing ungoverned channels. Each is a real debt item that

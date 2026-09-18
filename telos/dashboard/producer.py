@@ -204,6 +204,8 @@ KNOWLEDGE_PATH = "/tmp/telos_knowledge.json"
 LEDGER_PATH = "/tmp/telos_ledger.json"
 IDENTITY_PATH = "/tmp/telos_identity.json"
 PATTERN_PATH = "/tmp/telos_patterns.json"
+# Phase 2: tiered decision memory persists alongside the other live stores.
+MEMORY_PATH = "/tmp/telos_memory.json"
 # Decision log: the producer now feeds the SAME bounded, honest decision log
 # the handoff writer reconciles ("log=N"). Written atomically at the
 # knowledge-serialize cadence with lean canonical trace fields so it reflects
@@ -703,7 +705,14 @@ class DashboardProducer:
             ledger_path=LEDGER_PATH,
             identity_path=IDENTITY_PATH,
             pattern_path=PATTERN_PATH,
+            memory_path=MEMORY_PATH,
             deterministic_seed=42,
+            # Phase 1: the live producer is the long-running consumer; enable
+            # the per-tool capability gate so any governed tool intent is
+            # checked against this cycle's authorization. No tool intent is
+            # emitted by the GridWorld streams, so this changes no live
+            # behavior — it wires the gate for when one is.
+            per_tool_capability_gate=True,
         ))
         skill_lib = SkillLibrary()
         self._experience_mgr = ExperienceManager(

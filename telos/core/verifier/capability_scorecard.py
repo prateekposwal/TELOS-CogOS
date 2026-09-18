@@ -160,6 +160,26 @@ def _memory_consumed_in_real_cycles(root: str) -> bool:
         return False
 
 
+def _learning_curve_beats_control(root: str) -> bool:
+    """Whether the measured learning curve shows the learned arm winning.
+
+    Args:
+        root: repo root.
+
+    Returns:
+        True only when telos/audit/learning_curve.json reports beats_control.
+    """
+    path = os.path.join(root, "telos", "audit", "learning_curve.json")
+    if not os.path.isfile(path):
+        return False
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return bool(data.get("beats_control"))
+    except (OSError, ValueError, TypeError):
+        return False
+
+
 def _git_tag_count(root: str) -> int:
     """Count git tags from the refs on disk (no subprocess).
 
@@ -251,7 +271,7 @@ def _score_tool_use(root: str) -> DimensionResult:
     has_network_family = False
     has_per_tool_capability = False
     if specs:
-        has_network_family = any(s.family == "network" for s in specs)
+        has_network_family = any(s.family.startswith("network") for s in specs)
         has_per_tool_capability = any(s.capability for s in specs)
     has_sandbox = _exists(root, "telos/core/actions/sandbox.py")
 
@@ -349,21 +369,30 @@ def _score_learning(root: str) -> DimensionResult:
     curriculum = _exists(root, "telos/core/learning/curriculum.py")
     acquisition = _exists(root, "telos/core/learning/acquisition.py")
     curve = _exists(root, "telos/tools/learning_curve.py")
+    curve_ok = _learning_curve_beats_control(root)
     score = 2.0
     evidence = []
     for label, cond in (("theory builder", builder),
                         ("falsifiable experiment", experiment),
                         ("curriculum generation", curriculum),
-                        ("verified skill acquisition", acquisition),
-                        ("measured learning curve", curve)):
+                        ("verified skill acquisition", acquisition)):
         if cond:
             score += 0.5
             evidence.append(label)
+    if curve:
+        evidence.append(
+            "measured learning curve (beats frozen control)" if curve_ok
+            else "learning curve present but not passing"
+        )
+        if curve_ok:
+            score += 0.5
+        else:
+            score -= 0.5
     if not evidence:
         evidence.append("no learning machinery detected")
     return DimensionResult(
         name="learning", score=_clamp(score), target=TARGETS["learning"],
-        basis="theory/skill machinery + curriculum + measured learning curve",
+        basis="theory/skill machinery + curriculum + measured learning curve vs control",
         evidence=evidence,
     )
 

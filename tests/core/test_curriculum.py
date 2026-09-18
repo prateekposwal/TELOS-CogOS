@@ -1,66 +1,96 @@
-"""Phase 4 — test-shaped curriculum contracts.
-
-A gap may feed the autonomous fix loop ONLY when it carries a `test_id`
-(a failing pytest id). Delivery gaps without one are ledger-of-intent only
-and can never be consumed as code fixes (Λ2.3: curriculum is test-shaped).
 """
-import json
+Novelty-driven curriculum (Phase 3) — gap-derived, deterministic, ZPD-ordered.
+"""
 
-from telos.core.curricula import load_gaps, curriculum_for
-from telos.core.curricula import test_shaped_tasks as _test_shaped_tasks
-
-
-def _tracker(gaps):
-    import tempfile
-    import os
-    fd, path = tempfile.mkstemp(suffix=".json")
-    os.close(fd)
-    with open(path, "w") as f:
-        json.dump({"schema_version": "1", "gaps": gaps}, f)
-    return path
+from telos.core.learning.curriculum import Curriculum, CurriculumTask, ZPD_LOW, ZPD_HIGH
 
 
-def _gap(gid, title, test_id=None):
-    g = {"id": gid, "title": title, "status": "open",
-         "category": "research"}
-    if test_id:
-        g["test_id"] = test_id
-    return g
-
-
-def test_gap_with_test_id_flows_to_loop():
-    path = _tracker([
-        _gap("G-90", "broken arithmetic", test_id="test_calc.py::test_add"),
+def test_task_generation_from_falsified_hypotheses():
+    """A falsified hypothesis becomes a high-novelty repair task."""
+    cur = Curriculum()
+    n = cur.from_theory_gaps([
+        {"id": "h1", "action": "navigate", "predicted_outcome": 0.8,
+         "confidence": 0.4, "tests_passed": 3, "tests_failed": 2, "falsified": True},
     ])
-    tasks = _test_shaped_tasks(path=path)
-    assert tasks == ["test_calc.py::test_add"]
+    assert n == 1
+    tasks = cur.frontier() + cur.deferred()
+    task = next(t for t in tasks if t.task_id == "gap_h1")
+    assert task.kind == "theory_gap"
+    assert task.novelty >= 0.8
 
 
-def test_delivery_gap_without_test_id_cannot_flow():
-    path = _tracker([
-        _gap("G-18", "a paper not a test"),
-        _gap("G-91", "real code bug", test_id="test_code.py::test_bug"),
+def test_untested_hypothesis_is_most_novel():
+    """An untested hypothesis is more novel than a well-tested confident one."""
+    cur = Curriculum()
+    cur.from_theory_gaps([
+        {"id": "untested", "action": "a", "confidence": 0.0, "tests_passed": 0,
+         "tests_failed": 0, "falsified": False},
+        {"id": "proven", "action": "b", "confidence": 0.95, "tests_passed": 20,
+         "tests_failed": 0, "falsified": False},
     ])
-    tasks = _test_shaped_tasks(path=path)
-    assert tasks == ["test_code.py::test_bug"], \
-        "delivery gaps must never enter the code queue"
+    untested = next(t for t in (cur.frontier() + cur.deferred())
+                    if t.task_id == "gap_untested")
+    assert untested.novelty > 0.9
 
 
-def test_curriculum_deduplicates():
-    path = _tracker([
-        _gap("G-1", "a", test_id="t1"),
-        _gap("G-2", "b", test_id="t1"),
-        _gap("G-3", "c", test_id="t2"),
+def test_signal_generation_novelty_is_inverse_coverage():
+    """A signal's novelty is 1 - coverage."""
+    cur = Curriculum()
+    cur.from_signals([{"id": "s1", "description": "visit corner", "coverage": 0.2}])
+    task = next(t for t in (cur.frontier() + cur.deferred())
+                if t.task_id == "sig_s1")
+    assert abs(task.novelty - 0.8) < 1e-9
+
+
+def test_frontier_is_within_zpd_and_difficulty_ordered():
+    """Frontier tasks are inside the ZPD and ordered easiest-first."""
+    cur = Curriculum()
+    cur.from_signals([
+        {"id": "easy", "coverage": 0.7},   # novelty 0.3
+        {"id": "mid", "coverage": 0.4},    # novelty 0.6
+        {"id": "hard", "coverage": 0.05},  # novelty 0.95 -> deferred
     ])
-    assert curriculum_for(path=path) == ["t1", "t2"]
+    frontier = cur.frontier()
+    assert all(ZPD_LOW <= t.novelty <= ZPD_HIGH for t in frontier)
+    difficulties = [t.difficulty for t in frontier]
+    assert difficulties == sorted(difficulties)
+    assert all(t.task_id != "sig_hard" for t in frontier)
 
 
-def test_real_tracker_has_no_test_ids_today():
-    """The 6 open delivery gaps (G-18..G-23) are NOT code-consumable."""
-    gaps = load_gaps()
-    assert _test_shaped_tasks(gaps) == [], \
-        "delivery tickets must remain ledger-only until someone writes a test"
+def test_deferred_excludes_frontier():
+    """Too-novel tasks are deferred, not attempted."""
+    cur = Curriculum()
+    cur.from_signals([{"id": "hard", "coverage": 0.0}])
+    assert cur.frontier() == []
+    assert len(cur.deferred()) == 1
 
 
-def test_missing_tracker_is_safe():
-    assert load_gaps(path="/nonexistent/gap.json") == []
+def test_curriculum_is_bounded():
+    """The task set never exceeds max_tasks."""
+    cur = Curriculum(max_tasks=12)
+    cur.from_signals([{"id": f"s{i}", "coverage": 0.5} for i in range(100)])
+    assert cur.stats()["total"] <= 12
+
+
+def test_curriculum_is_deterministic():
+    """The same inputs always produce the same ordering."""
+    def build():
+        cur = Curriculum()
+        cur.from_signals([{"id": f"s{i}", "coverage": (i % 10) / 10} for i in range(10)])
+        return [t.task_id for t in cur.frontier()]
+    assert build() == build()
+
+
+def test_stats_bands():
+    """Stats report total/frontier/deferred/learned consistently."""
+    cur = Curriculum()
+    cur.from_signals([
+        {"id": "learned", "coverage": 0.95},  # novelty 0.05 -> learned
+        {"id": "front", "coverage": 0.5},     # novelty 0.5 -> frontier
+        {"id": "def", "coverage": 0.0},       # novelty 1.0 -> deferred
+    ])
+    stats = cur.stats()
+    assert stats["total"] == 3
+    assert stats["learned"] == 1
+    assert stats["frontier"] >= 1
+    assert stats["deferred"] >= 1

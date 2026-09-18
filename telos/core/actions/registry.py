@@ -28,8 +28,9 @@ from typing import Dict, Iterator, List, Optional
 
 # Valid tool kinds. read_only never mutates; narrow_write is an operator-scoped
 # mutation (git add/commit); structured_write applies a validated patch object
-# with no subprocess at all.
-VALID_KINDS = ("read_only", "narrow_write", "structured_write")
+# with no subprocess at all; network_read/write leave via NetworkSandbox.
+VALID_KINDS = ("read_only", "narrow_write", "structured_write",
+               "network_read", "network_write")
 
 
 @dataclass
@@ -143,6 +144,27 @@ def _default_specs() -> Dict[str, ToolSpec]:
             template=["go", "test", "./..."],
             kind="read_only", family="toolchain",
             description="Run `go test ./...` in a subdirectory of the workspace (cwd governed).",
+        ),
+        # ── Governed network family (Phase 1): every request leaves through
+        # NetworkSandbox (host/port/route allowlist + bounded payloads). These
+        # require the network capability profiles, not just observability. ──
+        "http_post": ToolSpec(
+            template=["http_post", "{url}", "{body}"],
+            kind="network_read", family="network_read",
+            capability="network_read",
+            description=(
+                "POST JSON to an allowlisted HTTPS endpoint through the governed "
+                "NetworkSandbox; response is bounded and audited."
+            ),
+        ),
+        "http_get": ToolSpec(
+            template=["http_get", "{url}"],
+            kind="network_read", family="network_read",
+            capability="network_read",
+            description=(
+                "GET an allowlisted HTTPS endpoint through the governed "
+                "NetworkSandbox; response is bounded and audited."
+            ),
         ),
     }
 

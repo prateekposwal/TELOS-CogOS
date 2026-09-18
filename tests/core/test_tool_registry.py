@@ -14,8 +14,9 @@ from telos.core.actions.executor import ACTION_ALLOWLIST
 
 EXPECTED_TOOLS = [
     "eslint_check", "git_add", "git_branch", "git_commit", "git_diff",
-    "git_log", "git_status", "go_test", "make_target", "npm_build",
-    "npm_test", "run_tests", "tsc_check", "write_file",
+    "git_log", "git_status", "go_test", "http_get", "http_post",
+    "make_target", "npm_build", "npm_test", "run_tests", "tsc_check",
+    "write_file",
 ]
 
 
