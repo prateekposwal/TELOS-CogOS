@@ -4,7 +4,7 @@ TELOS — A Cognitive Operating System.
 Domain-general, self-governing CogOS built on the Laws of Systemic Intelligence.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from telos.core.runtime import TelosV14Pipeline, PipelineConfig, PipelineResult, DecisionTrace, StreamActivation, PipelinePhase
 from telos.core.attention import BudgetManager

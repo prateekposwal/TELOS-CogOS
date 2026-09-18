@@ -7,7 +7,7 @@
 PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
 export PYTHONPATH := .
 
-.PHONY: test test-core test-fallback test-all lint run audit coverage health check clean
+.PHONY: test test-core test-fallback test-all lint run audit coverage health check check-fast capabilities clean
 
 test: test-core test-fallback
 
@@ -36,6 +36,14 @@ coverage:
 health:
 	$(PYTHON) telos/tools/cognitive_health.py --cycles 150 --ci
 
+# Capability gates (Phase 0-3): the tool channel, memory retrieval, the
+# learning curve, and the scorecard itself. Each exits nonzero on a miss.
+capabilities:
+	$(PYTHON) telos/tools/tool_channel_scan.py --ci
+	$(PYTHON) telos/tools/memory_eval.py --ci
+	$(PYTHON) telos/tools/learning_curve.py --ci
+	$(PYTHON) telos/tools/capability_scorecard.py --ci
+
 # Release gate (periodic / CI): full suite + every invariant gate at full
 # duration. ~3 min. Use check-fast for a per-commit loop.
 check:
@@ -44,6 +52,7 @@ check:
 	$(PYTHON) telos/tools/falsify_axioms.py --ci
 	$(PYTHON) telos/tools/theorem_audit.py --cycles 20 --ci
 	$(PYTHON) telos/tools/cognitive_health.py --cycles 150 --ci
+	$(MAKE) capabilities
 
 # Per-commit gate: same invariant gates at reduced simulation duration.
 check-fast:

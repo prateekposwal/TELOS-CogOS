@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "telos-cogos"
-version = "0.1.0"
+version = "0.2.0"
 description = "TELOS — a self-governing cognitive operating system built on the Laws of Systemic Intelligence."
 readme = "README.md"
 requires-python = ">=3.9"

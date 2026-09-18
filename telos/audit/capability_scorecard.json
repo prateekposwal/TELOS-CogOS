@@ -103,9 +103,9 @@
   },
   "maturity": {
     "name": "maturity",
-    "score": 3.1,
+    "score": 4.0,
     "target": 5.0,
-    "gap": 1.9,
+    "gap": 1.0,
     "basis": "packaging/release/CLI signals; capped at 4.0 without external reproduction + adoption",
     "evidence": [
       "pyproject.toml",
@@ -115,7 +115,11 @@
       "telos/__main__.py",
       "README.md",
       "__version__",
-      "git tags=0"
+      "git tags=0",
+      "examples/quickstart.py",
+      "RELEASE.md (versioning + release process)",
+      "CI gates workflow",
+      "version lock test"
     ],
     "external": false
   },

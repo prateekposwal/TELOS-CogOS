@@ -27,6 +27,41 @@ from collections import defaultdict
 logger = logging.getLogger('telos_pattern')
 
 
+def _json_safe(value: Any) -> Any:
+    """Coerce a value into a JSON-serializable shape (recursively).
+
+    Pattern metadata is accumulated by many callers and can legitimately
+    contain a `set` (e.g. a blocked-cells set) or a numpy scalar — neither is
+    JSON-serializable, which made `save()` raise "Object of type set is not
+    JSON serializable" and silently lose the checkpoint. Coercing at the ONE
+    serialization site (Λ6.7) keeps persistence honest without asking every
+    producer to remember.
+
+    Args:
+        value: the value to coerce.
+
+    Returns:
+        A JSON-serializable equivalent (sets become sorted lists, numpy
+        scalars become Python scalars, unknown objects become repr strings).
+    """
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (set, frozenset)):
+        try:
+            return sorted(_json_safe(v) for v in value)
+        except TypeError:
+            return [_json_safe(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray):
+        return _json_safe(value.tolist())
+    return repr(value)
+
+
 class PatternType(str, Enum):
     SUCCESS = "success"
     FAILURE = "failure"
@@ -294,8 +329,10 @@ class PatternLibrary:
 
     def save(self, path: str) -> None:
         """Persist the PatternLibrary to a JSON file.
-        path: path: filesystem path to read or write
-"""
+
+        Args:
+            path: filesystem path to write to.
+        """
         import json
         data = {
             "patterns": {
@@ -308,13 +345,13 @@ class PatternLibrary:
                         "intent_type": p.signature.intent_type,
                         "drift_bucket": p.signature.drift_bucket,
                         "integrity_bucket": p.signature.integrity_bucket,
-                        "action_signature": p.signature.action_signature,
+                        "action_signature": _json_safe(p.signature.action_signature),
                     },
-                    "action_taken": p.action_taken,
+                    "action_taken": _json_safe(p.action_taken),
                     "outcome_score": p.outcome_score,
                     "timestamp": p.timestamp,
                     "match_count": p.match_count,
-                    "metadata": p.metadata,
+                    "metadata": _json_safe(p.metadata),
                 }
                 for pid, p in self._patterns.items()
             },
@@ -359,11 +396,12 @@ class PatternLibrary:
             )
             self._patterns[pid] = pat
             self._feature_vectors[pid] = sig.to_feature_vector()
-        self._domain_index = defaultdict(set, {
-            d: set(pids) for d, pids in data.get("domain_index", {}).items()
+        self._domain_index = defaultdict(list, {
+            d: list(dict.fromkeys(pids))
+            for d, pids in data.get("domain_index", {}).items()
         })
         self._type_index = {
-            PatternType(t): set(pids)
+            PatternType(t): list(dict.fromkeys(pids))
             for t, pids in data.get("type_index", {}).items()
         }
         logger.info(f"PatternLibrary: loaded {len(self._patterns)} patterns from {path}")
