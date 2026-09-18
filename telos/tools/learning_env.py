@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""
+Learning-curve evaluation on a REAL environment (Phase 3+).
+
+PATTERN (evidence must be about the world, not our arithmetic): the first
+learning harness used a hand-written task stream and a hand-written
+``_outcome = 1 - difficulty + 0.9*competence`` function — the "learning" was
+arithmetic we authored, which proves nothing about an agent learning anything.
+
+This harness removes that: the environment is the real GridWorld simulator
+(``telos_task.GridSim``) whose reward pockets are defined OUTSIDE this file
+(``telos_task.DEFAULT_REWARDS``). An episode is a real rollout: the arm chooses
+a legal action, the simulator transitions, and the reward is whatever the world
+pays for the cell landed on. Nothing here computes an outcome — the world does.
+
+Two arms, identical environment and identical episode budget:
+  - LEARNED  : maintains a value estimate per cell, updated by real reward,
+               and (for the second episode onward) acts on it — so it should
+               find the high-value pockets faster.
+  - FROZEN   : no memory of reward, fixed deterministic sweep — it cannot
+               improve between episodes.
+
+Reported: total reward, reward by episode (the learning curve), steps to the
+best pocket, and rewards discovered. The gate requires the learned arm to earn
+more total reward AND improve between the first and last episode.
+
+Run:
+  PYTHONPATH=. ./.venv/bin/python telos/tools/learning_env.py
+  PYTHONPATH=. ./.venv/bin/python telos/tools/learning_env.py --ci
+"""
+
+import argparse
+import math
+import json
+import os
+import sys
+from typing import Any, Dict, List, Tuple
+
+PROJECT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, PROJECT)
+
+import numpy as np  # noqa: E402
+
+from telos_task import (  # noqa: E402
+    GridSim, GRID_SIZE, DEFAULT_REWARDS, DEFAULT_BLOCKED, GOAL,
+)
+
+START = np.array([0.0, 0.0])
+EPISODE_STEPS = 60
+EPISODES = 6
+BEST_POCKET = max(
+    ((tuple(k), v) for k, v in DEFAULT_REWARDS.items()),
+    key=lambda kv: kv[1],
+)
+
+
+def _step(sim: GridSim, state: np.ndarray, action: np.ndarray) -> Tuple[np.ndarray, float]:
+    """Apply an action through the REAL simulator and read the world's reward.
+
+    Args:
+        sim: the GridWorld simulator (the ground truth).
+        state: current position.
+        action: the chosen cardinal action.
+
+    Returns:
+        (next_state, reward_paid_by_the_world).
+    """
+    nxt = sim.transition(state, action)
+    key = (int(round(nxt[0])), int(round(nxt[1])))
+    # Reward comes ONLY from the world's own table.
+    return nxt, float(sim.rewards.get(key, 0.0))
+
+
+def _greedy_action(values: np.ndarray, visits: np.ndarray, state: np.ndarray,
+                   sim: GridSim) -> np.ndarray:
+    """Choose a legal neighbour by learned value, with visit-count exploration.
+
+    A pure value-greedy policy deadlocks in this world (measured: it oscillates
+    (2,0)<->(2,1) forever, since all values start at 0 and the goal bias is
+    symmetric). Exploration therefore uses the classic count-based bonus
+    ``1/sqrt(1 + visits)``: unexplored cells are attractive, so the agent
+    escapes local optima and actually discovers the reward pockets. That is a
+    learning mechanism, not a hand-coded answer — the bonus decays with real
+    visits and the value update still comes only from the world's reward.
+
+    Args:
+        values: the learned value grid.
+        visits: the visit-count grid.
+        state: current position.
+        sim: the simulator (for the legal move set).
+
+    Returns:
+        A legal cardinal action.
+    """
+    best = None
+    best_score = -1e9
+    for action in sim.legal_transitions(state):
+        nxt = sim.transition(state, action)
+        key = (int(round(nxt[0])), int(round(nxt[1])))
+        explore = 1.0 / math.sqrt(1.0 + float(visits[key[0], key[1]]))
+        goal_bias = -float(np.linalg.norm(nxt - GOAL)) * 1e-3
+        score = float(values[key[0], key[1]]) + 2.0 * explore + goal_bias
+        if score > best_score:
+            best_score = score
+            best = action
+    return np.array([0.0, 0.0]) if best is None else best
+
+
+def _run_learned(episodes: int = EPISODES,
+                 steps: int = EPISODE_STEPS) -> Dict[str, Any]:
+    """Run the learning arm on the real environment.
+
+    Args:
+        episodes: number of episodes.
+        steps: steps per episode.
+
+    Returns:
+        Dict with total/per-episode reward, discovery metrics, and the value grid.
+    """
+    sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS),
+                  random_seed=7)
+    values = np.zeros((GRID_SIZE, GRID_SIZE), dtype=float)
+    visits = np.zeros((GRID_SIZE, GRID_SIZE), dtype=float)
+    per_episode: List[float] = []
+    discovered: set = set()
+    steps_to_best = None
+    total_steps = 0
+    for ep in range(episodes):
+        state = START.copy()
+        ep_reward = 0.0
+        for _ in range(steps):
+            total_steps += 1
+            # Learn from the cell we are standing on (real reward, real visit).
+            key = (int(round(state[0])), int(round(state[1])))
+            reward_here = float(sim.rewards.get(key, 0.0))
+            if reward_here > 0:
+                discovered.add(key)
+            # Incremental mean update on the REAL reward — this is the learning.
+            visits[key[0], key[1]] += 1.0
+            lr = 1.0 / visits[key[0], key[1]]
+            values[key[0], key[1]] += lr * (reward_here - values[key[0], key[1]])
+            # Act on what has been learned (episode 0 explores via goal bias).
+            action = _greedy_action(values, visits, state, sim)
+            state, paid = _step(sim, state, action)
+            ep_reward += paid
+            if steps_to_best is None and (
+                    int(round(state[0])), int(round(state[1]))) == BEST_POCKET[0]:
+                steps_to_best = total_steps
+        per_episode.append(ep_reward)
+    return {
+        "per_episode_reward": per_episode,
+        "total_reward": sum(per_episode),
+        "discovered": len(discovered),
+        "steps_to_best_pocket": steps_to_best,
+        "value_grid": values.round(3).tolist(),
+    }
+
+
+def _run_frozen(episodes: int = EPISODES,
+                steps: int = EPISODE_STEPS) -> Dict[str, Any]:
+    """Run the frozen control: same environment, no learning, fixed sweep.
+
+    Args:
+        episodes: number of episodes.
+        steps: steps per episode.
+
+    Returns:
+        Dict with total/per-episode reward and the same discovery metrics.
+    """
+    sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS),
+                  random_seed=7)
+    order = [np.array([1, 0]), np.array([0, 1]),
+             np.array([-1, 0]), np.array([0, -1])]
+    per_episode: List[float] = []
+    discovered: set = set()
+    steps_to_best = None
+    total_steps = 0
+    for _ep in range(episodes):
+        state = START.copy()
+        ep_reward = 0.0
+        for i in range(steps):
+            total_steps += 1
+            key = (int(round(state[0])), int(round(state[1])))
+            if float(sim.rewards.get(key, 0.0)) > 0:
+                discovered.add(key)
+            # Fixed cyclic sweep: identical every episode, cannot improve.
+            action = order[(i // 3) % len(order)]
+            state, paid = _step(sim, state, action)
+            ep_reward += paid
+            if steps_to_best is None and (
+                    int(round(state[0])), int(round(state[1]))) == BEST_POCKET[0]:
+                steps_to_best = total_steps
+        per_episode.append(ep_reward)
+    return {
+        "per_episode_reward": per_episode,
+        "total_reward": sum(per_episode),
+        "discovered": len(discovered),
+        "steps_to_best_pocket": steps_to_best,
+    }
+
+
+def evaluate() -> Dict[str, Any]:
+    """Compare the learning arm and the frozen control on the real environment.
+
+    Returns:
+        Dict with both arms' results, the improvement delta, and the verdict.
+    """
+    learned = _run_learned()
+    frozen = _run_frozen()
+    first, last = learned["per_episode_reward"][0], learned["per_episode_reward"][-1]
+    improved = last > first
+    beats = learned["total_reward"] > frozen["total_reward"] and improved
+    return {
+        "learned": learned,
+        "frozen": frozen,
+        "learned_improved": improved,
+        "beats_control": beats,
+        "environment": {
+            "simulator": "telos_task.GridSim",
+            "reward_source": "telos_task.DEFAULT_REWARDS",
+            "reward_pockets": {str(k): v for k, v in DEFAULT_REWARDS.items()},
+            "episodes": EPISODES,
+            "steps_per_episode": EPISODE_STEPS,
+        },
+    }
+
+
+def print_report(result: Dict[str, Any]) -> bool:
+    """Print the real-environment learning curve.
+
+    Args:
+        result: the dict returned by evaluate().
+
+    Returns:
+        True when the learned arm beats the control and improves.
+    """
+    ln, fz = result["learned"], result["frozen"]
+    print(f"\n{'TELOS Learning on a REAL Environment':^74}")
+    print("=" * 74)
+    env = result["environment"]
+    print(f"  env: {env['simulator']} | reward source: {env['reward_source']}")
+    print(f"  reward pockets: {env['reward_pockets']}")
+    print(f"  {env['episodes']} episodes x {env['steps_per_episode']} steps")
+    print("-" * 74)
+    print(f"  {'episode':<12}{'learned':>16}{'frozen':>16}")
+    for i, (a, b) in enumerate(zip(ln["per_episode_reward"],
+                                   fz["per_episode_reward"])):
+        print(f"  {i:<12}{a:>16.1f}{b:>16.1f}")
+    print("-" * 74)
+    print(f"  {'total':<12}{ln['total_reward']:>16.1f}{fz['total_reward']:>16.1f}")
+    print(f"  {'discovered':<12}{ln['discovered']:>16}{fz['discovered']:>16}")
+    print(f"  {'steps->best':<12}{str(ln['steps_to_best_pocket']):>16}"
+          f"{str(fz['steps_to_best_pocket']):>16}")
+    print(f"  learned improved first->last: {result['learned_improved']}")
+    print("=" * 74)
+    print("  verdict:", "learned arm BEATS frozen control" if result["beats_control"]
+          else "learned arm does NOT beat control")
+    print("LEARNING (real env):", "PASS" if result["beats_control"] else "FAIL")
+    return bool(result["beats_control"])
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ci", action="store_true",
+                    help="exit 1 unless the learned arm beats the frozen control")
+    ap.add_argument("--json", default="telos/audit/learning_env.json",
+                    help="path to write the evaluation JSON")
+    args = ap.parse_args()
+    res = evaluate()
+    if args.json:
+        out = args.json if os.path.isabs(args.json) else os.path.join(PROJECT, args.json)
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        with open(out, "w") as f:
+            json.dump(res, f, indent=2)
+        print(f"(evaluation saved: {out})")
+    ok = print_report(res)
+    if args.ci:
+        sys.exit(0 if ok else 1)

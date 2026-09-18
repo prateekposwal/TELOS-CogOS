@@ -42,6 +42,7 @@ capabilities:
 	$(PYTHON) telos/tools/tool_channel_scan.py --ci
 	$(PYTHON) telos/tools/memory_eval.py --ci
 	$(PYTHON) telos/tools/learning_curve.py --ci
+	$(PYTHON) telos/tools/learning_env.py --ci
 	$(PYTHON) telos/tools/capability_scorecard.py --ci
 
 # Sustained memory measurement (slow: drives a real pipeline for many cycles).

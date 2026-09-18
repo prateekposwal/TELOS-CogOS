@@ -174,6 +174,26 @@ def _memory_consumed_in_real_cycles(root: str) -> bool:
         return False
 
 
+def _learning_env_beats_control(root: str) -> bool:
+    """Whether the REAL-environment harness shows learning beating control.
+
+    Args:
+        root: repo root.
+
+    Returns:
+        True only when telos/audit/learning_env.json reports beats_control.
+    """
+    path = os.path.join(root, "telos", "audit", "learning_env.json")
+    if not os.path.isfile(path):
+        return False
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return bool(data.get("beats_control"))
+    except (OSError, ValueError, TypeError):
+        return False
+
+
 def _learning_curve_beats_control(root: str) -> bool:
     """Whether the measured learning curve shows the learned arm winning.
 
@@ -383,7 +403,9 @@ def _score_learning(root: str) -> DimensionResult:
     curriculum = _exists(root, "telos/core/learning/curriculum.py")
     acquisition = _exists(root, "telos/core/learning/acquisition.py")
     curve = _exists(root, "telos/tools/learning_curve.py")
+    env = _exists(root, "telos/tools/learning_env.py")
     curve_ok = _learning_curve_beats_control(root)
+    env_ok = _learning_env_beats_control(root)
     score = 2.0
     evidence = []
     for label, cond in (("theory builder", builder),
@@ -402,11 +424,20 @@ def _score_learning(root: str) -> DimensionResult:
             score += 0.5
         else:
             score -= 0.5
+    # Real-environment evidence: the reward comes from the world simulator, not
+    # a hand-written outcome function. This is the stronger claim.
+    if env:
+        evidence.append(
+            "REAL-environment learning (world-defined reward, beats control)"
+            if env_ok else "real-env harness present but not passing"
+        )
+        if env_ok:
+            score += 0.5
     if not evidence:
         evidence.append("no learning machinery detected")
     return DimensionResult(
         name="learning", score=_clamp(score), target=TARGETS["learning"],
-        basis="theory/skill machinery + curriculum + measured learning curve vs control",
+        basis="theory/skill machinery + curriculum + measured curve + real-env learning",
         evidence=evidence,
     )
 
