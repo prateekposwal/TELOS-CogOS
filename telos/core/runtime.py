@@ -1126,8 +1126,8 @@ class TelosV14Pipeline:
                 "description": "compute_budget_ms consumed this cycle",
             },
             "memory": {
-                "trace_history_length": ctx.cycle_count,
-                "description": "trace_history length (number of stored traces)",
+                "cycle_count": ctx.cycle_count,
+                "description": "pipeline cycle count (core stores no trace history; the producer has its own bounded trace ring)",
             },
             "identity": {
                 "identity_entropy": 1.0 - identity_stability,
@@ -1897,8 +1897,8 @@ class TelosV14Pipeline:
                         "description": "compute_budget_ms consumed this cycle",
                     },
                     "memory": {
-                        "trace_history_length": ctx.cycle_count,
-                        "description": "trace_history length (number of stored traces)",
+                        "cycle_count": ctx.cycle_count,
+                        "description": "pipeline cycle count (core stores no trace history; the producer has its own bounded trace ring)",
                     },
                     "identity": {
                         "identity_entropy": 1.0 - identity_stability,

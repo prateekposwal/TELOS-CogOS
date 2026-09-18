@@ -231,6 +231,21 @@ MAX_TRACES_IN_MEMORY = 200
 CHECKPOINT_EVERY_N_DEFAULT = int(os.environ.get('TELOS_CHECKPOINT_EVERY_N', '20'))
 KNOWLEDGE_SERIALIZE_INTERVAL_DEFAULT = 20
 
+# ── Memory guard (Defect 2): bound CURRENT RSS, not just the monotone peak ──
+# The old guard logged `ru_maxrss` (a peak that can only rise), so it read
+# "flat" while live RSS climbed 68 -> 172MB and could never flag growth.
+# The guard now samples CURRENT RSS into a bounded ring and flags either
+# (a) a sustained rise across the window or (b) an absolute ceiling breach.
+# The only action is record+alert: no producer-managed cache is unbounded
+# (KG edges capped, trace ring capped, decision-log capped), so trimming
+# would be theatre and any forced mutation risks the live loop. The breach
+# is a real WARNING + a machine-readable `memory_guard` flag in snapshot/
+# health — observable and honest, never silent.
+RSS_SAMPLE_WINDOW = 12                 # current-RSS samples kept (one per serialize interval)
+RSS_MIN_GROWTH_SAMPLES = 4             # need >= this many samples before judging growth
+RSS_GROWTH_WARN_KB = 48 * 1024         # 48MB sustained rise across the window
+RSS_CEILING_WARN_KB = 300 * 1024       # 300MB absolute envelope (matches endurance's ceiling)
+
 
 def serialize_knowledge(kg: Any) -> Dict[str, list]:
     """Map a live KnowledgeGraph into the dashboard API shape.
@@ -406,6 +421,22 @@ class DashboardProducer:
         # Bounded live decision log (mirrors TransparencyMonitor's 500-cap
         # 250-keep policy) so decision_log.json reflects the live pipeline.
         self._decision_log_entries: List[Dict] = []
+        # Bounded current-RSS ring + last-evaluated memory-guard state.
+        # Evaluated once per knowledge-serialize interval (never on the API
+        # hot path); snapshot()/health read the cached dict.
+        self._rss_samples: List[int] = []
+        self._memory_guard: Dict[str, Any] = {
+            "current_kb": None,
+            "peak_kb": None,
+            "growth_kb": None,
+            "window": 0,
+            "growth_threshold_kb": RSS_GROWTH_WARN_KB,
+            "ceiling_kb": RSS_CEILING_WARN_KB,
+            "breached": False,
+            "reason": None,
+            "action": "ok",
+            "checked_at_cycle": 0,
+        }
         # Broadcast callback injected by the serving process. Injected (not
         # imported) so there is exactly ONE module instance of the server:
         # importing telos.serve_dashboard from the producer would create a
@@ -467,7 +498,14 @@ class DashboardProducer:
                     "cycles": self._cycles,
                     "last_cycle_at": self._last_cycle_at,
                     "last_error": self._last_error,
-                    "rss_peak_kb": self._rss_peak_kb(),
+                    # `rss_peak_kb` is the monotone peak (labelled as peak);
+                    # `memory_guard` carries CURRENT RSS + the sustained-growth
+                    # bound and its breach flag (Defect 2).
+                    "rss_peak_kb": self._memory_guard.get("peak_kb")
+                    if self._memory_guard.get("peak_kb") is not None
+                    else self._rss_peak_kb(),
+                    "rss_current_kb": self._memory_guard.get("current_kb"),
+                    "memory_guard": dict(self._memory_guard),
                 },
                 "decisions": self._cycles,
                 "traces": traces,
@@ -914,12 +952,8 @@ class DashboardProducer:
                 except Exception as e:
                     logger.warning("producer: knowledge persist failed: %r", e)
                 self._flush_decision_log()
-                rss = self._rss_peak_kb()
-                if rss is not None:
-                    logger.info(
-                        "producer: cycle=%d rss_peak_kb=%d (memory guard)",
-                        self._cycles, rss,
-                    )
+                # Real memory guard: sample CURRENT RSS and update the bound.
+                self._update_memory_guard()
 
             ws = int(trace.worlds_simulated if trace else 0)
             self._worlds_simulated_total += ws
@@ -963,6 +997,106 @@ class DashboardProducer:
             return raw
         except Exception:
             return None
+
+    @staticmethod
+    def _rss_current_kb() -> Optional[int]:
+        """CURRENT resident set size in KB — deliberately NOT `ru_maxrss`.
+
+        `ru_maxrss` is a monotone peak: it can never decrease, so it cannot
+        detect growth and sat flat while live RSS climbed 68 -> 172MB. Current
+        RSS makes the guard a real bound.
+
+        Returns:
+            Current RSS in KB, or None if it cannot be measured.
+        """
+        try:
+            if sys.platform.startswith("linux"):
+                # /proc/self/statm field[1] = resident pages.
+                with open("/proc/self/statm") as fh:
+                    pages = int(fh.read().split()[1])
+                return pages * (os.sysconf("SC_PAGE_SIZE") // 1024)
+            # macOS / BSD: ps reports current RSS in KB.
+            import subprocess
+            out = subprocess.check_output(
+                ["ps", "-o", "rss=", "-p", str(os.getpid())],
+                text=True, stderr=subprocess.DEVNULL)
+            return int(out.strip())
+        except Exception:
+            return None
+
+    def _evaluate_memory_guard(self) -> Dict[str, Any]:
+        """Evaluate the memory bound from the bounded current-RSS ring.
+
+        Pure computation (no I/O) so tests can drive it with synthetic
+        samples. Breach if EITHER a sustained rise across the window
+        (>= RSS_GROWTH_WARN_KB over >= RSS_MIN_GROWTH_SAMPLES samples) OR
+        the current value crosses RSS_CEILING_WARN_KB. Peak is reported
+        alongside, clearly labelled, because it is still useful context.
+
+        Returns:
+            Machine-readable guard state: current/peak/growth KB, thresholds,
+            `breached` flag, human `reason`, and the `action` taken.
+        """
+        samples = list(self._rss_samples)
+        current = samples[-1] if samples else None
+        peak = self._rss_peak_kb()
+        growth = (samples[-1] - samples[0]
+                  if len(samples) >= RSS_MIN_GROWTH_SAMPLES else None)
+        growth_breach = growth is not None and growth >= RSS_GROWTH_WARN_KB
+        ceiling_breach = current is not None and current >= RSS_CEILING_WARN_KB
+        reasons = []
+        if growth_breach:
+            reasons.append(
+                f"sustained RSS growth {growth / 1024:.1f}MB >= "
+                f"{RSS_GROWTH_WARN_KB // 1024}MB over {len(samples)} samples")
+        if ceiling_breach:
+            reasons.append(
+                f"current RSS {current / 1024:.1f}MB >= "
+                f"ceiling {RSS_CEILING_WARN_KB // 1024}MB")
+        breached = bool(growth_breach or ceiling_breach)
+        return {
+            "current_kb": current,
+            "peak_kb": peak,
+            "growth_kb": growth,
+            "window": len(samples),
+            "growth_threshold_kb": RSS_GROWTH_WARN_KB,
+            "ceiling_kb": RSS_CEILING_WARN_KB,
+            "breached": breached,
+            "reason": "; ".join(reasons) if reasons else None,
+            # Record + alert only: every producer-managed cache is already
+            # bounded, so a trim would be theatre and any forced mutation
+            # could destabilise the live loop. Observable and honest.
+            "action": ("recorded+alerted (no cache trim: producer caches "
+                       "are already bounded)") if breached else "ok",
+            "checked_at_cycle": self._cycles,
+        }
+
+    def _update_memory_guard(self) -> Dict[str, Any]:
+        """Sample current RSS into the bounded ring and refresh the guard.
+
+        Called once per knowledge-serialize interval (never per API request).
+        Logs a WARNING on breach, an INFO readout otherwise.
+
+        Returns:
+            The freshly evaluated guard state.
+        """
+        rss_now = self._rss_current_kb()
+        if rss_now is not None:
+            self._rss_samples.append(max(0, int(rss_now)))
+            if len(self._rss_samples) > RSS_SAMPLE_WINDOW:
+                self._rss_samples = self._rss_samples[-RSS_SAMPLE_WINDOW:]
+        state = self._evaluate_memory_guard()
+        self._memory_guard = state
+        if state["breached"]:
+            logger.warning(
+                "producer: MEMORY GUARD breach at cycle=%d: %s",
+                self._cycles, state["reason"])
+        else:
+            logger.info(
+                "producer: cycle=%d rss_current_kb=%s rss_peak_kb=%s "
+                "(memory guard ok)",
+                self._cycles, state["current_kb"], state["peak_kb"])
+        return state
 
     def _apply_action(self, state: np.ndarray, action: np.ndarray) -> np.ndarray:
         """Legal-route executor for the selected action (BFS/A*).

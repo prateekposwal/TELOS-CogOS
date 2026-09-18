@@ -237,3 +237,34 @@ def test_checkpoints_cached_until_files_change(handler, tmp_path):
     assert third[0]["cycle_id"] == 2 and third[0]["decision_integrity"] == 0.5, (
         "file-set change must invalidate the cache"
     )
+
+
+def test_health_exposes_memory_guard(handler, monkeypatch):
+    """Defect 2: /api/health must carry the real memory bound (current vs
+    peak RSS + breach flag), not just an internal log line. The producer
+    snapshot's `memory_guard` is surfaced verbatim."""
+    h, _ = handler
+    guard = {
+        "current_kb": 180_000, "peak_kb": 210_000, "growth_kb": 60_000,
+        "window": 12, "growth_threshold_kb": 48 * 1024,
+        "ceiling_kb": 300 * 1024, "breached": True,
+        "reason": "sustained RSS growth 58.6MB >= 48MB over 12 samples",
+        "action": "recorded+alerted (no cache trim: producer caches are already bounded)",
+        "checked_at_cycle": 42,
+    }
+
+    class _StubProducer:
+        is_running = True
+
+        def snapshot(self):
+            return {
+                "decisions": 42,
+                "health": 0.8, "md": 0.1, "di": 0.9, "mood": "neutral",
+                "traces": [{"health_score": 0.8}],
+                "producer": {"cycles": 42, "memory_guard": guard},
+            }
+
+    monkeypatch.setattr(sd, "_producer", _StubProducer())
+    health = h._load_health_summary()
+    assert health["memory"] == guard, "health must expose the memory guard verbatim"
+    assert health["memory"]["breached"] is True

@@ -29,7 +29,7 @@ class ResourceBudgetTracker:
 
     Extends beyond simple compute budgets to track four resource dimensions:
       - Energy: compute_budget_ms consumed this cycle
-      - Memory: trace_history length (number of stored traces)
+      - Memory: current decision-trace length (caller-supplied, not a stored history)
       - Identity: identity entropy (1 - identity_stability)
       - Recovery: number of recovery_mode cycles active
     """

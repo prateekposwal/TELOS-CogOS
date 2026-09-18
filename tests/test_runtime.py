@@ -46,3 +46,20 @@ class TestPipeline:
         assert 'identity_utility' in comps
         assert 'council_reflector' in comps
         assert 'resource_accounting' in comps
+
+
+def test_resource_budgets_memory_is_truthful_cycle_count():
+    """Defect 3: the `memory` resource-budget field claimed to be
+    `trace_history_length` ("number of stored traces") but actually carried
+    `ctx.cycle_count` — and core retains NO trace-history list, so the name
+    lied (the dashboard's /api/health cycle count is not stored traces). The
+    value is now exposed under its correct name and the misleading field is
+    gone. Renaming is behaviour-neutral: no consumer read the old key."""
+    from types import SimpleNamespace
+
+    p = TelosV14Pipeline(PipelineConfig())
+    budgets = p._compute_resource_budgets(SimpleNamespace(cycle_count=163_683))
+    mem = budgets["memory"]
+    assert mem["cycle_count"] == 163_683
+    assert "trace_history_length" not in mem, \
+        "the misleading trace-history field must be removed"

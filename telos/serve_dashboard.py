@@ -295,6 +295,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     "mission_drift": snap.get("md", 0.0),
                     "mood": snap.get("mood", "neutral"),
                     "resources": _last_resources(snap),
+                    # Defect 2: the real memory bound — current vs peak RSS,
+                    # growth, thresholds, breach flag. None if never sampled.
+                    "memory": snap.get("producer", {}).get("memory_guard"),
                     "producer_running": True,
                 }
         bm = self._load_benchmark()
