@@ -871,9 +871,15 @@ class ActionExecutor:
             record.stdout = proc.stdout[:self.output_limit]
             record.stderr = proc.stderr[:self.output_limit]
         except subprocess.TimeoutExpired as e:
+            # A timeout is a first-class BLOCK, never an "allowed" execution
+            # (Λ2.3: bounded capture must not report a hung command as success).
             record.timed_out = True
             record.stdout = _to_text(e.stdout)[:self.output_limit]
             record.stderr = _to_text(e.stderr)[:self.output_limit]
+            record.blocked_reason = (
+                f"command timed out after {self.timeout}s (blocked, no result)")
+            record.duration_ms = (time.monotonic() - started) * 1000.0
+            return record
         except Exception as e:
             record.blocked_reason = f"execution error: {e}"
             record.duration_ms = (time.monotonic() - started) * 1000.0

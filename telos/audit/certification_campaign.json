@@ -1,0 +1,1495 @@
+{
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/certification_campaign.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "I1_prediction_before_action",
+      "I2_observation_is_post_action_read",
+      "I3_gap_ordered_and_bounded",
+      "I4_authority_rises_low_falls_high",
+      "I5_reduced_authority_blocks_act",
+      "I6_no_admit_on_mismatch",
+      "I7_revocation_on_failure_streak",
+      "I8_fail_closed_missing_evidence",
+      "I9_determinism_preserved"
+    ]
+  },
+  "criteria": {
+    "I1_prediction_before_action": true,
+    "I2_observation_is_post_action_read": true,
+    "I3_gap_ordered_and_bounded": true,
+    "I4_authority_rises_low_falls_high": true,
+    "I5_reduced_authority_blocks_act": true,
+    "I6_no_admit_on_mismatch": true,
+    "I7_revocation_on_failure_streak": true,
+    "I8_fail_closed_missing_evidence": true,
+    "I9_determinism_preserved": true
+  },
+  "verdict": {
+    "passed": true,
+    "passed_count": 9,
+    "total": 9
+  },
+  "capability": "filesystem.write",
+  "sandbox_only": true,
+  "variance_matrix": [
+    {
+      "name": "normal_exact",
+      "family": "normal",
+      "description": "governed write with the exact predicted result",
+      "expected": {
+        "executed": true,
+        "action_allowed": true,
+        "gap_band": "zero",
+        "matched": true,
+        "admitted": true,
+        "disk_content": "alpha\nbeta-edited\ngamma\n"
+      },
+      "measured": {
+        "executed": true,
+        "action_allowed": true,
+        "blocked_reason": null,
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": "alpha\nbeta-edited\ngamma\n",
+        "observed": "alpha\nbeta-edited\ngamma\n",
+        "gap": 0.0,
+        "matched": true,
+        "admitted": true,
+        "candidate_id": "cand_a3f5ee7ad9",
+        "fidelity_before": null,
+        "fidelity_after": 1.0,
+        "status_before": "UNKNOWN",
+        "status_after": "PASS",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "UNKNOWN",
+          "fidelity": null,
+          "validations": 0,
+          "recent_mean_gap": null,
+          "last_gap": null,
+          "ever_falsified": false,
+          "reason": "no verified action has been recorded for this capability"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "disk_content": "alpha\nbeta-edited\ngamma\n",
+        "observation_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "disk_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "execute_entry_prediction": "alpha\nbeta-edited\ngamma\n",
+        "adapter_execute_calls": 1
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=True"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=True"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=zero gap=0.0"
+        },
+        {
+          "name": "matched",
+          "ok": true,
+          "detail": "matched=True"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=True"
+        },
+        {
+          "name": "disk_content",
+          "ok": true,
+          "detail": "disk_content='alpha\\nbeta-edited\\ngamma\\n'"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "near_match_one_token",
+      "family": "near_match",
+      "description": "one token changed in the prediction -> small non-zero gap",
+      "expected": {
+        "executed": true,
+        "action_allowed": true,
+        "gap_band": "near",
+        "matched": false,
+        "admitted": false,
+        "authority": "down"
+      },
+      "measured": {
+        "executed": true,
+        "action_allowed": true,
+        "blocked_reason": null,
+        "expected_result": "alpha\nbeta-editX\ngamma\n",
+        "predicted": "alpha\nbeta-editX\ngamma\n",
+        "observed": "alpha\nbeta-edited\ngamma\n",
+        "gap": 0.06382978723404253,
+        "matched": false,
+        "admitted": false,
+        "candidate_id": "cand_0e67ffabc3",
+        "fidelity_before": 1.0,
+        "fidelity_after": 0.9680851063829787,
+        "status_before": "PASS",
+        "status_after": "PASS",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 0.9680851063829787,
+          "validations": 2,
+          "recent_mean_gap": 0.03191489361702127,
+          "last_gap": 0.06382978723404253,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.032 -> fidelity 0.968 (>= 0.7)"
+        },
+        "disk_content": "alpha\nbeta-edited\ngamma\n",
+        "observation_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "disk_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "execute_entry_prediction": "alpha\nbeta-editX\ngamma\n",
+        "adapter_execute_calls": 1
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=True"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=True"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=near gap=0.06382978723404253"
+        },
+        {
+          "name": "matched",
+          "ok": true,
+          "detail": "matched=False"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        },
+        {
+          "name": "authority",
+          "ok": true,
+          "detail": "dir=down before=1.0 after=0.9680851063829787"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "adversarial_large_divergence",
+      "family": "adversarial",
+      "description": "prediction wholly unrelated to what the action writes",
+      "expected": {
+        "executed": true,
+        "action_allowed": true,
+        "gap_band": "large",
+        "matched": false,
+        "admitted": false,
+        "authority": "down"
+      },
+      "measured": {
+        "executed": true,
+        "action_allowed": true,
+        "blocked_reason": null,
+        "expected_result": "totally-different\n",
+        "predicted": "totally-different\n",
+        "observed": "alpha\nbeta-edited\ngamma\n",
+        "gap": 0.6666666666666667,
+        "matched": false,
+        "admitted": false,
+        "candidate_id": "cand_e384de0bc5",
+        "fidelity_before": 1.0,
+        "fidelity_after": 0.6666666666666666,
+        "status_before": "PASS",
+        "status_after": "LIMITED",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "LIMITED",
+          "fidelity": 0.6666666666666666,
+          "validations": 2,
+          "recent_mean_gap": 0.33333333333333337,
+          "last_gap": 0.6666666666666667,
+          "ever_falsified": true,
+          "reason": "recent mean gap 0.333 -> fidelity 0.667 (degraded, between 0.5 and 0.7)"
+        },
+        "disk_content": "alpha\nbeta-edited\ngamma\n",
+        "observation_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "disk_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "execute_entry_prediction": "totally-different\n",
+        "adapter_execute_calls": 1
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=True"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=True"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=large gap=0.6666666666666667"
+        },
+        {
+          "name": "matched",
+          "ok": true,
+          "detail": "matched=False"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        },
+        {
+          "name": "authority",
+          "ok": true,
+          "detail": "dir=down before=1.0 after=0.6666666666666666"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "adversarial_wrong_target",
+      "family": "adversarial",
+      "description": "proposal/approval name other.md; adapter acts on notes.md",
+      "expected": {
+        "executed": true,
+        "action_allowed": true,
+        "gap_band": "large",
+        "matched": false,
+        "admitted": false,
+        "authority": "down",
+        "other_target_content": "other content for a different target\n",
+        "disk_content": "alpha\nbeta-edited\ngamma\n"
+      },
+      "measured": {
+        "executed": true,
+        "action_allowed": true,
+        "blocked_reason": null,
+        "expected_result": "other content for a different target\n",
+        "predicted": "other content for a different target\n",
+        "observed": "alpha\nbeta-edited\ngamma\n",
+        "gap": 0.7704918032786885,
+        "matched": false,
+        "admitted": false,
+        "candidate_id": "cand_a4dbaa7191",
+        "fidelity_before": 1.0,
+        "fidelity_after": 0.6147540983606558,
+        "status_before": "PASS",
+        "status_after": "LIMITED",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "LIMITED",
+          "fidelity": 0.6147540983606558,
+          "validations": 2,
+          "recent_mean_gap": 0.38524590163934425,
+          "last_gap": 0.7704918032786885,
+          "ever_falsified": true,
+          "reason": "recent mean gap 0.385 -> fidelity 0.615 (degraded, between 0.5 and 0.7)"
+        },
+        "disk_content": "alpha\nbeta-edited\ngamma\n",
+        "observation_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "disk_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "execute_entry_prediction": "other content for a different target\n",
+        "adapter_execute_calls": 1,
+        "other_target_content": "other content for a different target\n"
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=True"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=True"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=large gap=0.7704918032786885"
+        },
+        {
+          "name": "matched",
+          "ok": true,
+          "detail": "matched=False"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        },
+        {
+          "name": "authority",
+          "ok": true,
+          "detail": "dir=down before=1.0 after=0.6147540983606558"
+        },
+        {
+          "name": "disk_content",
+          "ok": true,
+          "detail": "disk_content='alpha\\nbeta-edited\\ngamma\\n'"
+        },
+        {
+          "name": "other_target_content",
+          "ok": true,
+          "detail": "other_target_content='other content for a different target\\n'"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "adversarial_file_missing",
+      "family": "adversarial",
+      "description": "target file absent -> the governed write refuses",
+      "expected": {
+        "executed": false,
+        "action_allowed": false,
+        "gap_band": "none",
+        "admitted": false,
+        "blocked_reason_contains": "action invalid"
+      },
+      "measured": {
+        "executed": false,
+        "action_allowed": false,
+        "blocked_reason": "action invalid: write_file target is not an existing file: '/private/var/folders/gp/cdz5rt_s51l5531582d062kc0000gn/T/telos_cert_campaign_22vm1jlb/notes.md'",
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": null,
+        "observed": null,
+        "gap": null,
+        "matched": null,
+        "admitted": false,
+        "candidate_id": null,
+        "fidelity_before": 1.0,
+        "fidelity_after": 1.0,
+        "status_before": "PASS",
+        "status_after": "PASS",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "disk_content": null,
+        "observation_sha256": null,
+        "disk_sha256": null,
+        "execute_entry_prediction": null,
+        "adapter_execute_calls": 0
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=False"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason=\"action invalid: write_file target is not an existing file: '/private/var/folders/gp/cdz5rt_s51l5531582d062kc0000gn/T/telos_cert_campaign_22vm1jlb/notes.md'\""
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=none gap=None"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "adversarial_target_changed",
+      "family": "adversarial",
+      "description": "an external actor changes the target after the write",
+      "expected": {
+        "executed": true,
+        "action_allowed": true,
+        "gap_band": "large",
+        "matched": false,
+        "admitted": false,
+        "authority": "down",
+        "observed_not_predicted": true,
+        "disk_content": "externally-changed-after-write\n"
+      },
+      "measured": {
+        "executed": true,
+        "action_allowed": true,
+        "blocked_reason": null,
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": "alpha\nbeta-edited\ngamma\n",
+        "observed": "externally-changed-after-write\n",
+        "gap": 0.6363636363636364,
+        "matched": false,
+        "admitted": false,
+        "candidate_id": "cand_2493c26a58",
+        "fidelity_before": 1.0,
+        "fidelity_after": 0.6818181818181819,
+        "status_before": "PASS",
+        "status_after": "LIMITED",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "LIMITED",
+          "fidelity": 0.6818181818181819,
+          "validations": 2,
+          "recent_mean_gap": 0.3181818181818182,
+          "last_gap": 0.6363636363636364,
+          "ever_falsified": true,
+          "reason": "recent mean gap 0.318 -> fidelity 0.682 (degraded, between 0.5 and 0.7)"
+        },
+        "disk_content": "externally-changed-after-write\n",
+        "observation_sha256": "1ecdb392243a5a5ba4b54de1bd22b1fcf909d37f223d112f4eb87c703f026568",
+        "disk_sha256": "1ecdb392243a5a5ba4b54de1bd22b1fcf909d37f223d112f4eb87c703f026568",
+        "execute_entry_prediction": "alpha\nbeta-edited\ngamma\n",
+        "adapter_execute_calls": 1
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=True"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=True"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=large gap=0.6363636363636364"
+        },
+        {
+          "name": "matched",
+          "ok": true,
+          "detail": "matched=False"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        },
+        {
+          "name": "authority",
+          "ok": true,
+          "detail": "dir=down before=1.0 after=0.6818181818181819"
+        },
+        {
+          "name": "disk_content",
+          "ok": true,
+          "detail": "disk_content='externally-changed-after-write\\n'"
+        },
+        {
+          "name": "observed_not_predicted",
+          "ok": true,
+          "detail": "observed='externally-changed-after-write\\n' predicted='alpha\\nbeta-edited\\ngamma\\n'"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "adversarial_empty_vs_nonempty",
+      "family": "adversarial",
+      "description": "empty prediction vs a non-empty real result",
+      "expected": {
+        "executed": true,
+        "action_allowed": true,
+        "gap_band": "large",
+        "matched": false,
+        "admitted": false,
+        "authority": "down"
+      },
+      "measured": {
+        "executed": true,
+        "action_allowed": true,
+        "blocked_reason": null,
+        "expected_result": "",
+        "predicted": "",
+        "observed": "alpha\nbeta-edited\ngamma\n",
+        "gap": 1.0,
+        "matched": false,
+        "admitted": false,
+        "candidate_id": "cand_d3ea04929e",
+        "fidelity_before": 1.0,
+        "fidelity_after": 0.5,
+        "status_before": "PASS",
+        "status_after": "LIMITED",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "LIMITED",
+          "fidelity": 0.5,
+          "validations": 2,
+          "recent_mean_gap": 0.5,
+          "last_gap": 1.0,
+          "ever_falsified": true,
+          "reason": "recent mean gap 0.500 -> fidelity 0.500 (degraded, between 0.5 and 0.7)"
+        },
+        "disk_content": "alpha\nbeta-edited\ngamma\n",
+        "observation_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "disk_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "execute_entry_prediction": "",
+        "adapter_execute_calls": 1
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=True"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=True"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=large gap=1.0"
+        },
+        {
+          "name": "matched",
+          "ok": true,
+          "detail": "matched=False"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        },
+        {
+          "name": "authority",
+          "ok": true,
+          "detail": "dir=down before=1.0 after=0.5"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "adversarial_unicode_edge",
+      "family": "adversarial",
+      "description": "hyphen vs en-dash -> a small, correctly-detected gap",
+      "expected": {
+        "executed": true,
+        "action_allowed": true,
+        "gap_band": "nonzero",
+        "matched": false,
+        "admitted": false,
+        "authority": "down"
+      },
+      "measured": {
+        "executed": true,
+        "action_allowed": true,
+        "blocked_reason": null,
+        "expected_result": "alpha\nbeta\u2013edited\ngamma\n",
+        "predicted": "alpha\nbeta\u2013edited\ngamma\n",
+        "observed": "alpha\nbeta-edited\ngamma\n",
+        "gap": 0.04166666666666663,
+        "matched": false,
+        "admitted": false,
+        "candidate_id": "cand_672235efb0",
+        "fidelity_before": 1.0,
+        "fidelity_after": 0.9791666666666667,
+        "status_before": "PASS",
+        "status_after": "PASS",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 0.9791666666666667,
+          "validations": 2,
+          "recent_mean_gap": 0.020833333333333315,
+          "last_gap": 0.04166666666666663,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.021 -> fidelity 0.979 (>= 0.7)"
+        },
+        "disk_content": "alpha\nbeta-edited\ngamma\n",
+        "observation_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "disk_sha256": "acdf31ea16fdde0a99eb18f9dc68a5808d45d12a4bb8d8d3e746673eed41ec4a",
+        "execute_entry_prediction": "alpha\nbeta\u2013edited\ngamma\n",
+        "adapter_execute_calls": 1
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=True"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=True"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=nonzero gap=0.04166666666666663"
+        },
+        {
+          "name": "matched",
+          "ok": true,
+          "detail": "matched=False"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        },
+        {
+          "name": "authority",
+          "ok": true,
+          "detail": "dir=down before=1.0 after=0.9791666666666667"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "adversarial_oversized",
+      "family": "adversarial",
+      "description": "a >200-line hunk is refused before any effect",
+      "expected": {
+        "executed": false,
+        "action_allowed": false,
+        "gap_band": "none",
+        "admitted": false,
+        "blocked_reason_contains": "exceeds",
+        "disk_content": "alpha\nbeta\ngamma\n"
+      },
+      "measured": {
+        "executed": false,
+        "action_allowed": false,
+        "blocked_reason": "action invalid: write_file hunk exceeds 200 lines (got 201 old / 1 new)",
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": null,
+        "observed": null,
+        "gap": null,
+        "matched": null,
+        "admitted": false,
+        "candidate_id": null,
+        "fidelity_before": 1.0,
+        "fidelity_after": 1.0,
+        "status_before": "PASS",
+        "status_after": "PASS",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "disk_content": "alpha\nbeta\ngamma\n",
+        "observation_sha256": null,
+        "disk_sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "execute_entry_prediction": null,
+        "adapter_execute_calls": 0
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=False"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason='action invalid: write_file hunk exceeds 200 lines (got 201 old / 1 new)'"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=none gap=None"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        },
+        {
+          "name": "disk_content",
+          "ok": true,
+          "detail": "disk_content='alpha\\nbeta\\ngamma\\n'"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "refusal_no_approval",
+      "family": "refusal",
+      "description": "certified but no per-action approval -> refused",
+      "expected": {
+        "executed": false,
+        "action_allowed": false,
+        "gap_band": "none",
+        "admitted": false,
+        "blocked_reason_contains": "per-action approval"
+      },
+      "measured": {
+        "executed": false,
+        "action_allowed": false,
+        "blocked_reason": "LIVE requires an explicit per-action approval (none provided)",
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": null,
+        "observed": null,
+        "gap": null,
+        "matched": null,
+        "admitted": false,
+        "candidate_id": null,
+        "fidelity_before": 1.0,
+        "fidelity_after": 1.0,
+        "status_before": "PASS",
+        "status_after": "PASS",
+        "authority_before": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "authority_after": {
+          "capability": "filesystem.write",
+          "model_id": "world_action:filesystem.write",
+          "status": "PASS",
+          "fidelity": 1.0,
+          "validations": 1,
+          "recent_mean_gap": 0.0,
+          "last_gap": 0.0,
+          "ever_falsified": false,
+          "reason": "recent mean gap 0.000 -> fidelity 1.000 (>= 0.7)"
+        },
+        "disk_content": "alpha\nbeta\ngamma\n",
+        "observation_sha256": null,
+        "disk_sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "execute_entry_prediction": null,
+        "adapter_execute_calls": 0
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=False"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason='LIVE requires an explicit per-action approval (none provided)'"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=none gap=None"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "refusal_uncertified",
+      "family": "refusal",
+      "description": "uncertified capability at mode=LIVE -> refused",
+      "expected": {
+        "executed": false,
+        "action_allowed": false,
+        "gap_band": "none",
+        "admitted": false,
+        "blocked_reason_contains": "not CERTIFIED"
+      },
+      "measured": {
+        "executed": false,
+        "action_allowed": false,
+        "blocked_reason": "capability 'filesystem.write' is not CERTIFIED (LIVE refused, dry-run allowed)",
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": null,
+        "observed": null,
+        "gap": null,
+        "matched": null,
+        "admitted": false,
+        "candidate_id": null,
+        "fidelity_before": null,
+        "fidelity_after": null,
+        "status_before": null,
+        "status_after": null,
+        "authority_before": null,
+        "authority_after": null,
+        "disk_content": "alpha\nbeta\ngamma\n",
+        "observation_sha256": null,
+        "disk_sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "execute_entry_prediction": null,
+        "adapter_execute_calls": 0
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=False"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason=\"capability 'filesystem.write' is not CERTIFIED (LIVE refused, dry-run allowed)\""
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=none gap=None"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "refusal_no_adapter",
+      "family": "refusal",
+      "description": "no adapter configured -> no action path exists",
+      "expected": {
+        "executed": false,
+        "action_allowed": false,
+        "gap_band": "none",
+        "admitted": false,
+        "blocked_reason_contains": "no_adapter_configured"
+      },
+      "measured": {
+        "executed": false,
+        "action_allowed": false,
+        "blocked_reason": "no_adapter_configured",
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": null,
+        "observed": null,
+        "gap": null,
+        "matched": null,
+        "admitted": false,
+        "candidate_id": null,
+        "fidelity_before": null,
+        "fidelity_after": null,
+        "status_before": null,
+        "status_after": null,
+        "authority_before": null,
+        "authority_after": null,
+        "disk_content": "alpha\nbeta\ngamma\n",
+        "observation_sha256": null,
+        "disk_sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "execute_entry_prediction": null,
+        "adapter_execute_calls": null
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=False"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason='no_adapter_configured'"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=none gap=None"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "refusal_capability_gate_fail",
+      "family": "refusal",
+      "description": "a FAIL capability gate vetoes LIVE (conjunctive gate)",
+      "expected": {
+        "executed": false,
+        "action_allowed": false,
+        "gap_band": "none",
+        "admitted": false,
+        "blocked_reason_contains": "capability gate failed"
+      },
+      "measured": {
+        "executed": false,
+        "action_allowed": false,
+        "blocked_reason": "capability gate failed: model_fidelity",
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": null,
+        "observed": null,
+        "gap": null,
+        "matched": null,
+        "admitted": false,
+        "candidate_id": null,
+        "fidelity_before": null,
+        "fidelity_after": null,
+        "status_before": null,
+        "status_after": null,
+        "authority_before": null,
+        "authority_after": null,
+        "disk_content": "alpha\nbeta\ngamma\n",
+        "observation_sha256": null,
+        "disk_sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "execute_entry_prediction": null,
+        "adapter_execute_calls": 0
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=False"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason='capability gate failed: model_fidelity'"
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=none gap=None"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "refusal_adapter_mismatch",
+      "family": "refusal",
+      "description": "proposal capability does not match the adapter",
+      "expected": {
+        "executed": false,
+        "action_allowed": false,
+        "gap_band": "none",
+        "admitted": false,
+        "blocked_reason_contains": "action invalid"
+      },
+      "measured": {
+        "executed": false,
+        "action_allowed": false,
+        "blocked_reason": "action invalid: capability mismatch: proposal declares 'other.cap' but adapter realizes 'filesystem.write'",
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": null,
+        "observed": null,
+        "gap": null,
+        "matched": null,
+        "admitted": false,
+        "candidate_id": null,
+        "fidelity_before": null,
+        "fidelity_after": null,
+        "status_before": null,
+        "status_after": null,
+        "authority_before": null,
+        "authority_after": null,
+        "disk_content": "alpha\nbeta\ngamma\n",
+        "observation_sha256": null,
+        "disk_sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "execute_entry_prediction": null,
+        "adapter_execute_calls": 0
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=False"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason=\"action invalid: capability mismatch: proposal declares 'other.cap' but adapter realizes 'filesystem.write'\""
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=none gap=None"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "refusal_rate_limit",
+      "family": "refusal",
+      "description": "second write in the minute is blocked, no effect",
+      "expected": {
+        "executed": true,
+        "action_allowed": false,
+        "gap_band": "none",
+        "admitted": false,
+        "blocked_reason_contains": "rate_limit_exceeded",
+        "disk_content": "alpha\nbeta\ngamma\n"
+      },
+      "measured": {
+        "executed": true,
+        "action_allowed": false,
+        "blocked_reason": "rate_limit_exceeded: rate limit exceeded for 'write_file': 1/1 per 60s",
+        "expected_result": "alpha\nbeta-edited\ngamma\n",
+        "predicted": null,
+        "observed": null,
+        "gap": null,
+        "matched": null,
+        "admitted": false,
+        "candidate_id": null,
+        "fidelity_before": null,
+        "fidelity_after": null,
+        "status_before": null,
+        "status_after": null,
+        "authority_before": null,
+        "authority_after": null,
+        "disk_content": "alpha\nbeta\ngamma\n",
+        "observation_sha256": null,
+        "disk_sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "execute_entry_prediction": "alpha\nbeta-edited\ngamma\n",
+        "adapter_execute_calls": 1
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=True"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason=\"rate_limit_exceeded: rate limit exceeded for 'write_file': 1/1 per 60s\""
+        },
+        {
+          "name": "gap_band",
+          "ok": true,
+          "detail": "band=none gap=None"
+        },
+        {
+          "name": "admitted",
+          "ok": true,
+          "detail": "admitted=False"
+        },
+        {
+          "name": "disk_content",
+          "ok": true,
+          "detail": "disk_content='alpha\\nbeta\\ngamma\\n'"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "refusal_timeout",
+      "family": "refusal",
+      "description": "a hanging command is blocked by the timeout gate",
+      "expected": {
+        "executed": false,
+        "action_allowed": false,
+        "timed_out": true,
+        "blocked_reason_contains": "timed out"
+      },
+      "measured": {
+        "executed": false,
+        "action_allowed": false,
+        "blocked_reason": "command timed out after 0.4s (blocked, no result)",
+        "timed_out": true,
+        "returncode": null,
+        "gap": null,
+        "admitted": false,
+        "expected_result": "make hang",
+        "disk_content": "alpha\nbeta\ngamma\n"
+      },
+      "checks": [
+        {
+          "name": "executed",
+          "ok": true,
+          "detail": "executed=False"
+        },
+        {
+          "name": "action_allowed",
+          "ok": true,
+          "detail": "action_allowed=False"
+        },
+        {
+          "name": "blocked_reason",
+          "ok": true,
+          "detail": "blocked_reason='command timed out after 0.4s (blocked, no result)'"
+        },
+        {
+          "name": "timed_out",
+          "ok": true,
+          "detail": "timed_out=True"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "invariants": {
+    "I1": {
+      "held": true,
+      "detail": "prediction present for all 16 cases and equal at execute entry for all 8 attempted cases"
+    },
+    "I2": {
+      "held": true,
+      "detail": "post-observation == on-disk bytes + sha256 for all 7 allowed cases; tampered-target observation 'externally-changed-after-write\\n' != prediction 'alpha\\nbeta-edited\\ngamma\\n'"
+    },
+    "I3": {
+      "held": true,
+      "detail": "exact=0.0 < near=0.06382978723404253 < large=0.6666666666666667; all 7 measured gaps bounded [0,1]"
+    },
+    "I4": {
+      "held": true,
+      "detail": "fidelity sequence [(None, 1.0), (1.0, 0.6666666666666666), (0.6666666666666666, 0.7777777777777778)] (fall=True, rise=True)"
+    },
+    "I5": {
+      "held": true,
+      "detail": "authority FAIL; next ACT executed=False reason='capability gate failed: model_fidelity'; execute seams adapter=0 structured=0"
+    },
+    "I6": {
+      "held": true,
+      "detail": "mismatch gap=0.6666666666666667 candidate=cand_a6ef36a85c admitted=False acquired=0"
+    },
+    "I7": {
+      "held": true,
+      "detail": "decision=REVOKE certified_before=True certified_after=False streak=2"
+    },
+    "I8": {
+      "held": true,
+      "detail": "fail-closed probes {'gap_none_observation_is_total_miss': True, 'gap_none_prediction_is_total_miss': True, 'untested_authority_is_unknown': True, 'no_outcomes_holds': True, 'variance_missing_holds_even_with_successes': True, 'malformed_cert_file_fails_closed': True, 'explicit_empty_registry_zero_certified': True, 'no_adapter_refused': True, 'uncertified_refused': True}"
+    },
+    "I9": {
+      "held": true,
+      "detail": "fingerprint=4ce1a6f54f2e4378 baseline_match=True identical=True default_off=True"
+    }
+  },
+  "variance_evidence": {
+    "capability": "filesystem.write",
+    "families": {
+      "normal": 1,
+      "near_match": 1,
+      "adversarial": 7,
+      "refusal": 7
+    },
+    "invariants": {
+      "I1": true,
+      "I2": true,
+      "I3": true,
+      "I4": true,
+      "I5": true,
+      "I6": true,
+      "I7": true,
+      "I8": true,
+      "I9": true
+    },
+    "measured_gaps": [
+      0.0,
+      0.06382978723404253,
+      0.6666666666666667,
+      0.7704918032786885,
+      0.6363636363636364,
+      1.0,
+      0.04166666666666663
+    ],
+    "normal_gap_max": 0.0,
+    "adversarial_gap_min": 0.04166666666666663,
+    "adversarial_gap_max": 1.0,
+    "false_admits": 0,
+    "fail_open_count": 0,
+    "revocation_demonstrated": true,
+    "min_normal_cases": 1,
+    "min_adversarial_cases": 3,
+    "min_refusal_cases": 1,
+    "source": "telos/audit/certification_campaign.json",
+    "detail": {}
+  },
+  "certification": {
+    "decision": {
+      "capability": "filesystem.write",
+      "action": "CERTIFY",
+      "reason": "loop-correctness under variance satisfied (I1-I8 held, gap discriminated normal<=0.2 < divergent, zero false admits, fail-closed, revocation shown) AND 3 successful verified actions within the last 5 (>= 3) with no failure streak \u2014 certified",
+      "evidence": {
+        "criteria": {
+          "min_successes": 3,
+          "max_gap": 0.2,
+          "window": 5,
+          "failure_streak": 2,
+          "require_variance": true
+        },
+        "sample_size": 3,
+        "total_recorded": 3,
+        "successes": 3,
+        "failures": 0,
+        "failure_streak": 0,
+        "success_cycles": [
+          0,
+          1,
+          2
+        ],
+        "max_observed_gap": 0.0,
+        "variance": {
+          "required": true,
+          "satisfied": true,
+          "failures": [],
+          "source": "telos/audit/certification_campaign.json",
+          "gates": {
+            "families": {
+              "normal": 1,
+              "near_match": 1,
+              "adversarial": 7,
+              "refusal": 7
+            },
+            "invariants": {
+              "I1": true,
+              "I2": true,
+              "I3": true,
+              "I4": true,
+              "I5": true,
+              "I6": true,
+              "I7": true,
+              "I8": true,
+              "I9": true
+            },
+            "gaps_bounded": true,
+            "normal_gap_max": 0.0,
+            "adversarial_gap_min": 0.04166666666666663,
+            "adversarial_gap_max": 1.0,
+            "detects_large_divergence": true,
+            "discriminates": true,
+            "false_admits": 0,
+            "fail_open_count": 0,
+            "revocation_demonstrated": true
+          }
+        }
+      },
+      "certified": true
+    },
+    "certified": true,
+    "canonical_record_written": false,
+    "criteria_strengthened": [
+      "battery_exercised_normal_and_divergent",
+      "loop_invariants_I1_I8_hold",
+      "gap_bounded_normal_and_discriminating_divergent",
+      "zero_false_admits",
+      "zero_fail_open",
+      "revocation_demonstrated",
+      "verified_outcome_window"
+    ]
+  },
+  "live_exercise": {
+    "capability": "filesystem.write",
+    "sandbox_root": "/tmp/telos_tool_sandbox",
+    "sandbox_created": false,
+    "target": "sandbox_notes.md",
+    "positive": {
+      "mode": "LIVE",
+      "predicted": "seed line one\nseed line two edited by certification campaign\nseed line three\n",
+      "actual_gap": 0.0,
+      "observed": "seed line one\nseed line two edited by certification campaign\nseed line three\n",
+      "action_allowed": true,
+      "admitted": true,
+      "authority_fidelity_before": null,
+      "authority_fidelity_after": 1.0,
+      "authority_status_before": "UNKNOWN",
+      "authority_status_after": "PASS"
+    },
+    "negative": {
+      "mode": "LIVE",
+      "predicted": "PLANTED-MISMATCH\n",
+      "actual_gap": 0.9797979797979798,
+      "observed": "seed line one\nseed line two edited by certification campaign (v2)\nseed line three\n",
+      "action_allowed": true,
+      "admitted": false,
+      "authority_fidelity_before": 1.0,
+      "authority_fidelity_after": 0.5101010101010102,
+      "authority_status_before": "PASS",
+      "authority_status_after": "LIMITED"
+    },
+    "reversibility": {
+      "git_status_before": "M sandbox_notes.md",
+      "git_status_after": "M sandbox_notes.md",
+      "restored_exact_bytes": true,
+      "reversible": true
+    }
+  }
+}
