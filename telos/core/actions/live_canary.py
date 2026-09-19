@@ -538,6 +538,13 @@ class LiveCanary:
         """
         if not self.config.enabled:
             return "canary_disabled"
+        # Production durability (Λ6.7): a PRODUCER-origin canary must persist its
+        # capability-authority evidence. Without a durable path a falsified
+        # capability could be resurrected by a producer restart — fail closed
+        # rather than run an ephemeral production authority.
+        if (self.config.authority_state_path is None
+                and self._origin.source == ORIGIN_PRODUCER):
+            return "authority_durability_unconfigured"
         if self._completed:
             return "canary_session_complete"
         if self._actions_done >= self.config.max_actions:

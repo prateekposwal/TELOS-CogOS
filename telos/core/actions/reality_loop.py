@@ -27,15 +27,15 @@ from __future__ import annotations
 
 import difflib
 import hashlib
-import json
 import logging
-import os
-import tempfile
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import numpy as np
 
+from telos.core.actions.durability import (
+    KIND_AUTHORITY_EVIDENCE, DurabilityMode, atomic_write_state, read_state,
+)
 from telos.core.governance.capability_authorization import (
     CapabilityAuthorization, CapabilityStatus,
 )
@@ -156,68 +156,125 @@ class CapabilityAuthority:
     MODEL_PREFIX: str = "world_action"
 
     def __init__(self, tracker: Optional[RealityGapTracker] = None, *,
-                 state_path: Optional[str] = None):
+                 state_path: Optional[str] = None,
+                 durability: Optional[DurabilityMode] = None):
         """Construct the authority ledger over a RealityGapTracker.
 
-        DURABLE AUTHORITY (restart safety): when ``state_path`` is configured the
-        ledger PERSISTS its measured evidence (per-model gap history, sticky
-        falsification, recency stamp) after every recording and RELOADS it on
-        construction. The measured falsification state of a capability is thus
-        not erased by a process restart — a falsified capability stays FAILed
-        even though the canonical certification registry still says
-        LIVE-CERTIFIED. This store is runtime EVIDENCE, deliberately separate
-        from the operator-gated canonical certification registry (Λ6.7): the
-        runtime may withhold authority automatically; only canonical registry
-        mutation requires an explicit operator.
+        DURABILITY CONTRACT (Λ6.7, one mechanism — see
+        ``telos/core/actions/durability.py``): when ``state_path`` is configured
+        the ledger PERSISTS its measured evidence (per-model gap history, sticky
+        falsification, recency stamp) inside the canonical integrity envelope
+        after every recording, and RELOADS it on construction. The measured
+        falsification state of a capability is thus not erased by a process
+        restart — a falsified capability stays FAILed even though the canonical
+        certification registry still says LIVE-CERTIFIED. This store is runtime
+        EVIDENCE, deliberately separate from the operator-gated canonical
+        certification registry: the runtime may withhold authority
+        automatically; only canonical registry mutation requires an operator.
 
-        Fails CLOSED: if the configured store exists but is unreadable or
-        malformed, :meth:`state` withholds authority for every capability
-        (FAIL) rather than silently reverting to the act-then-learn bootstrap.
-        An ABSENT store is a genuine first run (bootstrap, UNKNOWN) — not
-        recovery.
+        Fails CLOSED: a configured store that EXISTS but is unreadable,
+        malformed, of the wrong kind, of an unsupported schema, or fails its
+        integrity checksum sets ``_evidence_unreadable`` so :meth:`state`
+        withholds authority for every capability (FAIL) rather than silently
+        reverting to the act-then-learn bootstrap. An ABSENT store is a genuine
+        first run (bootstrap, UNKNOWN) — not recovery.
+
+        PRODUCTION vs TEST: a bare ``CapabilityAuthority()`` (no ``state_path``)
+        is intentionally EPHEMERAL — supported for tests/in-memory use, never
+        acceptable for a production safety-critical authority. Production
+        construction should make durability explicit via
+        :meth:`durable` (or ``state_path=``); ``durability=DURABLE`` without a
+        path is a hard configuration error.
 
         Args:
             tracker: the existing tracker to reuse (defaults to a fresh one).
             state_path: optional durable evidence path. None (default) keeps
                 the ledger purely in-memory (byte-identical default behavior).
+            durability: explicit DURABLE / EPHEMERAL mode. When omitted it is
+                inferred from ``state_path`` (a path => DURABLE, no path =>
+                EPHEMERAL). DURABLE with no path raises.
+
+        Raises:
+            ValueError: when DURABLE is requested without a ``state_path``.
         """
         self.tracker = tracker if tracker is not None else RealityGapTracker()
         self.state_path: Optional[str] = (
             str(state_path) if state_path else None)
+        if durability is not None and not isinstance(durability, DurabilityMode):
+            durability = DurabilityMode(str(durability).strip().upper())
+        if durability is DurabilityMode.DURABLE and not self.state_path:
+            raise ValueError(
+                "CapabilityAuthority: durability=DURABLE requires an explicit "
+                "state_path (production authority must not be ephemeral)")
+        self.durability: DurabilityMode = (
+            durability
+            if durability is not None
+            else (DurabilityMode.DURABLE if self.state_path
+                  else DurabilityMode.EPHEMERAL))
         #: True when a configured evidence store existed but could not be
         #: trusted; every authority query then fails closed.
         self._evidence_unreadable: bool = False
         if self.state_path:
             self._load_state()
 
+    @classmethod
+    def durable(cls, state_path: str,
+                tracker: Optional[RealityGapTracker] = None
+                ) -> "CapabilityAuthority":
+        """Construct an explicitly DURABLE production authority.
+
+        Args:
+            state_path: the durable evidence store path (required).
+            tracker: optional tracker to reuse.
+
+        Returns:
+            A CapabilityAuthority whose evidence survives restart.
+        """
+        return cls(tracker, state_path=str(state_path),
+                   durability=DurabilityMode.DURABLE)
+
+    @classmethod
+    def ephemeral(cls, tracker: Optional[RealityGapTracker] = None
+                  ) -> "CapabilityAuthority":
+        """Construct an explicitly EPHEMERAL (test/in-memory) authority.
+
+        Args:
+            tracker: optional tracker to reuse.
+
+        Returns:
+            A CapabilityAuthority backed purely by in-memory state.
+        """
+        return cls(tracker, durability=DurabilityMode.EPHEMERAL)
+
+    @property
+    def is_durable(self) -> bool:
+        """Whether this authority persists its evidence across restarts."""
+        return self.durability is DurabilityMode.DURABLE and bool(self.state_path)
+
     # ── durable evidence store ────────────────────────────────────────────
 
     def _load_state(self) -> None:
-        """Load the persisted evidence store, failing closed when unreadable.
+        """Load the persisted evidence store, classifying fail-closed.
 
-        An absent file is a first run (no prior evidence -> bootstrap). A file
-        that exists but is unreadable or malformed sets ``_evidence_unreadable``
-        so authority is withheld rather than silently restored.
+        FIRST_RUN (absent store) -> honest bootstrap (no prior evidence).
+        CORRUPTED (exists but untrustworthy) -> ``_evidence_unreadable`` so
+        authority is withheld, never silently restored. LOADED -> the verified
+        tracker state is merged recency/restriction-safely.
         """
-        try:
-            with open(self.state_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except FileNotFoundError:
+        result = read_state(self.state_path,
+                            expected_kind=KIND_AUTHORITY_EVIDENCE)
+        if result.first_run:
             return
-        except Exception as e:  # unreadable safety record -> FAIL CLOSED
+        if result.corrupted:
             self._evidence_unreadable = True
             logger.error(
-                "capability authority evidence %r unreadable (%s); authority "
-                "fails closed (no capability is authorized from an unreadable "
-                "store)", self.state_path, e)
+                "capability authority evidence %r could not be trusted (%s); "
+                "authority fails closed — no capability is authorized from a "
+                "corrupted/tampered store", self.state_path, result.reason)
             return
-        if not isinstance(data, dict):
-            self._evidence_unreadable = True
-            logger.error(
-                "capability authority evidence %r is not a JSON object; "
-                "authority fails closed", self.state_path)
-            return
-        payload = data.get("models", data)
+        payload = result.payload
+        if isinstance(payload, dict) and "models" in payload:
+            payload = payload.get("models")
         try:
             self.tracker.load_state(payload)
         except Exception as e:  # malformed record -> FAIL CLOSED
@@ -229,27 +286,17 @@ class CapabilityAuthority:
     def _persist_state(self) -> None:
         """Atomically persist the measured evidence (best-effort, audited).
 
-        A persistence failure is logged loudly (never silently swallowed): if
-        the falsification record cannot be written, restart safety for this
-        process cannot be guaranteed.
+        Uses the ONE canonical durability envelope (temp + fsync + rename). A
+        persistence failure is logged loudly (never silently swallowed): if the
+        falsification record cannot be written, restart safety for this process
+        cannot be guaranteed.
         """
         if not self.state_path:
             return
         try:
-            directory = os.path.dirname(self.state_path) or "."
-            os.makedirs(directory, exist_ok=True)
-            fd, tmp = tempfile.mkstemp(
-                dir=directory, prefix=".authority_ev_", suffix=".tmp")
-            try:
-                with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    json.dump({"models": self.tracker.to_state()}, f, indent=2)
-                os.replace(tmp, self.state_path)
-            except Exception:
-                try:
-                    os.unlink(tmp)
-                except OSError:
-                    pass
-                raise
+            atomic_write_state(
+                self.state_path, KIND_AUTHORITY_EVIDENCE,
+                {"models": self.tracker.to_state()})
         except Exception as e:
             logger.error(
                 "capability authority evidence persist to %r FAILED (%s); "

@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -416,9 +417,25 @@ class CapabilityCertification:
         dest = path or self._path
         if not dest:
             raise ValueError("no certification path configured")
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        with open(dest, "w", encoding="utf-8") as f:
-            json.dump(self.to_dict(), f, indent=2)
+        directory = os.path.dirname(dest) or "."
+        os.makedirs(directory, exist_ok=True)
+        # Atomic temp+fsync+rename (Λ6.7 durability contract): a crash or a
+        # concurrent reader never observes a half-written certification /
+        # revocation record. The on-disk FORMAT is unchanged.
+        fd, tmp = tempfile.mkstemp(dir=directory, prefix=".cert_reg_",
+                                   suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(self.to_dict(), f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, dest)
+        except Exception:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
         return dest
 
 

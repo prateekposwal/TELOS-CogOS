@@ -28,6 +28,10 @@ from telos.core.actions.certification import (
     CertificationAction, VerifiedOutcome, CertificationDecision,
     CertificationWorkflow,
 )
+from telos.core.actions.durability import (
+    SCHEMA_VERSION, KIND_AUTHORITY_EVIDENCE, StateOutcome, DurabilityMode,
+    StateLoadResult, atomic_write_state, read_state,
+)
 from telos.core.actions.reality_loop import (
     GAP_METRIC, text_reality_gap, observation_fingerprint,
     AuthorityState, CapabilityAuthority,
@@ -51,6 +55,8 @@ __all__ = [
     "CertificationTier", "load_sandbox_evidence",
     "CertificationAction", "VerifiedOutcome", "CertificationDecision",
     "CertificationWorkflow",
+    "SCHEMA_VERSION", "KIND_AUTHORITY_EVIDENCE", "StateOutcome",
+    "DurabilityMode", "StateLoadResult", "atomic_write_state", "read_state",
     "GAP_METRIC", "text_reality_gap", "observation_fingerprint",
     "AuthorityState", "CapabilityAuthority",
     "WorldAdapter", "WorldObservation", "ValidationResult", "VerificationResult",

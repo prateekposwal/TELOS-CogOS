@@ -124,7 +124,14 @@ class ActPhase(Phase):
             # model fidelity from the reality-gap tracker (Phase 4).
             model_id = "world"
             tracker = getattr(pipeline, '_reality_gap_tracker', None)
-            if tracker is not None and not isinstance(tracker, type):
+            # Durable evidence integrity (Λ6.7): a configured-but-corrupt store
+            # is NOT "currently unvalidated" (act-then-learn) — it is untrusted
+            # evidence, and authority must be withheld. Force the fidelity gate
+            # to a measured FAIL so no capability passes on a bad store.
+            if getattr(pipeline, '_reality_gap_evidence_corrupt', False) is True:
+                model_fidelity = 0.0
+                tested = True
+            elif tracker is not None and not isinstance(tracker, type):
                 try:
                     mf = tracker.model_fidelity(model_id, now_cycle=getattr(ctx, "cycle_count", None), stale_window=ACT_FIDELITY_STALE_CYCLES)
                     if isinstance(mf, (int, float)) and not isinstance(mf, bool):

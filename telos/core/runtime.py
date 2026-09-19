@@ -54,6 +54,9 @@ from telos.core.project.rational_abandonment import AbandonmentGate
 from telos.core.project.strategic_coherence import StrategicCoherence
 from telos.core.project.method import MethodRegistry
 from telos.core.ecology.ecosystem import Ecosystem
+from telos.core.actions.durability import (
+    KIND_AUTHORITY_EVIDENCE, atomic_write_state, read_state,
+)
 from telos.core.research.amplification_gate import ResearchAmplificationGate
 from telos.core.research.seasons import ResearchSeasons
 from telos.core.research.discovery_rate import DiscoveryRateTracker
@@ -240,6 +243,17 @@ class TelosV14Pipeline:
         # into capability authorization. Untested model -> fidelity None -> the
         # model_fidelity gate cannot claim PASS without validation.
         self._reality_gap_tracker = RealityGapTracker()
+        # Durable Reality Gap evidence (Λ6.7 durability contract): when a path is
+        # configured, the measured per-model falsification state survives a
+        # restart. An absent store is an honest first run; a corrupt/tampered
+        # store fails CLOSED (``_reality_gap_evidence_corrupt`` forces the
+        # act-phase model-fidelity gate to FAIL). None (default) = in-memory.
+        _rg_state_path = getattr(self.config, 'reality_gap_state_path', None)
+        self._reality_gap_state_path: Optional[str] = (
+            str(_rg_state_path) if _rg_state_path else None)
+        self._reality_gap_evidence_corrupt: bool = False
+        if self._reality_gap_state_path:
+            self._load_reality_gap_state()
         self._pending_reality_gap: Optional[tuple] = None  # (one-step-prediction, cycle)
         self._council_intent_history: Dict[str, int] = {}
         self._council_total_no_action: Dict[str, int] = {}
@@ -780,6 +794,55 @@ class TelosV14Pipeline:
             self._council_total_no_action[i_type] = total_na + 1
         if getattr(ctx, 'firewall_blocked', False) or getattr(ctx, 'council_blocked', False):
             self._council_recent_blocks = getattr(self, '_council_recent_blocks', 0) + 1
+
+    def _load_reality_gap_state(self) -> None:
+        """Load durable Reality Gap evidence (fail closed on corruption).
+
+        FIRST_RUN (absent store) is an honest cold start. CORRUPTED sets
+        ``_reality_gap_evidence_corrupt`` so the act-phase model-fidelity gate is
+        forced FAIL (no authority from an untrustworthy store). LOADED merges
+        the verified tracker state recency/restriction-safely.
+        """
+        result = read_state(self._reality_gap_state_path,
+                            expected_kind=KIND_AUTHORITY_EVIDENCE)
+        if result.first_run:
+            return
+        if result.corrupted:
+            self._reality_gap_evidence_corrupt = True
+            logger.error(
+                "reality gap evidence %r could not be trusted (%s); ACT "
+                "model-fidelity fails closed", self._reality_gap_state_path,
+                result.reason)
+            return
+        payload = result.payload
+        if isinstance(payload, dict) and "models" in payload:
+            payload = payload.get("models")
+        try:
+            self._reality_gap_tracker.load_state(payload)
+        except Exception as e:
+            self._reality_gap_evidence_corrupt = True
+            logger.error(
+                "reality gap evidence %r malformed (%s); ACT model-fidelity "
+                "fails closed", self._reality_gap_state_path, e)
+
+    def _persist_reality_gap_state(self) -> None:
+        """Atomically persist Reality Gap evidence (best-effort, audited).
+
+        Uses the ONE canonical durability envelope. A persistence failure is
+        logged loudly (never silently swallowed): restart safety is not
+        guaranteed if the measured falsification state cannot be written.
+        """
+        if not self._reality_gap_state_path:
+            return
+        try:
+            atomic_write_state(
+                self._reality_gap_state_path, KIND_AUTHORITY_EVIDENCE,
+                {"models": self._reality_gap_tracker.to_state()})
+        except Exception as e:
+            logger.error(
+                "reality gap evidence persist to %r FAILED (%s); restart "
+                "safety for the world-model evidence is not guaranteed",
+                self._reality_gap_state_path, e)
 
     def _intent_history_for_council(self, ctx) -> Dict[str, Any]:
         """Fold the system's falsification record into a per-cycle evidence
@@ -1842,6 +1905,7 @@ class TelosV14Pipeline:
                                 self._pending_reality_gap = None
                             else:
                                 self._reality_gap_tracker.record("world", prev_pred, ctx.state, cycle=ctx.cycle_count)
+                                self._persist_reality_gap_state()
                     if predicted is not None and ctx.selected_action is not None:
                         self._pending_reality_gap = (predicted, ctx.cycle_count)
                     else:

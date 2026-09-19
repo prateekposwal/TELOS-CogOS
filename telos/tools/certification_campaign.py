@@ -470,7 +470,7 @@ def _primed_authority(gap: float = 0.0) -> CapabilityAuthority:
     Returns:
         A CapabilityAuthority with one recorded validation.
     """
-    a = CapabilityAuthority()
+    a = CapabilityAuthority()  # durability: ephemeral (certification campaign harness)
     a.record(CAPABILITY, gap, cycle=0)
     return a
 
@@ -482,7 +482,7 @@ def _normal_window() -> Tuple[List[VerifiedOutcome], Dict[str, Any], Any, Any]:
         (outcomes, first_measured, authority, acquisition)
     """
     ws = _mk_ws()
-    auth = CapabilityAuthority()
+    auth = CapabilityAuthority()  # durability: ephemeral (certification campaign harness)
     acq = SkillAcquisition(SkillLibrary())
     outcomes: List[VerifiedOutcome] = []
     first: Optional[Dict[str, Any]] = None
@@ -507,7 +507,7 @@ def _i4_sequence() -> List[Dict[str, Any]]:
         Three {before, after, gap} records from the real runs.
     """
     ws = _mk_ws()
-    auth = CapabilityAuthority()
+    auth = CapabilityAuthority()  # durability: ephemeral (certification campaign harness)
     seq: List[Dict[str, Any]] = []
     for cycle, (expected, _tag) in enumerate(
             [(EDITED, "low"), (LARGE, "high"), (EDITED, "low")], start=1):
@@ -531,7 +531,7 @@ def _i5_reduced_authority_blocks() -> Dict[str, Any]:
         counts (all zero when the block is structural).
     """
     ws = _mk_ws()
-    auth = CapabilityAuthority()
+    auth = CapabilityAuthority()  # durability: ephemeral (certification campaign harness)
     # One large-divergence action FAILs the authority (fidelity 1-0.667).
     _, m1, _ = _drive(ws=ws, proposal=_proposal(LARGE),
                       certification=_certified_registry(),
@@ -634,7 +634,7 @@ def _fail_closed_checks(refusal_cases: Dict[str, Dict[str, Any]]) -> Dict[str, b
     checks["gap_none_prediction_is_total_miss"] = (
         text_reality_gap(None, EDITED) == 1.0)
     checks["untested_authority_is_unknown"] = (
-        CapabilityAuthority().state(CAPABILITY).status
+        CapabilityAuthority().state(CAPABILITY).status  # durability: ephemeral (certification campaign harness)
         is CapabilityStatus.UNKNOWN)
     wf = CertificationWorkflow(require_variance=True)
     checks["no_outcomes_holds"] = (
@@ -1171,7 +1171,7 @@ def _real_failure_outcomes() -> List[VerifiedOutcome]:
         _, m, _ = _drive(ws=ws, proposal=_proposal(LARGE),
                          certification=_certified_registry(),
                          approval=_approval(ident=f"revoke-{i}"),
-                         authority=CapabilityAuthority(), cycle=100 + i)
+                         authority=CapabilityAuthority(), cycle=100 + i)  # durability: ephemeral (certification campaign harness)
         out.append(VerifiedOutcome(
             CAPABILITY, bool(m["matched"]), float(m["gap"]), cycle=100 + i,
             source=f"fail:{i}"))
@@ -1227,7 +1227,7 @@ def _live_exercise() -> Dict[str, Any]:
     adapter = FilesystemWriteAdapter(ex, target)
     registry = _certified_registry(
         by="certification_campaign", evidence=ARTIFACT)
-    authority = CapabilityAuthority()
+    authority = CapabilityAuthority()  # durability: ephemeral (certification campaign harness)
     acq = SkillAcquisition(SkillLibrary())
     runner = WorldActionRunner(
         ex, adapter, certification=registry, firewall=DecisionFirewall(),

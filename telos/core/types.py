@@ -452,6 +452,16 @@ class PipelineConfig:
     # than letting a determinism gate silently PASS with an executor present.
     # Default False preserves byte-identity for every existing consumer.
     determinism_gate: bool = False
+    # Durable Reality Gap evidence (Λ6.7, durability contract). When set, the
+    # pipeline's per-model RealityGapTracker is loaded from this path on
+    # construction and atomically re-persisted after every recorded
+    # prediction-vs-observation, inside the ONE integrity envelope
+    # (telos/core/actions/durability.py). A restart therefore preserves the
+    # measured falsification state of the world model. A configured store that
+    # is corrupt/tampered fails CLOSED (the act-phase model-fidelity gate is
+    # forced FAIL); an absent store is an honest first run. None (default) =
+    # purely in-memory, byte-identical to pre-durability behavior.
+    reality_gap_state_path: Optional[str] = None
 
 
 @dataclass
