@@ -97,6 +97,11 @@ class SkillAcquisition:
         self.acquired = 0
         self.proposed = 0
         self.retired = 0
+        # The most recent skill admitted by ``verify`` (None when the last
+        # verification did not acquire). Lets a caller that only sees the
+        # bool return observe the admitted skill (Λ2.3: the artifact, not a
+        # guess about it).
+        self.last_acquired: Optional[Skill] = None
 
     def propose(self, fingerprint: str, trajectory: Any, cycle: int = 0,
                 context: Optional[Dict[str, Any]] = None,
@@ -151,6 +156,7 @@ class SkillAcquisition:
         Returns:
             True when the candidate was verified and acquired.
         """
+        self.last_acquired = None
         candidate = self._candidates.get(candidate_id)
         if candidate is None or candidate.verified:
             return False
@@ -173,6 +179,7 @@ class SkillAcquisition:
             },
         )
         self._library.index_skill(skill)
+        self.last_acquired = skill
         self.acquired += 1
         self._candidates.pop(candidate_id, None)
         if candidate_id in self._order:
@@ -220,6 +227,12 @@ class SkillAcquisition:
             self._candidates.pop(cid, None)
             self.retired += 1
         return len(expired)
+
+    @property
+    def candidates(self) -> List[SkillCandidate]:
+        """The outstanding (unverified) candidates, proposal-ordered."""
+        return [self._candidates[cid] for cid in self._order
+                if cid in self._candidates]
 
     def stats(self) -> Dict[str, int]:
         """Return proposal/acquisition counters and candidate depth.

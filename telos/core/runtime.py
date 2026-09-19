@@ -299,8 +299,20 @@ class TelosV14Pipeline:
                 utility_threshold=self.config.experience_utility_threshold,
                 index_interval=self.config.experience_index_interval,
                 max_skills=self.config.experience_max_skills,
+                # Verified learning (SkillAcquisition) is opt-in: the live
+                # paths enable it; the default stays byte-identical.
+                verified_acquisition=self.config.verified_learning,
+                acquisition_min_outcome=self.config.learning_min_outcome,
             ),
         )
+        # Live curriculum (Λ6.5): the ONE novelty-ordered practice-task source,
+        # refreshed from the pipeline's OWN active hypotheses each cycle and
+        # consulted by the TheoryStream. Constructed only when enabled so a
+        # default pipeline carries zero new state.
+        self._curriculum = None
+        if self.config.learning_curriculum:
+            from telos.core.learning.curriculum import Curriculum
+            self._curriculum = Curriculum(max_tasks=20)
         self._prev_uncertainty: float = 0.0
         self._last_sim_score: float = 0.0
         self._last_predicted_state = None
@@ -500,6 +512,11 @@ class TelosV14Pipeline:
         if prev:
             logger.info(f"Loaded cross-session learnings from {prev.session_id}: "
                         f"{len(prev.top_skills)} skills, {len(prev.top_theories)} theories")
+
+    @property
+    def curriculum(self):
+        """The live novelty-ordered practice-task source (None when off)."""
+        return self._curriculum
 
     def register_stream(self, stream: CognitiveStream) -> None:
         # v7 K: fast mode also halves the planning stream's world budget
@@ -1152,6 +1169,43 @@ class TelosV14Pipeline:
             proxy = ProxyStream(skill_lib)
             self.register_stream(proxy)
             logger.info("[Proxy] Auto-registered ProxyStream — quality below threshold")
+
+    def _update_curriculum(self) -> None:
+        """Refresh the live curriculum from the pipeline's active hypotheses.
+
+        Bounded and advisory (Λ6.5): it converts falsified / under-tested
+        hypotheses into novelty-ordered practice tasks so the TheoryStream can
+        propose the next thing to test. A malformed hypothesis is logged, never
+        silently dropped, and a curriculum failure can never break a cycle.
+        """
+        if self._curriculum is None:
+            return
+        builder = getattr(self, '_theory_builder', None)
+        if builder is None:
+            return
+        try:
+            hypotheses = builder.get_active_hypotheses()
+        except Exception as e:  # Λ2.3: surface, never swallow silently
+            logger.warning("curriculum: hypothesis fetch failed: %r", e)
+            return
+        rows = [
+            {
+                "id": h.id,
+                "action": h.action,
+                "predicted_outcome": h.predicted_outcome,
+                "confidence": h.confidence,
+                "tests_passed": h.tests_passed,
+                "tests_failed": h.tests_failed,
+                "falsified": h.falsified,
+            }
+            for h in hypotheses
+        ]
+        if not rows:
+            return
+        try:
+            self._curriculum.from_theory_gaps(rows)
+        except Exception as e:
+            logger.warning("curriculum: task derivation failed: %r", e)
 
     def _on_council_block(self, block_info: dict) -> None:
         logger.warning(
@@ -2462,6 +2516,8 @@ class TelosV14Pipeline:
         )
 
         self._telemetry.record_cycle(self._cycle_count, trace)
+
+        self._update_curriculum()
 
         self._experience_manager.observe(result)
 

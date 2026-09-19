@@ -760,11 +760,18 @@ class DashboardProducer:
             # emitted by the GridWorld streams, so this changes no live
             # behavior — it wires the gate for when one is.
             per_tool_capability_gate=True,
+            # Verified learning + live curriculum: the producer is the
+            # long-running consumer, so it exercises the real learning loop
+            # (propose -> verify on a later matching cycle) and the
+            # novelty-ordered practice-task source.
+            verified_learning=True,
+            learning_curriculum=True,
         ))
         skill_lib = SkillLibrary()
         self._experience_mgr = ExperienceManager(
             skill_lib,
-            ExperienceConfig(utility_threshold=0.1, index_interval=1),
+            ExperienceConfig(utility_threshold=0.1, index_interval=1,
+                             verified_acquisition=True),
         )
         sim_engine = CounterfactualEngine(self._sim)
         pipeline = self._pipeline
@@ -773,7 +780,11 @@ class DashboardProducer:
         pipeline.register_stream(MemoryStream(skill_lib))
         pipeline.register_stream(PlanningStream(skill_lib, sim_engine=sim_engine))
         pipeline.register_stream(InquiryStream(skill_lib))
-        pipeline.register_stream(TheoryStream(skill_lib, theory_builder=getattr(pipeline, "_theory_builder", None)))
+        pipeline.register_stream(TheoryStream(
+            skill_lib,
+            theory_builder=getattr(pipeline, "_theory_builder", None),
+            curriculum=getattr(pipeline, "curriculum", None),
+        ))
         pipeline.register_validator(RealityValidator())
         pipeline.register_validator(ConstraintValidator())
         memory_advisor = MemoryAdvisor(skill_lib)

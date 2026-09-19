@@ -349,16 +349,45 @@ class TheoryStream(CognitiveStream):
     """
 
     def __init__(self, skill_library: SkillLibrary,
-                 theory_builder: Optional[TheoryBuilder] = None):
+                 theory_builder: Optional[TheoryBuilder] = None,
+                 curriculum: Optional[Any] = None):
         super().__init__(skill_library)
         self._builder = theory_builder or TheoryBuilder()
+        # Live curriculum (Λ6.5): the pipeline's novelty-ordered practice-task
+        # source. Advisory — it shapes which hypothesis the stream proposes
+        # first, it never acts. None = no curriculum wired (unchanged).
+        self._curriculum = curriculum
         self._last_proposal_cycle: int = 0
         self._abstraction_level: str = "none"
+        # How many cycles carried a curriculum-derived practice task. Measured,
+        # not asserted (the live wiring is observable).
+        self.curriculum_tasks_attached: int = 0
+        self.last_practice_task: Optional[dict] = None
 
 
     @property
     def builder(self) -> TheoryBuilder:
         return self._builder
+
+    def _frontier_task(self) -> Optional[dict]:
+        """The top novelty-ordered practice task, or None when none applies."""
+        if self._curriculum is None:
+            return None
+        try:
+            frontier = self._curriculum.frontier()
+        except Exception as e:
+            logger.warning("TheoryStream: curriculum frontier failed: %r", e)
+            return None
+        if not frontier:
+            return None
+        top = frontier[0]
+        return {
+            "task_id": top.task_id,
+            "kind": top.kind,
+            "description": top.description,
+            "novelty": round(float(top.novelty), 4),
+            "difficulty": round(float(top.difficulty), 4),
+        }
 
     @property
     def priority(self) -> float:
@@ -369,7 +398,15 @@ class TheoryStream(CognitiveStream):
         return 4.0
 
     def process(self, world: World) -> IntentIR:
-        cycle = int(getattr(world, 'cycle', 0))
+        # The cycle clock lives in world.metadata (set by PERCEIVE:
+        # world_metadata = {"cycle": ctx.cycle_count}); World has no `cycle`
+        # attribute, so the historical getattr() always read 0 and every
+        # proposal cadence below was dead. Read the real metadata first.
+        cycle = int(
+            getattr(world, "cycle", 0)
+            or (world.metadata.get("cycle", 0) if isinstance(world.metadata, dict) else 0)
+            or 0
+        )
 
         # Cluster experiences into patterns
         patterns = self._builder.cluster()
@@ -410,16 +447,28 @@ class TheoryStream(CognitiveStream):
 
         if n_hypotheses > 0 and cycle > self._last_proposal_cycle + 3:
             self._last_proposal_cycle = cycle
+            practice = self._frontier_task()
+            if practice is not None:
+                self.curriculum_tasks_attached += 1
+                self.last_practice_task = practice
+            # Confidence is nudged by the curriculum's top-task novelty
+            # (bounded to <= 0.5 so advisory practice never outranks a real
+            # proposal). No curriculum -> the exact historical 0.4.
+            confidence = 0.4
+            if practice is not None:
+                confidence = min(0.5, 0.4 + 0.1 * float(practice["novelty"]))
             return IntentIR(
                 intent_type="propose_hypothesis",
-                confidence=0.4,
+                confidence=confidence,
                 params={
                     "n_hypotheses": n_hypotheses,
                     "n_theories": n_theories,
+                    "practice_task": practice,
                 },
                 metadata={
                     "stream": "theory",
                     "n_hypotheses": n_hypotheses,
+                    "practice_task": practice,
                 },
             )
 
