@@ -96,6 +96,103 @@ def _to_text(value: Any) -> str:
     return str(value)
 
 
+# ── Workspace-root safety guard + opt-in factory ────────────────────────────
+# The governed channel is OFF unless an operator explicitly names a workspace
+# root. This guard refuses — LOUDLY — a workspace that would expose the TELOS
+# repo itself, so a misconfiguration can never turn the channel into a way to
+# touch TELOS's own source, audit logs, or git history.
+_TELOS_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+class UnsafeWorkspaceRoot(ValueError):
+    """Raised when an operator-named tool workspace would expose the TELOS repo.
+
+    A configuration error, not a runtime block: the channel must never be
+    constructed against the repo, so this fails at construction (fail loud,
+    fail early) rather than silently containing at execution time.
+    """
+
+
+def _is_inside(path: Path, root: Path) -> bool:
+    """Whether `path` is equal to or nested inside `root` (both resolved).
+
+    Args:
+        path: the candidate path (already resolved).
+        root: the containment root (already resolved).
+
+    Returns:
+        True when path is root or lives under it.
+    """
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def validate_workspace_root(workspace_root: str) -> str:
+    """Validate + canonicalize an operator-named tool workspace root.
+
+    Refuses (raises UnsafeWorkspaceRoot) when the resolved workspace is the
+    TELOS repo itself or nested inside it. This is the one guard that keeps a
+    misconfiguration from exposing the repo through the governed channel.
+
+    Args:
+        workspace_root: the operator-declared workspace root path.
+
+    Returns:
+        The resolved absolute workspace path.
+
+    Raises:
+        UnsafeWorkspaceRoot: when the path is empty, does not exist, or lies
+            inside the TELOS repo.
+    """
+    if not workspace_root or not str(workspace_root).strip():
+        raise UnsafeWorkspaceRoot("tool workspace root is empty")
+    resolved = Path(workspace_root).expanduser().resolve()
+    if not resolved.exists():
+        raise UnsafeWorkspaceRoot(
+            f"tool workspace root does not exist: {str(resolved)!r}"
+        )
+    if not resolved.is_dir():
+        raise UnsafeWorkspaceRoot(
+            f"tool workspace root is not a directory: {str(resolved)!r}"
+        )
+    if _is_inside(resolved, _TELOS_REPO_ROOT):
+        raise UnsafeWorkspaceRoot(
+            f"refusing tool workspace {str(resolved)!r}: it is inside the TELOS "
+            f"repo {str(_TELOS_REPO_ROOT)!r} — the governed channel must never "
+            "target TELOS's own source/audit/git history"
+        )
+    return str(resolved)
+
+
+def build_tool_executor(workspace_root: Optional[str],
+                        **kwargs: Any) -> Optional["ActionExecutor"]:
+    """Construct an ActionExecutor ONLY when an operator names a workspace.
+
+    This is the single canonical opt-in: `workspace_root=None` (the default for
+    every existing consumer) returns None — no executor, no channel, no real
+    command can run. A non-None root is validated against the TELOS-repo guard
+    and then bound.
+
+    Args:
+        workspace_root: the operator-declared workspace root, or None (off).
+        **kwargs: forwarded to ActionExecutor (allowlist, output_limit, etc.).
+
+    Returns:
+        A validated ActionExecutor bound to the workspace, or None when no
+        workspace was configured (channel OFF).
+
+    Raises:
+        UnsafeWorkspaceRoot: when a workspace is named but is unsafe/invalid.
+    """
+    if workspace_root is None or not str(workspace_root).strip():
+        return None
+    resolved = validate_workspace_root(workspace_root)
+    return ActionExecutor(workspace_root=resolved, **kwargs)
+
+
 
 # ── The hard allowlist (prefix-anchored argv, no shell interpretation) ──────
 # The tool set is declared EXACTLY ONCE in telos/core/actions/registry.py; this
@@ -884,4 +981,5 @@ __all__ = [
     "ACTION_ALLOWLIST", "AllowlistEntry", "ToolSpec", "ToolRegistry",
     "ToolPermission", "ActionExecution",
     "ActionExecutor", "ToolRejected",
+    "UnsafeWorkspaceRoot", "validate_workspace_root", "build_tool_executor",
 ]

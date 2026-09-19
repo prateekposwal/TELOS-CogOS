@@ -196,6 +196,19 @@ class TelosV14Pipeline:
     def __init__(self, config: Optional[PipelineConfig] = None,
                  human_gateway: Optional[HumanGateway] = None):
         self.config = config or PipelineConfig()
+        # ── Governed tool channel opt-in (operator-authorised, default OFF) ──
+        # Resolve the workspace root from config.tool_workspace, else the
+        # TELOS_TOOL_WORKSPACE env var. Only when a workspace is named AND the
+        # operator granted operator_tool_permission do we construct an
+        # ActionExecutor — and the construction validates the root against the
+        # TELOS-repo guard (refuses loudly rather than exposing the repo). With
+        # no workspace: no executor, no channel, byte-identical to before.
+        if getattr(self.config, 'action_executor', None) is None:
+            workspace = getattr(self.config, 'tool_workspace', None) \
+                or os.environ.get("TELOS_TOOL_WORKSPACE") or None
+            if workspace and getattr(self.config, 'operator_tool_permission', False):
+                from telos.core.actions.executor import build_tool_executor
+                self.config.action_executor = build_tool_executor(workspace)
         self._human_gateway = human_gateway
         # Research Amplification Gate (Λ6.5): the standing pre-PERCEIVE stage.
         # Constructed ONLY when enabled (research_gate != off/legacy) so a

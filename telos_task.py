@@ -706,6 +706,11 @@ def main():
         ledger_path="/tmp/telos_ledger.json",
         identity_path="/tmp/telos_identity.json",
         pattern_path="/tmp/telos_patterns.json",
+        # Governed tool channel (operator-authorised, default OFF):
+        # TELOS_TOOL_WORKSPACE names the only tree the channel may
+        # touch; unset => no executor, no real command can run.
+        tool_workspace=os.environ.get("TELOS_TOOL_WORKSPACE") or None,
+        operator_tool_permission=bool(os.environ.get("TELOS_TOOL_WORKSPACE")),
         deterministic_seed=42,  # Ensures reproducible pipeline runs
         verified_learning=True,
         learning_curriculum=True,

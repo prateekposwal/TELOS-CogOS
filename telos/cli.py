@@ -177,6 +177,11 @@ def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
         identity_path=os.path.join(checkpoint_dir, "identity.json"),
         pattern_path=os.path.join(checkpoint_dir, "patterns.json"),
         memory_path=os.path.join(checkpoint_dir, "memory.json"),
+        # Governed tool channel (operator-authorised, default OFF):
+        # TELOS_TOOL_WORKSPACE names the only tree the channel may
+        # touch; unset => no executor, no real command can run.
+        tool_workspace=os.environ.get("TELOS_TOOL_WORKSPACE") or None,
+        operator_tool_permission=bool(os.environ.get("TELOS_TOOL_WORKSPACE")),
         deterministic_seed=42,  # reproducible one-shot runs
         verified_learning=True,
         learning_curriculum=True,

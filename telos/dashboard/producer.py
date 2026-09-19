@@ -766,6 +766,14 @@ class DashboardProducer:
             # novelty-ordered practice-task source.
             verified_learning=True,
             learning_curriculum=True,
+            # Governed tool channel (operator-authorised, default OFF). The
+            # workspace root comes from TELOS_TOOL_WORKSPACE (None = off); the
+            # runtime builds + validates the ActionExecutor ONLY when a root is
+            # named AND operator_tool_permission is granted. With the env var
+            # unset this is byte-identical to before (no executor, no channel).
+            tool_workspace=os.environ.get("TELOS_TOOL_WORKSPACE") or None,
+            operator_tool_permission=bool(
+                os.environ.get("TELOS_TOOL_WORKSPACE")),
         ))
         skill_lib = SkillLibrary()
         self._experience_mgr = ExperienceManager(

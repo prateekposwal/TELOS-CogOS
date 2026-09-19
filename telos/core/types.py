@@ -424,6 +424,13 @@ class PipelineConfig:
     # (operator_tool_permission=True) or a HumanGateway approval exists this
     # cycle. Default: NO executor -> NO real command can ever run.
     action_executor: Optional[Any] = None
+    # Operator-authorised workspace root for the governed tool channel. This is
+    # the canonical opt-in: None (the default for every existing consumer) means
+    # NO executor is built and NO real command can ever run. A non-None path is
+    # validated at pipeline construction (refused loudly if it is inside the
+    # TELOS repo) and an ActionExecutor is bound to it ONLY when the operator
+    # also grants operator_tool_permission. Env override: TELOS_TOOL_WORKSPACE.
+    tool_workspace: Optional[str] = None
     # Explicit operator grant for tool intents (HumanGateway discipline): the
     # operator configures the channel ON; an arbitrary shell command can never
     # self-authorize.
