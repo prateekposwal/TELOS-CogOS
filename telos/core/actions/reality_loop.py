@@ -201,8 +201,12 @@ class CapabilityAuthority:
             now_cycle: current pipeline cycle (makes stale evidence explicit).
 
         Returns:
-            The AuthorityState; an untested/stale capability is UNKNOWN
-            (fail-closed: no evidence is not PASS).
+            The AuthorityState. A never-validated capability is UNKNOWN
+            (act-then-learn must be able to collect its first evidence). A
+            capability whose last validated window was FALSIFIED stays FAIL
+            even once its evidence goes stale — time alone must never restore
+            authority (the safe direction is durable); only fresh verified
+            evidence can. A stale, never-falsified model is UNKNOWN.
         """
         mid = self.model_id(capability)
         model = self.tracker.model(mid)
@@ -213,8 +217,25 @@ class CapabilityAuthority:
             status = CapabilityStatus.UNKNOWN
             reason = "no verified action has been recorded for this capability"
         elif fidelity is None:
-            status = CapabilityStatus.UNKNOWN
-            reason = "authority evidence is stale (not refreshed recently)"
+            # Stale (no REAL validation within the truth window). Staleness is
+            # absence of CURRENT evidence, not recovery: for a model whose last
+            # validated window was already falsified, withhold authority (FAIL)
+            # rather than silently re-authorize on the clock. This is the
+            # "losing authority incorrectly" fix — a stale falsified record must
+            # never pass a gate that only vetoes FAIL. A stale model that was
+            # never falsified falls through to UNKNOWN (act-then-learn).
+            stale_fidelity = (None if recent is None
+                              else float(min(1.0, max(0.0, 1.0 - float(recent)))))
+            if stale_fidelity is not None \
+                    and stale_fidelity < self.FAIL_FIDELITY:
+                status = CapabilityStatus.FAIL
+                reason = (f"authority evidence is stale after a falsified "
+                          f"window (recent mean gap {recent:.3f}); fresh "
+                          f"verified evidence is required — time alone does "
+                          f"not restore authority")
+            else:
+                status = CapabilityStatus.UNKNOWN
+                reason = "authority evidence is stale (not refreshed recently)"
         elif fidelity >= self.PASS_FIDELITY:
             status = CapabilityStatus.PASS
             reason = (f"recent mean gap {recent:.3f} -> fidelity "
