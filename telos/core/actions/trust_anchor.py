@@ -48,16 +48,23 @@ PROVIDERS (honest about what exists):
       is byte-identical. Nothing external is contacted.
     * ``ExternalHttpTrustAnchor`` — talks to an operator-configured HTTP witness
       endpoint (env ``TELOS_TRUST_ANCHOR_ENDPOINT``) through the governed
-      ``NetworkSandbox`` egress channel. DEFAULT-OFF.
+      ``NetworkSandbox`` egress channel. DEFAULT-OFF. When a witness public key
+      is pinned (``TELOS_TRUST_ANCHOR_ATTEST_KEY``) every answer must carry a
+      valid witness attestation; a missing or forged signature fails closed
+      (UNAVAILABLE), never an accepted unverified answer.
     * ``UnavailableTrustAnchor`` — configured but unusable: never downgrades.
 
 SINGLE-USER MACHINE, STATED PLAINLY:
     On one machine with no genuine external service there is NO true
-    independence. This interface makes real externality POSSIBLE (the anchor can
-    live on another host / another account / a service the local user cannot
-    write), and the tests exercise ``ExternalHttpTrustAnchor`` against a local
-    test server that STANDS IN for the external service. That is not HSM-grade
-    security and is not claimed to be.
+    independence. This interface makes real externality POSSIBLE, and a
+    deployable witness service now exists (``telos/witness_service.py``; see
+    ``telos/WITNESS_SERVICE.md``) that holds an append-only monotonic history
+    and signs every accepted record with its own RSA key
+    (``witness_attest.py``). The adversarial test runs it as a REAL separate
+    process; the in-repo reference server still stands in for speed. Running
+    the service on the SAME account is still one trust domain — genuine
+    independence requires it outside the local account, which remains
+    unverified. No HSM-grade custody is claimed.
 
 CREDENTIAL vs TRUST (do not conflate three different things):
     * OBTAINING a credential — outside TELOS: the operator injects it into the
@@ -95,6 +102,11 @@ from enum import Enum
 from typing import Any, Dict, Optional
 
 from telos.core.actions.sandbox import EgressRule, NetworkSandbox
+from telos.core.actions.witness_attest import key_id as _attest_key_id
+from telos.core.actions.witness_attest import load_public_key as _load_public_key
+from telos.core.actions.witness_attest import (
+    verify_attestation as _verify_attestation,
+)
 
 #: Environment variable selecting the external trust-anchor provider.
 ENV_TRUST_ANCHOR = "TELOS_TRUST_ANCHOR"
@@ -104,6 +116,10 @@ ENV_TRUST_ENDPOINT = "TELOS_TRUST_ANCHOR_ENDPOINT"
 ENV_TRUST_TOKEN = "TELOS_TRUST_ANCHOR_TOKEN"
 #: Environment variable overriding the witness identity string.
 ENV_TRUST_WITNESS_ID = "TELOS_TRUST_ANCHOR_WITNESS_ID"
+#: Optional env var: path to the witness's PUBLIC attestation key (JSON). When
+#: set, every witness answer must carry a valid signature from that key, so a
+#: local attacker holding only the writer token cannot forge a witness answer.
+ENV_TRUST_ATTEST_KEY = "TELOS_TRUST_ANCHOR_ATTEST_KEY"
 
 #: The witnessed-record schema version.
 WITNESS_RECORD_SCHEMA_VERSION = 1
@@ -701,7 +717,8 @@ class ExternalHttpTrustAnchor(TrustAnchor):
                  witness_id: str = DEFAULT_WITNESS_ID,
                  witness_version: int = DEFAULT_WITNESS_VERSION,
                  token: Optional[str] = None,
-                 timeout: float = 10.0):
+                 timeout: float = 10.0,
+                 attestation_public_key: Optional[Dict[str, Any]] = None):
         """Construct an HTTP witness client.
 
         Args:
@@ -713,6 +730,10 @@ class ExternalHttpTrustAnchor(TrustAnchor):
             token: an optional writer credential (obtained by the operator and
                 injected into the environment; TELOS never fetches it).
             timeout: the sandbox request timeout in seconds.
+            attestation_public_key: an optional PINNED public key. When set,
+                every witness answer must carry a valid witness signature over
+                the returned record; a missing/invalid signature fails closed.
+                Default None preserves the pre-attestation behaviour exactly.
         """
         if not endpoint:
             raise TrustAnchorUnavailable("external trust anchor requires an endpoint")
@@ -720,6 +741,9 @@ class ExternalHttpTrustAnchor(TrustAnchor):
         self._witness_id = str(witness_id)
         self._witness_version = int(witness_version)
         self._token = str(token) if token else None
+        self._attest_key = (
+            dict(attestation_public_key)
+            if attestation_public_key else None)
         self._sandbox = (sandbox if sandbox is not None
                          else NetworkSandbox(
                              rules=[_endpoint_egress_rule(self.endpoint)],
@@ -783,6 +807,31 @@ class ExternalHttpTrustAnchor(TrustAnchor):
                 "external witness returned a non-object JSON body")
         return decoded
 
+    def _require_attestation(self, record: Optional[Dict[str, Any]],
+                             body: Dict[str, Any]) -> None:
+        """Verify a witness answer's attestation when a public key is pinned.
+
+        A no-op when no public key was configured (byte-identical legacy
+        behaviour). When one IS configured, a missing/invalid signature means
+        the answer cannot be attributed to this witness, so the call fails
+        closed as unavailable (the consumer maps it to UNAVAILABLE).
+
+        Args:
+            record: the record carried by the answer.
+            body: the decoded answer mapping (must carry ``attestation``).
+
+        Raises:
+            TrustAnchorUnavailable: when the answer is not validly attested.
+        """
+        if self._attest_key is None:
+            return
+        attestation = body.get("attestation") if isinstance(body, dict) else None
+        if record is None or not _verify_attestation(
+                self._attest_key, record, attestation):
+            raise TrustAnchorUnavailable(
+                "external witness answer is not validly attested by the pinned "
+                "public key; failing closed")
+
     def establish(self, scope: WitnessScope) -> Optional[AnchorIdentity]:
         """Handshake with the witness for a scope.
 
@@ -803,6 +852,13 @@ class ExternalHttpTrustAnchor(TrustAnchor):
         identity = body.get("identity")
         if not isinstance(identity, dict):
             return None
+        if self._attest_key is not None:
+            reported = identity.get("public_key")
+            if (not isinstance(reported, dict)
+                    or _attest_key_id(reported) != _attest_key_id(self._attest_key)):
+                raise TrustAnchorUnavailable(
+                    "external witness identity does not match the pinned "
+                    "public key; failing closed")
         return AnchorIdentity(
             witness_id=str(identity.get("witness_id", self._witness_id)),
             witness_version=int(identity.get("witness_version",
@@ -831,6 +887,8 @@ class ExternalHttpTrustAnchor(TrustAnchor):
         body = self._call("POST", "/witness",
                           record.canonical_bytes().decode("utf-8"))
         stored = body.get("record")
+        self._require_attestation(
+            stored if isinstance(stored, dict) else None, body)
         if isinstance(stored, dict):
             return WitnessRecord.from_dict(stored)
         return record
@@ -862,6 +920,7 @@ class ExternalHttpTrustAnchor(TrustAnchor):
         record = body.get("record")
         if record is None:
             return None
+        self._require_attestation(record, body)
         return WitnessRecord.from_dict(record)
 
     def verify(self, record: WitnessRecord) -> TrustVerification:
@@ -940,6 +999,7 @@ def resolve_trust_anchor(mode: Optional[object] = None, *,
                          token: Optional[str] = None,
                          sandbox: Optional[NetworkSandbox] = None,
                          witness_id: Optional[str] = None,
+                         attestation_public_key: Optional[Dict[str, Any]] = None,
                          env: Optional[Dict[str, str]] = None) -> TrustAnchor:
     """Resolve the configured external trust anchor (default OFF).
 
@@ -954,6 +1014,7 @@ def resolve_trust_anchor(mode: Optional[object] = None, *,
         token: an explicit writer credential (wins over the environment).
         sandbox: an explicit governed egress sandbox.
         witness_id: an explicit witness identity.
+        attestation_public_key: an explicit pinned witness public key.
         env: the environment mapping (defaults to ``os.environ``).
 
     Returns:
@@ -974,12 +1035,24 @@ def resolve_trust_anchor(mode: Optional[object] = None, *,
                 "operator-configured witness URL)")
         resolved_token = token if token is not None else env.get(ENV_TRUST_TOKEN)
         resolved_witness = witness_id or env.get(ENV_TRUST_WITNESS_ID)
+        resolved_attest = attestation_public_key
+        if resolved_attest is None:
+            attest_path = env.get(ENV_TRUST_ATTEST_KEY)
+            if attest_path:
+                try:
+                    resolved_attest = _load_public_key(str(attest_path))
+                except Exception as e:
+                    return UnavailableTrustAnchor(
+                        MODE_EXTERNAL,
+                        f"cannot load pinned attestation public key "
+                        f"{attest_path!r}: {e}")
         try:
             return ExternalHttpTrustAnchor(
                 str(resolved_endpoint),
                 sandbox=sandbox,
                 witness_id=(resolved_witness or DEFAULT_WITNESS_ID),
-                token=resolved_token)
+                token=resolved_token,
+                attestation_public_key=resolved_attest)
         except TrustAnchorUnavailable as e:
             return UnavailableTrustAnchor(MODE_EXTERNAL, str(e))
     return UnavailableTrustAnchor(
@@ -994,6 +1067,6 @@ __all__ = [
     "resolve_trust_anchor", "canonical_witness_bytes", "hash_envelope_core",
     "FAIL_CLOSED_VERDICTS", "WITNESS_RECORD_SCHEMA_VERSION",
     "ENV_TRUST_ANCHOR", "ENV_TRUST_ENDPOINT", "ENV_TRUST_TOKEN",
-    "ENV_TRUST_WITNESS_ID", "MODE_OFF", "MODE_EXTERNAL",
+    "ENV_TRUST_WITNESS_ID", "ENV_TRUST_ATTEST_KEY", "MODE_OFF", "MODE_EXTERNAL",
     "DEFAULT_WITNESS_ID", "DEFAULT_WITNESS_VERSION",
 ]

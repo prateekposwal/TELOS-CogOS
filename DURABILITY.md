@@ -63,6 +63,26 @@ Selected by `TELOS_DURABILITY_INTEGRITY` (`local` default; `hmac`; `witness`).
 | **`witness`** | Rollback/replay to an older **valid** state, while the witness store (a separate file recording the latest accepted `sequence` + MAC) is intact. | An attacker who can also edit/roll back the witness; anyone with the key; full OS compromise. |
 | **unavailable / misconfigured** | — (fails **closed**: no authority, no write) | Never silently downgrades to `local`. |
 
+### External witness (OPTIONAL, `TELOS_TRUST_ANCHOR=external`)
+
+The external trust anchor is a **separate freshness root** outside the local
+filesystem. When enabled, a locally-persisted authority state may claim
+`CURRENT` **only** if the external witness's stored monotonic record agrees.
+`STALE`/`ROLLBACK`/`INVALID`/`CONFLICT`/`UNKNOWN` and `UNAVAILABLE` all revoke
+authority with **no** silent fallback and **no** fail-open grace period.
+
+* Provider: `ExternalHttpTrustAnchor` (`telos/core/actions/trust_anchor.py`),
+  reached through the governed `NetworkSandbox` egress channel.
+* Service: `telos/witness_service.py` — a deployable, stdlib-only process
+  holding an append-only per-scope history and signing every accepted record
+  with its own RSA key (`telos/core/actions/witness_attest.py`). See
+  [`telos/WITNESS_SERVICE.md`](telos/WITNESS_SERVICE.md).
+* Env: `TELOS_TRUST_ANCHOR=external`, `TELOS_TRUST_ANCHOR_ENDPOINT`,
+  `TELOS_TRUST_ANCHOR_TOKEN` (writer), and optionally
+  `TELOS_TRUST_ANCHOR_ATTEST_KEY` (pin the witness public key).
+  **Default `off`**: nothing external is contacted and behaviour is
+  byte-identical to the pre-anchor contract.
+
 **Anti-rollback / freshness.** When an anchor requires freshness the envelope
 carries a monotonic `sequence` (bound inside the authenticated HMAC core).
 On load, a `sequence` **older than the anchor's accepted freshness floor** is
@@ -128,8 +148,32 @@ state while the witness is intact.
 
 **No mode defends against a fully compromised OS/user account** — an attacker
 who can read the key, edit the state **and** the witness, or replace the code
-itself. An **HSM or signed external service** is a further, **unbuilt** step and
-is not claimed.
+itself.
+
+A **signed external witness service is no longer unbuilt**: a deployable,
+stdlib-only service exists (`telos/witness_service.py`) and is exercised as a
+**real separate process** against the decisive adversarial test in
+`tests/core/test_witness_service_adversarial.py`. Its private signing key is
+never given to the producer, so an attacker holding every producer-side
+credential (including the witness writer token) cannot forge a witness answer
+or lower the server-side floor.
+
+**However, same-account deployment is still one trust domain** — the account
+can read the key file and delete the log. Genuine independence requires the
+service (and its write credential) to run outside the local account (separate
+account / host / container). That deployment remains unverified, and no
+HSM-grade key custody is claimed.
+
+Honest wording:
+
+> "External trust-anchor architecture and anti-replay verification are
+> implemented and tested; independent trust-anchor deployment remains
+> unverified."
+
+Update after building/exercising the service: a **deployable** witness service
+now exists and is exercised as a real separate process; same-account deployment
+remains a **single trust domain**, and a genuinely outside-account deployment
+remains unverified.
 
 ## Fail-closed invariants (pinned by tests)
 
