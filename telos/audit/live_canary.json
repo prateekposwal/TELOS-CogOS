@@ -1,10 +1,13 @@
 {
   "provenance": {
     "producer": "telos/core/actions/live_canary.py",
-    "source": "first_party"
+    "source": "dashboard_producer",
+    "pid": 24918,
+    "run_id": "10cacaefdacb",
+    "cycle": 174100
   },
   "capability": "filesystem.write",
-  "cycle": 200,
+  "cycle": 174100,
   "outcome": "RAN",
   "executed_any": true,
   "config": {
@@ -12,13 +15,14 @@
     "capability": "filesystem.write",
     "max_actions": 3,
     "min_interval_cycles": 40,
+    "warm_start": true,
     "max_invocations": 1,
     "sandbox_root": "/tmp/telos_tool_sandbox",
     "workspace_root": "/tmp/telos_tool_sandbox",
     "target": "canary_target.md",
     "artifact_path": "/Users/prateekposwal/dev/telos/telos/audit/live_canary.json",
     "canonical_path": null,
-    "persist_live": true
+    "persist_live": false
   },
   "bounds": {
     "max_actions": 3,
@@ -32,11 +36,59 @@
     "target": "canary_target.md",
     "designated_canary_file": true
   },
+  "authorization": {
+    "capability": "filesystem.write",
+    "mode": "LIVE",
+    "executor_gates": [
+      "operator_permission",
+      "allowlist",
+      "firewall",
+      "path_containment"
+    ],
+    "approval_required": true,
+    "cases": [
+      {
+        "kind": "positive",
+        "authorized": true,
+        "authorization_reason": "authorized",
+        "permitted_by": "operator",
+        "approval": {
+          "capability": "filesystem.write",
+          "target": "canary_target.md",
+          "operation": "write_file",
+          "approver": "operator",
+          "approval_id": "canary-positive-174100",
+          "decision_source": "explicit"
+        }
+      },
+      {
+        "kind": "negative",
+        "authorized": true,
+        "authorization_reason": "authorized",
+        "permitted_by": "operator",
+        "approval": {
+          "capability": "filesystem.write",
+          "target": "canary_target.md",
+          "operation": "write_file",
+          "approver": "operator",
+          "approval_id": "canary-negative-174100",
+          "decision_source": "explicit"
+        }
+      },
+      {
+        "kind": "refusal",
+        "authorized": false,
+        "authorization_reason": "LIVE requires an explicit per-action approval (none provided)",
+        "permitted_by": null,
+        "approval": null
+      }
+    ]
+  },
   "cases": [
     {
       "kind": "positive",
-      "cycle": 200,
-      "prediction": "# TELOS canary target (disposable)\n\ncanary line two written by live canary @cycle 200\ncanary line two\ncanary line three\n",
+      "cycle": 174100,
+      "prediction": "# TELOS canary target (disposable)\n\ncanary line two written by live canary @cycle 174100\ncanary line two\ncanary line three\n",
       "would_be_command": "write_file 'write_file /private/tmp/telos_tool_sandbox/canary_target.md replace-1L add-1L'",
       "mode": "LIVE",
       "authorized": true,
@@ -52,17 +104,17 @@
       },
       "observation": {
         "source": "file:canary_target.md",
-        "observed_content": "# TELOS canary target (disposable)\n\ncanary line two written by live canary @cycle 200\ncanary line two\ncanary line three\n",
-        "observation_sha256": "f4f0493c0a9cf5a33942ccd6759ffb4cafb912c7c5dbc40511e590ff54ee7d48",
-        "disk_sha256": "f4f0493c0a9cf5a33942ccd6759ffb4cafb912c7c5dbc40511e590ff54ee7d48",
+        "observed_content": "# TELOS canary target (disposable)\n\ncanary line two written by live canary @cycle 174100\ncanary line two\ncanary line three\n",
+        "observation_sha256": "6b24a94f455baa44e0c13f9c81def46a9d47f9e8f8ba049b913af574460b9741",
+        "disk_sha256": "6b24a94f455baa44e0c13f9c81def46a9d47f9e8f8ba049b913af574460b9741",
         "read_after_execute": true
       },
       "reality_gap": 0.0,
       "verification": {
         "matched": true,
         "reality_gap": 0.0,
-        "predicted": "# TELOS canary target (disposable)\n\ncanary line two written by live canary @cycle 200\ncanary line two\ncanary line three\n",
-        "observed": "# TELOS canary target (disposable)\n\ncanary line two written by live canary @cycle 200\ncanary line two\ncanary line three\n",
+        "predicted": "# TELOS canary target (disposable)\n\ncanary line two written by live canary @cycle 174100\ncanary line two\ncanary line three\n",
+        "observed": "# TELOS canary target (disposable)\n\ncanary line two written by live canary @cycle 174100\ncanary line two\ncanary line three\n",
         "detail": "observed content matches the prediction",
         "metric": "normalized_text_divergence"
       },
@@ -113,14 +165,108 @@
         }
       },
       "admission": {
-        "skill_candidate_id": "cand_ad8612a47d",
+        "skill_candidate_id": "cand_dc10a5886c",
         "admitted": true,
         "skill_admitted": true
+      },
+      "authorization": {
+        "authorized": true,
+        "reason": "authorized",
+        "approval": {
+          "capability": "filesystem.write",
+          "target": "canary_target.md",
+          "operation": "write_file",
+          "approver": "operator",
+          "approval_id": "canary-positive-174100",
+          "decision_source": "explicit"
+        },
+        "certification": {
+          "capability": "filesystem.write",
+          "certified": true,
+          "certified_by": "certification_campaign",
+          "evidence": "loop-correctness under variance satisfied (I1-I8 held, gap discriminated normal<=0.2 < divergent, zero false admits, fail-closed, revocation shown) AND 3 successful verified actions within the last 5 (>= 3) with no failure streak \u2014 certified",
+          "reason": "sandbox variance battery: loop-correctness under variance (preserved evidence; not promoted)",
+          "certified_cycle": null,
+          "evidence_detail": {
+            "criteria": {
+              "min_successes": 3,
+              "max_gap": 0.2,
+              "window": 5,
+              "failure_streak": 2,
+              "require_variance": true
+            },
+            "sample_size": 3,
+            "total_recorded": 3,
+            "successes": 3,
+            "failures": 0,
+            "failure_streak": 0,
+            "success_cycles": [
+              0,
+              1,
+              2
+            ],
+            "max_observed_gap": 0.0,
+            "variance": {
+              "required": true,
+              "satisfied": true,
+              "failures": [],
+              "source": "telos/audit/certification_campaign.json",
+              "gates": {
+                "families": {
+                  "normal": 1,
+                  "near_match": 1,
+                  "adversarial": 7,
+                  "refusal": 7
+                },
+                "invariants": {
+                  "I1": true,
+                  "I2": true,
+                  "I3": true,
+                  "I4": true,
+                  "I5": true,
+                  "I6": true,
+                  "I7": true,
+                  "I8": true,
+                  "I9": true
+                },
+                "gaps_bounded": true,
+                "normal_gap_max": 0.0,
+                "adversarial_gap_min": 0.04166666666666663,
+                "adversarial_gap_max": 1.0,
+                "detects_large_divergence": true,
+                "discriminates": true,
+                "false_admits": 0,
+                "fail_open_count": 0,
+                "revocation_demonstrated": true
+              }
+            }
+          },
+          "tier": "SANDBOX"
+        },
+        "capability_gates": {
+          "required": [
+            "observability",
+            "action_validity",
+            "authority",
+            "model_fidelity"
+          ],
+          "observed": {
+            "observability": "PASS",
+            "action_validity": "PASS",
+            "authority": "PASS",
+            "model_fidelity": "UNKNOWN"
+          }
+        }
+      },
+      "timing": {
+        "unit": "producer_cycles",
+        "cycle": 174100,
+        "action_index": 0
       }
     },
     {
       "kind": "negative",
-      "cycle": 200,
+      "cycle": 174100,
       "prediction": "PLANTED-CANARY-MISMATCH\n",
       "would_be_command": "write_file 'write_file /private/tmp/telos_tool_sandbox/canary_target.md replace-1L add-1L'",
       "mode": "LIVE",
@@ -198,14 +344,108 @@
         }
       },
       "admission": {
-        "skill_candidate_id": "cand_94a2347f83",
+        "skill_candidate_id": "cand_104b3c27bc",
         "admitted": false,
         "skill_admitted": false
+      },
+      "authorization": {
+        "authorized": true,
+        "reason": "authorized",
+        "approval": {
+          "capability": "filesystem.write",
+          "target": "canary_target.md",
+          "operation": "write_file",
+          "approver": "operator",
+          "approval_id": "canary-negative-174100",
+          "decision_source": "explicit"
+        },
+        "certification": {
+          "capability": "filesystem.write",
+          "certified": true,
+          "certified_by": "certification_campaign",
+          "evidence": "loop-correctness under variance satisfied (I1-I8 held, gap discriminated normal<=0.2 < divergent, zero false admits, fail-closed, revocation shown) AND 3 successful verified actions within the last 5 (>= 3) with no failure streak \u2014 certified",
+          "reason": "sandbox variance battery: loop-correctness under variance (preserved evidence; not promoted)",
+          "certified_cycle": null,
+          "evidence_detail": {
+            "criteria": {
+              "min_successes": 3,
+              "max_gap": 0.2,
+              "window": 5,
+              "failure_streak": 2,
+              "require_variance": true
+            },
+            "sample_size": 3,
+            "total_recorded": 3,
+            "successes": 3,
+            "failures": 0,
+            "failure_streak": 0,
+            "success_cycles": [
+              0,
+              1,
+              2
+            ],
+            "max_observed_gap": 0.0,
+            "variance": {
+              "required": true,
+              "satisfied": true,
+              "failures": [],
+              "source": "telos/audit/certification_campaign.json",
+              "gates": {
+                "families": {
+                  "normal": 1,
+                  "near_match": 1,
+                  "adversarial": 7,
+                  "refusal": 7
+                },
+                "invariants": {
+                  "I1": true,
+                  "I2": true,
+                  "I3": true,
+                  "I4": true,
+                  "I5": true,
+                  "I6": true,
+                  "I7": true,
+                  "I8": true,
+                  "I9": true
+                },
+                "gaps_bounded": true,
+                "normal_gap_max": 0.0,
+                "adversarial_gap_min": 0.04166666666666663,
+                "adversarial_gap_max": 1.0,
+                "detects_large_divergence": true,
+                "discriminates": true,
+                "false_admits": 0,
+                "fail_open_count": 0,
+                "revocation_demonstrated": true
+              }
+            }
+          },
+          "tier": "SANDBOX"
+        },
+        "capability_gates": {
+          "required": [
+            "observability",
+            "action_validity",
+            "authority",
+            "model_fidelity"
+          ],
+          "observed": {
+            "observability": "PASS",
+            "action_validity": "PASS",
+            "authority": "PASS",
+            "model_fidelity": "PASS"
+          }
+        }
+      },
+      "timing": {
+        "unit": "producer_cycles",
+        "cycle": 174100,
+        "action_index": 1
       }
     },
     {
       "kind": "refusal",
-      "cycle": 200,
+      "cycle": 174100,
       "prediction": "PLANTED-CANARY-MISMATCH\n",
       "would_be_command": "write_file 'write_file /private/tmp/telos_tool_sandbox/canary_target.md replace-1L add-1L'",
       "mode": "LIVE",
@@ -247,9 +487,121 @@
         "skill_candidate_id": null,
         "admitted": false,
         "skill_admitted": false
+      },
+      "authorization": {
+        "authorized": false,
+        "reason": "LIVE requires an explicit per-action approval (none provided)",
+        "approval": null,
+        "certification": {
+          "capability": "filesystem.write",
+          "certified": true,
+          "certified_by": "certification_campaign",
+          "evidence": "loop-correctness under variance satisfied (I1-I8 held, gap discriminated normal<=0.2 < divergent, zero false admits, fail-closed, revocation shown) AND 3 successful verified actions within the last 5 (>= 3) with no failure streak \u2014 certified",
+          "reason": "sandbox variance battery: loop-correctness under variance (preserved evidence; not promoted)",
+          "certified_cycle": null,
+          "evidence_detail": {
+            "criteria": {
+              "min_successes": 3,
+              "max_gap": 0.2,
+              "window": 5,
+              "failure_streak": 2,
+              "require_variance": true
+            },
+            "sample_size": 3,
+            "total_recorded": 3,
+            "successes": 3,
+            "failures": 0,
+            "failure_streak": 0,
+            "success_cycles": [
+              0,
+              1,
+              2
+            ],
+            "max_observed_gap": 0.0,
+            "variance": {
+              "required": true,
+              "satisfied": true,
+              "failures": [],
+              "source": "telos/audit/certification_campaign.json",
+              "gates": {
+                "families": {
+                  "normal": 1,
+                  "near_match": 1,
+                  "adversarial": 7,
+                  "refusal": 7
+                },
+                "invariants": {
+                  "I1": true,
+                  "I2": true,
+                  "I3": true,
+                  "I4": true,
+                  "I5": true,
+                  "I6": true,
+                  "I7": true,
+                  "I8": true,
+                  "I9": true
+                },
+                "gaps_bounded": true,
+                "normal_gap_max": 0.0,
+                "adversarial_gap_min": 0.04166666666666663,
+                "adversarial_gap_max": 1.0,
+                "detects_large_divergence": true,
+                "discriminates": true,
+                "false_admits": 0,
+                "fail_open_count": 0,
+                "revocation_demonstrated": true
+              }
+            }
+          },
+          "tier": "SANDBOX"
+        },
+        "capability_gates": {
+          "required": [
+            "observability",
+            "action_validity",
+            "authority",
+            "model_fidelity"
+          ],
+          "observed": {
+            "observability": "PASS",
+            "action_validity": "PASS",
+            "authority": "PASS",
+            "model_fidelity": "LIMITED"
+          }
+        }
+      },
+      "timing": {
+        "unit": "producer_cycles",
+        "cycle": 174100,
+        "action_index": 2
       }
     }
   ],
+  "timing": {
+    "unit": "producer_cycles",
+    "anchor_cycle": 174100,
+    "cycle": 174100,
+    "cycles_since_anchor": 0,
+    "first_fire": true,
+    "warm_start": true,
+    "fire_reason": "warm_start",
+    "prev_fire_cycle": null,
+    "interval_cycles": null,
+    "min_interval_cycles": 40,
+    "interval_evaluated": true,
+    "interval_satisfied": true,
+    "action_cycles": [
+      174100,
+      174100,
+      174100
+    ],
+    "action_interval_cycles": [
+      null,
+      0,
+      0
+    ],
+    "wall_clock": 1789847750.569124
+  },
   "reversibility": {
     "restored_exact_bytes": true,
     "sandbox_digest_before": "83717549cc98b13bdba61efa868de7e60cad8794b3bd1a953a4ad825b8425270",
@@ -314,7 +666,7 @@
       "failures": 0,
       "failure_streak": 0,
       "success_cycles": [
-        200
+        174100
       ],
       "max_observed_gap": 0.0,
       "variance": {
@@ -358,16 +710,11 @@
         "capability": "filesystem.write",
         "matched": true,
         "gap": 0.0,
-        "cycle": 200,
+        "cycle": 174100,
         "source": "live_canary:positive"
       }
     ]
   },
   "refusals": [],
-  "timestamp": 1789846603.59973,
-  "persistence": {
-    "persisted": true,
-    "reason": "LIVE-CERTIFIED persisted",
-    "path": "/Users/prateekposwal/dev/telos/telos/audit/capability_certification.json"
-  }
+  "timestamp": 1789847750.569144
 }

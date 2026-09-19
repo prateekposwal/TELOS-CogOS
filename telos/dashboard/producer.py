@@ -842,12 +842,18 @@ class DashboardProducer:
         without a canary. The canary is scoped to the governed tool workspace
         (the sandbox) and never enters the pipeline's cycle.
         """
-        from telos.core.actions.live_canary import LiveCanary, canary_enabled
+        from telos.core.actions.live_canary import (
+            CanaryOrigin, LiveCanary, canary_enabled,
+        )
         if not canary_enabled():
             return
         self._canary = LiveCanary(
             workspace_root=getattr(self._pipeline.config, "tool_workspace", None),
             executor=getattr(self._pipeline.config, "action_executor", None),
+            # The PRODUCER stamps its OWN identity (pid + run_id); the one-shot
+            # runner can never emit this source. This is what makes the
+            # evidence provably producer-origin (checked via source + pid).
+            origin=CanaryOrigin.for_producer(),
         )
         logger.info("producer: live canary ENABLED %s",
                     self._canary.config.to_dict())

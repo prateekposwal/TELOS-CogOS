@@ -31,11 +31,45 @@ sys.path.insert(0, PROJECT)
 
 from telos.core.actions.live_canary import (  # noqa: E402
     CAPABILITY, CANARY_TARGET, DEFAULT_CANARY_ARTIFACT_PATH, DEFAULT_MAX_ACTIONS,
-    DEFAULT_SANDBOX_ROOT, LiveCanary,
+    DEFAULT_SANDBOX_ROOT, ORIGIN_RUNNER, CanaryOrigin, LiveCanary, new_run_id,
 )
-from telos.core.verifier.measurement import provenance  # noqa: E402
 
 PRODUCER = "telos/tools/live_canary_run.py"
+
+
+def _runner_origin() -> CanaryOrigin:
+    """The runner's origin identity (NEVER the producer origin).
+
+    Returns:
+        A runner-source :class:`CanaryOrigin` bound to this process.
+    """
+    return CanaryOrigin.for_runner()
+
+
+def _ensure_runner_origin(record: Dict[str, Any], cycle: int) -> Dict[str, Any]:
+    """Force runner-origin provenance on the runner's emitted artifact.
+
+    Defense-in-depth: the one-shot runner may NEVER emit
+    ``source == "dashboard_producer"`` evidence — that source is reserved for
+    the long-running producer process (checked by pid). This re-stamps the
+    record so the runner's output is always runner-origin.
+
+    Args:
+        record: the canary record about to be persisted.
+        cycle: the cycle the run was stamped with.
+
+    Returns:
+        The same record with canonical runner-origin provenance.
+    """
+    prov = dict(record.get("provenance") or {})
+    prov["producer"] = "telos/core/actions/live_canary.py"
+    prov["runner"] = PRODUCER
+    prov["source"] = ORIGIN_RUNNER
+    prov["pid"] = os.getpid()
+    prov["run_id"] = prov.get("run_id") or new_run_id()
+    prov["cycle"] = cycle
+    record["provenance"] = prov
+    return record
 
 
 def _ensure_target(sandbox_root: str) -> None:
@@ -71,8 +105,11 @@ def run_canary(*, workspace: str, cycle: int = 0, max_actions: int = DEFAULT_MAX
     canary = LiveCanary(
         workspace_root=workspace, enabled=True, max_actions=max_actions,
         artifact_path=artifact_path, persist_live=persist,
+        origin=_runner_origin(),
     )
     record = canary.run_script(cycle)
+    # The runner NEVER emits producer-origin evidence (structural boundary).
+    record = _ensure_runner_origin(record, cycle)
     if persist:
         record["persistence"] = canary.persist_live_certification()
     return record
@@ -142,8 +179,7 @@ def main() -> int:
     record = run_canary(workspace=args.workspace, cycle=args.cycle,
                         max_actions=args.max_actions, persist=args.persist,
                         artifact_path=args.json)
-    record.setdefault("provenance", provenance(PRODUCER, ["live_canary"],
-                                               source="first_party"))
+    record = _ensure_runner_origin(record, args.cycle)
     if args.json:
         out = args.json if os.path.isabs(args.json) \
             else os.path.join(PROJECT, args.json)

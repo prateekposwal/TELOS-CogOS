@@ -16,8 +16,11 @@ is an explicit operator act.
 It is fail-closed and tightly bounded:
   * opt-in, default OFF — ``TELOS_CANARY_ENABLED`` unset/unknown => never runs;
   * at most ``TELOS_CANARY_MAX`` live actions per session (default 3) and one
-    invocation per session, with a cycle-interval floor
-    (``TELOS_CANARY_MIN_INTERVAL_CYCLES``, default 40);
+    invocation per session, with a cycle-interval floor measured in PRODUCER
+    CYCLES (``TELOS_CANARY_MIN_INTERVAL_CYCLES``, default 40); the first fire
+    may be a DELIBERATE warm start (``TELOS_CANARY_WARM_START``, default on),
+    always FLAGGED in the trace (``timing.first_fire`` / ``timing.warm_start``)
+    rather than an implicit guard skip;
   * disposable target ONLY — the designated ``canary_target.md`` inside the
     sandbox root; a target outside the sandbox or not the designated file is
     refused (nothing runs);
@@ -38,6 +41,7 @@ import json
 import logging
 import os
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -73,6 +77,19 @@ DEFAULT_CANARY_ARTIFACT_PATH = str(
 ENV_ENABLED = "TELOS_CANARY_ENABLED"
 ENV_MAX = "TELOS_CANARY_MAX"
 ENV_INTERVAL = "TELOS_CANARY_MIN_INTERVAL_CYCLES"
+ENV_WARM_START = "TELOS_CANARY_WARM_START"
+
+#: The ONLY two recognized provenance origins. ``dashboard_producer`` is the
+#: long-running producer process; ``live_canary_run`` is the one-shot runner.
+ORIGIN_PRODUCER = "dashboard_producer"
+ORIGIN_RUNNER = "live_canary_run"
+
+#: The governed executor's four hard gates (evaluation order). Recorded
+#: verbatim in the record's authorization context so the by-whom/gates evidence
+#: is preserved with the capability name.
+EXECUTOR_GATES: tuple = (
+    "operator_permission", "allowlist", "firewall", "path_containment",
+)
 
 #: The fixed, bounded action script (positive, planted-mismatch, refusal).
 SCRIPT: tuple = ("positive", "negative", "refusal")
@@ -112,6 +129,82 @@ def _env_int(name: str, default: int, minimum: int) -> int:
         return max(minimum, int(str(raw).strip()))
     except (TypeError, ValueError):
         return default
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    """Read a boolean from the environment (fail to default).
+
+    Args:
+        name: the env var name.
+        default: the default value.
+
+    Returns:
+        True only for an explicit truthy value; the default otherwise.
+    """
+    raw = os.environ.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    return str(raw).strip().lower() in _TRUE
+
+
+def new_run_id() -> str:
+    """A fresh unique run id for one producer/runner session.
+
+    Returns:
+        A uuid4 hex string (12 chars is ample for session identity).
+    """
+    return uuid.uuid4().hex[:12]
+
+
+@dataclass(frozen=True)
+class CanaryOrigin:
+    """The unambiguous origin identity of ONE canary execution.
+
+    The verifier's contract: ``source == "dashboard_producer"`` proves the
+    long-running producer executed the canary, and ``pid`` must match that
+    producer process (a one-shot runner lives in a different pid and can never
+    produce a matching record). ``run_id`` distinguishes producer sessions;
+    ``cycle`` is stamped at record time (the producer's live cycle counter).
+
+    Attributes:
+        source: ``dashboard_producer`` or ``live_canary_run`` (the ONLY two).
+        pid: the producing process id.
+        run_id: a unique id for the producing process session.
+    """
+
+    source: str
+    pid: int
+    run_id: str
+
+    @classmethod
+    def for_producer(cls, *, pid: Optional[int] = None,
+                     run_id: Optional[str] = None) -> "CanaryOrigin":
+        """The long-running producer origin (pid = the producer process).
+
+        Args:
+            pid: explicit pid (default: this process).
+            run_id: explicit run id (default: a fresh uuid4 hex).
+
+        Returns:
+            A producer-source origin.
+        """
+        return cls(ORIGIN_PRODUCER, pid if pid is not None else os.getpid(),
+                   run_id or new_run_id())
+
+    @classmethod
+    def for_runner(cls, *, pid: Optional[int] = None,
+                   run_id: Optional[str] = None) -> "CanaryOrigin":
+        """The one-shot runner origin (also the library default — safe).
+
+        Args:
+            pid: explicit pid (default: this process).
+            run_id: explicit run id (default: a fresh uuid4 hex).
+
+        Returns:
+            A runner-source origin.
+        """
+        return cls(ORIGIN_RUNNER, pid if pid is not None else os.getpid(),
+                   run_id or new_run_id())
 
 
 #: Bound on how many files the drift digest walks (the sandbox is tiny).
@@ -183,7 +276,10 @@ class CanaryConfig:
     Attributes:
         enabled: opt-in flag (default False).
         max_actions: live-action bound per session.
-        min_interval_cycles: minimum cycles between canary invocations.
+        min_interval_cycles: minimum cycles between canary invocations
+            (measured in PRODUCER CYCLES).
+        warm_start: whether the FIRST fire is a deliberate warm start (flagged
+            in the trace) rather than waiting out the interval.
         max_invocations: hard cap on invocations per session (always 1).
         sandbox_root: the designated disposable sandbox root.
         workspace_root: the governed executor workspace root.
@@ -199,6 +295,7 @@ class CanaryConfig:
     enabled: bool = False
     max_actions: int = DEFAULT_MAX_ACTIONS
     min_interval_cycles: int = DEFAULT_MIN_INTERVAL_CYCLES
+    warm_start: bool = True
     max_invocations: int = 1
     sandbox_root: str = DEFAULT_SANDBOX_ROOT
     workspace_root: Optional[str] = None
@@ -219,6 +316,7 @@ class CanaryConfig:
             "capability": CAPABILITY,
             "max_actions": self.max_actions,
             "min_interval_cycles": self.min_interval_cycles,
+            "warm_start": self.warm_start,
             "max_invocations": self.max_invocations,
             "sandbox_root": self.sandbox_root,
             "workspace_root": self.workspace_root,
@@ -240,6 +338,8 @@ class LiveCanary:
                  enabled: Optional[bool] = None,
                  max_actions: Optional[int] = None,
                  min_interval_cycles: Optional[int] = None,
+                 warm_start: Optional[bool] = None,
+                 origin: Optional[CanaryOrigin] = None,
                  artifact_path: Optional[str] = None,
                  sandbox_evidence_path: Optional[str] = None,
                  canonical_path: Optional[str] = None,
@@ -256,6 +356,10 @@ class LiveCanary:
             enabled: explicit opt-in override (default: env).
             max_actions: explicit action bound override (default: env).
             min_interval_cycles: explicit interval override (default: env).
+            warm_start: explicit first-fire warm-start override (default: env).
+            origin: the origin identity stamped into the evidence. Defaults to
+                the RUNNER origin (safe): a caller must opt in explicitly to
+                the PRODUCER origin, and the runner never does.
             artifact_path: explicit trace-artifact path.
             sandbox_evidence_path: explicit sandbox-evidence path.
             canonical_path: explicit canonical LIVE registry path.
@@ -273,6 +377,8 @@ class LiveCanary:
                 _env_int(ENV_INTERVAL, DEFAULT_MIN_INTERVAL_CYCLES, 1)
                 if min_interval_cycles is None
                 else max(1, int(min_interval_cycles))),
+            warm_start=(_env_bool(ENV_WARM_START, True)
+                        if warm_start is None else bool(warm_start)),
             sandbox_root=str(sandbox_root or DEFAULT_SANDBOX_ROOT),
             workspace_root=resolved_ws,
             target=target or CANARY_TARGET,
@@ -284,10 +390,14 @@ class LiveCanary:
         self._executor = executor
         self._firewall = firewall
         self._authority = authority or CapabilityAuthority()
+        # Safe default: an unconfigured caller is a RUNNER, never a producer.
+        # The producer wiring opts in explicitly via CanaryOrigin.for_producer.
+        self._origin = origin or CanaryOrigin.for_runner()
 
         # ── per-session bounded state ──
         self._actions_done = 0
         self._invocations = 0
+        self._anchor_cycle: Optional[int] = None
         self._last_cycle: Optional[int] = None
         self._cases: List[Dict[str, Any]] = []
         self._refusals: List[Dict[str, Any]] = []
@@ -311,12 +421,82 @@ class LiveCanary:
                     0, self.config.max_actions - self._actions_done),
                 "invocations": self._invocations,
                 "max_invocations": self.config.max_invocations,
+                "anchor_cycle": self._anchor_cycle,
                 "last_cycle": self._last_cycle,
+                "origin": self._origin.source,
                 "completed": self._completed,
                 "cases": len(self._cases),
                 "refusals": len(self._refusals),
             },
             "last_record": self._last_record,
+        }
+
+    def _provenance(self, cycle: int) -> Dict[str, Any]:
+        """The unambiguous origin identity stamped into the evidence.
+
+        Args:
+            cycle: the producer cycle at execution (the live counter).
+
+        Returns:
+            Dict with producer path, source, pid, run_id, and cycle.
+        """
+        return {
+            "producer": "telos/core/actions/live_canary.py",
+            "source": self._origin.source,
+            "pid": self._origin.pid,
+            "run_id": self._origin.run_id,
+            "cycle": cycle,
+        }
+
+    def _timing(self, *, cycle: int, first_fire: bool, fire_reason: str,
+                action_cycles: Optional[List[int]] = None) -> Dict[str, Any]:
+        """The deterministic, auditable interval record (producer cycles).
+
+        The interval is measured in PRODUCER CYCLES; wall-clock is descriptive
+        metadata only and never gates a fire. The first fire is a DELIBERATE
+        warm start iff ``config.warm_start`` (flagged, never implicit).
+
+        Args:
+            cycle: the current producer cycle.
+            first_fire: whether this is the session's first fire.
+            fire_reason: ``warm_start`` / ``interval_elapsed`` / ``direct``.
+            action_cycles: the producer cycle of each executed action.
+
+        Returns:
+            Dict describing the anchor, interval, and warm-start flag.
+        """
+        anchor = self._anchor_cycle if self._anchor_cycle is not None else cycle
+        prev = None if first_fire else self._last_cycle
+        action_cycles = list(action_cycles or [])
+        intervals = [None if i == 0 else action_cycles[i] - action_cycles[i - 1]
+                     for i in range(len(action_cycles))]
+        evaluated = fire_reason in ("warm_start", "interval_elapsed")
+        if first_fire:
+            elapsed = cycle - anchor
+            satisfied = bool(self.config.warm_start
+                             or elapsed >= self.config.min_interval_cycles)
+        else:
+            elapsed = cycle - (prev if prev is not None else cycle)
+            satisfied = bool(elapsed >= self.config.min_interval_cycles)
+        return {
+            "unit": "producer_cycles",
+            "anchor_cycle": anchor,
+            "cycle": cycle,
+            "cycles_since_anchor": cycle - anchor,
+            "first_fire": bool(first_fire),
+            "warm_start": bool(first_fire and fire_reason == "warm_start"),
+            "fire_reason": fire_reason,
+            "prev_fire_cycle": prev,
+            "interval_cycles": (None if first_fire or prev is None
+                                else cycle - prev),
+            "min_interval_cycles": self.config.min_interval_cycles,
+            "interval_evaluated": evaluated,
+            "interval_satisfied": (satisfied if evaluated else None),
+            "action_cycles": action_cycles,
+            "action_interval_cycles": intervals,
+            # Descriptive only — never a gate (producer-cycle interval is the
+            # deterministic measurement).
+            "wall_clock": time.time(),
         }
 
     # ── guards ───────────────────────────────────────────────────────────
@@ -455,7 +635,8 @@ class LiveCanary:
 
     def _run_case(self, kind: str, cycle: int,
                   registry: CapabilityCertification,
-                  before_bytes: bytes) -> Dict[str, Any]:
+                  before_bytes: bytes,
+                  action_index: int = 0) -> Dict[str, Any]:
         """Run one bounded canary case and capture its full trace.
 
         Args:
@@ -463,6 +644,7 @@ class LiveCanary:
             cycle: the pipeline cycle.
             registry: the sandbox-tier certification registry.
             before_bytes: the exact pre-case target bytes (for restore).
+            action_index: the zero-based action position in the fixed script.
 
         Returns:
             The measured case trace dict.
@@ -540,26 +722,55 @@ class LiveCanary:
                 "admitted": admitted,
                 "skill_admitted": bool(result.skill_admitted),
             },
+            # Preserve the authorization context with the capability name:
+            # who authorized (approver) and the runner's capability gates.
+            "authorization": {
+                "authorized": bool(result.authorized),
+                "reason": result.authorization_reason,
+                "approval": result.approval,
+                "certification": result.certification,
+                "capability_gates": (
+                    (result.provenance or {}).get("capability_gates")),
+            },
+            # Deterministic per-action timing (producer cycles).
+            "timing": {
+                "unit": "producer_cycles",
+                "cycle": cycle,
+                "action_index": action_index,
+            },
         }
 
-    def run_script(self, cycle: int) -> Dict[str, Any]:
+    def run_script(self, cycle: int, *, fire_reason: str = "direct",
+                   first_fire: Optional[bool] = None) -> Dict[str, Any]:
         """Run the whole bounded canary script in one invocation.
 
         Args:
             cycle: the pipeline cycle.
+            fire_reason: ``warm_start`` / ``interval_elapsed`` / ``direct``.
+            first_fire: whether this is the session's first fire (default:
+                inferred from ``_last_cycle``).
 
         Returns:
             The canary record (trace + live evidence + certification outcome).
         """
+        if first_fire is None:
+            first_fire = self._last_cycle is None
+        if self._anchor_cycle is None:
+            self._anchor_cycle = cycle
         refusal = self.guard_refusal(cycle)
         if refusal is not None:
-            return self._record_refusal(refusal, cycle)
+            return self._record_refusal(refusal, cycle, fire_reason=fire_reason,
+                                        first_fire=first_fire)
         registry = self._sandbox_registry()
         if not registry.is_certified_at(CAPABILITY, CertificationTier.SANDBOX):
-            return self._record_refusal("sandbox_not_certified", cycle)
+            return self._record_refusal("sandbox_not_certified", cycle,
+                                        fire_reason=fire_reason,
+                                        first_fire=first_fire)
         target = self._resolved_target()
         if target is None or not target.is_file():
-            return self._record_refusal("canary_target_missing", cycle)
+            return self._record_refusal("canary_target_missing", cycle,
+                                        fire_reason=fire_reason,
+                                        first_fire=first_fire)
 
         self._invocations += 1
         before_bytes = target.read_bytes()
@@ -570,7 +781,8 @@ class LiveCanary:
             if kind is None:
                 break
             try:
-                case = self._run_case(kind, cycle, registry, before_bytes)
+                case = self._run_case(kind, cycle, registry, before_bytes,
+                                      action_index=self._actions_done)
             except Exception as e:  # Λ2.3: no silent swallow — recorded, loud
                 logger.warning("canary case %r failed: %r", kind, e)
                 case = {"kind": kind, "cycle": cycle, "error": repr(e)}
@@ -593,8 +805,12 @@ class LiveCanary:
         }
 
         live_evidence, live_decision = self._evaluate(cases, registry, cycle)
+        timing = self._timing(
+            cycle=cycle, first_fire=bool(first_fire), fire_reason=fire_reason,
+            action_cycles=[c.get("cycle") for c in cases
+                           if isinstance(c.get("cycle"), int)])
         record = self._build_record(cycle, cases, reversibility,
-                                    live_evidence, live_decision)
+                                    live_evidence, live_decision, timing)
         self._last_record = record
         self._persist(record)
         return record
@@ -604,6 +820,19 @@ class LiveCanary:
 
         Default OFF: when not enabled this returns None and touches nothing
         (byte-identical to a producer without a canary).
+
+        Interval semantics (deterministic, auditable — measured in PRODUCER
+        CYCLES, never wall-clock):
+          * the canary is ANCHORED the first cycle it is consulted
+            (``_anchor_cycle``);
+          * the FIRST fire is a deliberate WARM START iff ``config.warm_start``
+            is on (default) — it is flagged ``timing.first_fire=True`` +
+            ``timing.warm_start=True`` in the record, NEVER an implicit guard
+            skip. With warm start OFF the first fire waits until
+            ``cycle - anchor >= min_interval_cycles``;
+          * every RETRY (after a refusal) waits until
+            ``cycle - last_fire_cycle >= min_interval_cycles``;
+          * wall-clock is descriptive metadata only — it never gates a fire.
 
         Args:
             cycle: the current pipeline cycle.
@@ -615,12 +844,22 @@ class LiveCanary:
             return None
         if self._completed:
             return None
-        if self._last_cycle is not None \
-                and (cycle - self._last_cycle) < self.config.min_interval_cycles:
-            return None
         if self._invocations >= self.config.max_invocations:
             return None
-        return self.run_script(cycle)
+        if self._anchor_cycle is None:
+            self._anchor_cycle = cycle
+        first = self._last_cycle is None
+        if first:
+            if not self.config.warm_start \
+                    and (cycle - self._anchor_cycle) < self.config.min_interval_cycles:
+                return None
+            fire_reason = ("warm_start" if self.config.warm_start
+                           else "interval_elapsed")
+        else:
+            if (cycle - self._last_cycle) < self.config.min_interval_cycles:
+                return None
+            fire_reason = "interval_elapsed"
+        return self.run_script(cycle, fire_reason=fire_reason, first_fire=first)
 
     # ── live-evidence evaluation ─────────────────────────────────────────
 
@@ -775,24 +1014,32 @@ class LiveCanary:
 
     # ── record + artifact ────────────────────────────────────────────────
 
-    def _record_refusal(self, reason: str, cycle: int) -> Dict[str, Any]:
+    def _record_refusal(self, reason: str, cycle: int, *,
+                        fire_reason: str = "direct",
+                        first_fire: Optional[bool] = None) -> Dict[str, Any]:
         """Record a fail-closed refusal (runs nothing, persists the reason).
 
         Args:
             reason: the machine-readable refusal reason.
             cycle: the pipeline cycle.
+            fire_reason: ``warm_start`` / ``interval_elapsed`` / ``direct``.
+            first_fire: whether this is the session's first fire.
 
         Returns:
             The refusal record.
         """
+        if first_fire is None:
+            first_fire = self._last_cycle is None
+        timing = self._timing(cycle=cycle, first_fire=bool(first_fire),
+                              fire_reason=fire_reason)
         rec = {
-            "provenance": {"producer": "telos/core/actions/live_canary.py",
-                           "source": "first_party"},
+            "provenance": self._provenance(cycle),
             "capability": CAPABILITY,
             "cycle": cycle,
             "outcome": "REFUSED",
             "refusal_reason": reason,
             "config": self.config.to_dict(),
+            "timing": timing,
             "executed_any": False,
             "timestamp": time.time(),
         }
@@ -807,7 +1054,8 @@ class LiveCanary:
     def _build_record(self, cycle: int, cases: List[Dict[str, Any]],
                       reversibility: Dict[str, Any],
                       live_evidence: VarianceEvidence,
-                      live_decision: Dict[str, Any]) -> Dict[str, Any]:
+                      live_decision: Dict[str, Any],
+                      timing: Dict[str, Any]) -> Dict[str, Any]:
         """Assemble the auditable live-canary record.
 
         Args:
@@ -816,13 +1064,13 @@ class LiveCanary:
             reversibility: the reversibility proof.
             live_evidence: the live VarianceEvidence.
             live_decision: the live certification decision (dict).
+            timing: the deterministic interval record (producer cycles).
 
         Returns:
             The canary record.
         """
         return {
-            "provenance": {"producer": "telos/core/actions/live_canary.py",
-                           "source": "first_party"},
+            "provenance": self._provenance(cycle),
             "capability": CAPABILITY,
             "cycle": cycle,
             "outcome": "RAN",
@@ -842,7 +1090,28 @@ class LiveCanary:
                 "designated_canary_file": (
                     Path(self.config.target).name == CANARY_TARGET),
             },
+            # Preserve the capability name + the full authorization context
+            # (authorized / by-whom / gates) alongside the provenance identity.
+            "authorization": {
+                "capability": CAPABILITY,
+                "mode": ActionMode.LIVE.value,
+                "executor_gates": list(EXECUTOR_GATES),
+                "approval_required": True,
+                "cases": [
+                    {
+                        "kind": c.get("kind"),
+                        "authorized": c.get("authorized"),
+                        "authorization_reason": c.get("authorization_reason"),
+                        "permitted_by": (
+                            (c.get("execution") or {}).get("permitted_by")),
+                        "approval": (
+                            (c.get("authorization") or {}).get("approval")),
+                    }
+                    for c in cases
+                ],
+            },
             "cases": cases,
+            "timing": timing,
             "reversibility": reversibility,
             "live_evidence": live_evidence.to_dict(),
             "live_certification": live_decision,
@@ -917,7 +1186,8 @@ class LiveCanary:
 
 
 __all__ = [
-    "LiveCanary", "CanaryConfig", "CAPABILITY", "CANARY_TARGET",
+    "LiveCanary", "CanaryConfig", "CanaryOrigin", "CAPABILITY", "CANARY_TARGET",
     "DEFAULT_MAX_ACTIONS", "DEFAULT_MIN_INTERVAL_CYCLES", "DEFAULT_SANDBOX_ROOT",
     "DEFAULT_CANARY_ARTIFACT_PATH", "SCRIPT", "canary_enabled",
+    "ORIGIN_PRODUCER", "ORIGIN_RUNNER", "EXECUTOR_GATES", "new_run_id",
 ]
