@@ -304,6 +304,7 @@ class CanaryConfig:
     sandbox_evidence_path: Optional[str] = None
     canonical_path: Optional[str] = None
     persist_live: bool = False
+    authority_state_path: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializable configuration record.
@@ -324,6 +325,7 @@ class CanaryConfig:
             "artifact_path": self.artifact_path,
             "canonical_path": self.canonical_path,
             "persist_live": self.persist_live,
+            "authority_state_path": self.authority_state_path,
         }
 
 
@@ -343,7 +345,8 @@ class LiveCanary:
                  artifact_path: Optional[str] = None,
                  sandbox_evidence_path: Optional[str] = None,
                  canonical_path: Optional[str] = None,
-                 persist_live: bool = False):
+                 persist_live: bool = False,
+                 authority_state_path: Optional[str] = None):
         """Construct the canary (it runs nothing until invoked).
 
         Args:
@@ -365,6 +368,12 @@ class LiveCanary:
             canonical_path: explicit canonical LIVE registry path.
             persist_live: write the canonical LIVE record when the live bar is
                 met (explicit operator act).
+            authority_state_path: optional durable capability-authority evidence
+                path. When set, the canary's authority ledger persists measured
+                falsification evidence and reloads it on construction, so a
+                process restart cannot resurrect a falsified capability's
+                authority merely because the canonical registry is unchanged.
+                Runtime evidence only — never the canonical registry.
         """
         env_ws = os.environ.get("TELOS_TOOL_WORKSPACE") or None
         resolved_ws = workspace_root or env_ws
@@ -386,10 +395,13 @@ class LiveCanary:
             sandbox_evidence_path=sandbox_evidence_path,
             canonical_path=canonical_path,
             persist_live=bool(persist_live),
+            authority_state_path=(str(authority_state_path)
+                                  if authority_state_path else None),
         )
         self._executor = executor
         self._firewall = firewall
-        self._authority = authority or CapabilityAuthority()
+        self._authority = authority or CapabilityAuthority(
+            state_path=self.config.authority_state_path)
         # Safe default: an unconfigured caller is a RUNNER, never a producer.
         # The producer wiring opts in explicitly via CanaryOrigin.for_producer.
         self._origin = origin or CanaryOrigin.for_runner()

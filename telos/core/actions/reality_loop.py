@@ -27,6 +27,10 @@ from __future__ import annotations
 
 import difflib
 import hashlib
+import json
+import logging
+import os
+import tempfile
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
@@ -36,6 +40,8 @@ from telos.core.governance.capability_authorization import (
     CapabilityAuthorization, CapabilityStatus,
 )
 from telos.world.epistemic import RealityGapTracker
+
+logger = logging.getLogger("telos_capability_authority")
 
 #: The canonical metric name recorded alongside every measured gap.
 GAP_METRIC = "normalized_text_divergence"
@@ -149,13 +155,106 @@ class CapabilityAuthority:
     #: Model-id namespace for world-action capabilities.
     MODEL_PREFIX: str = "world_action"
 
-    def __init__(self, tracker: Optional[RealityGapTracker] = None):
+    def __init__(self, tracker: Optional[RealityGapTracker] = None, *,
+                 state_path: Optional[str] = None):
         """Construct the authority ledger over a RealityGapTracker.
+
+        DURABLE AUTHORITY (restart safety): when ``state_path`` is configured the
+        ledger PERSISTS its measured evidence (per-model gap history, sticky
+        falsification, recency stamp) after every recording and RELOADS it on
+        construction. The measured falsification state of a capability is thus
+        not erased by a process restart — a falsified capability stays FAILed
+        even though the canonical certification registry still says
+        LIVE-CERTIFIED. This store is runtime EVIDENCE, deliberately separate
+        from the operator-gated canonical certification registry (Λ6.7): the
+        runtime may withhold authority automatically; only canonical registry
+        mutation requires an explicit operator.
+
+        Fails CLOSED: if the configured store exists but is unreadable or
+        malformed, :meth:`state` withholds authority for every capability
+        (FAIL) rather than silently reverting to the act-then-learn bootstrap.
+        An ABSENT store is a genuine first run (bootstrap, UNKNOWN) — not
+        recovery.
 
         Args:
             tracker: the existing tracker to reuse (defaults to a fresh one).
+            state_path: optional durable evidence path. None (default) keeps
+                the ledger purely in-memory (byte-identical default behavior).
         """
         self.tracker = tracker if tracker is not None else RealityGapTracker()
+        self.state_path: Optional[str] = (
+            str(state_path) if state_path else None)
+        #: True when a configured evidence store existed but could not be
+        #: trusted; every authority query then fails closed.
+        self._evidence_unreadable: bool = False
+        if self.state_path:
+            self._load_state()
+
+    # ── durable evidence store ────────────────────────────────────────────
+
+    def _load_state(self) -> None:
+        """Load the persisted evidence store, failing closed when unreadable.
+
+        An absent file is a first run (no prior evidence -> bootstrap). A file
+        that exists but is unreadable or malformed sets ``_evidence_unreadable``
+        so authority is withheld rather than silently restored.
+        """
+        try:
+            with open(self.state_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return
+        except Exception as e:  # unreadable safety record -> FAIL CLOSED
+            self._evidence_unreadable = True
+            logger.error(
+                "capability authority evidence %r unreadable (%s); authority "
+                "fails closed (no capability is authorized from an unreadable "
+                "store)", self.state_path, e)
+            return
+        if not isinstance(data, dict):
+            self._evidence_unreadable = True
+            logger.error(
+                "capability authority evidence %r is not a JSON object; "
+                "authority fails closed", self.state_path)
+            return
+        payload = data.get("models", data)
+        try:
+            self.tracker.load_state(payload)
+        except Exception as e:  # malformed record -> FAIL CLOSED
+            self._evidence_unreadable = True
+            logger.error(
+                "capability authority evidence %r malformed (%s); authority "
+                "fails closed", self.state_path, e)
+
+    def _persist_state(self) -> None:
+        """Atomically persist the measured evidence (best-effort, audited).
+
+        A persistence failure is logged loudly (never silently swallowed): if
+        the falsification record cannot be written, restart safety for this
+        process cannot be guaranteed.
+        """
+        if not self.state_path:
+            return
+        try:
+            directory = os.path.dirname(self.state_path) or "."
+            os.makedirs(directory, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(
+                dir=directory, prefix=".authority_ev_", suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump({"models": self.tracker.to_state()}, f, indent=2)
+                os.replace(tmp, self.state_path)
+            except Exception:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+                raise
+        except Exception as e:
+            logger.error(
+                "capability authority evidence persist to %r FAILED (%s); "
+                "restart safety for this authority is not guaranteed",
+                self.state_path, e)
 
     def model_id(self, capability: str) -> str:
         """The tracker model id for a capability.
@@ -190,7 +289,11 @@ class CapabilityAuthority:
             np.array([1.0 - g]),
             cycle=cycle,
         )
-        return self.state(capability, now_cycle=cycle)
+        state = self.state(capability, now_cycle=cycle)
+        # Durable authority: persist the measured evidence so a process restart
+        # cannot resurrect a falsified capability's authority.
+        self._persist_state()
+        return state
 
     def state(self, capability: str, *,
               now_cycle: Optional[int] = None) -> AuthorityState:
@@ -209,6 +312,17 @@ class CapabilityAuthority:
             evidence can. A stale, never-falsified model is UNKNOWN.
         """
         mid = self.model_id(capability)
+        if self._evidence_unreadable:
+            # The configured evidence store could not be trusted: withhold
+            # authority (FAIL) rather than silently reverting to the permissive
+            # act-then-learn bootstrap (fail-closed).
+            return AuthorityState(
+                capability=capability, model_id=mid, status=CapabilityStatus.FAIL,
+                fidelity=None, validations=0, recent_mean_gap=None,
+                last_gap=None, ever_falsified=False,
+                reason=("authority evidence store is unreadable/malformed — "
+                        "failing closed (an operator-reviewed store is "
+                        "required); no capability is authorized"))
         model = self.tracker.model(mid)
         fidelity = self.tracker.model_fidelity(mid, now_cycle=now_cycle)
         recent = model.recent_mean_gap if model.gap_history else None

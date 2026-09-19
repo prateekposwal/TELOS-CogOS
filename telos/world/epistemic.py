@@ -152,6 +152,110 @@ class ModelRealityGap:
             "recent_gap": round(self.gap_history[-1], 4) if self.gap_history else None,
         }
 
+    def to_state(self) -> Dict[str, object]:
+        """Export the FULL evidence state for durable persistence.
+
+        Unlike :meth:`to_dict` (a rounded human summary), this is the lossless
+        record a restart needs to reconstruct the authority: the complete gap
+        history, the sticky ``ever_falsified`` flag, the recency stamp, and the
+        per-model falsification threshold. Persisting the rounded summary would
+        silently drop the evidence that a model was falsified.
+
+        Returns:
+            Dict of the model's complete evidence state.
+        """
+        return {
+            "model_id": self.model_id,
+            "validation_count": int(self.validation_count),
+            "total_gap": float(self.total_gap),
+            "gap_history": [float(g) for g in self.gap_history],
+            "ever_falsified": bool(self.ever_falsified),
+            "last_validation_cycle": self.last_validation_cycle,
+            "falsification_threshold": float(self._falsification_threshold),
+        }
+
+    @classmethod
+    def from_state(cls, data: Dict[str, object]) -> "ModelRealityGap":
+        """Reconstruct a model's evidence state from a persisted record.
+
+        Strict by construction: a malformed record raises ``ValueError`` so the
+        caller can fail CLOSED (an unreadable safety record must never be
+        silently treated as "nothing was ever falsified").
+
+        Args:
+            data: a :meth:`to_state` record.
+
+        Returns:
+            The reconstructed ModelRealityGap.
+
+        Raises:
+            ValueError: when the record is not a well-formed evidence state.
+        """
+        if not isinstance(data, dict):
+            raise ValueError("model state must be an object")
+        mid = data.get("model_id")
+        if not isinstance(mid, str) or not mid.strip():
+            raise ValueError("model state is missing a model_id")
+        raw_hist = data.get("gap_history", [])
+        if raw_hist is None:
+            raw_hist = []
+        if not isinstance(raw_hist, list):
+            raise ValueError("gap_history must be a list")
+        try:
+            history = [float(g) for g in raw_hist]
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"gap_history contains a non-numeric gap: {e}")
+        if any(g != g for g in history):  # NaN guard
+            raise ValueError("gap_history contains NaN")
+        try:
+            count = int(data.get("validation_count", 0))
+            total = float(data.get("total_gap", 0.0))
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"malformed validation counters: {e}")
+        if count < 0:
+            raise ValueError("validation_count must be >= 0")
+        if count > 0 and not history:
+            # An INCOMPLETE record: the model claims validations but carries no
+            # measured gaps. Treating this as fidelity 1.0 would let a truncated
+            # revocation record silently GRANT authority — fail closed instead.
+            raise ValueError(
+                "incomplete evidence: validation_count > 0 with no gap_history")
+        raw_cycle = data.get("last_validation_cycle")
+        if raw_cycle is not None:
+            try:
+                raw_cycle = int(raw_cycle)
+            except (TypeError, ValueError) as e:
+                raise ValueError(f"last_validation_cycle must be an int: {e}")
+        raw_thr = data.get("falsification_threshold", 0.6)
+        try:
+            thr = float(raw_thr)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"falsification_threshold must be a number: {e}")
+        m = cls(model_id=mid, _falsification_threshold=thr)
+        m.validation_count = count
+        m.total_gap = total
+        m.gap_history = history[-m._max_history:]
+        m.ever_falsified = bool(data.get("ever_falsified", False))
+        m.last_validation_cycle = raw_cycle
+        return m
+
+
+def _authority_restrictiveness(m: ModelRealityGap) -> tuple:
+    """Order two states by how much authority they WITHHOLD (higher = stricter).
+
+    Used only to break an ambiguous (equal/unknown-timestamp) reload conflict.
+    The more restrictive state wins — ambiguity never resolves toward granting
+    more authority (fail-closed).
+
+    Args:
+        m: the model state to score.
+
+    Returns:
+        A sortable tuple; a larger tuple withholds more authority.
+    """
+    return (1 if m.ever_falsified else 0, float(m.recent_mean_gap),
+            int(m.validation_count))
+
 
 class RealityGapTracker:
     """Owns per-model Reality Gap trackers (Phase 4).
@@ -216,6 +320,57 @@ class RealityGapTracker:
 
     def to_dict(self) -> Dict[str, object]:
         return {mid: m.to_dict() for mid, m in self._models.items()}
+
+    def to_state(self) -> Dict[str, object]:
+        """Export every model's FULL evidence state (lossless persistence).
+
+        Returns:
+            Mapping model_id -> :meth:`ModelRealityGap.to_state`.
+        """
+        return {mid: m.to_state() for mid, m in self._models.items()}
+
+    def load_state(self, data: Dict[str, object]) -> None:
+        """Restore persisted evidence, recency- and restriction-safe.
+
+        Merge rule (deterministic, fail-closed):
+
+          * an untested side yields to a tested one;
+          * when both carry a recency stamp, the NEWER validation wins (stale
+            positive evidence can never outrank newer valid falsification);
+          * when timestamps are equal/unknown (ambiguous ordering), the MORE
+            RESTRICTIVE state wins — ambiguity never resolves toward granting
+            more authority.
+
+        Args:
+            data: a :meth:`to_state` mapping.
+
+        Raises:
+            ValueError: when the payload is not a well-formed evidence mapping;
+                callers MUST fail closed (do not grant authority).
+        """
+        if not isinstance(data, dict):
+            raise ValueError("authority state must be a JSON object")
+        for mid, entry in data.items():
+            if not isinstance(mid, str) or not isinstance(entry, dict):
+                raise ValueError("authority state entry is malformed")
+            restored = ModelRealityGap.from_state(dict(entry, model_id=mid))
+            existing = self._models.get(mid)
+            if existing is None or existing.validation_count == 0:
+                self._models[mid] = restored
+                continue
+            if restored.validation_count == 0:
+                continue
+            le = existing.last_validation_cycle
+            li = restored.last_validation_cycle
+            if le is not None and li is not None and le != li:
+                self._models[mid] = restored if li > le else existing
+                continue
+            # Equal/ambiguous ordering: fail-closed (more restrictive wins).
+            self._models[mid] = (
+                restored
+                if _authority_restrictiveness(restored)
+                >= _authority_restrictiveness(existing)
+                else existing)
 
     @property
     def models(self) -> Dict[str, ModelRealityGap]:

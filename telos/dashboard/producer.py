@@ -200,6 +200,10 @@ CHECKPOINT_DIR = "/tmp/telos_checkpoints"
 # restarts). Written atomically each cycle; the hero reads it on boot so the
 # numbers never reset to 0 when the dashboard restarts.
 PRODUCER_STATE_PATH = "/tmp/telos_producer_state.json"
+#: Durable capability-authority evidence (runtime falsification record). Lives
+#: beside the other producer state so a process restart cannot resurrect a
+#: falsified capability's authority; it is EVIDENCE, never the canonical registry.
+CAPABILITY_AUTHORITY_STATE_PATH = "/tmp/telos_capability_authority.json"
 KNOWLEDGE_PATH = "/tmp/telos_knowledge.json"
 LEDGER_PATH = "/tmp/telos_ledger.json"
 IDENTITY_PATH = "/tmp/telos_identity.json"
@@ -850,6 +854,10 @@ class DashboardProducer:
         self._canary = LiveCanary(
             workspace_root=getattr(self._pipeline.config, "tool_workspace", None),
             executor=getattr(self._pipeline.config, "action_executor", None),
+            # Durable runtime authority evidence: a capability falsified this
+            # session stays withheld across a producer restart even though the
+            # canonical registry is unchanged (operator persistence is separate).
+            authority_state_path=CAPABILITY_AUTHORITY_STATE_PATH,
             # The PRODUCER stamps its OWN identity (pid + run_id); the one-shot
             # runner can never emit this source. This is what makes the
             # evidence provably producer-origin (checked via source + pid).
