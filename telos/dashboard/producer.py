@@ -204,6 +204,19 @@ PRODUCER_STATE_PATH = "/tmp/telos_producer_state.json"
 #: beside the other producer state so a process restart cannot resurrect a
 #: falsified capability's authority; it is EVIDENCE, never the canonical registry.
 CAPABILITY_AUTHORITY_STATE_PATH = "/tmp/telos_capability_authority.json"
+#: Durable world-model Reality Gap evidence (Λ6.7 durability contract). The live
+#: producer's per-model prediction/falsification record is written through the
+#: SAME integrity envelope as capability authority, so a process restart cannot
+#: silently reset model_fidelity to an untested cold start. EXPLICIT and
+#: deterministic for this producer instance: one fixed path, never derived from
+#: transient state that would make a restart miss its own evidence. Follows the
+#: per-purpose trusted-local-disk pattern (memory/capability) with an env
+#: override for tests and operators; tests isolate it by monkeypatching this
+#: module global so unrelated producers never share state. The trusted-local-
+#: disk limitation is unchanged: an attacker who can rewrite the file AND its
+#: checksum is outside this contract's threat model.
+REALITY_GAP_STATE_PATH = os.environ.get(
+    "TELOS_REALITY_GAP_STATE_PATH", "/tmp/telos_reality_gap.json")
 KNOWLEDGE_PATH = "/tmp/telos_knowledge.json"
 LEDGER_PATH = "/tmp/telos_ledger.json"
 IDENTITY_PATH = "/tmp/telos_identity.json"
@@ -761,6 +774,13 @@ class DashboardProducer:
             identity_path=IDENTITY_PATH,
             pattern_path=PATTERN_PATH,
             memory_path=MEMORY_PATH,
+            # Durable world-model Reality Gap evidence (Λ6.7). The pipeline's
+            # per-model prediction/falsification record feeds the act-phase
+            # model_fidelity gate; wiring the explicit producer path here means
+            # a restart reloads the SAME measured state instead of an untested
+            # cold start. Not a second store: this IS the pipeline's one
+            # authoritative Reality Gap tracker, now persisted atomically.
+            reality_gap_state_path=REALITY_GAP_STATE_PATH,
             deterministic_seed=42,
             # Phase 1: the live producer is the long-running consumer; enable
             # the per-tool capability gate so any governed tool intent is
