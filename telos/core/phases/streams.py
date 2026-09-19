@@ -38,6 +38,37 @@ def _process_stream(stream, world):
     return intent, cost
 
 
+# Deterministic per-observation cost (ms) for stream-influence calibration.
+# The real per-stream latency is sub-millisecond but host-dependent; feeding
+# it to StreamCalibrator.record_waste() made stream influence (a decision-
+# shaping weight that gates which streams run) depend on host scheduling, so
+# two identically-seeded pipelines diverged at long horizons. This nominal is
+# a FIXED unit: it approximates the observed hot-path latency so the waste
+# accumulator still crosses its "sustained low-confidence" gate over time, but
+# it carries zero timing entropy. Real compute accounting keeps using the
+# measured latency via budget_manager.consume().
+_CALIBRATION_NOMINAL_COST_MS = 0.05
+
+
+def _calibrator_cost(stream) -> float:
+    """Deterministic cost charged to stream-influence calibration.
+
+    Wall-clock latency must never shape stream influence (see
+    `_CALIBRATION_NOMINAL_COST_MS`); the returned constant is independent of
+    host scheduling, so identically-seeded pipelines stay byte-identical at
+    any horizon. The `stream` argument is accepted for call-site clarity and
+    to keep the door open for a deterministic per-stream model.
+
+    Args:
+        stream: the cognitive stream being calibrated (unused: the cost basis
+            is a fixed nominal, never the wall-clock measurement).
+
+    Returns:
+        The fixed nominal cost in ms.
+    """
+    return _CALIBRATION_NOMINAL_COST_MS
+
+
 class StreamPhase(Phase):
     name = "streams"
 
@@ -248,13 +279,17 @@ class StreamPhase(Phase):
                 )
                 ctx.psdt.add_partial(partial)
 
+            # Calibration charge is WALL-CLOCK-INDEPENDENT (see
+            # _calibrator_cost): the measured `cost` must never shape stream
+            # influence, or decisions inherit host-scheduling nondeterminism.
+            cal_cost = _calibrator_cost(stream)
             if intent.confidence < 0.3:
                 if calibrator is not None:
-                    calibrator.record_waste(stream_name, cost)
+                    calibrator.record_waste(stream_name, cal_cost)
             else:
                 cal = calibrator.get_calibration(stream_name) if calibrator else None
                 if cal is not None:
-                    cal.total_cost_ms += cost
+                    cal.total_cost_ms += cal_cost
 
             logger.debug(f"Cycle {ctx.cycle_count}: {stream_name} proposed {intent.intent_type} (conf={intent.confidence:.2f})")
 
