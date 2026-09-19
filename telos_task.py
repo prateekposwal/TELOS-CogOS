@@ -707,11 +707,14 @@ def main():
         identity_path="/tmp/telos_identity.json",
         pattern_path="/tmp/telos_patterns.json",
         deterministic_seed=42,  # Ensures reproducible pipeline runs
+        verified_learning=True,
+        learning_curriculum=True,
     ))
     skill_lib = SkillLibrary()
     experience_mgr = ExperienceManager(
         skill_lib,
-        ExperienceConfig(utility_threshold=0.1, index_interval=1),
+        ExperienceConfig(utility_threshold=0.1, index_interval=1,
+                         verified_acquisition=True),
     )
     # Warm up the skill library from recent checkpoints
     if os.path.isdir(CHECKPOINT_DIR):
@@ -731,7 +734,11 @@ def main():
     pipeline.register_stream(MemoryStream(skill_lib))
     pipeline.register_stream(PlanningStream(skill_lib, sim_engine=sim_engine))
     pipeline.register_stream(InquiryStream(skill_lib))
-    pipeline.register_stream(TheoryStream(skill_lib, theory_builder=getattr(pipeline, '_theory_builder', None)))
+    pipeline.register_stream(TheoryStream(
+        skill_lib,
+        theory_builder=getattr(pipeline, '_theory_builder', None),
+        curriculum=getattr(pipeline, 'curriculum', None),
+    ))
     pipeline.register_validator(RealityValidator())
     pipeline.register_validator(ConstraintValidator())
     memory_advisor = MemoryAdvisor(skill_lib)

@@ -326,6 +326,18 @@ class PipelineConfig:
     experience_max_skills: int = 100
     experience_utility_threshold: float = 0.5
     experience_index_interval: int = 1
+    # Verified learning (SkillAcquisition, Λ2.3): when True, the pipeline's
+    # learning observer admits a skill ONLY after a later matching cycle
+    # confirms the outcome (propose -> verify), instead of indexing on the
+    # first above-threshold score. Default False = historical behavior
+    # byte-identical for existing consumers. Live paths enable it explicitly.
+    verified_learning: bool = False
+    learning_min_outcome: float = 0.6
+    # Live curriculum (novelty-ordered practice tasks from theory gaps,
+    # Λ6.5): when True the pipeline refreshes a bounded Curriculum from its
+    # active hypotheses each cycle and exposes it for the TheoryStream to
+    # consult. Advisory only — it proposes practice, it never acts.
+    learning_curriculum: bool = False
     # Timelock configuration
     timelock_window_cycles: int = 3
     # Selection policy (A/B experiment, default = control/byte-identical):

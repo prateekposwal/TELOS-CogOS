@@ -34,6 +34,16 @@ class ExperienceConfig:
     index_interval: int = 1
     max_skills: int = 100
     log_level: str = "INFO"
+    # Verified acquisition (Λ2.3, SkillAcquisition): when True a trajectory
+    # above ``utility_threshold`` becomes a CANDIDATE — a skill enters the
+    # library only after a verification signal (outcome >=
+    # ``acquisition_min_outcome``) is observed on a LATER cycle with the SAME
+    # situation fingerprint. This generalises the write-side fix-loop rule
+    # ("done only when verified") to learning. Default False keeps the
+    # historical direct-index behavior byte-identical for existing consumers.
+    verified_acquisition: bool = False
+    acquisition_min_outcome: float = 0.6
+    acquisition_candidate_ttl_cycles: int = 50
 
 
 class ExperienceManager:
@@ -45,6 +55,11 @@ class ExperienceManager:
 
     The manager NEVER modifies Pipeline state. It only writes to
     the SkillLibrary — a separate, persistent ledger.
+
+    When ``config.verified_acquisition`` is on, admission is routed through
+    the one canonical verifier (``SkillAcquisition``): propose on a
+    promising cycle, admit only once a later matching cycle confirms the
+    outcome. The direct-index behavior is the default and is unchanged.
     """
 
     def __init__(self, skill_library: SkillLibrary,
@@ -54,14 +69,32 @@ class ExperienceManager:
         self._observations: List[dict] = []
         self._skills_indexed: int = 0
         self._cycle_count: int = 0
+        # ONE canonical acquisition controller, constructed here when the
+        # flag is on. Lazy import avoids a ledger<->learning import cycle.
+        self.acquisition = None
+        if self.config.verified_acquisition:
+            from telos.core.learning.acquisition import SkillAcquisition
+            self.acquisition = SkillAcquisition(
+                self.skill_library,
+                min_outcome=self.config.acquisition_min_outcome,
+                candidate_ttl_cycles=self.config.acquisition_candidate_ttl_cycles,
+            )
 
     def observe(self, result: PipelineResult) -> Optional[Skill]:
         """Process a PipelineResult and optionally index a new Skill.
 
         Returns the indexed Skill if one was created, else None.
+
+        Args:
+            result: the PipelineResult of the cycle just executed.
         """
         self._cycle_count += 1
+        if self.acquisition is not None:
+            return self._observe_verified(result)
+        return self._observe_direct(result)
 
+    def _observe_direct(self, result: PipelineResult) -> Optional[Skill]:
+        """Historical behavior: index immediately when above threshold."""
         if result.selected_trajectory is None:
             logger.debug(f"ExperienceManager: REJECTED — no selected_trajectory in PipelineResult")
             self._log_observation(result, indexed=False, reason="no_trajectory")
@@ -86,6 +119,61 @@ class ExperienceManager:
                      f"(utility={result.health_score:.3f}, total={self._skills_indexed})")
 
         return skill
+
+    def _trajectory(self, result: PipelineResult) -> dict:
+        """The serializable trajectory payload for a candidate."""
+        intent = result.selected_trajectory
+        return {
+            "intent_type": intent.intent_type if intent else "unknown",
+            "confidence": intent.confidence if intent else 0.0,
+            "params": intent.params if intent else {},
+        }
+
+    def _observe_verified(self, result: PipelineResult) -> Optional[Skill]:
+        """Verified admission: propose then confirm on a later match.
+
+        A matching outstanding candidate is verified FIRST (a repeated
+        situation with a sufficient outcome is the verification signal);
+        otherwise a promising cycle proposes a new candidate. Unverified
+        candidates never enter the library and retire on TTL (Λ2.3).
+        """
+        cycle = self._cycle_count
+        if result.selected_trajectory is None:
+            logger.debug("ExperienceManager: REJECTED — no selected_trajectory")
+            self._log_observation(result, indexed=False, reason="no_trajectory")
+            return None
+
+        outcome = float(result.health_score)
+        trace = result.decision_trace
+        fingerprint = self._compute_fingerprint(
+            trace.world_state_snapshot if trace else None)
+
+        # 1. Verification of an outstanding matching candidate.
+        for candidate in self.acquisition.candidates:
+            if candidate.fingerprint != fingerprint:
+                continue
+            if self.acquisition.verify(candidate.candidate_id, outcome,
+                                        cycle=cycle):
+                skill = self.acquisition.last_acquired
+                if skill is not None:
+                    self._skills_indexed += 1
+                    self._log_observation(result, indexed=True,
+                                          skill_id=skill.skill_id)
+                    logger.info(
+                        f"ExperienceManager: VERIFIED skill {skill.skill_id} "
+                        f"(utility={outcome:.3f}, total={self._skills_indexed})")
+                    return skill
+            break
+
+        # 2. Proposal for a promising, interval-aligned observation.
+        if (outcome >= self.config.utility_threshold
+                and cycle % self.config.index_interval == 0):
+            self.acquisition.propose(fingerprint, self._trajectory(result),
+                                     cycle=cycle, source="runtime")
+            self._log_observation(result, indexed=False, reason="candidate")
+        else:
+            self._log_observation(result, indexed=False, reason="below_threshold")
+        return None
 
     def index_recent(self, checkpoints_dir: str, cycles: int = 5) -> int:
         """Index recent decision traces from checkpoint files into the skill library.
@@ -229,7 +317,7 @@ class ExperienceManager:
 
     @property
     def stats(self) -> dict:
-        return {
+        out = {
             "total_observations": len(self._observations),
             "skills_indexed": self._skills_indexed,
             "skill_library_size": len(self.skill_library.skills),
@@ -237,3 +325,6 @@ class ExperienceManager:
                 self._skills_indexed / max(len(self._observations), 1)
             ),
         }
+        if self.acquisition is not None:
+            out["acquisition"] = self.acquisition.stats()
+        return out

@@ -178,6 +178,8 @@ def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
         pattern_path=os.path.join(checkpoint_dir, "patterns.json"),
         memory_path=os.path.join(checkpoint_dir, "memory.json"),
         deterministic_seed=42,  # reproducible one-shot runs
+        verified_learning=True,
+        learning_curriculum=True,
     ))
     skill_lib = SkillLibrary()
     sim_engine = CounterfactualEngine(sim)
@@ -186,7 +188,8 @@ def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
         MemoryStream(skill_lib), PlanningStream(skill_lib, sim_engine=sim_engine),
         InquiryStream(skill_lib),
         TheoryStream(skill_lib,
-                     theory_builder=getattr(pipeline, "_theory_builder", None)),
+                     theory_builder=getattr(pipeline, "_theory_builder", None),
+                     curriculum=getattr(pipeline, "curriculum", None)),
     ):
         pipeline.register_stream(stream)
     for validator in (
