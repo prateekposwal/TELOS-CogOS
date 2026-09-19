@@ -199,7 +199,16 @@ class KnowledgeManager:
 
         if outcome > 0.6:
             self.recorder.success(domain, approach_name, outcome, tags=[domain, "pipeline"])
-        elif failure is not None and not (result.council_blocked or result.firewall_blocked):
+        elif (failure is not None
+              and not (result.council_blocked or result.firewall_blocked)
+              # An ESCALATION is a governance-uncertainty signal, not a tested
+              # approach outcome: it was never a test of the approach's efficacy,
+              # so recording it as an approach failure poisons MemoryAdvisor's
+              # KnowledgeGraph path (which then cites it as a structural barrier
+              # against the very intent that was escalated). Mirrors the
+              # suppression guard above (Λ6.5: a non-testing outcome is not
+              # evidence of approach failure).
+              and getattr(failure, 'failure_type', None) != "escalation"):
             # A vetoed selection (council/firewall suppression) never TESTED the
             # approach — recording it as an approach failure is misattribution
             # (it poisons MemoryAdvisor's search_failures with a node that

@@ -1,0 +1,900 @@
+{
+  "phase": "v8-phase1-firewall-block-trace",
+  "cycles": 120,
+  "seed": 42,
+  "build": {
+    "adapter": "GridAdpt",
+    "simulator": "GridSim",
+    "n_worlds": 10,
+    "horizon": 5,
+    "compute_budget_ms": 100.0,
+    "mission_name": "navigate_to_goal",
+    "verified_learning": true,
+    "learning_curriculum": true,
+    "deterministic_seed": 42,
+    "validators": [
+      "RealityValidator",
+      "ConstraintValidator",
+      "MemoryAdvisor",
+      "MissionDriftDetector",
+      "EvidenceProvenanceValidator"
+    ],
+    "memory_advisor_connected": true,
+    "skill_library_warm_start": false,
+    "code_fingerprint": "089f9399e23a7e94"
+  },
+  "reproduction_command": "PYTHONPATH=. python3 telos/tools/firewall_block_trace.py --cycles 120 --seed 42",
+  "total_firewall_blocks": 105,
+  "acted_cycles": 15,
+  "categories": {
+    "BAD GOVERNANCE": 105
+  },
+  "category_percentages": {
+    "BAD GOVERNANCE": 100.0
+  },
+  "block_records_sample": [
+    {
+      "cycle": 9,
+      "intent": "blended_inquiry",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'blended_inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.86862811075,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'blended_inquiry' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 10,
+      "intent": "blended_inquiry",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'blended_inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.884265299675,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'blended_inquiry' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 12,
+      "intent": "inquiry",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.935,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'inquiry' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 13,
+      "intent": "blended_inquiry",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'blended_inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9375,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'blended_inquiry' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 14,
+      "intent": "blended_inquiry",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'blended_inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9299999999999999,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'blended_inquiry' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 15,
+      "intent": "blended_inquiry",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'blended_inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9299999999999999,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'blended_inquiry' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 17,
+      "intent": "blended_inquiry",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'blended_inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        },
+        {
+          "validator": "EvidenceProvenanceValidator",
+          "reason": "intent type 'blended_inquiry' produced no action for 3 consecutive cycles (falsified loop)"
+        }
+      ],
+      "applied_di_threshold": 0.94,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'blended_inquiry' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 20,
+      "intent": "curiosity_explore",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'curiosity_explore' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9497,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'curiosity_explore' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 23,
+      "intent": "curiosity_explore",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'curiosity_explore' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9372,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'curiosity_explore' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 24,
+      "intent": "curiosity_explore",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'curiosity_explore' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9297,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'curiosity_explore' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 25,
+      "intent": "blended_inquiry",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'blended_inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9322,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'blended_inquiry' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 26,
+      "intent": "curiosity_explore",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'curiosity_explore' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9322,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'curiosity_explore' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 27,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9322,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 28,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9422,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 29,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9422,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 30,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.9422,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 31,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.894265299675,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 32,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 33,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 34,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 35,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 36,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 37,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 38,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 39,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 40,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 41,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 42,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 43,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 44,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 45,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 46,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ACT",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 47,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 48,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 49,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 50,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 51,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 52,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.904265299675,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 53,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    },
+    {
+      "cycle": 54,
+      "intent": "goal_seek_recovery",
+      "decision_mode": "ESCALATE",
+      "council_validated": true,
+      "decision_integrity": 0.3,
+      "evidence_integrity": 1.0,
+      "blocking_validator": "MemoryAdvisor",
+      "dissenters": [
+        {
+          "validator": "MemoryAdvisor",
+          "reason": "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty"
+        }
+      ],
+      "applied_di_threshold": 0.95,
+      "di_domain": "gridworld",
+      "firewall_blocked_by": "low_integrity",
+      "classification": "BAD GOVERNANCE",
+      "deciding_validator": "MemoryAdvisor",
+      "evidence_reason": "KG failure node for 'goal_seek_recovery' was built from a non-testing outcome ('unresolved_uncertainty') \u2014 escalation/suppression treated as approach failure"
+    }
+  ],
+  "approach_failure_provenance": {
+    "cycle=8 blended_inquiry <- unresolved_uncertainty": 1,
+    "cycle=11 inquiry <- unresolved_uncertainty": 1,
+    "cycle=16 goal_seek_recovery <- unresolved_uncertainty": 1,
+    "cycle=18 curiosity_explore <- unresolved_uncertainty": 1,
+    "cycle=22 blended_inquiry <- unresolved_uncertainty": 1,
+    "cycle=80 goal_seek_recovery <- unresolved_uncertainty": 1
+  },
+  "chain_paths": {
+    "1_intent": "telos/core/runtime.py:986 _arm_goal_seek_recovery -> telos/core/runtime.py:1158 _inject_recovery_intent (intent=goal_seek_recovery)",
+    "2_predicate": "telos/core/council/validators/memory.py:184-196 MemoryAdvisor KG path: fnode.approach == intent.intent_type and failure_reason not filtered",
+    "3_evidence": "telos/core/knowledge/recorder.py:58-62 record_failure(outcome=0.15) <- telos/core/infra_manager/knowledge_manager.py:211 recorder.failure(...) <- telos/core/infra_manager/infrastructure_manager.py:233-251 escalation FailureRecord(root_cause=unresolved_uncertainty)",
+    "4_authority": "telos/core/council/base.py:286-309 _compute_decision_integrity DissentFloor=0.3 caps the REPORTED DI when any BLOCK exists",
+    "5_identity": "telos/core/phases/act.py:337 derive_epistemic_state (not the dissenter on this path)",
+    "6_mission": "telos/core/council/validators/mission.py MissionDriftDetector (not the dissenter on this path)",
+    "7_risk": "telos/core/infra_manager/mission_policy.py:385-391 firewall_di_threshold = 1 - risk_tolerance",
+    "8_firewall": "telos/core/phases/act.py:406-411 DecisionFirewall.inspect -> telos/core/governance/firewall.py:145-160 Check 2 low_integrity"
+  },
+  "classification_rules": "see module docstring; every block gets exactly one label; ambiguous evidence is UNKNOWN, never guessed"
+}

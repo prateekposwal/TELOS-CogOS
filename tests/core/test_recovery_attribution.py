@@ -139,6 +139,21 @@ class TestMemoryAdvisorKGFilter:
         sig = advisor.validate(world, intent)
         assert sig.passed is True, sig.reason
 
+    def test_escalation_failure_does_not_block(self):
+        """An ADVISORY ESCALATION is not a tested approach outcome: a KG
+        failure node built from `unresolved_uncertainty` must not be cited as
+        a structural barrier (the Phase-1 v8 root cause: every inquiry/recovery
+        type was escalated at least once, then MemoryAdvisor blocked it)."""
+        advisor, kg = self._advisor_with_kg()
+        kg.record("unknown", "goal_seek_recovery", 0.15,
+                  failure_reason="unresolved_uncertainty",
+                  tags=["failure"])
+        world = World(state=np.zeros(2))
+        intent = IntentIR(intent_type="goal_seek_recovery", confidence=0.6,
+                         params={"action_vector": [1, 0]})
+        sig = advisor.validate(world, intent)
+        assert sig.passed is True, sig.reason
+
     def test_genuine_failure_still_blocks(self):
         advisor, kg = self._advisor_with_kg()
         kg.record("unknown", "navigate", 0.15,
@@ -196,6 +211,26 @@ class TestKnowledgeManagerAttribution:
             "vetoed selections must not be recorded as approach failures"
         )
 
+    def test_escalation_does_not_poison_kg(self):
+        """An escalation (failure_type='escalation') never tested the approach,
+        so it must NOT enter the approach-failure space (knowledge_manager's
+        suppression guard mirrored for escalations)."""
+        from telos.core.infra_manager.knowledge_manager import KnowledgeManager
+        km = KnowledgeManager(None, None, domain="unknown")
+        kg = km.knowledge
+        result = self._result(firewall_blocked=False)
+        f = type("F", (), {"root_cause": "unresolved_uncertainty",
+                           "blocked_by": None,
+                           "failure_type": "escalation",
+                           "failure_id": "esc1", "severity": 0.4,
+                           "repair_outcome": None, "repair_effective": False,
+                           "affected_entities": None})()
+        km.observe(result, f, result.decision_trace)
+        approaches = [n.approach for n in kg.search_failures("unknown")]
+        assert "goal_seek_recovery" not in approaches, (
+            "an advisory escalation must not be recorded as an approach failure"
+        )
+
     def test_unblocked_failure_still_records(self):
         from telos.core.infra_manager.knowledge_manager import KnowledgeManager
         km = KnowledgeManager(None, None, domain="unknown")
@@ -222,6 +257,20 @@ class TestCanonicalSets:
         )
         assert ev_set == STAGNATION_EXEMPT_RECOVERY_TYPES
         assert "goal_seek_recovery" in STAGNATION_EXEMPT_RECOVERY_TYPES
+
+
+class TestNotEvidenceApproachFailureSet:
+    def test_escalation_is_not_evidence_but_not_suppression(self):
+        from telos.core.governance.recovery_types import (
+            GOVERNANCE_SUPPRESSION_REASONS,
+            NOT_EVIDENCE_APPROACH_FAILURE_REASONS,
+        )
+        # escalation IS an approach-failure non-evidence reason ...
+        assert "unresolved_uncertainty" in NOT_EVIDENCE_APPROACH_FAILURE_REASONS
+        # ... but it is NOT a governance suppression (separate concerns).
+        assert "unresolved_uncertainty" not in GOVERNANCE_SUPPRESSION_REASONS
+        # the not-evidence set is the canonical superset
+        assert GOVERNANCE_SUPPRESSION_REASONS <= NOT_EVIDENCE_APPROACH_FAILURE_REASONS
 
 
 class TestActRiskGateStaleness:

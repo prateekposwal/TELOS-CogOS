@@ -31,3 +31,20 @@ GOVERNANCE_SUPPRESSION_REASONS = frozenset({
     "governance_intervention",
     "simulation_divergence",
 })
+
+# Failure classifications that mean the recorded outcome NEVER TESTED the
+# approach, so it is NOT evidence that the approach failed. This is the
+# MemoryAdvisor's evidence filter — BOTH its FailureLedger path and its
+# KnowledgeGraph path. It is a superset of GOVERNANCE_SUPPRESSION_REASONS:
+#   * governance suppression — the action was vetoed before it could run;
+#   * advisory escalation   — `unresolved_uncertainty` is an uncertainty
+#     signal ("seek clarity"), not a measured approach falsification. A cycle
+#     the council ESCALATED (advisory, default proceeds) was never a test of
+#     the approach's efficacy, so recording it as an approach failure and then
+#     citing it as a structural barrier is the same misattribution as counting
+#     a suppression. NOTE: the memory controller's poison gate keeps using the
+#     narrower GOVERNANCE_SUPPRESSION_REASONS — an escalation is not a
+#     governance suppression.
+NOT_EVIDENCE_APPROACH_FAILURE_REASONS = GOVERNANCE_SUPPRESSION_REASONS | frozenset({
+    "unresolved_uncertainty",
+})

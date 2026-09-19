@@ -30,7 +30,13 @@ from telos.core.ledger.skill_library import SkillLibrary
 
 from typing import Callable, List as ListType
 
-from telos.core.governance.recovery_types import GOVERNANCE_SUPPRESSION_REASONS
+# GOVERNANCE_SUPPRESSION_REASONS is retained as the canonical re-export every
+# consumer (and test_recovery_types.py) imports; the approach-failure filter
+# below uses the superset NOT_EVIDENCE_APPROACH_FAILURE_REASONS.
+from telos.core.governance.recovery_types import (  # noqa: F401
+    GOVERNANCE_SUPPRESSION_REASONS,
+    NOT_EVIDENCE_APPROACH_FAILURE_REASONS,
+)
 
 # Type alias for constraint check functions
 CheckFn = Callable[[Any, Any, Any], tuple]
@@ -108,7 +114,7 @@ class MemoryAdvisor(Validator):
         if self.failure_ledger is not None:
             recent = self.failure_ledger.get_recent_failures(n=20)
             for i, f in enumerate(recent):
-                if f.root_cause in GOVERNANCE_SUPPRESSION_REASONS:
+                if f.root_cause in NOT_EVIDENCE_APPROACH_FAILURE_REASONS:
                     continue
                 blocked_tokens = set(
                     token.strip().lower()
@@ -176,7 +182,7 @@ class MemoryAdvisor(Validator):
                 current_approach = intent.intent_type or "unknown"
                 for fnode in failed:
                     if fnode.approach == current_approach:
-                        if (fnode.failure_reason or "") in GOVERNANCE_SUPPRESSION_REASONS:
+                        if (fnode.failure_reason or "") in NOT_EVIDENCE_APPROACH_FAILURE_REASONS:
                             # Suppression is not approach failure (mirrors the
                             # failure-ledger filter above): a vetoed attempt was
                             # never tested, so it cannot falsify the approach.

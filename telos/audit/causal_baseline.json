@@ -1,0 +1,170 @@
+{
+  "phase": "v8-phase0-causal-baseline",
+  "cycles": 120,
+  "seed": 42,
+  "build": {
+    "adapter": "GridAdpt",
+    "simulator": "GridSim",
+    "n_worlds": 10,
+    "horizon": 5,
+    "compute_budget_ms": 100.0,
+    "mission_name": "navigate_to_goal",
+    "verified_learning": true,
+    "learning_curriculum": true,
+    "deterministic_seed": 42,
+    "validators": [
+      "RealityValidator",
+      "ConstraintValidator",
+      "MemoryAdvisor",
+      "MissionDriftDetector",
+      "EvidenceProvenanceValidator"
+    ],
+    "memory_advisor_connected": true,
+    "skill_library_warm_start": false,
+    "code_fingerprint": "089f9399e23a7e94"
+  },
+  "reproduction_command": "PYTHONPATH=. python3 telos/tools/causal_baseline.py --cycles 120 --seed 42",
+  "acted_cycles": 15,
+  "firewall_blocks": {
+    "low_integrity": 105
+  },
+  "firewall_block_count": 105,
+  "episodes": 1,
+  "goal_reached": 1,
+  "final_state": [
+    4.0,
+    1.0
+  ],
+  "decision_integrity": {
+    "n": 120,
+    "min": 0.3,
+    "mean": 0.3875,
+    "max": 1.0
+  },
+  "mission_drift": {
+    "n": 120,
+    "min": 0.2079,
+    "mean": 1.6715,
+    "max": 4.0025
+  },
+  "decision_latency_ms": {
+    "n": 120,
+    "min": 9.089,
+    "mean": 18.6971,
+    "max": 98.2022
+  },
+  "council": {
+    "blocking_validators": {
+      "MemoryAdvisor": 105
+    },
+    "dissenters": {
+      "MemoryAdvisor": 105,
+      "EvidenceProvenanceValidator": 1
+    },
+    "top_dissent_reasons": {
+      "KnowledgeGraph: approach 'goal_seek_recovery' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertai": 90,
+      "KnowledgeGraph: approach 'blended_inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty": 7,
+      "KnowledgeGraph: approach 'curiosity_explore' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertain": 7,
+      "KnowledgeGraph: approach 'inquiry' failed previously in domain 'unknown' (outcome=0.15) \u2014 unresolved_uncertainty": 1,
+      "intent type 'blended_inquiry' produced no action for 3 consecutive cycles (falsified loop)": 1
+    },
+    "escalations": 73
+  },
+  "evidence": {
+    "evidence_provenance_dissents": 1
+  },
+  "decision_modes": {
+    "ESCALATE": 73,
+    "ACT": 47
+  },
+  "blocked_by_gate": {},
+  "intents": {
+    "goal_seek_recovery": 92,
+    "blended_inquiry": 13,
+    "curiosity_explore": 8,
+    "memory_miss": 3,
+    "perceive": 2,
+    "inquiry": 2
+  },
+  "stream_activations": {
+    "ReflexStream": 120,
+    "TheoryStream": 120,
+    "InquiryStream": 11,
+    "MemoryStream": 4,
+    "PerceptionStream": 1,
+    "PlanningStream": 1
+  },
+  "memory": {
+    "hot": 15,
+    "warm": 0,
+    "cold": 0,
+    "total": 15,
+    "evicted": 0,
+    "summarized": 0,
+    "inserted": 15,
+    "rejected_governance_suppression": 105,
+    "memory_consumed": 354
+  },
+  "reality_gap": {
+    "validation_count": 14,
+    "recent_mean_gap": 0.0,
+    "total_gap": 0.0,
+    "tested": true,
+    "ever_falsified": false,
+    "last_validation_cycle": 81,
+    "falsification_threshold": 0.0
+  },
+  "knowledge_graph": {
+    "nodes": 1,
+    "archived_nodes": 62,
+    "edges": 109,
+    "edges_by_type": {
+      "identity_affinity": 109
+    },
+    "hot_node_approaches": {
+      "goal_seek_recovery": 1
+    },
+    "failure_nodes": 1
+  },
+  "axioms": {
+    "4.11_pass": 8,
+    "4.11_fail": 112,
+    "4.11_fail_reasons": {
+      "CooperativeVerdict present but inequality not met": 112
+    },
+    "any_fail_by_axiom": {
+      "4.11": 112
+    }
+  },
+  "policy": {
+    "firewall_di_threshold": 0.96,
+    "risk_tolerance": 0.04
+  },
+  "persistence": {
+    "cp": {
+      "kind": "dir",
+      "entries": 2,
+      "latest": "system_self_1.json"
+    },
+    "kg.json": {
+      "kind": "absent"
+    },
+    "ld.json": {
+      "kind": "absent"
+    },
+    "id.json": {
+      "kind": "absent"
+    },
+    "pt.json": {
+      "kind": "absent"
+    },
+    "mem.json": {
+      "kind": "absent"
+    },
+    "rg.json": {
+      "kind": "file",
+      "bytes": 653
+    }
+  },
+  "workdir": "/var/folders/gp/cdz5rt_s51l5531582d062kc0000gn/T/telos_causal_baseline_xqkz9ton"
+}
