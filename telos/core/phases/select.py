@@ -718,7 +718,15 @@ class SelectPhase(Phase):
                         project_coherence_gain=pg,
                         aesthetic_value=av,
                     )
-                    commitment_mod = score.commitment
+                    # C* is the cycle's execution-weight signal (recorded
+                    # below as ctx.commitment_score / j_term_breakdown), NOT a
+                    # preference signal. v8 Phase 2 ablation proved it is one
+                    # scalar per cycle: multiplying every candidate by it
+                    # cannot change their ranking, and when C* == 0 the uniform
+                    # product collapses the stable sort to input order, which
+                    # the council's Λ4.3 fallback then read as "best
+                    # alternative" (a latent mis-selection). Do not feed it into
+                    # the ranking key.
 
                     # Record strain
                     commitment_opt.strain.record_strain(maint_r, recovery_r)
@@ -742,11 +750,8 @@ class SelectPhase(Phase):
                         "aesthetic_value": score.aesthetic_value,
                         "commitment": score.commitment,
                     }
-                else:
-                    commitment_mod = 1.0
             except Exception as e:
                 logger.warning(f"Commitment optimization failed: {e}")
-                commitment_mod = 1.0
 
             ctx.commitment_score = score.commitment if score is not None else None
             
@@ -756,8 +761,11 @@ class SelectPhase(Phase):
                 # In blended mode, keep the blended intent but adjust its weight
                 pass  # ctx.selected_intent already set from blended mode
             else:
+                # Rank on the intent's own weight (ctx.simulation_confidence
+                # is likewise a per-cycle scalar, so it too is ranking-
+                # invariant); C* stays telemetry, never a ranking key.
                 ctx.intents = [
-                    (intent, weight * ctx.simulation_confidence * commitment_mod)
+                    (intent, weight * ctx.simulation_confidence)
                     for intent, weight in ctx.intents
                 ]
                 ctx.intents.sort(key=lambda x: x[1], reverse=True)

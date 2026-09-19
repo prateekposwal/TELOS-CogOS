@@ -100,7 +100,23 @@ def test_loop_recovery_escapes_firewall_trap_in_real_pipeline():
     assert trap_cycles, "the loop trap must form in the real pipeline"
     for idx in trap_cycles:
         window = cycles[idx + 1: idx + 4]
-        assert any(w["intent"] == "goal_seek_recovery" for w in window), (
+        looped = cycles[idx]["intent"]
+        # The invariant is that the trap BREAKS within the window — either the
+        # designed goal_seek_recovery fires, or a genuinely different intent
+        # type is selected and passes the firewall (the runtime's documented
+        # natural escape; see test_alternation_trap_* shape 3/4 and
+        # _cost_bounds_violations). Before v8 Phase 2 this loop only ever
+        # escaped via goal_seek_recovery because a C* == 0.0 collapsed the
+        # stable sort to input order (the decorative multiplier bug); with C*
+        # removed from the ranking key the same trap breaks naturally, so the
+        # assertion checks the escape, not the artifact.
+        escaped = any(
+            w["intent"] == "goal_seek_recovery"
+            or (w["intent"] is not None and w["intent"] != looped
+                and not w["firewall_blocked"])
+            for w in window
+        )
+        assert escaped, (
             f"cycle {idx}: streak==2 block not followed by a recovery escape"
         )
     # The agent's world still moves after recovery: the recovery intent's

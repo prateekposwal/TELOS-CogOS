@@ -147,7 +147,23 @@ class PerceivePhase(Phase):
         # Allocate 100 attention units based on world state
         # This determines which counterfactuals get generated downstream
         # Identity entropy feedback: when action-space is collapsing, boost opportunity
-        entropy_mod = getattr(ctx, 'commitment_score', 1.0) or 1.0
+        # Axiom 5.1 feedback: PERCEIVE runs before SELECT/EVALUATE in the same
+        # cycle, so this cycle's C* does not exist yet. The old read of
+        # ctx.commitment_score was therefore always the default 1.0 — the
+        # documented "low C* -> boost opportunity exploration" path was dead
+        # (v8 Phase 2 ablation). Use the optimizer's own recent commitment
+        # (prior cycles' J); it is 1.0-equivalent in the healthy regime, so
+        # behaviour is unchanged there and the feedback becomes real only when
+        # commitment is genuinely suppressed.
+        entropy_mod = getattr(ctx, 'commitment_score', None)
+        if entropy_mod is None:
+            _opt = getattr(pipeline, '_commitment_optimizer', None)
+            entropy_mod = getattr(_opt, 'recent_commitment', 1.0) if _opt is not None else 1.0
+        # A missing/invalid signal is a permissive default (1.0), never a crash
+        # or a fabricated suppression.
+        if not isinstance(entropy_mod, (int, float)) or isinstance(entropy_mod, bool):
+            entropy_mod = 1.0
+        entropy_mod = entropy_mod or 1.0
         try:
             identity_entropy = getattr(pipeline, '_identity_entropy', None)
             if identity_entropy and identity_entropy.is_collapsing:
