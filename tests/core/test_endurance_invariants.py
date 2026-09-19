@@ -212,6 +212,64 @@ class TestDeterminism:
 
 
 # ────────────────────────────────────────────────────────────────────────
+# 5b. Stream-influence calibration is wall-clock-independent (root cause of
+#     the long-horizon in-process fingerprint divergence)
+# ────────────────────────────────────────────────────────────────────────
+class TestCalibrationDeterminism:
+    """Calibrated stream influence must not depend on measured latency.
+
+    `record_waste()` / `total_cost_ms` shape per-stream influence weights,
+    which gate stream execution and selection. Feeding them the wall-clock
+    cost measured by `_process_stream()` made two identically-seeded
+    pipelines diverge at long horizons (the endurance in-process decision
+    fingerprint caught it). The calibration charge is now a FIXED
+    deterministic nominal (`_CALIBRATION_NOMINAL_COST_MS`), never the
+    measured latency.
+    """
+
+    def test_calibrator_cost_is_wall_clock_independent(self):
+        from telos.core.phases.streams import (
+            _calibrator_cost, _CALIBRATION_NOMINAL_COST_MS,
+        )
+
+        class _Stream:
+            estimated_cost_ms = 7.5
+
+        # Fixed nominal, independent of the stream's declared cost and of any
+        # measured latency: influence calibration cannot inherit timing.
+        assert _calibrator_cost(_Stream()) == _CALIBRATION_NOMINAL_COST_MS
+
+    def test_measured_latency_never_enters_calibration(self, monkeypatch):
+        import shutil
+        import telos.core.phases.streams as sp
+        from telos.tools.endurance import build_pipeline
+
+        orig = sp._process_stream
+
+        def inflated(stream, world):
+            intent, real = orig(stream, world)
+            return intent, real + 100_000.0  # absurd wall-clock latency
+
+        monkeypatch.setattr(sp, "_process_stream", inflated)
+        cp = tempfile.mkdtemp(prefix="telos_cal_det_")
+        try:
+            pipe = build_pipeline(cp, seed=42, fast=True)
+            state = np.array([0.0, 0.0])
+            cycles = 20
+            for _ in range(cycles):
+                pipe.execute(state, user_name="endurance")
+            cal = getattr(pipe._infra_manager, "calibrator", None)
+            assert cal is not None and cal._calibrations, "no calibrations"
+            # 20 cycles of a 0.05ms nominal cannot exceed 400ms. An
+            # injected 100s measured cost would blow that bound instantly.
+            for c in cal._calibrations.values():
+                assert c.total_cost_ms <= 400.0, (c.stream_name, c.total_cost_ms)
+                assert c.waste_cost_ms <= 400.0, (c.stream_name, c.waste_cost_ms)
+        finally:
+            shutil.rmtree(cp, ignore_errors=True)
+
+
+# ────────────────────────────────────────────────────────────────────────
 # 6. Axiom constitution intact (42) at unit boundary
 # ────────────────────────────────────────────────────────────────────────
 class TestAxiomIntegrity:
