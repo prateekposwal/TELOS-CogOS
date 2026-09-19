@@ -14,10 +14,10 @@ family does it belong to, and which capability does it require?
 
 Families give the audit a coarse, honest taxonomy (git_read, test_run,
 toolchain, git_write, structured_write) so coverage can be measured rather
-than asserted. ``capability`` and ``rate_limit_per_min`` are declared here as
-the Phase-1 binding points for per-tool capability authorization and limits;
-they are recorded (not yet enforced) in Phase 0 so the registry is already the
-one place those policies attach.
+than asserted. ``capability`` binds per-tool capability authorization; every
+spec carries a non-None ``rate_limit_per_min`` that ActionExecutor ENFORCES at
+the one execution boundary (per-tool sliding window + per-session budget). No
+spec is left declared-but-None: an unenforced limit is not a limit.
 """
 
 from __future__ import annotations
@@ -47,8 +47,9 @@ class ToolSpec:
             git_write, structured_write).
         capability: optional capability-authorization profile key. Declared
             now; enforced per-tool in Phase 1 (currently None).
-        rate_limit_per_min: optional per-tool invocation ceiling. Declared
-            now; enforced in Phase 1 (currently None).
+        rate_limit_per_min: per-tool invocation ceiling (invocations in the
+            trailing 60s), enforced by ActionExecutor's ToolRateLimiter. Every
+            canonical spec sets a real value (never None).
     """
 
     template: List[str]
@@ -74,31 +75,37 @@ def _default_specs() -> Dict[str, ToolSpec]:
         "git_status": ToolSpec(
             template=["git", "status", "--porcelain"],
             kind="read_only", family="git_read",
+            rate_limit_per_min=60,
             description="Report the repository's working-tree/index changes (porcelain).",
         ),
         "git_branch": ToolSpec(
             template=["git", "branch", "--show-current"],
             kind="read_only", family="git_read",
+            rate_limit_per_min=60,
             description="Report the currently checked-out branch name.",
         ),
         "git_log": ToolSpec(
             template=["git", "log", "-n", "{n}", "--oneline"],
             kind="read_only", family="git_read",
+            rate_limit_per_min=60,
             description="List the N most recent commits, one line each (N in 1..30).",
         ),
         "git_diff": ToolSpec(
             template=["git", "diff"],
             kind="read_only", family="git_read",
+            rate_limit_per_min=60,
             description="Show the unified diff of unstaged changes (read-only).",
         ),
         "run_tests": ToolSpec(
             template=[sys.executable, "-m", "pytest", "{path}", "-q", "--tb=short"],
             kind="read_only", family="test_run",
+            rate_limit_per_min=6,
             description="Run pytest on a path INSIDE the operator's workspace root.",
         ),
         "write_file": ToolSpec(
             template=["write_file", "{patch}"],
             kind="structured_write", family="structured_write",
+            rate_limit_per_min=6,
             description=(
                 "Apply a SUBMITTED structured minimal patch (path + old_lines + "
                 "new_lines) to an EXISTING TRACKED file inside the workspace. "
@@ -108,41 +115,49 @@ def _default_specs() -> Dict[str, ToolSpec]:
         "git_add": ToolSpec(
             template=["git", "add", "{path}"],
             kind="narrow_write", family="git_write",
+            rate_limit_per_min=12,
             description="Stage a path INSIDE the workspace (prerequisite of git_commit).",
         ),
         "git_commit": ToolSpec(
             template=["git", "commit", "-m", "{message}"],
             kind="narrow_write", family="git_write",
+            rate_limit_per_min=6,
             description="Create a commit whose message the council approved (<=200 chars).",
         ),
         "tsc_check": ToolSpec(
             template=["tsc", "--noEmit", "{path}"],
             kind="read_only", family="toolchain",
+            rate_limit_per_min=20,
             description="Type-check a path (tsconfig/project) INSIDE the workspace with --noEmit.",
         ),
         "eslint_check": ToolSpec(
             template=["eslint", "{path}"],
             kind="read_only", family="toolchain",
+            rate_limit_per_min=20,
             description="Lint a path INSIDE the workspace with eslint.",
         ),
         "npm_test": ToolSpec(
             template=["npm", "--prefix", "{path}", "test"],
             kind="read_only", family="toolchain",
+            rate_limit_per_min=6,
             description="Run `npm test` in a package INSIDE the workspace (--prefix confined).",
         ),
         "npm_build": ToolSpec(
             template=["npm", "--prefix", "{path}", "run", "build"],
             kind="read_only", family="toolchain",
+            rate_limit_per_min=6,
             description="Run `npm run build` in a package INSIDE the workspace (--prefix confined).",
         ),
         "make_target": ToolSpec(
             template=["make", "{target}"],
             kind="read_only", family="toolchain",
+            rate_limit_per_min=20,
             description="Run a make target whose Makefile lives INSIDE the workspace cwd.",
         ),
         "go_test": ToolSpec(
             template=["go", "test", "./..."],
             kind="read_only", family="toolchain",
+            rate_limit_per_min=6,
             description="Run `go test ./...` in a subdirectory of the workspace (cwd governed).",
         ),
         # ── Governed network family (Phase 1): every request leaves through
@@ -152,6 +167,7 @@ def _default_specs() -> Dict[str, ToolSpec]:
             template=["http_post", "{url}", "{body}"],
             kind="network_read", family="network_read",
             capability="network_read",
+            rate_limit_per_min=20,
             description=(
                 "POST JSON to an allowlisted HTTPS endpoint through the governed "
                 "NetworkSandbox; response is bounded and audited."
@@ -161,6 +177,7 @@ def _default_specs() -> Dict[str, ToolSpec]:
             template=["http_get", "{url}"],
             kind="network_read", family="network_read",
             capability="network_read",
+            rate_limit_per_min=60,
             description=(
                 "GET an allowlisted HTTPS endpoint through the governed "
                 "NetworkSandbox; response is bounded and audited."
@@ -202,6 +219,15 @@ class ToolRegistry:
                 )
             if not spec.description:
                 raise ValueError(f"tool {name!r} has an empty description")
+            # An unenforced/undeclared limit is not a limit: every tool MUST
+            # carry a real positive per-minute ceiling (fail loud at
+            # construction, not silently at execution time).
+            if not isinstance(spec.rate_limit_per_min, int) \
+                    or spec.rate_limit_per_min <= 0:
+                raise ValueError(
+                    f"tool {name!r} must declare a positive int "
+                    f"rate_limit_per_min (got {spec.rate_limit_per_min!r})"
+                )
 
     @classmethod
     def default(cls) -> "ToolRegistry":

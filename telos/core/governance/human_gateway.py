@@ -5,6 +5,12 @@ When the Council blocks an action or DI drops below threshold, the
 Pipeline pauses and asks a human for review. The human can approve,
 deny, or modify the intent before execution continues.
 
+FAIL-CLOSED (safety contract): absence of an explicit answer is NEVER an
+approval. A webhook error, timeout, unreachable endpoint, malformed body, or
+a response without a boolean ``approved`` field is a DENY, recorded with its
+reason. This closes the one fail-OPEN path in the governed tool-authorization
+chain, where "no evidence" must not become "approved" (Λ2.3: no silent yes).
+
 Usage:
     gateway = HumanGateway(mode="stdin")
     verdict = gateway.review(intent, council_signals, di)
@@ -28,6 +34,13 @@ class HumanVerdict:
     modified_intent: Optional[Dict] = None
     reviewer: str = "human"
     timestamp: float = 0.0
+    # Decision provenance, machine-distinguishable:
+    #   "approve"     — an EXPLICIT approval (human / webhook approved=true)
+    #   "deny"        — an EXPLICIT denial (human / webhook approved=false)
+    #   "fail_closed" — no answer / error / timeout / malformed / unreachable
+    #                   -> DENIED by policy, never approved on absence of evidence
+    #   "auto"        — mode="auto" (an explicit, configured auto-approval)
+    decision_source: str = "explicit"
 
 
 class HumanGateway:
@@ -121,7 +134,18 @@ class HumanGateway:
             "context": context or {},
         }
 
-        verdict = self._get_verdict(review_data)
+        try:
+            verdict = self._get_verdict(review_data)
+        except Exception as e:
+            # Fail-closed: a crash anywhere in the review/approval logic is a
+            # DENY — never an approval. (A crash must not become "yes".)
+            logger.exception("HumanGateway review crashed; failing closed")
+            verdict = HumanVerdict(
+                approved=False,
+                override_reason=f"fail_closed: review error {e}",
+                reviewer="fail_closed",
+                decision_source="fail_closed",
+            )
         verdict.timestamp = time.time()
         self._reviews.append({
             **review_data,
@@ -140,12 +164,15 @@ class HumanGateway:
     def _get_verdict(self, data: Dict) -> HumanVerdict:
         if self._mode == "stdin":
             return self._stdin_review(data)
-        elif self._mode == "webhook" and self._webhook_url:
+        if self._mode == "webhook":
+            # Always route to the webhook path: a webhook mode with NO endpoint
+            # is a misconfiguration and must FAIL CLOSED (not fall through to
+            # auto-approve — that fall-through was itself a fail-open).
             return self._webhook_review(data)
-        else:
-            return HumanVerdict(approved=True,
-                                override_reason="auto_approve",
-                                reviewer="auto")
+        return HumanVerdict(approved=True,
+                            override_reason="auto_approve",
+                            reviewer="auto",
+                            decision_source="auto")
 
     def _stdin_review(self, data: Dict) -> HumanVerdict:
         print("\n" + "=" * 50)
@@ -179,26 +206,68 @@ class HumanGateway:
                     reviewer="human",
                 )
 
+    def _fail_closed(self, reason: str) -> HumanVerdict:
+        """Return a recorded DENY for a webhook that yielded no valid answer.
+
+        Every webhook failure mode (unreachable endpoint, egress block,
+        timeout, non-JSON body, non-object body, missing/non-boolean
+        ``approved`` field, or any unexpected error) lands here: the verdict is
+        NOT approved and the reason is recorded. This is the safety-critical
+        distinction — (a) explicit approve and (b) explicit deny are honoured;
+        (c) no answer / error / timeout is a DENY, never an approval.
+
+        Args:
+            reason: the human-readable cause recorded on the verdict.
+
+        Returns:
+            A HumanVerdict with approved=False and decision_source="fail_closed".
+        """
+        logger.warning("HumanGateway webhook FAIL-CLOSED: %s", reason)
+        return HumanVerdict(
+            approved=False,
+            override_reason=f"fail_closed: {reason}",
+            reviewer="fail_closed",
+            decision_source="fail_closed",
+        )
+
     def _webhook_review(self, data: Dict) -> HumanVerdict:
         import json as _json
+        if not self._webhook_url:
+            # Misconfiguration is NOT a reason to approve.
+            return self._fail_closed("webhook endpoint not configured")
         try:
             result = self._egress().request(
                 "POST", self._webhook_url, body=_json.dumps(data),
                 headers={"Content-Type": "application/json"})
             if not result.allowed:
-                raise RuntimeError(result.blocked_reason or "egress blocked")
-            payload = _json.loads(result.body)
-            approved = payload.get("approved", True)
+                return self._fail_closed(
+                    f"webhook egress blocked: {result.blocked_reason}")
+            try:
+                payload = _json.loads(result.body)
+            except Exception as e:
+                return self._fail_closed(f"webhook response is not valid JSON: {e}")
+            if not isinstance(payload, dict):
+                return self._fail_closed("webhook response is not a JSON object")
+            if "approved" not in payload:
+                return self._fail_closed(
+                    "webhook response is missing the 'approved' field")
+            approved = payload.get("approved")
+            if not isinstance(approved, bool):
+                return self._fail_closed(
+                    "webhook 'approved' field is not a boolean "
+                    f"(got {type(approved).__name__})")
+            reason = payload.get("reason", "webhook_decision")
+            if not isinstance(reason, str):
+                reason = str(reason)
             return HumanVerdict(
                 approved=approved,
-                override_reason=payload.get("reason", "webhook_decision"),
+                override_reason=reason,
                 reviewer="webhook",
+                decision_source="approve" if approved else "deny",
             )
         except Exception as e:
-            logger.warning(f"Webhook review failed ({e}), auto-approving")
-            return HumanVerdict(approved=True,
-                                override_reason=f"webhook_fallback: {e}",
-                                reviewer="auto")
+            # Last-resort guard: any crash in the approval logic fails CLOSED.
+            return self._fail_closed(f"webhook error: {e}")
 
     @property
     def stats(self) -> Dict:

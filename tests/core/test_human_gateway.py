@@ -63,17 +63,143 @@ def test_review_callback_fires_and_survives_errors():
     assert seen == [True]
 
 
-def test_webhook_without_url_falls_back_to_auto():
+def test_webhook_without_url_fails_closed():
+    # CHANGE (fail-closed): a webhook mode with no endpoint is a
+    # misconfiguration and DENIES — it no longer falls through to auto-approve.
     gw = HumanGateway(mode="webhook", webhook_url=None)
     v = gw.review(intent="x", council_signals=[], decision_integrity=0.1)
-    assert v.approved is True and v.reviewer == "auto"
+    assert v.approved is False
+    assert v.reviewer == "fail_closed"
+    assert v.decision_source == "fail_closed"
+    assert "fail_closed" in v.override_reason
 
 
-def test_webhook_failure_auto_approves():
-    # An unreachable URL must not hang the pipeline — it falls back to auto.
+def test_webhook_failure_fails_closed():
+    # CHANGE (fail-closed): an unreachable URL must not hang the pipeline AND
+    # must not approve. No evidence is never "yes".
     gw = HumanGateway(mode="webhook", webhook_url="https://127.0.0.1:9/nope")
     v = gw.review(intent="x", council_signals=[], decision_integrity=0.1)
-    assert v.approved is True and v.reviewer == "auto"
+    assert v.approved is False
+    assert v.reviewer == "fail_closed"
+    assert v.decision_source == "fail_closed"
+
+
+# ── Fail-closed webhook contract (tool-authorization safety) ────────────────
+# (a) explicit APPROVE -> approved; (b) explicit DENY -> denied; (c) no answer /
+# error / timeout / malformed -> DENIED, never approved.
+
+class _Result:
+    def __init__(self, allowed=True, body="", blocked_reason=None, status=200):
+        self.allowed = allowed
+        self.body = body
+        self.blocked_reason = blocked_reason
+        self.status = status
+
+
+class _FakeEgress:
+    """Deterministic stand-in for the NetworkSandbox egress channel."""
+
+    def __init__(self, result=None, exc=None):
+        self._result = result
+        self._exc = exc
+
+    def request(self, *args, **kwargs):
+        if self._exc is not None:
+            raise self._exc
+        return self._result
+
+
+def _webhook_gw(sandbox):
+    gw = HumanGateway(mode="webhook", webhook_url="https://example.test/review")
+    gw._sandbox = sandbox  # injected egress wins in _egress()
+    return gw
+
+
+def _review(gw):
+    return gw.review(intent="tool:git_status", council_signals=[],
+                     decision_integrity=0.1)
+
+
+def test_webhook_explicit_approve_is_approved():
+    gw = _webhook_gw(_FakeEgress(
+        result=_Result(body='{"approved": true, "reason": "ok"}')))
+    v = _review(gw)
+    assert v.approved is True
+    assert v.reviewer == "webhook"
+    assert v.decision_source == "approve"
+    assert v.override_reason == "ok"
+
+
+def test_webhook_explicit_deny_is_denied():
+    gw = _webhook_gw(_FakeEgress(
+        result=_Result(body='{"approved": false, "reason": "no"}')))
+    v = _review(gw)
+    assert v.approved is False
+    assert v.decision_source == "deny"
+
+
+def test_webhook_error_fails_closed():
+    for exc in (RuntimeError("boom"), OSError("unreachable"),
+                TimeoutError("timed out")):
+        gw = _webhook_gw(_FakeEgress(exc=exc))
+        v = _review(gw)
+        assert v.approved is False, f"{exc!r} must NOT approve"
+        assert v.reviewer == "fail_closed"
+        assert v.decision_source == "fail_closed"
+        assert "fail_closed" in v.override_reason
+
+
+def test_webhook_malformed_response_fails_closed():
+    for body in ("not-json", "", "[1, 2, 3]", "null"):
+        gw = _webhook_gw(_FakeEgress(result=_Result(body=body)))
+        v = _review(gw)
+        assert v.approved is False, f"body {body!r} must NOT approve"
+        assert v.decision_source == "fail_closed"
+
+
+def test_webhook_missing_or_non_bool_approved_fails_closed():
+    for body in ('{"reason": "silent"}', '{"approved": "yes"}',
+                 '{"approved": 1}', '{"approved": null}'):
+        gw = _webhook_gw(_FakeEgress(result=_Result(body=body)))
+        v = _review(gw)
+        assert v.approved is False, f"body {body!r} must NOT approve"
+        assert v.decision_source == "fail_closed"
+
+
+def test_webhook_egress_blocked_fails_closed():
+    gw = _webhook_gw(_FakeEgress(
+        result=_Result(allowed=False, blocked_reason="host not allowlisted")))
+    v = _review(gw)
+    assert v.approved is False
+    assert v.decision_source == "fail_closed"
+    assert "egress blocked" in v.override_reason
+
+
+def test_review_crash_in_approval_logic_fails_closed(monkeypatch):
+    # A crash in the verdict/approval logic must DENY, never approve.
+    gw = HumanGateway(mode="webhook", webhook_url="https://example.test/review")
+
+    def boom(self, data):
+        raise RuntimeError("approval logic crashed")
+
+    monkeypatch.setattr(HumanGateway, "_get_verdict", boom)
+    v = gw.review(intent="tool:git_status", council_signals=[],
+                  decision_integrity=0.1)
+    assert v.approved is False
+    assert v.reviewer == "fail_closed"
+    assert v.decision_source == "fail_closed"
+
+
+def test_stdin_eof_fails_closed(monkeypatch):
+    # CHANGE (fail-closed): no answer on stdin (EOF) DENIES rather than raising.
+    def eof(*args, **kwargs):
+        raise EOFError("no input")
+
+    monkeypatch.setattr("builtins.input", eof)
+    gw = HumanGateway(mode="stdin")
+    v = gw.review(intent="x", council_signals=[], decision_integrity=0.1)
+    assert v.approved is False
+    assert v.decision_source == "fail_closed"
 
 
 def test_stats_counts_reviews():

@@ -18,7 +18,11 @@ subprocess runs:
      else is REJECTED with a block record (not allowlisted).
   3. Firewall audit      — DecisionFirewall.inspect() runs first; execution
      proceeds ONLY on verdict.passed.
-  4. Bounded capture     — list-form subprocess (never shell=True), output
+  4. Rate limit          — a per-tool sliding window (``rate_limit_per_min``
+     from the registry) and a per-session execution budget must both admit the
+     request. A breach is a block record and NO subprocess runs (an unenforced
+     limit is not a limit).
+  5. Bounded capture     — list-form subprocess (never shell=True), output
      capped, per-command timeout.
 
 Every execution (allowed or blocked) produces an ActionExecution record that
@@ -29,6 +33,7 @@ captured result are auditable.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import shlex
@@ -44,9 +49,14 @@ from telos.core.actions.registry import (
     AllowlistEntry, ToolSpec, ToolRegistry, DEFAULT_REGISTRY,
     capability_profile_for,
 )
+from telos.core.actions.rate_limit import (
+    ToolRateLimiter, RateLimitDecision, DEFAULT_MAX_TOOL_EXECUTIONS,
+)
 from telos.core.governance.firewall import DecisionFirewall
 from telos.intent_ir import IntentIR
 from telos.world.world import World
+
+logger = logging.getLogger("telos_action_executor")
 
 DEFAULT_OUTPUT_LIMIT = 512 * 1024   # bounded stdout/stderr capture per run
 DEFAULT_TIMEOUT_SECONDS = 30.0      # per-command timeout
@@ -579,7 +589,9 @@ class ActionExecutor:
                  allowlist: Optional[Dict[str, AllowlistEntry]] = None,
                  output_limit: int = DEFAULT_OUTPUT_LIMIT,
                  timeout: float = DEFAULT_TIMEOUT_SECONDS,
-                 sandbox: Any = None):
+                 sandbox: Any = None,
+                 rate_limiter: Optional[ToolRateLimiter] = None,
+                 max_tool_executions: Optional[int] = DEFAULT_MAX_TOOL_EXECUTIONS):
         """Construct an executor bound to one operator workspace.
 
         Args:
@@ -590,12 +602,28 @@ class ActionExecutor:
             timeout: per-command timeout in seconds.
             sandbox: optional NetworkSandbox for the network tool family
                 (created lazily on first network tool use when None).
+            rate_limiter: optional pre-built ToolRateLimiter. When None, one is
+                built from the registry's per-tool ``rate_limit_per_min``
+                values with ``max_tool_executions`` as the per-session budget.
+                Inject a limiter with a fake clock for deterministic tests.
+            max_tool_executions: per-session (per-executor) execution budget
+                used when ``rate_limiter`` is not injected. Default 200; pass
+                None to disable the global budget.
         """
         self.workspace_root = str(Path(workspace_root).resolve())
         self.allowlist = dict(ACTION_ALLOWLIST if allowlist is None else allowlist)
         self.output_limit = int(output_limit)
         self.timeout = float(timeout)
         self._sandbox = sandbox
+        if rate_limiter is not None:
+            self._rate_limiter = rate_limiter
+        else:
+            limits = {
+                name: spec.rate_limit_per_min
+                for name, spec in self.allowlist.items()
+            }
+            self._rate_limiter = ToolRateLimiter(
+                limits=limits, max_total=max_tool_executions)
 
     def _capability_gate(self, tool_name: str,
                          capability: Any) -> Optional[Dict[str, Any]]:
@@ -807,6 +835,20 @@ class ActionExecutor:
             record.duration_ms = (time.monotonic() - started) * 1000.0
             return record
 
+        # ── Rate-limit gate (Λ6.7: the ONE execution boundary) ──────────────
+        # Counted only for requests that passed every authority gate, and
+        # checked BEFORE any effect (subprocess / structured write / network).
+        # A breach is a recorded block: no subprocess, no write, no egress.
+        rate_decision: RateLimitDecision = self._rate_limiter.check(
+            permission.tool_name)
+        if not rate_decision.allowed:
+            record.blocked_reason = f"rate_limit_exceeded: {rate_decision.reason}"
+            record.duration_ms = (time.monotonic() - started) * 1000.0
+            logger.warning(
+                "Tool %r blocked by rate limit: %s",
+                permission.tool_name, rate_decision.reason)
+            return record
+
         # Structured write-file tools do NOT spawn a subprocess: they apply a
         # validated patch to a file directly (governed + audited, never shell).
         if entry_kind == "structured_write":
@@ -979,7 +1021,7 @@ class ActionExecutor:
 
 __all__ = [
     "ACTION_ALLOWLIST", "AllowlistEntry", "ToolSpec", "ToolRegistry",
-    "ToolPermission", "ActionExecution",
+    "ToolPermission", "ActionExecution", "ToolRateLimiter", "RateLimitDecision",
     "ActionExecutor", "ToolRejected",
     "UnsafeWorkspaceRoot", "validate_workspace_root", "build_tool_executor",
 ]
