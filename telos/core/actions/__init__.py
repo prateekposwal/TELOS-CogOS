@@ -24,6 +24,12 @@ from telos.core.actions.executor import (
 )
 from telos.core.actions.certification import (
     CertificationRecord, CapabilityCertification, DEFAULT_CERTIFICATION_PATH,
+    CertificationAction, VerifiedOutcome, CertificationDecision,
+    CertificationWorkflow,
+)
+from telos.core.actions.reality_loop import (
+    GAP_METRIC, text_reality_gap, observation_fingerprint,
+    AuthorityState, CapabilityAuthority,
 )
 from telos.core.actions.world_adapter import (
     WorldAdapter, WorldObservation, ValidationResult, VerificationResult,
@@ -41,6 +47,10 @@ __all__ = [
     "ActionExecutor", "ToolRejected",
     "CertificationRecord", "CapabilityCertification",
     "DEFAULT_CERTIFICATION_PATH",
+    "CertificationAction", "VerifiedOutcome", "CertificationDecision",
+    "CertificationWorkflow",
+    "GAP_METRIC", "text_reality_gap", "observation_fingerprint",
+    "AuthorityState", "CapabilityAuthority",
     "WorldAdapter", "WorldObservation", "ValidationResult", "VerificationResult",
     "AdapterRefused", "FilesystemWriteAdapter",
     "ActionMode", "LiveApproval", "WorldActionProposal", "WorldActionResult",

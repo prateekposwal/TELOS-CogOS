@@ -178,6 +178,11 @@ class WorldActionResult:
     skill_candidate_id: Optional[str] = None
     skill_admitted: bool = False
     observer: Optional[Dict[str, Any]] = None
+    #: The GENUINE post-action observation (item 6): a fresh real-world read
+    #: taken AFTER execute(), distinct from the execution's own return value.
+    post_observation: Optional[Dict[str, Any]] = None
+    #: The measured capability authority at authorization time (item 8).
+    authority_state: Optional[Dict[str, Any]] = None
     cycle: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
@@ -215,6 +220,8 @@ class WorldActionResult:
             "skill_candidate_id": self.skill_candidate_id,
             "skill_admitted": self.skill_admitted,
             "observer": self.observer,
+            "post_observation": self.post_observation,
+            "authority_state": self.authority_state,
             "cycle": self.cycle,
         }
 
@@ -254,7 +261,8 @@ class WorldActionRunner:
                  firewall: Any = None,
                  acquisition: Any = None,
                  reality_gap_tracker: Any = None,
-                 model_id: Optional[str] = None):
+                 model_id: Optional[str] = None,
+                 authority: Any = None):
         """Construct the runner over the execution substrate + an adapter.
 
         Args:
@@ -271,6 +279,11 @@ class WorldActionRunner:
                 change (fidelity before -> after).
             model_id: the model id under which the action outcome is recorded
                 in the RealityGapTracker.
+            authority: optional CapabilityAuthority (item 8). When wired, the
+                per-capability model_fidelity gate is DERIVED from the
+                capability's measured Reality Gap, and the outcome
+                recalibrates it. A FAIL blocks ACT through the existing
+                CapabilityAuthorization machinery.
         """
         self.executor = executor
         self.adapter = adapter
@@ -279,6 +292,7 @@ class WorldActionRunner:
         self.acquisition = acquisition
         self.reality_gap_tracker = reality_gap_tracker
         self.model_id = model_id
+        self.authority = authority
 
     # ── authority helpers ────────────────────────────────────────────────
 
@@ -396,10 +410,20 @@ class WorldActionRunner:
         record.would_be_command = validation.command
         record.provenance["validation"] = validation.to_dict()
 
-        # 3. Capability-authorization gates.
+        # 3. Capability-authorization gates. When a CapabilityAuthority is
+        #    wired, the model_fidelity gate is the capability's MEASURED
+        #    authority (item 8) — a FAIL vetoes through the existing machinery.
+        cap_auth = capability_authorization
+        if self.authority is not None:
+            record.authority_state = self.authority.state(
+                proposal.capability, now_cycle=cycle).to_dict()
+            if cap_auth is None:
+                cap_auth = self.authority.capability_authorization(
+                    proposal.capability, now_cycle=cycle)
         cap_ok, cap_reason, cap_detail = self._capability_status(
-            proposal, capability_authorization)
+            proposal, cap_auth)
         record.provenance["capability_gates"] = cap_detail
+        record.provenance["authority_gate"] = dict(record.authority_state or {})
 
         # 4. Certification (per capability).
         cert_rec = self.certification.record_for(proposal.capability)
@@ -469,7 +493,7 @@ class WorldActionRunner:
             else "operator"
         execution = self.adapter.execute(
             proposal, firewall=self.firewall,
-            capability=capability_authorization,
+            capability=cap_auth,
             permitted_by=approver,
         )
         record.executed = True
@@ -488,12 +512,25 @@ class WorldActionRunner:
             record.blocked_reason = execution.blocked_reason
             return record
 
-        # 10. Observe what actually happened and measure the Reality Gap.
+        # 10. Observe what actually happened (a GENUINE post-action read,
+        #     item 6) and measure the Reality Gap (item 7).
         actual = self.adapter.observe()
         record.actual_result = actual.to_dict()
+        record.post_observation = actual.to_dict()
         verification = self.adapter.verify_result(proposal.expected_result, actual)
         record.verification = verification.to_dict()
         record.reality_gap = float(verification.reality_gap)
+        record.provenance["post_action_observation"] = {
+            "source": actual.source,
+            "sha256": (actual.state or {}).get("sha256")
+            if isinstance(actual.state, dict) else None,
+            "read_after_execute": True,
+        }
+        record.provenance["reality_gap"] = {
+            "metric": verification.metric,
+            "value": record.reality_gap,
+            "matched": verification.matched,
+        }
 
         # 11. Authority change (fidelity before -> after) when a tracker is
         #     wired; otherwise honestly recorded as deferred.
@@ -534,17 +571,42 @@ class WorldActionRunner:
             Dict describing the capability's authority change (or an honest
             "deferred" marker when no RealityGapTracker is wired).
         """
+        measured = float(verification.reality_gap)
+        if self.authority is not None:
+            before = self.authority.state(proposal.capability, now_cycle=cycle)
+            after = self.authority.record(
+                proposal.capability, measured, cycle=cycle)
+            changed = (before.status != after.status
+                       or before.fidelity != after.fidelity)
+            return {
+                "capability": proposal.capability,
+                "model_id": after.model_id,
+                "status_before": before.status.value,
+                "status_after": after.status.value,
+                "fidelity_before": before.fidelity,
+                "fidelity_after": after.fidelity,
+                "changed": bool(changed),
+                "observed_gap": measured,
+                "authority_before": before.to_dict(),
+                "authority_after": after.to_dict(),
+                "reason": (f"authority recalibrated from measured Reality Gap "
+                           f"{measured:.4f}: {before.status.value} -> "
+                           f"{after.status.value}"
+                           if changed else
+                           f"authority unchanged after gap {measured:.4f}"),
+            }
         if self.reality_gap_tracker is None or not self.model_id:
             return {
                 "capability": proposal.capability,
                 "changed": False,
-                "reason": ("no RealityGapTracker wired — authority recalibration "
-                           "is the items 6-10 seam"),
+                "reason": ("no RealityGapTracker/authority wired — authority "
+                           "recalibration is the items 6-10 seam"),
             }
         tracker = self.reality_gap_tracker
         before = tracker.model_fidelity(self.model_id, now_cycle=cycle)
-        predicted = np.array([1.0])  # we predicted the action achieves its result
-        observed = np.array([1.0 if verification.matched else 0.0])
+        # Encode the measured bounded gap so the tracker MD equals it.
+        predicted = np.array([1.0])
+        observed = np.array([float(np.clip(1.0 - measured, 0.0, 1.0))])
         gap = tracker.record(self.model_id, predicted, observed, cycle=cycle)
         after = tracker.model_fidelity(self.model_id, now_cycle=cycle)
         changed = (before != after)

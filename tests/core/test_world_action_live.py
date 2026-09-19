@@ -188,7 +188,9 @@ def test_live_gap_nonzero_on_prediction_miss(tmp_path):
     r = runner.run(wrong, ActionMode.LIVE, approval=_approval())
     assert r.action_allowed is True
     assert r.verification["matched"] is False
-    assert r.reality_gap == 1.0
+    # The gap is the bounded normalized metric (0 exact, >0 on a miss).
+    assert 0.0 < r.reality_gap <= 1.0
+    assert r.verification["metric"] == "normalized_text_divergence"
 
 
 def test_verification_before_admission(tmp_path):

@@ -130,15 +130,23 @@ def test_observe_missing_file_reports_absent(tmp_path):
 
 
 def test_verify_result_match_and_mismatch(tmp_path):
-    """verify_result matches exact content (gap 0) and mismatches (gap 1)."""
+    """verify_result: exact content -> gap 0; a mismatch -> a bounded gap."""
     ex = ActionExecutor(workspace_root=_workspace(tmp_path))
     ad = FilesystemWriteAdapter(ex, "notes.md")
     obs = ad.observe()
     ok = ad.verify_result("alpha\nbeta\ngamma\n", obs)
     assert ok.matched is True and ok.reality_gap == 0.0
     bad = ad.verify_result("different\n", obs)
-    assert bad.matched is False and bad.reality_gap == 1.0
+    assert bad.matched is False
+    # Bounded, normalized metric: a non-match maps to (0, 1], never NaN.
+    assert 0.0 < bad.reality_gap <= 1.0
+    assert bad.metric == "normalized_text_divergence"
     assert bad.to_dict()["predicted"] == "different\n"
+    # An absent observation is a total miss (gap 1.0).
+    from telos.core.actions.world_adapter import WorldObservation
+    gone = ad.verify_result("anything", WorldObservation(
+        source="file:notes.md", state={"exists": False}))
+    assert gone.matched is False and gone.reality_gap == 1.0
 
 
 def test_no_adapter_refuses_every_proposal(tmp_path):

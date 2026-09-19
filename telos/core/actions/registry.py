@@ -309,16 +309,20 @@ DEFAULT_REGISTRY = ToolRegistry.default()
 # action (conjunctive, non-tradeable — mirroring CapabilityAuthorization).
 #
 # read-only observation tools require only observability; mutation/write tools
-# additionally require action_validity (the action is in the action space) and
-# authority (we are entitled to mutate). Network-capable families (added in a
-# later phase) will additionally require causal_confidence + recovery.
+# additionally require action_validity (the action is in the action space),
+# authority (we are entitled to mutate), and model_fidelity (the world model
+# backing the mutation is validated against reality — the measured authority
+# from the post-action Reality Gap). Network-capable families additionally
+# require causal_confidence + recovery.
 CAPABILITY_PROFILES: Dict[str, List[str]] = {
     "read_only": ["observability"],
-    "narrow_write": ["observability", "action_validity", "authority"],
-    "structured_write": ["observability", "action_validity", "authority"],
+    "narrow_write": ["observability", "action_validity", "authority",
+                     "model_fidelity"],
+    "structured_write": ["observability", "action_validity", "authority",
+                         "model_fidelity"],
     "network_read": ["observability", "causal_confidence"],
     "network_write": ["observability", "action_validity", "authority",
-                      "causal_confidence", "recovery"],
+                      "model_fidelity", "causal_confidence", "recovery"],
 }
 
 

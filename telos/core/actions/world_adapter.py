@@ -43,6 +43,9 @@ from telos.core.actions.executor import (
     ActionExecution, ActionExecutor, ToolPermission, ToolRejected,
 )
 from telos.core.actions.registry import capability_profile_for
+from telos.core.actions.reality_loop import (
+    GAP_METRIC, observation_fingerprint, text_reality_gap,
+)
 
 # Read bound for observe() snapshots (never read an unbounded file into memory).
 DEFAULT_OBSERVE_CHARS = 64 * 1024
@@ -114,6 +117,7 @@ class VerificationResult:
         predicted: the predicted result that was compared.
         observed: the observed result that was compared.
         detail: a human-readable explanation of the comparison.
+        metric: the canonical gap-metric name (bounded [0,1], 0.0 exact).
     """
 
     matched: bool
@@ -121,6 +125,7 @@ class VerificationResult:
     predicted: Any = None
     observed: Any = None
     detail: str = ""
+    metric: str = GAP_METRIC
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializable verification record.
@@ -134,6 +139,7 @@ class VerificationResult:
             "predicted": self.predicted,
             "observed": self.observed,
             "detail": self.detail,
+            "metric": self.metric,
         }
 
 
@@ -368,9 +374,17 @@ class FilesystemWriteAdapter(WorldAdapter):
             )
         return WorldObservation(
             source=f"file:{self.target}",
-            state={"exists": True, "content": content[:self.observe_chars]},
+            state={
+                "exists": True,
+                "content": content[:self.observe_chars],
+                "sha256": observation_fingerprint(content),
+                "chars": len(content),
+                "truncated": len(content) > self.observe_chars,
+            },
             captured_at=time.time(),
-            metadata={"chars": len(content), "truncated": len(content) > self.observe_chars},
+            metadata={"chars": len(content),
+                      "truncated": len(content) > self.observe_chars,
+                      "sha256": observation_fingerprint(content)},
         )
 
     def build_permission(self, proposal: Any,
@@ -423,22 +437,26 @@ class FilesystemWriteAdapter(WorldAdapter):
             observation: the later observation of the target file.
 
         Returns:
-            VerificationResult: exact content match -> gap 0.0, else gap 1.0.
+            VerificationResult with the canonical bounded gap (0.0 = exact
+            match; a non-match maps to ``1 - normalized similarity``).
         """
         expected = prediction
         if isinstance(prediction, dict):
             expected = prediction.get("content")
         observed = self._observed_content(observation)
+        gap = text_reality_gap(expected, observed)
         matched = (expected is not None and observed is not None
-                   and str(expected) == str(observed))
+                   and gap == 0.0)
         return VerificationResult(
             matched=matched,
-            reality_gap=0.0 if matched else 1.0,
+            reality_gap=gap,
             predicted=expected,
             observed=observed,
             detail=("observed content matches the prediction"
                     if matched else
-                    "observed content does not match the prediction"),
+                    f"observed content diverges from the prediction "
+                    f"(gap={gap:.4f} via {GAP_METRIC})"),
+            metric=GAP_METRIC,
         )
 
 
