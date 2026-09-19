@@ -58,6 +58,9 @@ from telos.core.actions.durability import (
     KIND_AUTHORITY_EVIDENCE, atomic_write_state, read_state,
 )
 from telos.core.actions.integrity import IntegrityAnchor, resolve_anchor
+from telos.core.actions.trust_anchor import (
+    TrustAnchor, WitnessScope, resolve_trust_anchor,
+)
 from telos.core.research.amplification_gate import ResearchAmplificationGate
 from telos.core.research.seasons import ResearchSeasons
 from telos.core.research.discovery_rate import DiscoveryRateTracker
@@ -257,6 +260,12 @@ class TelosV14Pipeline:
         # opt-in via TELOS_DURABILITY_INTEGRITY; a configured-but-unusable
         # anchor fails closed and never downgrades to ``local``).
         self._reality_gap_anchor: IntegrityAnchor = resolve_anchor()
+        # The OPTIONAL external trust anchor (default OFF): when configured, the
+        # witnessed record is the authority and the local filesystem is storage,
+        # not the ultimate authority (see trust_anchor.py).
+        self._reality_gap_trust_anchor: TrustAnchor = resolve_trust_anchor()
+        self._reality_gap_witness_scope: WitnessScope = WitnessScope(
+            store_id="reality_gap", producer_id="telos", world_id="pipeline")
         self._reality_gap_evidence_corrupt: bool = False
         if self._reality_gap_state_path:
             self._load_reality_gap_state()
@@ -811,7 +820,9 @@ class TelosV14Pipeline:
         """
         result = read_state(self._reality_gap_state_path,
                             expected_kind=KIND_AUTHORITY_EVIDENCE,
-                            anchor=self._reality_gap_anchor)
+                            anchor=self._reality_gap_anchor,
+                            trust_anchor=self._reality_gap_trust_anchor,
+                            witness_scope=self._reality_gap_witness_scope)
         if result.first_run:
             return
         if result.corrupted:
@@ -845,7 +856,9 @@ class TelosV14Pipeline:
             atomic_write_state(
                 self._reality_gap_state_path, KIND_AUTHORITY_EVIDENCE,
                 {"models": self._reality_gap_tracker.to_state()},
-                anchor=self._reality_gap_anchor)
+                anchor=self._reality_gap_anchor,
+                trust_anchor=self._reality_gap_trust_anchor,
+                witness_scope=self._reality_gap_witness_scope)
         except Exception as e:
             logger.error(
                 "reality gap evidence persist to %r FAILED (%s); restart "

@@ -36,6 +36,12 @@ from telos.core.actions.integrity import (
     IntegrityAnchor, IntegrityMode, LocalAnchor, HmacAnchor, WitnessAnchor,
     UnavailableAnchor, AnchorUnavailable, resolve_anchor, load_hmac_key,
 )
+from telos.core.actions.trust_anchor import (
+    TrustVerdict, TrustVerification, WitnessScope, WitnessRecord,
+    TrustAnchor, DisabledTrustAnchor, UnavailableTrustAnchor,
+    ExternalHttpTrustAnchor, TrustAnchorUnavailable, TrustAnchorConflict,
+    resolve_trust_anchor,
+)
 from telos.core.actions.reality_loop import (
     GAP_METRIC, text_reality_gap, observation_fingerprint,
     AuthorityState, CapabilityAuthority,
@@ -64,6 +70,10 @@ __all__ = [
     "IntegrityAnchor", "IntegrityMode", "LocalAnchor", "HmacAnchor",
     "WitnessAnchor", "UnavailableAnchor", "AnchorUnavailable",
     "resolve_anchor", "load_hmac_key",
+    "TrustVerdict", "TrustVerification", "WitnessScope", "WitnessRecord",
+    "TrustAnchor", "DisabledTrustAnchor", "UnavailableTrustAnchor",
+    "ExternalHttpTrustAnchor", "TrustAnchorUnavailable", "TrustAnchorConflict",
+    "resolve_trust_anchor",
     "GAP_METRIC", "text_reality_gap", "observation_fingerprint",
     "AuthorityState", "CapabilityAuthority",
     "WorldAdapter", "WorldObservation", "ValidationResult", "VerificationResult",
