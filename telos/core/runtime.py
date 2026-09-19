@@ -209,6 +209,23 @@ class TelosV14Pipeline:
             if workspace and getattr(self.config, 'operator_tool_permission', False):
                 from telos.core.actions.executor import build_tool_executor
                 self.config.action_executor = build_tool_executor(workspace)
+        # Determinism isolation (hard guard, fail loud): a determinism-gated
+        # pipeline must NEVER carry a real-world action channel. A LIVE side
+        # effect is not deterministic, so this is a hard CONFIGURATION ERROR,
+        # not a silent PASS. The endurance/reproducibility gate sets
+        # determinism_gate=True and builds no executor; if an executor or a
+        # workspace opts in, construction refuses.
+        if getattr(self.config, 'determinism_gate', False):
+            _ws = getattr(self.config, 'tool_workspace', None) \
+                or os.environ.get("TELOS_TOOL_WORKSPACE") or None
+            if getattr(self.config, 'action_executor', None) is not None \
+                    or (_ws and getattr(self.config, 'operator_tool_permission', False)):
+                raise ValueError(
+                    "determinism-gated pipeline cannot carry a real-world action "
+                    "executor (tool_workspace/action_executor are non-deterministic "
+                    "by construction) — refusing to run a LIVE channel under a "
+                    "determinism gate"
+                )
         self._human_gateway = human_gateway
         # Research Amplification Gate (Λ6.5): the standing pre-PERCEIVE stage.
         # Constructed ONLY when enabled (research_gate != off/legacy) so a

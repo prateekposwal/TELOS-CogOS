@@ -177,6 +177,13 @@ def load_reason(load: dict, guard: dict = None) -> str:
 
     Pure predicate over a read_load() dict so it is directly unit-testable
     with os.getloadavg patched.
+
+    Args:
+        load: a read_load() dict (load_per_cpu, swap_frac, ...).
+        guard: optional guard thresholds (defaults to LOAD_GUARD).
+
+    Returns:
+        A "; "-joined reason string, or "" when the host is quiet.
     """
     g = guard or LOAD_GUARD
     reasons = []
@@ -264,6 +271,7 @@ def build_pipeline(cp_dir: str, seed: int = 42, fast: bool = True) -> TelosV14Pi
         identity_path=os.path.join(cp_dir, "id.json"),
         pattern_path=os.path.join(cp_dir, "pt.json"),
         deterministic_seed=seed, mode="fast" if fast else "standard",
+        determinism_gate=True,
     ))
     sl = SkillLibrary()
     for s in [ReflexStream(sl), PerceptionStream(sl), MemoryStream(sl),
@@ -615,7 +623,15 @@ def verdict_exit_code(overall: str, strict: bool = False) -> int:
 
 
 def print_table(results: dict, checks: dict) -> str:
-    """Print the three-state report. Returns "PASS", "FAIL", or "INCOMPLETE"."""
+    """Print the three-state report.
+
+    Args:
+        results: the measured run results dict.
+        checks: the invariant/check outcomes dict.
+
+    Returns:
+        "PASS", "FAIL", or "INCOMPLETE" (the overall gate verdict).
+    """
     print("\n" + "=" * 84)
     print(f"TELOS v7 STABILITY GATE — {results['cycles']:,} cycles ({results['mode']})")
     print("=" * 84)

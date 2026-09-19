@@ -1,0 +1,8 @@
+{
+  "_comment": "Per-capability LIVE-execution certification record. HONEST STATE: ZERO capabilities are certified at this stage, so WorldActionRunner refuses mode=LIVE for every capability while DRY_RUN remains available. An operator certifies a capability by adding its name to 'certified' (or a full record to 'records') with evidence + reason; a missing or malformed file loads as ZERO certified (fail-closed).",
+  "certified_by": "",
+  "evidence": "",
+  "reason": "",
+  "certified": [],
+  "records": []
+}

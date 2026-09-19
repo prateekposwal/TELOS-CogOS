@@ -445,6 +445,13 @@ class PipelineConfig:
     # FAIL vetoes that tool exactly as a council veto blocks an action. Default
     # False keeps pre-Phase-1 behavior byte-identical for existing consumers.
     per_tool_capability_gate: bool = False
+    # Determinism gate (v7 endurance/reproducibility): when True this pipeline
+    # asserts it is running in a determinism-measured context. A real-world
+    # action executor must NEVER be attached here: a LIVE side effect is not
+    # deterministic, so construction raises a hard configuration error rather
+    # than letting a determinism gate silently PASS with an executor present.
+    # Default False preserves byte-identity for every existing consumer.
+    determinism_gate: bool = False
 
 
 @dataclass
