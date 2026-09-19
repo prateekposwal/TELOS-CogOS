@@ -119,7 +119,12 @@ def test_variance_evidence_certifies():
     ({"measured_gaps": [0.0, 2.0]}, "gaps_unbounded"),
 ])
 def test_failed_variance_gate_holds(override, failing):
-    """Any failed strengthened gate HOLDs with the failing gate named."""
+    """Any failed strengthened gate HOLDs with the failing gate named.
+
+    Args:
+        override: the VarianceEvidence field override to apply.
+        failing: the gate name expected to fail.
+    """
     wf = CertificationWorkflow(require_variance=True)
     decision = wf.evaluate(CAP, _successes(3), variance=_variance(**override))
     assert decision.action is CertificationAction.HOLD
@@ -203,3 +208,36 @@ def test_executor_timeout_is_a_block(tmp_path):
     assert rec.timed_out is True
     assert rec.allowed is False
     assert "timed out" in (rec.blocked_reason or "")
+
+
+def test_campaign_earns_sandbox_tier_never_promotes_canonical(monkeypatch):
+    """The campaign earns SANDBOX only; canonical LIVE is never written."""
+    import telos.tools.certification_campaign as camp
+    written = {}
+    monkeypatch.setattr(
+        camp, "_write_sandbox_evidence",
+        lambda ev: written.setdefault("evidence", ev) or "stub")
+    artifact = camp.run_campaign(live=False, persist=True)
+    cert = artifact["certification"]
+    assert cert["certified"] is True
+    assert cert["tier"] == "SANDBOX"
+    assert cert["canonical_record_written"] is False
+    assert cert["sandbox_evidence_written"] is True
+    evidence = written["evidence"]
+    assert evidence["tier"] == "SANDBOX"
+    assert evidence["state"] == "SANDBOX-CERTIFIED"
+    assert evidence["canonical_registry_promoted"] is False
+    assert evidence["records"][0]["tier"] == "SANDBOX"
+
+
+def test_sandbox_evidence_cites_the_campaign_result():
+    """The sandbox evidence cites the campaign artifact (durable evidence)."""
+    from telos.tools.certification_campaign import (
+        sandbox_evidence_artifact, run_campaign,
+    )
+    artifact = run_campaign(live=False, persist=False)
+    evidence = sandbox_evidence_artifact(artifact)
+    assert evidence["campaign_artifact"].endswith(
+        "certification_campaign.json")
+    assert evidence["variance_evidence"]["revocation_demonstrated"] is True
+    assert evidence["invariants"]["I1"] is True

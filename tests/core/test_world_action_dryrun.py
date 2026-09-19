@@ -11,6 +11,7 @@ import os
 import pathlib
 import subprocess
 
+from telos.core.actions.certification import CapabilityCertification
 from telos.core.actions.executor import ActionExecutor
 from telos.core.actions.world_adapter import FilesystemWriteAdapter
 from telos.core.actions.world_action import (
@@ -133,7 +134,10 @@ def test_dry_run_available_for_uncertified_capability(tmp_path):
     """Uncertified capabilities may dry-run but are refused LIVE."""
     ex = ActionExecutor(workspace_root=_workspace(tmp_path))
     ad = FilesystemWriteAdapter(ex, "notes.md")
-    runner = WorldActionRunner(ex, ad, firewall=DecisionFirewall())
+    # An EXPLICITLY empty registry (independent of the canonical file, which
+    # may hold legitimate LIVE certifications).
+    runner = WorldActionRunner(ex, ad, firewall=DecisionFirewall(),
+                               certification=CapabilityCertification(records={}))
     dry = runner.run(_proposal(), ActionMode.DRY_RUN)
     assert dry.executed is False and dry.authorized is True
     live = runner.run(

@@ -354,6 +354,10 @@ class DashboardProducer:
         # ── runtime components (built lazily in _build to keep import cheap) ──
         self._pipeline = None
         self._sim = None
+        # Bounded live-producer canary (opt-in, default OFF). Constructed ONLY
+        # when TELOS_CANARY_ENABLED opts in, so a default producer is
+        # byte-identical to one without a canary.
+        self._canary = None
         self._experience_mgr = None
         self._agent2 = None
         self._state_np = np.array([0.0, 0.0])
@@ -823,6 +827,31 @@ class DashboardProducer:
         # checkpoint, so producer totals and trace cycle_ids stay aligned).
         self._restore_producer_counters()
 
+        # ── Bounded live-producer canary (opt-in; default OFF) ──
+        # Wire ONE tightly bounded, reversible canary for filesystem.write
+        # against the disposable sandbox target. It runs OUTSIDE the pipeline
+        # (never inside a cycle, never in a determinism-gated pipeline) via the
+        # same WorldActionRunner + per-action LiveApproval + certification path.
+        self._build_canary()
+
+    def _build_canary(self) -> None:
+        """Construct the bounded live canary when explicitly opted in.
+
+        Default OFF: with ``TELOS_CANARY_ENABLED`` unset/unknown this returns
+        without constructing anything, so the producer is byte-identical to one
+        without a canary. The canary is scoped to the governed tool workspace
+        (the sandbox) and never enters the pipeline's cycle.
+        """
+        from telos.core.actions.live_canary import LiveCanary, canary_enabled
+        if not canary_enabled():
+            return
+        self._canary = LiveCanary(
+            workspace_root=getattr(self._pipeline.config, "tool_workspace", None),
+            executor=getattr(self._pipeline.config, "action_executor", None),
+        )
+        logger.info("producer: live canary ENABLED %s",
+                    self._canary.config.to_dict())
+
     def _run_cycle(self) -> None:
         trace_dict: Optional[Dict] = None
         with self._lock:
@@ -996,6 +1025,15 @@ class DashboardProducer:
                 self._today_episodes += 1
                 self._state_np = np.array([0.0, 0.0])
                 self._episode_reset_pending = True  # next cycle observes the new world
+
+        # Bounded live canary OUTSIDE the cycle lock: it performs real disk
+        # I/O + a governed write, so it must never hold the snapshot lock.
+        # Default OFF (self._canary is None) => this is a no-op.
+        if self._canary is not None:
+            try:
+                self._canary.maybe_run(self._cycles)
+            except Exception as e:
+                logger.warning("producer: live canary failed: %r", e)
 
         # Broadcast OUTSIDE the lock (network I/O must not stall the cycle).
         if trace_dict is not None:

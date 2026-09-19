@@ -89,7 +89,10 @@ def test_live_refused_without_certification(tmp_path):
     sb = _workspace(tmp_path)
     ex = ActionExecutor(workspace_root=sb)
     ad = FilesystemWriteAdapter(ex, "notes.md")
-    runner = WorldActionRunner(ex, ad, firewall=DecisionFirewall())
+    # EXPLICITLY empty: the uncertified path must not depend on the canonical
+    # file (which may legitimately hold LIVE certifications).
+    runner = WorldActionRunner(ex, ad, firewall=DecisionFirewall(),
+                               certification=CapabilityCertification(records={}))
     r = runner.run(_proposal(), ActionMode.LIVE, approval=_approval())
     assert r.executed is False and r.action_allowed is False
     assert "not CERTIFIED" in r.blocked_reason

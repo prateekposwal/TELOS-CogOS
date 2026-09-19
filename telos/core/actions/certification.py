@@ -35,6 +35,35 @@ DEFAULT_CERTIFICATION_PATH = str(
     Path(__file__).resolve().parents[3] / "telos" / "audit" / "capability_certification.json"
 )
 
+#: The SEPARATE sandbox-evidence artifact: the durable record of the earned
+#: SANDBOX-CERTIFIED state. It is deliberately NOT the canonical LIVE registry
+#: (``capability_certification.json``) — sandbox evidence is preserved and
+#: cited, never promoted. A sandbox record in the canonical file is ignored by
+#: the loader (fail-closed); it only counts at the SANDBOX tier for the bounded
+#: live-producer canary.
+DEFAULT_SANDBOX_EVIDENCE_PATH = str(
+    Path(__file__).resolve().parents[3] / "telos" / "audit" / "sandbox_certification.json"
+)
+
+
+class CertificationTier(str, Enum):
+    """The evidence tier a certification record rests on.
+
+    The two-tier distinction is fail-closed by construction:
+
+      * ``SANDBOX`` — the earned sandbox evidence (variance battery + loop
+        invariants I1-I8) is preserved and cited, but it is NOT LIVE
+        certification. A sandbox record never authorizes production LIVE and is
+        ignored by the canonical LIVE registry loader. It authorizes exactly
+        one thing: the bounded, disposable-target live-producer canary.
+      * ``LIVE`` — live evidence satisfied the same certification invariants.
+        Only a LIVE-tier record may be persisted to the canonical registry and
+        counted as certified-to-leave-dry-run.
+    """
+
+    SANDBOX = "SANDBOX"
+    LIVE = "LIVE"
+
 
 @dataclass(frozen=True)
 class CertificationRecord:
@@ -52,6 +81,10 @@ class CertificationRecord:
         evidence_detail: optional STRUCTURED evidence (counts / cycles /
             criteria) produced by the certification workflow — the machine-
             readable half of ``evidence``.
+        tier: the evidence tier this record rests on (``CertificationTier``
+            value; default LIVE for explicitly-constructed records). A
+            ``SANDBOX`` record is preserved evidence but is NEVER counted as
+            LIVE certification.
     """
 
     capability: str
@@ -61,6 +94,7 @@ class CertificationRecord:
     reason: str = ""
     certified_cycle: Optional[int] = None
     evidence_detail: Optional[Dict[str, Any]] = None
+    tier: str = CertificationTier.LIVE.value
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializable audit record.
@@ -76,6 +110,7 @@ class CertificationRecord:
             "reason": self.reason,
             "certified_cycle": self.certified_cycle,
             "evidence_detail": self.evidence_detail,
+            "tier": self.tier,
         }
 
 
@@ -111,7 +146,9 @@ class CapabilityCertification:
                            certified_by: str = "test",
                            evidence: str = "",
                            reason: str = "explicitly certified",
-                           path: Optional[str] = None) -> "CapabilityCertification":
+                           path: Optional[str] = None,
+                           tier: str = CertificationTier.LIVE.value
+                           ) -> "CapabilityCertification":
         """Build a registry certifying exactly the named capabilities.
 
         Args:
@@ -120,6 +157,8 @@ class CapabilityCertification:
             evidence: evidence recorded on each record.
             reason: rationale recorded on each record.
             path: optional path recorded on the registry (not written).
+            tier: the evidence tier for the records (default LIVE; a SANDBOX
+                registry is only ever used for the bounded live canary).
 
         Returns:
             A CapabilityCertification certifying only the supplied names.
@@ -127,7 +166,7 @@ class CapabilityCertification:
         records = {
             name: CertificationRecord(
                 capability=name, certified=True, certified_by=certified_by,
-                evidence=evidence, reason=reason,
+                evidence=evidence, reason=reason, tier=tier,
             )
             for name in capabilities
         }
@@ -165,18 +204,46 @@ class CapabilityCertification:
             name = entry.get("capability")
             if not isinstance(name, str) or not name.strip():
                 continue
+            raw_tier = entry.get("tier", CertificationTier.LIVE.value)
+            tier = str(raw_tier).strip().upper()
+            declared_certified = bool(entry.get("certified", False))
+            if tier not in (CertificationTier.SANDBOX.value,
+                            CertificationTier.LIVE.value):
+                # An unknown tier is malformed evidence -> fail closed.
+                logger.warning(
+                    "certification record %r has unknown tier %r; failing "
+                    "closed (not certified)", name, raw_tier)
+                declared_certified = False
+                tier = CertificationTier.LIVE.value
+            elif tier == CertificationTier.SANDBOX.value:
+                # FAIL-CLOSED: the canonical (LIVE) registry NEVER counts
+                # sandbox evidence as certification-to-leave-dry-run. The
+                # record is preserved as evidence but not certified here.
+                if declared_certified:
+                    logger.warning(
+                        "certification record %r declares SANDBOX tier in the "
+                        "canonical LIVE registry; preserved as evidence but "
+                        "NOT certified (fail-closed)", name)
+                declared_certified = False
+            reason = str(entry.get("reason", ""))
+            if tier == CertificationTier.SANDBOX.value:
+                reason = (reason + " [sandbox-tier evidence: not promoted to "
+                          "the canonical LIVE registry]").strip()
             records[name] = CertificationRecord(
                 capability=name,
-                certified=bool(entry.get("certified", False)),
+                certified=declared_certified,
                 certified_by=str(entry.get("certified_by", "")),
                 evidence=str(entry.get("evidence", "")),
-                reason=str(entry.get("reason", "")),
+                reason=reason,
                 certified_cycle=entry.get("certified_cycle"),
                 evidence_detail=(entry.get("evidence_detail")
                                  if isinstance(entry.get("evidence_detail"), dict)
                                  else None),
+                tier=tier,
             )
         # A bare `certified` name-list is also honoured (operator shorthand).
+        # The shorthand means the canonical LIVE tier (the registry it appears
+        # in is the LIVE registry); it is never sandbox evidence.
         for name in data.get("certified", []) or []:
             if isinstance(name, str) and name.strip() and name not in records:
                 records[name] = CertificationRecord(
@@ -184,6 +251,7 @@ class CapabilityCertification:
                     certified_by=str(data.get("certified_by", "")),
                     evidence=str(data.get("evidence", "")),
                     reason=str(data.get("reason", "listed as certified")),
+                    tier=CertificationTier.LIVE.value,
                 )
         certified = {k: v for k, v in records.items() if v.certified}
         logger.info("capability certification loaded: %d certified (%s)",
@@ -202,6 +270,46 @@ class CapabilityCertification:
         rec = self._records.get(capability)
         return bool(rec is not None and rec.certified)
 
+    def is_certified_at(self, capability: str, tier: str) -> bool:
+        """Whether a capability is certified at a specific evidence tier.
+
+        Args:
+            capability: the capability name to query.
+            tier: the ``CertificationTier`` value to require.
+
+        Returns:
+            True only for a certified record whose tier matches exactly.
+        """
+        rec = self._records.get(capability)
+        want = (tier.value if isinstance(tier, CertificationTier)
+                else str(tier).strip().upper())
+        return bool(rec is not None and rec.certified
+                    and str(rec.tier).strip().upper() == want)
+
+    def is_live_certified(self, capability: str) -> bool:
+        """Whether a capability holds a LIVE-tier certification.
+
+        This is the explicit two-tier predicate: sandbox evidence never
+        satisfies it (fail-closed).
+
+        Args:
+            capability: the capability name to query.
+
+        Returns:
+            True only for a certified LIVE-tier record.
+        """
+        return self.is_certified_at(capability, CertificationTier.LIVE.value)
+
+    def live_certified_names(self) -> List[str]:
+        """The sorted capability names holding a LIVE-tier certification.
+
+        Returns:
+            Sorted list of LIVE-certified capability names.
+        """
+        return sorted(n for n, r in self._records.items()
+                      if r.certified and str(r.tier).strip().upper()
+                      == CertificationTier.LIVE.value)
+
     def record_for(self, capability: str) -> Optional[CertificationRecord]:
         """Return the record for a capability, or None when none exists.
 
@@ -213,6 +321,22 @@ class CapabilityCertification:
         """
         return self._records.get(capability)
 
+    def store(self, record: CertificationRecord) -> CertificationRecord:
+        """Store a fully-formed record (an explicit, reviewed write).
+
+        Used by the live canary to persist a LIVE-tier record with its
+        structured evidence detail. It does NOT authorize anything by itself;
+        the runner still requires the per-action approval and gates.
+
+        Args:
+            record: the record to store (keyed by its capability).
+
+        Returns:
+            The stored record.
+        """
+        self._records[record.capability] = record
+        return record
+
     def certified_names(self) -> List[str]:
         """The sorted capability names currently certified.
 
@@ -222,7 +346,8 @@ class CapabilityCertification:
         return sorted(n for n, r in self._records.items() if r.certified)
 
     def certify(self, capability: str, *, certified_by: str, evidence: str,
-                reason: str, cycle: Optional[int] = None) -> CertificationRecord:
+                reason: str, cycle: Optional[int] = None,
+                tier: str = CertificationTier.LIVE.value) -> CertificationRecord:
         """Explicitly certify one capability (an operator decision).
 
         Args:
@@ -231,6 +356,7 @@ class CapabilityCertification:
             evidence: the evidence reference backing the decision.
             reason: the recorded rationale.
             cycle: optional pipeline cycle of certification.
+            tier: the evidence tier (default LIVE).
 
         Returns:
             The written CertificationRecord.
@@ -238,6 +364,7 @@ class CapabilityCertification:
         rec = CertificationRecord(
             capability=capability, certified=True, certified_by=certified_by,
             evidence=evidence, reason=reason, certified_cycle=cycle,
+            tier=tier,
         )
         self._records[capability] = rec
         return rec
@@ -270,6 +397,7 @@ class CapabilityCertification:
         return {
             "path": self._path,
             "certified": self.certified_names(),
+            "live_certified": self.live_certified_names(),
             "records": [r.to_dict() for r in self._records.values()],
         }
 
@@ -733,8 +861,72 @@ class CertificationWorkflow:
         registry._records[decision.capability] = rec
         return rec
 
+def load_sandbox_evidence(
+        path: Optional[str] = None) -> CapabilityCertification:
+    """Load the SANDBOX-CERTIFIED evidence artifact as a scoped registry.
+
+    This is the ONLY reader that treats a sandbox-tier record as ``certified``
+    — and it exists solely so the bounded live-producer canary can be
+    authorized to exercise a DISPOSABLE target. It deliberately bypasses the
+    canonical loader's sandbox downgrade because the canary's authority is the
+    preserved sandbox evidence, not production LIVE certification. The canonical
+    ``capability_certification.json`` loader still ignores sandbox records
+    (fail-closed); nothing else in the system calls this.
+
+    Fails CLOSED: a missing, unreadable, or malformed artifact yields an empty
+    registry (nothing certified), never a permissive default.
+
+    Args:
+        path: the sandbox evidence path (defaults to the canonical artifact).
+
+    Returns:
+        A CapabilityCertification whose records are sandbox-tier.
+    """
+    src = path or DEFAULT_SANDBOX_EVIDENCE_PATH
+    try:
+        with open(src, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        logger.info("sandbox evidence %r absent; canary stays uncertified", src)
+        return CapabilityCertification(records={}, path=src)
+    except Exception as e:
+        logger.warning("sandbox evidence %r unreadable (%s); failing closed",
+                       src, e)
+        return CapabilityCertification(records={}, path=src)
+    if not isinstance(data, dict):
+        return CapabilityCertification(records={}, path=src)
+    records: Dict[str, CertificationRecord] = {}
+    for entry in data.get("records", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("capability")
+        if not isinstance(name, str) or not name.strip():
+            continue
+        tier = str(entry.get("tier",
+                             CertificationTier.SANDBOX.value)).strip().upper()
+        if tier != CertificationTier.SANDBOX.value:
+            # This artifact carries sandbox evidence only; refuse anything else.
+            continue
+        records[name] = CertificationRecord(
+            capability=name,
+            certified=bool(entry.get("certified", False)),
+            certified_by=str(entry.get("certified_by", "")),
+            evidence=str(entry.get("evidence", "")),
+            reason=str(entry.get("reason", "")),
+            certified_cycle=entry.get("certified_cycle"),
+            evidence_detail=(entry.get("evidence_detail")
+                             if isinstance(entry.get("evidence_detail"), dict)
+                             else None),
+            tier=CertificationTier.SANDBOX.value,
+        )
+    logger.info("sandbox evidence loaded: %d sandbox-tier record(s) from %s",
+                len(records), src)
+    return CapabilityCertification(records=records, path=src)
+
+
 __all__ = [
     "CertificationRecord", "CapabilityCertification", "DEFAULT_CERTIFICATION_PATH",
+    "DEFAULT_SANDBOX_EVIDENCE_PATH", "CertificationTier", "load_sandbox_evidence",
     "CertificationAction", "VerifiedOutcome", "CertificationDecision",
     "CertificationWorkflow", "VarianceEvidence", "CERTIFICATION_INVARIANTS",
 ]

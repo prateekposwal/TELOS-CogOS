@@ -1,8 +1,72 @@
 {
-  "_comment": "Per-capability LIVE-execution certification record. HONEST STATE: ZERO capabilities are certified at this stage, so WorldActionRunner refuses mode=LIVE for every capability while DRY_RUN remains available. An operator certifies a capability by adding its name to 'certified' (or a full record to 'records') with evidence + reason; a missing or malformed file loads as ZERO certified (fail-closed).",
-  "certified_by": "",
-  "evidence": "",
-  "reason": "",
-  "certified": [],
-  "records": []
+  "path": "/Users/prateekposwal/dev/telos/telos/audit/capability_certification.json",
+  "certified": [
+    "filesystem.write"
+  ],
+  "live_certified": [
+    "filesystem.write"
+  ],
+  "records": [
+    {
+      "capability": "filesystem.write",
+      "certified": true,
+      "certified_by": "live_canary",
+      "evidence": "loop-correctness under variance satisfied (I1-I8 held, gap discriminated normal<=0.2 < divergent, zero false admits, fail-closed, revocation shown) AND 1 successful verified actions within the last 5 (>= 1) with no failure streak \u2014 certified",
+      "reason": "live producer canary satisfied the certification invariants against a disposable sandbox target",
+      "certified_cycle": 200,
+      "evidence_detail": {
+        "criteria": {
+          "min_successes": 1,
+          "max_gap": 0.2,
+          "window": 5,
+          "failure_streak": 2,
+          "require_variance": true
+        },
+        "sample_size": 1,
+        "total_recorded": 1,
+        "successes": 1,
+        "failures": 0,
+        "failure_streak": 0,
+        "success_cycles": [
+          200
+        ],
+        "max_observed_gap": 0.0,
+        "variance": {
+          "required": true,
+          "satisfied": true,
+          "failures": [],
+          "source": "/Users/prateekposwal/dev/telos/telos/audit/live_canary.json",
+          "gates": {
+            "families": {
+              "normal": 1,
+              "adversarial": 1,
+              "refusal": 1
+            },
+            "invariants": {
+              "I1": true,
+              "I2": true,
+              "I3": true,
+              "I4": true,
+              "I5": true,
+              "I6": true,
+              "I7": true,
+              "I8": true
+            },
+            "gaps_bounded": true,
+            "normal_gap_max": 0.0,
+            "adversarial_gap_min": 0.937984496124031,
+            "adversarial_gap_max": 0.937984496124031,
+            "detects_large_divergence": true,
+            "discriminates": true,
+            "false_admits": 0,
+            "fail_open_count": 0,
+            "revocation_demonstrated": true
+          }
+        },
+        "tier": "LIVE",
+        "source": "/Users/prateekposwal/dev/telos/telos/audit/live_canary.json"
+      },
+      "tier": "LIVE"
+    }
+  ]
 }

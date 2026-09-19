@@ -40,8 +40,9 @@ PROJECT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file
 sys.path.insert(0, PROJECT)
 
 from telos.core.actions.certification import (  # noqa: E402
-    CERTIFICATION_INVARIANTS, CapabilityCertification, CertificationAction,
-    CertificationWorkflow, VarianceEvidence, VerifiedOutcome,
+    CERTIFICATION_INVARIANTS, DEFAULT_SANDBOX_EVIDENCE_PATH, CapabilityCertification,
+    CertificationAction, CertificationTier, CertificationWorkflow,
+    VarianceEvidence, VerifiedOutcome,
 )
 from telos.core.actions.executor import (  # noqa: E402
     ActionExecutor, ToolPermission,
@@ -66,6 +67,10 @@ from telos.core.verifier.measurement import provenance  # noqa: E402
 
 PRODUCER = "telos/tools/certification_campaign.py"
 ARTIFACT = "telos/audit/certification_campaign.json"
+#: The SEPARATE durable sandbox-evidence artifact. Sandbox certification is
+#: preserved here (tier=SANDBOX) and NEVER promoted into the canonical LIVE
+#: registry (``capability_certification.json``).
+SANDBOX_ARTIFACT = "telos/audit/sandbox_certification.json"
 CAPABILITY = "filesystem.write"
 TARGET = "notes.md"
 OTHER_TARGET = "other.md"
@@ -1350,13 +1355,6 @@ def run_campaign(*, live: bool = True,
                                  variance=evidence)
     certified = decision.action is CertificationAction.CERTIFY
 
-    canonical_written = False
-    if certified and persist:
-        registry = CapabilityCertification()
-        workflow.apply(registry, decision)
-        registry.save()
-        canonical_written = True
-
     live_record: Optional[Dict[str, Any]] = None
     if certified and live:
         live_record = _live_exercise()
@@ -1368,7 +1366,7 @@ def run_campaign(*, live: bool = True,
                               "I8", "I9"])
     }
     passed = sum(1 for v in criteria.values() if v)
-    return {
+    result: Dict[str, Any] = {
         "provenance": provenance(PRODUCER, CAMPAIGN_CRITERIA,
                                  source="first_party"),
         "criteria": criteria,
@@ -1382,7 +1380,12 @@ def run_campaign(*, live: bool = True,
         "certification": {
             "decision": decision.to_dict(),
             "certified": certified,
-            "canonical_record_written": canonical_written,
+            # The canonical LIVE registry is NEVER written by the campaign:
+            # a pass here earns the SANDBOX tier only. Promotion to LIVE is a
+            # separate, live-evidence-gated act (the live producer canary).
+            "canonical_record_written": False,
+            "sandbox_evidence_written": False,
+            "tier": CertificationTier.SANDBOX.value,
             "criteria_strengthened": [
                 "battery_exercised_normal_and_divergent",
                 "loop_invariants_I1_I8_hold",
@@ -1395,6 +1398,74 @@ def run_campaign(*, live: bool = True,
         },
         "live_exercise": live_record,
     }
+
+    if certified and persist:
+        # Two-tier discipline: preserve the earned sandbox certification as
+        # durable EVIDENCE in its own artifact. NEVER the canonical LIVE
+        # registry — that stays fail-closed until live evidence promotes it.
+        _write_sandbox_evidence(sandbox_evidence_artifact(result))
+        result["certification"]["sandbox_evidence_written"] = True
+    if certified and persist and live_record is None:
+        # The sandbox artifact is evidence; the canonical LIVE registry is
+        # untouched either way. Record the explicit refusal so it is auditable.
+        result["certification"]["canonical_refused_sandbox_promotion"] = True
+    return result
+
+
+def sandbox_evidence_artifact(artifact: Dict[str, Any]) -> Dict[str, Any]:
+    """Build the durable SANDBOX-CERTIFIED evidence artifact (never LIVE).
+
+    Args:
+        artifact: the campaign artifact from :func:`run_campaign`.
+
+    Returns:
+        The sandbox-evidence dict (tier=SANDBOX; canonical promotion false).
+    """
+    cert = artifact["certification"]
+    decision = cert["decision"]
+    return {
+        "provenance": artifact["provenance"],
+        "tier": CertificationTier.SANDBOX.value,
+        "state": ("SANDBOX-CERTIFIED" if cert["certified"]
+                  else "SANDBOX-HOLD"),
+        "capability": artifact["capability"],
+        "canonical_registry_promoted": False,
+        "canonical_registry": DEFAULT_SANDBOX_EVIDENCE_PATH.replace(
+            "sandbox_certification.json", "capability_certification.json"),
+        "campaign_artifact": ARTIFACT,
+        "decision": decision,
+        "variance_evidence": artifact["variance_evidence"],
+        "invariants": {k: bool(v["held"])
+                       for k, v in artifact["invariants"].items()},
+        "records": [{
+            "capability": artifact["capability"],
+            "certified": bool(cert["certified"]),
+            "tier": CertificationTier.SANDBOX.value,
+            "certified_by": "certification_campaign",
+            "evidence": decision.get("reason", ""),
+            "reason": ("sandbox variance battery: loop-correctness under "
+                       "variance (preserved evidence; not promoted)"),
+            "certified_cycle": None,
+            "evidence_detail": decision.get("evidence", {}),
+        }],
+    }
+
+
+def _write_sandbox_evidence(evidence: Dict[str, Any]) -> str:
+    """Write the sandbox-evidence artifact (never the canonical LIVE registry).
+
+    Args:
+        evidence: the dict from :func:`sandbox_evidence_artifact`.
+
+    Returns:
+        The path written.
+    """
+    out = SANDBOX_ARTIFACT if os.path.isabs(SANDBOX_ARTIFACT) \
+        else os.path.join(PROJECT, SANDBOX_ARTIFACT)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(evidence, f, indent=2, default=str)
+    return out
 
 
 def print_report(artifact: Dict[str, Any]) -> bool:
@@ -1422,7 +1493,10 @@ def print_report(artifact: Dict[str, Any]) -> bool:
     cert = artifact["certification"]
     dec = cert["decision"]
     print(f"  certification: {dec['action']}  certified={cert['certified']}  "
-          f"canonical_written={cert['canonical_record_written']}")
+          f"tier={cert.get('tier', 'LIVE')}  "
+          f"canonical_written={cert['canonical_record_written']}  "
+          f"sandbox_evidence_written="
+          f"{cert.get('sandbox_evidence_written', False)}")
     print(f"    reason: {dec['reason'][:140]}")
     if artifact.get("live_exercise"):
         lv = artifact["live_exercise"]
@@ -1452,8 +1526,10 @@ def main() -> int:
     ap.add_argument("--no-live", action="store_true",
                     help="skip the controlled LIVE exercise (Part D)")
     ap.add_argument("--persist", action="store_true",
-                    help=("explicitly write the canonical certification record "
-                          "(operator act; default is NOT to auto-certify)"))
+                    help=("write the durable SANDBOX-CERTIFIED evidence "
+                          "artifact (tier=SANDBOX). NEVER writes the canonical "
+                          "LIVE registry — promotion to LIVE is gated on live "
+                          "canary evidence"))
     args = ap.parse_args()
     artifact = run_campaign(live=not args.no_live, persist=args.persist)
     if args.json:

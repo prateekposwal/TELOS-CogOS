@@ -24,6 +24,7 @@ from telos.core.actions.executor import (
 )
 from telos.core.actions.certification import (
     CertificationRecord, CapabilityCertification, DEFAULT_CERTIFICATION_PATH,
+    DEFAULT_SANDBOX_EVIDENCE_PATH, CertificationTier, load_sandbox_evidence,
     CertificationAction, VerifiedOutcome, CertificationDecision,
     CertificationWorkflow,
 )
@@ -46,7 +47,8 @@ __all__ = [
     "ToolPermission", "ActionExecution",
     "ActionExecutor", "ToolRejected",
     "CertificationRecord", "CapabilityCertification",
-    "DEFAULT_CERTIFICATION_PATH",
+    "DEFAULT_CERTIFICATION_PATH", "DEFAULT_SANDBOX_EVIDENCE_PATH",
+    "CertificationTier", "load_sandbox_evidence",
     "CertificationAction", "VerifiedOutcome", "CertificationDecision",
     "CertificationWorkflow",
     "GAP_METRIC", "text_reality_gap", "observation_fingerprint",

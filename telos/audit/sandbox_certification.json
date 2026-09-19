@@ -1,0 +1,201 @@
+{
+  "provenance": {
+    "schema_version": 1,
+    "producer": "telos/tools/certification_campaign.py",
+    "source": "first_party",
+    "machine_checkable": true,
+    "criteria": [
+      "I1_prediction_before_action",
+      "I2_observation_is_post_action_read",
+      "I3_gap_ordered_and_bounded",
+      "I4_authority_rises_low_falls_high",
+      "I5_reduced_authority_blocks_act",
+      "I6_no_admit_on_mismatch",
+      "I7_revocation_on_failure_streak",
+      "I8_fail_closed_missing_evidence",
+      "I9_determinism_preserved"
+    ]
+  },
+  "tier": "SANDBOX",
+  "state": "SANDBOX-CERTIFIED",
+  "capability": "filesystem.write",
+  "canonical_registry_promoted": false,
+  "canonical_registry": "/Users/prateekposwal/dev/telos/telos/audit/capability_certification.json",
+  "campaign_artifact": "telos/audit/certification_campaign.json",
+  "decision": {
+    "capability": "filesystem.write",
+    "action": "CERTIFY",
+    "reason": "loop-correctness under variance satisfied (I1-I8 held, gap discriminated normal<=0.2 < divergent, zero false admits, fail-closed, revocation shown) AND 3 successful verified actions within the last 5 (>= 3) with no failure streak \u2014 certified",
+    "evidence": {
+      "criteria": {
+        "min_successes": 3,
+        "max_gap": 0.2,
+        "window": 5,
+        "failure_streak": 2,
+        "require_variance": true
+      },
+      "sample_size": 3,
+      "total_recorded": 3,
+      "successes": 3,
+      "failures": 0,
+      "failure_streak": 0,
+      "success_cycles": [
+        0,
+        1,
+        2
+      ],
+      "max_observed_gap": 0.0,
+      "variance": {
+        "required": true,
+        "satisfied": true,
+        "failures": [],
+        "source": "telos/audit/certification_campaign.json",
+        "gates": {
+          "families": {
+            "normal": 1,
+            "near_match": 1,
+            "adversarial": 7,
+            "refusal": 7
+          },
+          "invariants": {
+            "I1": true,
+            "I2": true,
+            "I3": true,
+            "I4": true,
+            "I5": true,
+            "I6": true,
+            "I7": true,
+            "I8": true,
+            "I9": true
+          },
+          "gaps_bounded": true,
+          "normal_gap_max": 0.0,
+          "adversarial_gap_min": 0.04166666666666663,
+          "adversarial_gap_max": 1.0,
+          "detects_large_divergence": true,
+          "discriminates": true,
+          "false_admits": 0,
+          "fail_open_count": 0,
+          "revocation_demonstrated": true
+        }
+      }
+    },
+    "certified": true
+  },
+  "variance_evidence": {
+    "capability": "filesystem.write",
+    "families": {
+      "normal": 1,
+      "near_match": 1,
+      "adversarial": 7,
+      "refusal": 7
+    },
+    "invariants": {
+      "I1": true,
+      "I2": true,
+      "I3": true,
+      "I4": true,
+      "I5": true,
+      "I6": true,
+      "I7": true,
+      "I8": true,
+      "I9": true
+    },
+    "measured_gaps": [
+      0.0,
+      0.06382978723404253,
+      0.6666666666666667,
+      0.7704918032786885,
+      0.6363636363636364,
+      1.0,
+      0.04166666666666663
+    ],
+    "normal_gap_max": 0.0,
+    "adversarial_gap_min": 0.04166666666666663,
+    "adversarial_gap_max": 1.0,
+    "false_admits": 0,
+    "fail_open_count": 0,
+    "revocation_demonstrated": true,
+    "min_normal_cases": 1,
+    "min_adversarial_cases": 3,
+    "min_refusal_cases": 1,
+    "source": "telos/audit/certification_campaign.json",
+    "detail": {}
+  },
+  "invariants": {
+    "I1": true,
+    "I2": true,
+    "I3": true,
+    "I4": true,
+    "I5": true,
+    "I6": true,
+    "I7": true,
+    "I8": true,
+    "I9": true
+  },
+  "records": [
+    {
+      "capability": "filesystem.write",
+      "certified": true,
+      "tier": "SANDBOX",
+      "certified_by": "certification_campaign",
+      "evidence": "loop-correctness under variance satisfied (I1-I8 held, gap discriminated normal<=0.2 < divergent, zero false admits, fail-closed, revocation shown) AND 3 successful verified actions within the last 5 (>= 3) with no failure streak \u2014 certified",
+      "reason": "sandbox variance battery: loop-correctness under variance (preserved evidence; not promoted)",
+      "certified_cycle": null,
+      "evidence_detail": {
+        "criteria": {
+          "min_successes": 3,
+          "max_gap": 0.2,
+          "window": 5,
+          "failure_streak": 2,
+          "require_variance": true
+        },
+        "sample_size": 3,
+        "total_recorded": 3,
+        "successes": 3,
+        "failures": 0,
+        "failure_streak": 0,
+        "success_cycles": [
+          0,
+          1,
+          2
+        ],
+        "max_observed_gap": 0.0,
+        "variance": {
+          "required": true,
+          "satisfied": true,
+          "failures": [],
+          "source": "telos/audit/certification_campaign.json",
+          "gates": {
+            "families": {
+              "normal": 1,
+              "near_match": 1,
+              "adversarial": 7,
+              "refusal": 7
+            },
+            "invariants": {
+              "I1": true,
+              "I2": true,
+              "I3": true,
+              "I4": true,
+              "I5": true,
+              "I6": true,
+              "I7": true,
+              "I8": true,
+              "I9": true
+            },
+            "gaps_bounded": true,
+            "normal_gap_max": 0.0,
+            "adversarial_gap_min": 0.04166666666666663,
+            "adversarial_gap_max": 1.0,
+            "detects_large_divergence": true,
+            "discriminates": true,
+            "false_admits": 0,
+            "fail_open_count": 0,
+            "revocation_demonstrated": true
+          }
+        }
+      }
+    }
+  ]
+}
