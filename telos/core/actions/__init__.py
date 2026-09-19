@@ -32,6 +32,10 @@ from telos.core.actions.durability import (
     SCHEMA_VERSION, KIND_AUTHORITY_EVIDENCE, StateOutcome, DurabilityMode,
     StateLoadResult, atomic_write_state, read_state,
 )
+from telos.core.actions.integrity import (
+    IntegrityAnchor, IntegrityMode, LocalAnchor, HmacAnchor, WitnessAnchor,
+    UnavailableAnchor, AnchorUnavailable, resolve_anchor, load_hmac_key,
+)
 from telos.core.actions.reality_loop import (
     GAP_METRIC, text_reality_gap, observation_fingerprint,
     AuthorityState, CapabilityAuthority,
@@ -57,6 +61,9 @@ __all__ = [
     "CertificationWorkflow",
     "SCHEMA_VERSION", "KIND_AUTHORITY_EVIDENCE", "StateOutcome",
     "DurabilityMode", "StateLoadResult", "atomic_write_state", "read_state",
+    "IntegrityAnchor", "IntegrityMode", "LocalAnchor", "HmacAnchor",
+    "WitnessAnchor", "UnavailableAnchor", "AnchorUnavailable",
+    "resolve_anchor", "load_hmac_key",
     "GAP_METRIC", "text_reality_gap", "observation_fingerprint",
     "AuthorityState", "CapabilityAuthority",
     "WorldAdapter", "WorldObservation", "ValidationResult", "VerificationResult",

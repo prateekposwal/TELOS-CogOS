@@ -6,7 +6,9 @@
 > competing store.**
 
 Implementation: `telos/core/actions/durability.py` (the envelope + atomic
-read/write), consumed by `telos/core/actions/reality_loop.py`
+read/write), with the **pluggable integrity anchors** in
+`telos/core/actions/integrity.py` (owned by, and re-exported from, the
+durability module). Consumed by `telos/core/actions/reality_loop.py`
 (`CapabilityAuthority`) and `telos/core/runtime.py` (the pipeline's per-model
 Reality Gap evidence). Construction audit:
 `telos/tools/durability_audit.py`.
@@ -34,6 +36,9 @@ automatically, but only an operator may *grant* canonical certification.
   "schema_version": 1,
   "kind": "telos_authority_evidence",
   "checksum": "<sha256 of the canonical payload>",
+  "sequence": 7,
+  "anchor": "hmac",
+  "mac": "<HMAC over the envelope core>",
   "payload": { "models": { "<model_id>": { … tracker state … } } }
 }
 ```
@@ -42,17 +47,51 @@ automatically, but only an operator may *grant* canonical certification.
 separators, `allow_nan=False`). Writes are atomic: a crash or a concurrent
 reader never observes a half-written record.
 
+`sequence`, `anchor` and `mac` are **present only when a trust anchor requires
+them**. In the default `local` mode the envelope is the historical four-key
+form (`schema_version`, `kind`, `checksum`, `payload`) — **byte-identical** to
+the pre-anchor contract.
+
+## Integrity / trust anchors (pluggable, selected by explicit configuration)
+
+Selected by `TELOS_DURABILITY_INTEGRITY` (`local` default; `hmac`; `witness`).
+
+| Mode | What it defends against | What it does **NOT** defend against |
+|---|---|---|
+| **`local`** (default) | Accidental corruption; deletion made explicit. | Tampering (the sha256 is co-located and recomputable); rollback/replay. **Not tamper- or rollback-resistant.** |
+| **`hmac`** | Tampering that edits the state file (and/or its co-located checksum) without the key. The key is held **outside** the artifact (env `TELOS_DURABILITY_HMAC_KEY`, or a restricted-permission key file `TELOS_DURABILITY_HMAC_KEY_FILE`). A Keychain-held key is injected into the env at launch (`TELOS_DURABILITY_HMAC_KEY="$(security find-generic-password -w -s SVC -a ACC)"`) — TELOS spawns **no** subprocess (the core's only governed subprocess channel is the ActionExecutor). | An attacker who can **read the key** (i.e. who already has the user account/OS); rollback/replay of an older correctly-signed state. |
+| **`witness`** | Rollback/replay to an older **valid** state, while the witness store (a separate file recording the latest accepted `sequence` + MAC) is intact. | An attacker who can also edit/roll back the witness; anyone with the key; full OS compromise. |
+| **unavailable / misconfigured** | — (fails **closed**: no authority, no write) | Never silently downgrades to `local`. |
+
+**Anti-rollback / freshness.** When an anchor requires freshness the envelope
+carries a monotonic `sequence` (bound inside the authenticated HMAC core).
+On load, a `sequence` **older than the anchor's accepted freshness floor** is
+classified `CORRUPTED` (stale/replayed) and fails closed. For `witness` the
+floor is durable across restarts (the witness store); for `hmac`/`local` it is
+in-process only (a same-file sequence cannot defend against an attacker who
+rewrites the whole file).
+
+**No silent downgrade.** A configured anchor that is unusable (missing key,
+keychain locked/unavailable, missing witness path, unknown mode) resolves to an
+`UnavailableAnchor` that makes reads/writes **fail closed**. A `local`/default
+reader refuses a stronger-anchored (`hmac`/`witness`) envelope, and an
+`hmac`/`witness` reader refuses an unsigned envelope. There is **no** fallback
+from `hmac`/`witness` to `local`.
+
 ## Read classification
 
 * **FIRST_RUN** — the configured store does not exist. Honest cold start;
   initialization is safe (bootstrap).
-* **LOADED** — exists, correct `kind`, supported `schema_version`, checksum
-  verifies. The payload is trusted.
-* **CORRUPTED / TAMPERED** — exists but unreadable, not a JSON object, missing
-  the envelope, wrong `kind`, newer/unknown `schema_version`, or checksum
-  mismatch. **Fails closed**: no authority is granted and no automatic
-  reconstruction from stale positive state occurs. Corrupt/deleted
-  safety-critical state is **never** silently treated as a clean first run.
+* **LOADED** — exists, correct `kind`, supported `schema_version`, integrity
+  verifies (checksum and/or the configured anchor's MAC), and the `sequence` is
+  not older than the anchor's freshness floor. The payload is trusted.
+* **CORRUPTED / TAMPERED / STALE** — exists but unreadable, not a JSON object,
+  missing the envelope, wrong `kind`, newer/unknown `schema_version`, integrity
+  mismatch, anchored in a mode the reader is not configured for, anchored
+  without a MAC, or carrying a `sequence` older than the accepted floor.
+  **Fails closed**: no authority is granted and no automatic reconstruction
+  from stale positive state occurs. Corrupt/deleted/replayed safety-critical
+  state is **never** silently treated as a clean first run.
 
 ## DURABLE vs EPHEMERAL
 
@@ -73,20 +112,29 @@ one refuses with `authority_durability_unconfigured`.
 Paths are supplied by the caller (e.g. the producer's
 `/tmp/telos_capability_authority.json`, or the pipeline's
 `reality_gap_state_path`). **No default path is invented** — a silent default
-could make separate instances or tests share state unexpectedly.
+could make separate instances or tests share state unexpectedly. The witness
+store path (`TELOS_DURABILITY_WITNESS_PATH`) is likewise caller-supplied and
+must be a **different** file from the state store.
 
 ## Trust boundary (honest statement)
 
-**Trusted-local-disk remains the security boundary.** The envelope detects
-accidental corruption and casual tampering and makes deletion explicit, but it
-does **not** protect against an attacker who can modify both the state **and
-its integrity metadata**. A stronger trust anchor (HSM, signed external
-witness, append-only remote log) would be required for that and is not claimed.
+**`local` keeps trusted-local-disk as the boundary**: it detects accidental
+corruption and makes deletion explicit, but an attacker who can modify both the
+state **and its co-located checksum** is undetected. **`hmac`** raises the
+boundary to possession of the key: it stops an attacker who can edit only the
+state file, but not one who can read the key (i.e. who has the user
+account/OS). **`witness`** additionally detects rollback to an older valid
+state while the witness is intact.
+
+**No mode defends against a fully compromised OS/user account** — an attacker
+who can read the key, edit the state **and** the witness, or replace the code
+itself. An **HSM or signed external service** is a further, **unbuilt** step and
+is not claimed.
 
 ## Fail-closed invariants (pinned by tests)
 
 A. Missing safety-critical state never grants authority.
-B. Corrupt/tampered state never grants authority.
+B. Corrupt/tampered/stale state never grants authority.
 C. Restart cannot resurrect falsified authority.
 D. Reality Gap state survives restart when durability is configured.
 E. Stale positive evidence cannot outrank newer falsification.
@@ -95,3 +143,5 @@ G. Certification never activates execution.
 H. Explicit ephemeral/test mode remains possible.
 I. Production authority cannot accidentally be ephemeral.
 J. Deleting persistence cannot manufacture a clean certification state.
+K. A configured-but-unusable anchor fails closed (never downgrades to `local`).
+L. An older valid state cannot be replayed past the freshness floor.

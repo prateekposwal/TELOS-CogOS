@@ -57,6 +57,7 @@ from telos.core.ecology.ecosystem import Ecosystem
 from telos.core.actions.durability import (
     KIND_AUTHORITY_EVIDENCE, atomic_write_state, read_state,
 )
+from telos.core.actions.integrity import IntegrityAnchor, resolve_anchor
 from telos.core.research.amplification_gate import ResearchAmplificationGate
 from telos.core.research.seasons import ResearchSeasons
 from telos.core.research.discovery_rate import DiscoveryRateTracker
@@ -251,6 +252,11 @@ class TelosV14Pipeline:
         _rg_state_path = getattr(self.config, 'reality_gap_state_path', None)
         self._reality_gap_state_path: Optional[str] = (
             str(_rg_state_path) if _rg_state_path else None)
+        # The pluggable integrity anchor for the Reality Gap store (default
+        # ``local`` = byte-identical historical sha256; ``hmac``/``witness``
+        # opt-in via TELOS_DURABILITY_INTEGRITY; a configured-but-unusable
+        # anchor fails closed and never downgrades to ``local``).
+        self._reality_gap_anchor: IntegrityAnchor = resolve_anchor()
         self._reality_gap_evidence_corrupt: bool = False
         if self._reality_gap_state_path:
             self._load_reality_gap_state()
@@ -804,7 +810,8 @@ class TelosV14Pipeline:
         the verified tracker state recency/restriction-safely.
         """
         result = read_state(self._reality_gap_state_path,
-                            expected_kind=KIND_AUTHORITY_EVIDENCE)
+                            expected_kind=KIND_AUTHORITY_EVIDENCE,
+                            anchor=self._reality_gap_anchor)
         if result.first_run:
             return
         if result.corrupted:
@@ -837,7 +844,8 @@ class TelosV14Pipeline:
         try:
             atomic_write_state(
                 self._reality_gap_state_path, KIND_AUTHORITY_EVIDENCE,
-                {"models": self._reality_gap_tracker.to_state()})
+                {"models": self._reality_gap_tracker.to_state()},
+                anchor=self._reality_gap_anchor)
         except Exception as e:
             logger.error(
                 "reality gap evidence persist to %r FAILED (%s); restart "

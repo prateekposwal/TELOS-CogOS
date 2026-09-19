@@ -36,6 +36,7 @@ import numpy as np
 from telos.core.actions.durability import (
     KIND_AUTHORITY_EVIDENCE, DurabilityMode, atomic_write_state, read_state,
 )
+from telos.core.actions.integrity import IntegrityAnchor, resolve_anchor
 from telos.core.governance.capability_authorization import (
     CapabilityAuthorization, CapabilityStatus,
 )
@@ -157,7 +158,8 @@ class CapabilityAuthority:
 
     def __init__(self, tracker: Optional[RealityGapTracker] = None, *,
                  state_path: Optional[str] = None,
-                 durability: Optional[DurabilityMode] = None):
+                 durability: Optional[DurabilityMode] = None,
+                 integrity: Optional[IntegrityAnchor] = None):
         """Construct the authority ledger over a RealityGapTracker.
 
         DURABILITY CONTRACT (Λ6.7, one mechanism — see
@@ -186,6 +188,14 @@ class CapabilityAuthority:
         :meth:`durable` (or ``state_path=``); ``durability=DURABLE`` without a
         path is a hard configuration error.
 
+        PLUGGABLE INTEGRITY ANCHOR (``telos/core/actions/integrity.py``): the
+        store's integrity mechanism is selected by explicit configuration. The
+        default is ``local`` (the historical sha256 checksum) and stays
+        byte-identical; ``hmac`` authenticates the envelope with a key held
+        outside the artifact; ``witness`` adds a separate freshness store so an
+        older valid state cannot be replayed. A configured-but-unusable anchor
+        fails CLOSED and never downgrades to ``local``.
+
         Args:
             tracker: the existing tracker to reuse (defaults to a fresh one).
             state_path: optional durable evidence path. None (default) keeps
@@ -193,6 +203,8 @@ class CapabilityAuthority:
             durability: explicit DURABLE / EPHEMERAL mode. When omitted it is
                 inferred from ``state_path`` (a path => DURABLE, no path =>
                 EPHEMERAL). DURABLE with no path raises.
+            integrity: an explicit integrity anchor; when omitted the anchor is
+                resolved from the environment (default ``local``).
 
         Raises:
             ValueError: when DURABLE is requested without a ``state_path``.
@@ -211,6 +223,10 @@ class CapabilityAuthority:
             if durability is not None
             else (DurabilityMode.DURABLE if self.state_path
                   else DurabilityMode.EPHEMERAL))
+        #: The pluggable integrity anchor for this store (default ``local``,
+        #: byte-identical; ``hmac``/``witness`` opt-in via configuration).
+        self._anchor: IntegrityAnchor = (
+            integrity if integrity is not None else resolve_anchor())
         #: True when a configured evidence store existed but could not be
         #: trusted; every authority query then fails closed.
         self._evidence_unreadable: bool = False
@@ -219,19 +235,22 @@ class CapabilityAuthority:
 
     @classmethod
     def durable(cls, state_path: str,
-                tracker: Optional[RealityGapTracker] = None
+                tracker: Optional[RealityGapTracker] = None, *,
+                integrity: Optional[IntegrityAnchor] = None
                 ) -> "CapabilityAuthority":
         """Construct an explicitly DURABLE production authority.
 
         Args:
             state_path: the durable evidence store path (required).
             tracker: optional tracker to reuse.
+            integrity: optional integrity anchor (default: resolved from the
+                environment, which defaults to ``local``).
 
         Returns:
             A CapabilityAuthority whose evidence survives restart.
         """
         return cls(tracker, state_path=str(state_path),
-                   durability=DurabilityMode.DURABLE)
+                   durability=DurabilityMode.DURABLE, integrity=integrity)
 
     @classmethod
     def ephemeral(cls, tracker: Optional[RealityGapTracker] = None
@@ -262,7 +281,8 @@ class CapabilityAuthority:
         tracker state is merged recency/restriction-safely.
         """
         result = read_state(self.state_path,
-                            expected_kind=KIND_AUTHORITY_EVIDENCE)
+                            expected_kind=KIND_AUTHORITY_EVIDENCE,
+                            anchor=self._anchor)
         if result.first_run:
             return
         if result.corrupted:
@@ -296,7 +316,7 @@ class CapabilityAuthority:
         try:
             atomic_write_state(
                 self.state_path, KIND_AUTHORITY_EVIDENCE,
-                {"models": self.tracker.to_state()})
+                {"models": self.tracker.to_state()}, anchor=self._anchor)
         except Exception as e:
             logger.error(
                 "capability authority evidence persist to %r FAILED (%s); "
