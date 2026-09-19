@@ -29,6 +29,15 @@ jobs:
       - name: Run tests
         run: |
           PYTHONPATH=. python3 -m pytest tests/ -q --tb=no 2>&1 | tee test.log
+      # Full-duration stability gate (STRICT). pipefail makes the step's exit
+      # code the harness's: a load-skipped checklist => INCOMPLETE => exit 2,
+      # so a nightly can never pass on an unmeasured run. Nightly runners are
+      # quiet, so the load guard should not trip; if one does, the run is
+      # correctly non-green rather than a false PASS.
+      - name: Stability endurance gate (full 10k, strict)
+        run: |
+          set -o pipefail
+          PYTHONPATH=. python3 telos/tools/endurance.py --cycles 10000 --strict 2>&1 | tee endurance.log
       - name: Upload logs
         uses: actions/upload-artifact@v4
         with:

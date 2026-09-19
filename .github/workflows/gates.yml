@@ -5,6 +5,8 @@ name: Invariant Gates
 # Kept separate from tests.yml (which is the fast multi-version test matrix).
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -39,6 +41,17 @@ jobs:
 
       - name: Sustained memory consumption
         run: python telos/tools/memory_consumption_run.py --cycles 120 --ci
+
+      # Behavioral harnesses: functional invariants + seeded determinism (no
+      # wall-clock gates). Each exits nonzero on any missed criterion.
+      - name: Behavioral evaluation harnesses
+        run: make behavioral
+
+      # Bounded strict stability gate (2000 cycles). STRICT: a load-skipped
+      # check reports INCOMPLETE and exits 2 — CI never reads a skip as green.
+      # The full 10,000-cycle strict run lives in nightly.yml.
+      - name: Stability endurance gate (bounded, strict)
+        run: make endurance
 
       - name: Packaging smoke (editable install + CLI)
         run: |
