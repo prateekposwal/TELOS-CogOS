@@ -8,6 +8,7 @@ next-best alternative — satisfying Axiom 4.3 (Possibility Preservation).
 """
 
 import logging
+from typing import Optional
 
 from telos.core.council.base import ValidationSignal, CouncilConfig
 from telos.core.phases.base import Phase, PhaseContext
@@ -16,22 +17,55 @@ from telos.core.trace.psdt import PSDT
 logger = logging.getLogger('telos_pipeline')
 
 
+def gather_evidence_weights(pipeline) -> Optional[dict]:
+    """Collect per-validator evidence multipliers from the StreamCalibrator.
+
+    The calibrator is keyed by STREAM name and returns ``evidence=0.0`` for any
+    name it has never seen. Validators are not streams, so an unconditional
+    lookup returned ``0.0`` for EVERY validator — multiplying each signal's
+    own evidence weight by zero, which nullified the DI evidence term entirely
+    and collapsed ``decision_integrity`` to a binary any-block→DissentFloor
+    signal (the aggregation defect this phase fixes). Only names the calibrator
+    actually stores with a POSITIVE evidence score participate; everything else
+    keeps the validator's own ``evidence_weight`` (no modulation). Returns None
+    when nothing is calibrated, matching the plain DI formula.
+
+    Args:
+        pipeline: the running pipeline (source of the calibrator + validators).
+
+    Returns:
+        A {validator_name: evidence_score} dict, or None when empty/unavailable.
+    """
+    try:
+        infra = getattr(pipeline, 'infra_manager', None)
+        if infra is None or not hasattr(infra, 'calibrator'):
+            return None
+        validators = getattr(getattr(pipeline, 'council', None), '_validators', None)
+        if not validators:
+            return None
+        weight = infra.calibrator.get_evidence_weighted_influence
+        calibrated = {}
+        for v in validators:
+            try:
+                ev = float(weight(v.name).get("evidence", 0.0) or 0.0)
+            except Exception:
+                continue
+            if ev > 0.0:
+                calibrated[v.name] = ev
+        return calibrated or None
+    except Exception:
+        return None
+
+
 class CouncilPhase(Phase):
     name = "council"
 
     def execute(self, pipeline, ctx: PhaseContext) -> None:
-        # Phase 1: Gather evidence influence weights from StreamCalibrator
-        evidence_weights = None
-        try:
-            infra = getattr(pipeline, 'infra_manager', None)
-            if infra and hasattr(infra, 'calibrator'):
-                weight = infra.calibrator.get_evidence_weighted_influence
-                evidence_weights = {
-                    v.name: weight(v.name)["evidence"]
-                    for v in pipeline.council._validators
-                } if hasattr(pipeline.council, '_validators') else None
-        except Exception:
-            pass
+        # Phase 1: Gather evidence influence weights from StreamCalibrator.
+        # (The calibrator is keyed by STREAM name; the lookup below only keeps
+        # names it genuinely knows with a non-zero evidence score — see
+        # gather_evidence_weights for why an uncalibrated 0.0 must be dropped.)
+        evidence_weights = gather_evidence_weights(pipeline)
 
         # ── Configure voting threshold based on decision criticality ──
         criticality = getattr(ctx, 'decision_criticality', 'medium')

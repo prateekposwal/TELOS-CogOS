@@ -7,7 +7,7 @@
     "baseline": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -71,11 +71,11 @@
       "j_term_means": {
         "expected_reward": 0.9235,
         "discounted_reward": 0.6314,
-        "maintenance_cost": 0.1246,
+        "maintenance_cost": 0.1244,
         "recovery_cost": 0.4095,
         "identity_cost": 1.0769,
         "alignment_cost": 0.0,
-        "future_option_value": 0.5307,
+        "future_option_value": 0.5308,
         "counterfactual_diversity": 0.1141,
         "prediction_error": 0.2015,
         "information_gain": 0.1598,
@@ -101,7 +101,7 @@
     "J_commitment_zero": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -165,11 +165,11 @@
       "j_term_means": {
         "expected_reward": 0.9235,
         "discounted_reward": 0.6314,
-        "maintenance_cost": 0.1249,
+        "maintenance_cost": 0.1243,
         "recovery_cost": 0.4095,
         "identity_cost": 1.0769,
         "alignment_cost": 0.0,
-        "future_option_value": 0.5304,
+        "future_option_value": 0.5309,
         "counterfactual_diversity": 0.1141,
         "prediction_error": 0.2015,
         "information_gain": 0.1598,
@@ -195,7 +195,7 @@
     "J_commitment_one": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -259,11 +259,11 @@
       "j_term_means": {
         "expected_reward": 0.9235,
         "discounted_reward": 0.6314,
-        "maintenance_cost": 0.1246,
+        "maintenance_cost": 0.1243,
         "recovery_cost": 0.4095,
         "identity_cost": 1.0769,
         "alignment_cost": 0.0,
-        "future_option_value": 0.5307,
+        "future_option_value": 0.5309,
         "counterfactual_diversity": 0.1141,
         "prediction_error": 0.2015,
         "information_gain": 0.1598,
@@ -289,7 +289,759 @@
     "identity_gate_off": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1244,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5308,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "evidence_validator_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1243,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5309,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "mission_drift_validator_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1243,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5309,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "gate_model_fidelity_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1243,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5308,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "gate_risk_coverage_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1244,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5308,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "gate_causal_confidence_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1243,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5308,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "gate_recovery_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1244,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5308,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "gate_authority_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1244,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5308,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "gate_observability_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -380,10 +1132,10 @@
       },
       "behavior_changed_vs_baseline": false
     },
-    "evidence_validator_off": {
+    "ablate_RealityValidator": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -447,11 +1199,11 @@
       "j_term_means": {
         "expected_reward": 0.9235,
         "discounted_reward": 0.6314,
-        "maintenance_cost": 0.1247,
+        "maintenance_cost": 0.1245,
         "recovery_cost": 0.4095,
         "identity_cost": 1.0769,
         "alignment_cost": 0.0,
-        "future_option_value": 0.5306,
+        "future_option_value": 0.5307,
         "counterfactual_diversity": 0.1141,
         "prediction_error": 0.2015,
         "information_gain": 0.1598,
@@ -474,10 +1226,10 @@
       },
       "behavior_changed_vs_baseline": false
     },
-    "mission_drift_validator_off": {
+    "ablate_ConstraintValidator": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -541,11 +1293,11 @@
       "j_term_means": {
         "expected_reward": 0.9235,
         "discounted_reward": 0.6314,
-        "maintenance_cost": 0.1247,
+        "maintenance_cost": 0.1245,
         "recovery_cost": 0.4095,
         "identity_cost": 1.0769,
         "alignment_cost": 0.0,
-        "future_option_value": 0.5306,
+        "future_option_value": 0.5307,
         "counterfactual_diversity": 0.1141,
         "prediction_error": 0.2015,
         "information_gain": 0.1598,
@@ -568,104 +1320,10 @@
       },
       "behavior_changed_vs_baseline": false
     },
-    "gate_model_fidelity_off": {
+    "ablate_MemoryAdvisor": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
-      "behavior_digest": "b63d5a874901d381",
-      "acted_cycles": 108,
-      "firewall_blocks": {
-        "action_loop": 12
-      },
-      "firewall_block_count": 12,
-      "episodes": 13,
-      "final_state": [
-        4.0,
-        0.0
-      ],
-      "DI": {
-        "n": 120,
-        "min": 1.0,
-        "mean": 1.0,
-        "max": 1.0
-      },
-      "MD": {
-        "n": 120,
-        "min": 0.7083,
-        "mean": 1.6336,
-        "max": 4.0025
-      },
-      "intents": {
-        "curiosity_explore": 68,
-        "blended_inquiry": 44,
-        "memory_miss": 3,
-        "perceive": 2,
-        "goal_seek_recovery": 2,
-        "inquiry": 1
-      },
-      "action_kinds": 2,
-      "top_actions": [
-        {
-          "action": [
-            1.0,
-            0.0
-          ],
-          "n": 56
-        },
-        {
-          "action": [
-            0.0,
-            1.0
-          ],
-          "n": 52
-        }
-      ],
-      "blocked_by_gate": {},
-      "decision_modes": {
-        "ACT": 76,
-        "ESCALATE": 44
-      },
-      "escalations": 44,
-      "identity_projection": {
-        "projected_cycles": 0,
-        "rejected_cycles": 0
-      },
-      "j_cycles": 120,
-      "j_mean_commitment": 0.9317,
-      "j_term_means": {
-        "expected_reward": 0.9235,
-        "discounted_reward": 0.6314,
-        "maintenance_cost": 0.1247,
-        "recovery_cost": 0.4095,
-        "identity_cost": 1.0769,
-        "alignment_cost": 0.0,
-        "future_option_value": 0.5306,
-        "counterfactual_diversity": 0.1141,
-        "prediction_error": 0.2015,
-        "information_gain": 0.1598,
-        "theory_gain": 0.1833,
-        "uncertainty_bonus": 0.0331,
-        "interpretation_energy": 0.0,
-        "opportunity_cost": 0.1833,
-        "project_coherence_gain": 0.077,
-        "aesthetic_value": 0.0917,
-        "gamma": 0.6017,
-        "horizon": 0.6333,
-        "commitment": 0.9317,
-        "identity_violation": 0.8632
-      },
-      "axioms": {
-        "5.1_pass": 120,
-        "5.3_pass": 120,
-        "4.11_fail": 51,
-        "4.11_pass": 69
-      },
-      "behavior_changed_vs_baseline": false
-    },
-    "gate_risk_coverage_off": {
-      "cycles": 120,
-      "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -756,104 +1414,10 @@
       },
       "behavior_changed_vs_baseline": false
     },
-    "gate_causal_confidence_off": {
+    "ablate_MissionDriftDetector": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
-      "behavior_digest": "b63d5a874901d381",
-      "acted_cycles": 108,
-      "firewall_blocks": {
-        "action_loop": 12
-      },
-      "firewall_block_count": 12,
-      "episodes": 13,
-      "final_state": [
-        4.0,
-        0.0
-      ],
-      "DI": {
-        "n": 120,
-        "min": 1.0,
-        "mean": 1.0,
-        "max": 1.0
-      },
-      "MD": {
-        "n": 120,
-        "min": 0.7083,
-        "mean": 1.6336,
-        "max": 4.0025
-      },
-      "intents": {
-        "curiosity_explore": 68,
-        "blended_inquiry": 44,
-        "memory_miss": 3,
-        "perceive": 2,
-        "goal_seek_recovery": 2,
-        "inquiry": 1
-      },
-      "action_kinds": 2,
-      "top_actions": [
-        {
-          "action": [
-            1.0,
-            0.0
-          ],
-          "n": 56
-        },
-        {
-          "action": [
-            0.0,
-            1.0
-          ],
-          "n": 52
-        }
-      ],
-      "blocked_by_gate": {},
-      "decision_modes": {
-        "ACT": 76,
-        "ESCALATE": 44
-      },
-      "escalations": 44,
-      "identity_projection": {
-        "projected_cycles": 0,
-        "rejected_cycles": 0
-      },
-      "j_cycles": 120,
-      "j_mean_commitment": 0.9317,
-      "j_term_means": {
-        "expected_reward": 0.9235,
-        "discounted_reward": 0.6314,
-        "maintenance_cost": 0.1249,
-        "recovery_cost": 0.4095,
-        "identity_cost": 1.0769,
-        "alignment_cost": 0.0,
-        "future_option_value": 0.5305,
-        "counterfactual_diversity": 0.1141,
-        "prediction_error": 0.2015,
-        "information_gain": 0.1598,
-        "theory_gain": 0.1833,
-        "uncertainty_bonus": 0.0331,
-        "interpretation_energy": 0.0,
-        "opportunity_cost": 0.1833,
-        "project_coherence_gain": 0.077,
-        "aesthetic_value": 0.0917,
-        "gamma": 0.6017,
-        "horizon": 0.6333,
-        "commitment": 0.9317,
-        "identity_violation": 0.8632
-      },
-      "axioms": {
-        "5.1_pass": 120,
-        "5.3_pass": 120,
-        "4.11_fail": 51,
-        "4.11_pass": 69
-      },
-      "behavior_changed_vs_baseline": false
-    },
-    "gate_recovery_off": {
-      "cycles": 120,
-      "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -944,10 +1508,104 @@
       },
       "behavior_changed_vs_baseline": false
     },
-    "gate_authority_off": {
+    "ablate_EvidenceProvenanceValidator": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1245,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5307,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "only_RealityValidator": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -1038,10 +1696,104 @@
       },
       "behavior_changed_vs_baseline": false
     },
-    "gate_observability_off": {
+    "only_ConstraintValidator": {
       "cycles": 120,
       "seed": 42,
-      "fingerprint": "c43ef7b3859a1890",
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1245,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5307,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "only_MemoryAdvisor": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
       "behavior_digest": "b63d5a874901d381",
       "acted_cycles": 108,
       "firewall_blocks": {
@@ -1109,7 +1861,7 @@
         "recovery_cost": 0.4095,
         "identity_cost": 1.0769,
         "alignment_cost": 0.0,
-        "future_option_value": 0.5306,
+        "future_option_value": 0.5307,
         "counterfactual_diversity": 0.1141,
         "prediction_error": 0.2015,
         "information_gain": 0.1598,
@@ -1129,6 +1881,381 @@
         "5.3_pass": 120,
         "4.11_fail": 51,
         "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "only_MissionDriftDetector": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1245,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5307,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "only_EvidenceProvenanceValidator": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1244,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5308,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "council_advisors_all_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1245,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5308,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_fail": 51,
+        "4.11_pass": 69
+      },
+      "behavior_changed_vs_baseline": false
+    },
+    "distributed_council_off": {
+      "cycles": 120,
+      "seed": 42,
+      "fingerprint": "0c13b94d0362793c",
+      "behavior_digest": "b63d5a874901d381",
+      "acted_cycles": 108,
+      "firewall_blocks": {
+        "action_loop": 12
+      },
+      "firewall_block_count": 12,
+      "episodes": 13,
+      "final_state": [
+        4.0,
+        0.0
+      ],
+      "DI": {
+        "n": 120,
+        "min": 1.0,
+        "mean": 1.0,
+        "max": 1.0
+      },
+      "MD": {
+        "n": 120,
+        "min": 0.7083,
+        "mean": 1.6336,
+        "max": 4.0025
+      },
+      "intents": {
+        "curiosity_explore": 68,
+        "blended_inquiry": 44,
+        "memory_miss": 3,
+        "perceive": 2,
+        "goal_seek_recovery": 2,
+        "inquiry": 1
+      },
+      "action_kinds": 2,
+      "top_actions": [
+        {
+          "action": [
+            1.0,
+            0.0
+          ],
+          "n": 56
+        },
+        {
+          "action": [
+            0.0,
+            1.0
+          ],
+          "n": 52
+        }
+      ],
+      "blocked_by_gate": {},
+      "decision_modes": {
+        "ACT": 76,
+        "ESCALATE": 44
+      },
+      "escalations": 44,
+      "identity_projection": {
+        "projected_cycles": 0,
+        "rejected_cycles": 0
+      },
+      "j_cycles": 120,
+      "j_mean_commitment": 0.9317,
+      "j_term_means": {
+        "expected_reward": 0.9235,
+        "discounted_reward": 0.6314,
+        "maintenance_cost": 0.1245,
+        "recovery_cost": 0.4095,
+        "identity_cost": 1.0769,
+        "alignment_cost": 0.0,
+        "future_option_value": 0.5307,
+        "counterfactual_diversity": 0.1141,
+        "prediction_error": 0.2015,
+        "information_gain": 0.1598,
+        "theory_gain": 0.1833,
+        "uncertainty_bonus": 0.0331,
+        "interpretation_energy": 0.0,
+        "opportunity_cost": 0.1833,
+        "project_coherence_gain": 0.077,
+        "aesthetic_value": 0.0917,
+        "gamma": 0.6017,
+        "horizon": 0.6333,
+        "commitment": 0.9317,
+        "identity_violation": 0.8632
+      },
+      "axioms": {
+        "5.1_pass": 120,
+        "5.3_pass": 120,
+        "4.11_pass": 120
       },
       "behavior_changed_vs_baseline": false
     }

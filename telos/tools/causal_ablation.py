@@ -65,13 +65,16 @@ def _stats(vals: List[float]) -> Dict[str, Any]:
             "max": round(max(vals), 4)}
 
 
-def _run_once(cycles: int, seed: int, patches: List[Callable]):
+def _run_once(cycles: int, seed: int, patches: List[Callable],
+              config_overrides: Optional[Dict[str, Any]] = None):
     """Run the canonical baseline once under a set of scoped patches.
 
     Args:
         cycles: pipeline cycles to drive.
         seed: deterministic seed.
         patches: zero-arg callables returning context managers.
+        config_overrides: optional PipelineConfig keyword overrides applied at
+            build time (e.g. {"distributed_council_enabled": False}).
 
     Returns:
         Aggregated metrics dict for the variant.
@@ -83,7 +86,8 @@ def _run_once(cycles: int, seed: int, patches: List[Callable]):
     with contextlib.ExitStack() as stack:
         for cm in patches:
             stack.enter_context(cm)
-        pipe, sim, build_record = build(workdir, seed)
+        pipe, sim, build_record = build(workdir, seed,
+                                        config_overrides=config_overrides)
         rows: List[Tuple] = []
         di_vals: List[float] = []
         md_vals: List[float] = []
@@ -255,6 +259,44 @@ def _patch_gate_pass(gate: str) -> Callable:
     return factory
 
 
+# The five registered council advisors (canonical GridWorld crew).
+ADVISORS: Tuple[str, ...] = (
+    "RealityValidator", "ConstraintValidator", "MemoryAdvisor",
+    "MissionDriftDetector", "EvidenceProvenanceValidator",
+)
+
+
+def _ablate(name: str) -> Callable:
+    """Factory: neutralise exactly one advisor (all others untouched).
+
+    Args:
+        name: validator class name.
+
+    Returns:
+        A context-manager factory.
+    """
+    return _patch_validator_pass(name)
+
+
+def _only(name: str) -> Callable:
+    """Factory: leave ONLY `name` active, neutralise the other four advisors.
+
+    This is the leave-one-out diagnostic — it isolates whether a single
+    advisor alone carries the council's causal effect (the original
+    connectivity audit's MemoryAdvisor finding).
+
+    Args:
+        name: the advisor to keep active.
+
+    Returns:
+        A context-manager factory producing all four ablation patches.
+    """
+    def factory():
+        return [_patch_validator_pass(n)()
+                for n in ADVISORS if n != name]
+    return factory
+
+
 VARIANTS: List[Tuple[str, Callable]] = [
     ("baseline", lambda: []),
     ("J_commitment_zero", lambda: [_patch_j_constant(0.0)()]),
@@ -268,6 +310,20 @@ VARIANTS: List[Tuple[str, Callable]] = [
     ("gate_recovery_off", lambda: [_patch_gate_pass("recovery")()]),
     ("gate_authority_off", lambda: [_patch_gate_pass("authority")()]),
     ("gate_observability_off", lambda: [_patch_gate_pass("observability")()]),
+    # ── v8 Phase 3: per-advisor independence + leave-one-out + crew ──
+    ("ablate_RealityValidator", lambda: [_ablate("RealityValidator")()]),
+    ("ablate_ConstraintValidator", lambda: [_ablate("ConstraintValidator")()]),
+    ("ablate_MemoryAdvisor", lambda: [_ablate("MemoryAdvisor")()]),
+    ("ablate_MissionDriftDetector", lambda: [_ablate("MissionDriftDetector")()]),
+    ("ablate_EvidenceProvenanceValidator", lambda: [_ablate("EvidenceProvenanceValidator")()]),
+    ("only_RealityValidator", _only("RealityValidator")),
+    ("only_ConstraintValidator", _only("ConstraintValidator")),
+    ("only_MemoryAdvisor", _only("MemoryAdvisor")),
+    ("only_MissionDriftDetector", _only("MissionDriftDetector")),
+    ("only_EvidenceProvenanceValidator", _only("EvidenceProvenanceValidator")),
+    ("council_advisors_all_off", lambda: [_ablate(n)() for n in ADVISORS]),
+    ("distributed_council_off",
+     lambda: {"patches": [], "config": {"distributed_council_enabled": False}}),
 ]
 
 
@@ -288,7 +344,13 @@ def run(cycles: int = 120, seed: int = 42,
     for name, factory in VARIANTS:
         if only and name not in only:
             continue
-        res = _run_once(cycles, seed, factory())
+        spec = factory()
+        if isinstance(spec, dict):
+            patches = spec.get("patches", [])
+            overrides = spec.get("config")
+        else:
+            patches, overrides = spec, None
+        res = _run_once(cycles, seed, patches, config_overrides=overrides)
         if name == "baseline":
             base_digest = res["behavior_digest"]
         res["behavior_changed_vs_baseline"] = (

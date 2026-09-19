@@ -33,12 +33,18 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 
-def build(workdir: str, seed: int = 42) -> Tuple[Any, Any, Dict[str, Any]]:
+def build(workdir: str, seed: int = 42,
+          config_overrides: Optional[Dict[str, Any]] = None
+          ) -> Tuple[Any, Any, Dict[str, Any]]:
     """Build the canonical GridWorld pipeline in an isolated workdir.
 
     Args:
         workdir: directory for every persistence artifact (isolated).
         seed: deterministic seed for reproducible fingerprints.
+        config_overrides: optional PipelineConfig keyword overrides (used by
+            the ablation harness to toggle a supported switch, e.g.
+            ``distributed_council_enabled=False``); None keeps the canonical
+            config byte-identical.
 
     Returns:
         (pipeline, simulator, build_record) — the built pipeline, its
@@ -62,7 +68,7 @@ def build(workdir: str, seed: int = 42) -> Tuple[Any, Any, Dict[str, Any]]:
     from telos.core.simulation import CounterfactualEngine
 
     sim = GridSim(blocked=set(DEFAULT_BLOCKED), rewards=dict(DEFAULT_REWARDS))
-    pipe = TelosV14Pipeline(PipelineConfig(
+    cfg_kwargs: Dict[str, Any] = dict(
         adapter=GridAdpt(), simulator=sim, compute_budget_ms=100.0, state_dim=2,
         n_worlds=10, horizon=5,
         mission_name=MISSION_NAME, mission_description=MISSION_DESCRIPTION,
@@ -76,7 +82,10 @@ def build(workdir: str, seed: int = 42) -> Tuple[Any, Any, Dict[str, Any]]:
         deterministic_seed=seed,
         verified_learning=True,
         learning_curriculum=True,
-    ))
+    )
+    if config_overrides:
+        cfg_kwargs.update(config_overrides)
+    pipe = TelosV14Pipeline(PipelineConfig(**cfg_kwargs))
     skill_lib = SkillLibrary()
     ExperienceManager(skill_lib, ExperienceConfig(
         utility_threshold=0.1, index_interval=1, verified_acquisition=True))
@@ -113,6 +122,7 @@ def build(workdir: str, seed: int = 42) -> Tuple[Any, Any, Dict[str, Any]]:
                        "MissionDriftDetector", "EvidenceProvenanceValidator"],
         "memory_advisor_connected": True,
         "skill_library_warm_start": False,
+        "config_overrides": dict(config_overrides or {}),
         "code_fingerprint": _code_fingerprint(),
     }
     return pipe, sim, build_record

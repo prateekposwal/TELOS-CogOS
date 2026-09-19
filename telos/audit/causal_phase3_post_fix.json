@@ -1,0 +1,158 @@
+{
+  "phase": "v8-phase0-causal-baseline",
+  "cycles": 120,
+  "seed": 42,
+  "build": {
+    "adapter": "GridAdpt",
+    "simulator": "GridSim",
+    "n_worlds": 10,
+    "horizon": 5,
+    "compute_budget_ms": 100.0,
+    "mission_name": "navigate_to_goal",
+    "verified_learning": true,
+    "learning_curriculum": true,
+    "deterministic_seed": 42,
+    "validators": [
+      "RealityValidator",
+      "ConstraintValidator",
+      "MemoryAdvisor",
+      "MissionDriftDetector",
+      "EvidenceProvenanceValidator"
+    ],
+    "memory_advisor_connected": true,
+    "skill_library_warm_start": false,
+    "config_overrides": {},
+    "code_fingerprint": "0c13b94d0362793c"
+  },
+  "reproduction_command": "PYTHONPATH=. python3 telos/tools/causal_baseline.py --cycles 120 --seed 42",
+  "acted_cycles": 108,
+  "firewall_blocks": {
+    "action_loop": 12
+  },
+  "firewall_block_count": 12,
+  "episodes": 13,
+  "goal_reached": 13,
+  "final_state": [
+    4.0,
+    0.0
+  ],
+  "decision_integrity": {
+    "n": 120,
+    "min": 1.0,
+    "mean": 1.0,
+    "max": 1.0
+  },
+  "mission_drift": {
+    "n": 120,
+    "min": 0.7083,
+    "mean": 1.6336,
+    "max": 4.0025
+  },
+  "decision_latency_ms": {
+    "n": 120,
+    "min": 5.183,
+    "mean": 29.7353,
+    "max": 100.059
+  },
+  "council": {
+    "blocking_validators": {},
+    "dissenters": {},
+    "top_dissent_reasons": {},
+    "escalations": 44
+  },
+  "evidence": {
+    "evidence_provenance_dissents": 0
+  },
+  "decision_modes": {
+    "ACT": 76,
+    "ESCALATE": 44
+  },
+  "blocked_by_gate": {},
+  "intents": {
+    "curiosity_explore": 68,
+    "blended_inquiry": 44,
+    "memory_miss": 3,
+    "perceive": 2,
+    "goal_seek_recovery": 2,
+    "inquiry": 1
+  },
+  "stream_activations": {
+    "ReflexStream": 120,
+    "TheoryStream": 120,
+    "InquiryStream": 12,
+    "MemoryStream": 4,
+    "PerceptionStream": 1,
+    "PlanningStream": 1
+  },
+  "memory": {
+    "hot": 16,
+    "warm": 48,
+    "cold": 44,
+    "total": 108,
+    "evicted": 0,
+    "summarized": 0,
+    "inserted": 108,
+    "rejected_governance_suppression": 12,
+    "memory_consumed": 354
+  },
+  "reality_gap": {
+    "validation_count": 94,
+    "recent_mean_gap": 0.0,
+    "total_gap": 0.0,
+    "tested": true,
+    "ever_falsified": false,
+    "last_validation_cycle": 120,
+    "falsification_threshold": 0.0
+  },
+  "knowledge_graph": {
+    "nodes": 0,
+    "archived_nodes": 60,
+    "edges": 117,
+    "edges_by_type": {
+      "identity_affinity": 117
+    },
+    "hot_node_approaches": {},
+    "failure_nodes": 0
+  },
+  "axioms": {
+    "4.11_pass": 69,
+    "4.11_fail": 51,
+    "4.11_fail_reasons": {
+      "CooperativeVerdict present but inequality not met": 51
+    },
+    "any_fail_by_axiom": {
+      "4.11": 51
+    }
+  },
+  "policy": {
+    "firewall_di_threshold": 0.8484,
+    "risk_tolerance": 0.1516
+  },
+  "persistence": {
+    "cp": {
+      "kind": "dir",
+      "entries": 2,
+      "latest": "system_self_1.json"
+    },
+    "kg.json": {
+      "kind": "absent"
+    },
+    "ld.json": {
+      "kind": "absent"
+    },
+    "id.json": {
+      "kind": "absent"
+    },
+    "pt.json": {
+      "kind": "absent"
+    },
+    "mem.json": {
+      "kind": "absent"
+    },
+    "rg.json": {
+      "kind": "file",
+      "bytes": 1194
+    }
+  },
+  "workdir": "/var/folders/gp/cdz5rt_s51l5531582d062kc0000gn/T/telos_causal_baseline_3jnbgaep"
+}

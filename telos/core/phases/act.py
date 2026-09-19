@@ -72,6 +72,44 @@ def _md_with_staleness(md_raw: float, prev: float, alpha: float,
 ACT_FIDELITY_STALE_CYCLES = 5
 
 
+def firewall_decision_integrity(verdict) -> float:
+    """The DI the FIREWALL gate consumes — the RAW evidence measure.
+
+    The council reports two integrity numbers: ``decision_integrity`` (capped
+    at ``DissentFloor`` whenever ANY validator blocks — an honesty/trust cap
+    for reporting) and ``evidence_integrity`` (the unfloored evidence-weighted
+    measure). A GATE must not consume the deliberately-capped report: feeding
+    the floored value made every soft (non-hard-veto) validator an accidental
+    hard veto — one dissenting advisor floored DI to 0.3 below the policy
+    threshold and blocked a cycle the council itself had VALIDATED by its own
+    voting threshold (the mechanism by which MemoryAdvisor alone reproduced
+    almost the entire council effect before Phase 1 removed its corrupted
+    input). The firewall still blocks a hard veto (Check 1, via
+    ``council_validated=False``) and a genuine low-evidence cycle (this raw
+    measure below the applied threshold); it just no longer re-imposes
+    unanimity through the reporting floor.
+
+    Args:
+        verdict: the CouncilVerdict (or None).
+
+    Returns:
+        The raw evidence integrity in [0, 1]; falls back to the floored
+        decision integrity, then 1.0, when the field is absent/malformed.
+    """
+    if verdict is None:
+        return 1.0
+    raw = getattr(verdict, "evidence_integrity", None)
+    if raw is None:
+        raw = getattr(verdict, "decision_integrity", 1.0)
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        try:
+            return float(getattr(verdict, "decision_integrity", 1.0))
+        except (TypeError, ValueError):
+            return 1.0
+
+
 class ActPhase(Phase):
     name = "act"
 
@@ -406,7 +444,9 @@ class ActPhase(Phase):
         ctx.firewall_verdict = pipeline._firewall.inspect(
             ctx.world, ctx.selected_intent,
             council_validated=ctx.verdict.validated if ctx.verdict else True,
-            decision_integrity=ctx.verdict.decision_integrity if ctx.verdict else 1.0,
+            # Gate input = the RAW evidence measure, never the DissentFloor-capped
+            # report (see firewall_decision_integrity).
+            decision_integrity=firewall_decision_integrity(ctx.verdict),
             mission_violation=False,
         )
 

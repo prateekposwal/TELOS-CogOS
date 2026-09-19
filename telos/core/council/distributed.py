@@ -21,6 +21,18 @@ from enum import Enum
 
 logger = logging.getLogger('telos_distributed_council')
 
+#: Causal classification (v8 Phase 3). The crew is a DETERMINISTIC re-projection
+#: of the PRIMARY council's own signals through fixed role lenses (ROLE_PROFILES)
+#: plus two context inputs the primary lacks — the perceive knowledge report
+#: (avoid-list) and the stream alternative count — both already consumed upstream
+#: (PlanningStream `domain_plan`; exploration/novelty streams). No phase reads
+#: `ctx.distributed_verdict` or `ctx.cooperative_verdict` to select, gate, or
+#: veto an action. It is therefore BEHAVIOURALLY INERT by construction: the
+#: causal ablation shows an identical per-cycle action digest with the crew on
+#: and off. It is RESEARCH-ONLY (an advisory lens + Λ4.11 telemetry), not a
+#: decision participant — it must not be forced active to manufacture signal.
+CAUSAL_STATUS = "research_only"
+
 
 class AgentRole(str, Enum):
     PRIMARY = "primary"

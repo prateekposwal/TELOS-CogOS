@@ -1505,6 +1505,12 @@ class DashboardProducer:
         "inquiry_blend", "agent2_pos", "agent2_reward", "score",
         "terrain_changes", "health_score", "representation",
         "escalation_requested",
+        # Crew (DistributedCouncil) advisory disagreement + escalation — the
+        # crew is research-only (see telos/core/council/distributed.py
+        # CAUSAL_STATUS), but its recorded dissent/`escalated` flag must still
+        # be OBSERVABLE per cycle in the live feed and the durable decision log,
+        # not only in the checkpoint archive.
+        "distributed_verdict",
         # Audit Item 1 (decision-mode telemetry): the lean trace + decision
         # log must expose WHY a cycle did not act — the governor mode and the
         # failed capability gate(s) — and whether an action was actually
