@@ -31,7 +31,7 @@ from telos.core.streams.implementations import (
 from telos.core.streams.inquiry_stream import InquiryStream
 from telos.core.council.validators import (
     RealityValidator, ConstraintValidator, MemoryAdvisor, MissionDriftDetector,
-    EvidenceProvenanceValidator,
+    EvidenceProvenanceValidator, CalibrationValidator,
 )
 from telos.core.ledger.skill_library import SkillLibrary
 from telos.core.ledger.experience_manager import ExperienceManager, ExperienceConfig
@@ -816,6 +816,10 @@ def main():
     pipeline.register_validator(memory_advisor)
     pipeline.register_validator(MissionDriftDetector(drift_threshold=5.0))
     pipeline.register_validator(EvidenceProvenanceValidator())
+    # Decision Calibration (System One borrow): advisory by default (zero-weight
+    # abstention, so DI/voting/escalation are unchanged). Flip enforce=True to
+    # make an overconfident + miscalibrated claim a hard block.
+    pipeline.register_validator(CalibrationValidator(pipeline.calibration_tracker))
 
     # Wire up MemoryAdvisor to infrastructure after pipeline init
     if hasattr(pipeline, 'infra_manager') and pipeline.infra_manager:

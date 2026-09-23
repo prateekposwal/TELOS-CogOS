@@ -14,8 +14,9 @@
 | **Pipeline** | 9-phase: Perceive → Streams → Simulate → Evaluate → Synthesis → Select → Council → Act → Reflect |
 | **Cognitive Streams** | 6 (Reflex, Perception, Memory, Planning, Theory, Inquiry) |
 | **v2/v2.5 Modules** | 19 (CouncilReflector, TheoryBuilder, UnknownUnknownDetector, InternalDebate, etc.) |
-| **Tests** | 428 passing across 46 files |
-| **Self-audit** | 24/24 structural checks passing |
+| **Tests** | 3535 passing across 314 files |
+| **Self-audit** | 31/31 structural checks passing |
+| **Decision Calibration** | `CalibrationTracker` (Brier / ECE / reliability curve) + `CalibrationValidator` (advisory by default) |
 | **Resource Accounting** | R(a,s) = (C_compute, C_memory, C_bandwidth, C_storage) |
 | **Unified Objective** | J(τ) = αU − βC_m − γC_r − δC_i − εC_align + ζG_theory + ηI_gain − θE_interpret + OP + CF − PE − C_o |
 
@@ -39,11 +40,24 @@ Each phase satisfies specific axioms:
 | ACT | 1.1, 1.3 | Intent → action via domain adapter |
 | REFLECT | 2.6, 6.5 | Meta-insight, pattern discovery, theory formation |
 
+## Decision Calibration
+
+Every cycle records `(claimed confidence, realized outcome)` and reports the
+**Brier score** and **Expected Calibration Error (ECE)** — the System One
+discipline that a decision is only automatable if higher confidence means
+higher realized accuracy. The state is surfaced on every trace
+(`reflection.calibration`). `CalibrationValidator` consumes it: **advisory by
+default** (zero-weight abstention — it cannot change DI, voting, or
+escalation); `enforce=True` is the opt-in that blocks an overconfident +
+miscalibrated claim. Enforcement is deliberately not granted to the canonical
+pipeline until a pressure test (`telos/tools/calibration_pressure_test.py`)
+shows it reliably detects a real failure.
+
 ## Getting Started
 
-Canonical working copy: **`~/dev/telos`** (local disk — never inside
-iCloud-synced `Desktop`/`Documents`; macOS "Optimize Mac Storage" evicts files
-there and git/reads break).
+Clone to a **local, non-iCloud-synced path** (e.g. `~/dev/telos`). On macOS,
+"Optimize Mac Storage" evicts files under iCloud-synced `Desktop`/`Documents`,
+which breaks git reads and the test suite — so avoid those locations.
 
 ```bash
 # One-time: local interpreter with numpy/pytest/flask/websockets

@@ -160,7 +160,7 @@ def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
     from telos.core.streams.inquiry_stream import InquiryStream
     from telos.core.council.validators import (
         RealityValidator, ConstraintValidator, MemoryAdvisor,
-        MissionDriftDetector, EvidenceProvenanceValidator,
+        MissionDriftDetector, EvidenceProvenanceValidator, CalibrationValidator,
     )
     from telos.core.ledger.skill_library import SkillLibrary
     from telos.core.simulation import CounterfactualEngine
@@ -200,6 +200,7 @@ def _build_gridworld_pipeline(checkpoint_dir="/tmp/telos_cli"):
     for validator in (
         RealityValidator(), ConstraintValidator(), MemoryAdvisor(skill_lib),
         MissionDriftDetector(drift_threshold=5.0), EvidenceProvenanceValidator(),
+        CalibrationValidator(pipeline.calibration_tracker),
     ):
         pipeline.register_validator(validator)
     return pipeline

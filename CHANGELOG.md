@@ -6,6 +6,24 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Added
+- **Decision Calibration (System One borrow)**: `CalibrationTracker`
+  (`telos/core/calibration/`) records `(claimed confidence, realized outcome)`
+  per cycle and reports Brier score, Expected Calibration Error, a reliability
+  curve, and a recalibration map. The snapshot is attached to every
+  `DecisionTrace` via `reflection.calibration`; `pipeline.calibration_report()`
+  exposes it.
+- **`CalibrationValidator`** (`telos/core/council/validators/calibration.py`):
+  blocks an overconfident + miscalibrated claim. **Advisory by default**
+  (zero-weight abstention — DI/voting/escalation unchanged); `enforce=True`
+  is the opt-in governance intervention. Wired into the canonical GridWorld
+  builder in advisory mode.
+- **`telos/tools/calibration_pressure_test.py`** + `tests/core/test_calibration*.py`:
+  a controlled scenario matrix (well-calibrated / overconfident /
+  underconfident / ECE below-above threshold / insufficient data) proving
+  `enforce=True` blocks **only** overconfidence and advisory blocks nothing,
+  plus a pipeline A/B measuring action-emission, DI, and escalation.
+
 ## [0.2.0] — 2026-09-18
 
 ### Added (Phases 1–3 — capability uplift)

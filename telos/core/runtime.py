@@ -345,6 +345,13 @@ class TelosV14Pipeline:
         self._meta_cognition = MetaCognitionModule()
         # P0 D9: Dynamic representation selector (also in evaluate phase)
         self._rep_selector = RepresentationSelector()
+        # Decision Calibration (System One borrow): the ONE honest-confidence
+        # ledger. Records (claimed confidence, realized outcome) each cycle and
+        # reports Brier/ECE. Consumed by the optional CalibrationValidator and
+        # surfaced on every trace via ctx.reflection['calibration']. Purely
+        # observational — it never alters the decision path (Λ1.2).
+        from telos.core.calibration import CalibrationTracker
+        self._calibration_tracker = CalibrationTracker()
 
         self._sim_engine: Optional[CounterfactualEngine] = None
         self._planner: Optional[RepresentationPlanner] = None
@@ -2581,6 +2588,15 @@ class TelosV14Pipeline:
             logger.warning("policy instrumentation failed: %s", exc)
             ctx.policy_trace = None
 
+        # Decision Calibration: record this cycle's (claimed confidence,
+        # realized outcome) pair and surface the running calibration state on
+        # the trace. Runs AFTER every phase (so ACT's outcome is known) and
+        # BEFORE build_trace (so the snapshot lands in ctx.reflection).
+        try:
+            self._record_calibration(ctx)
+        except Exception as exc:
+            logger.warning("calibration record failed: %s", exc)
+
         trace = build_trace(
             ctx=ctx, state=state,
             cycle_count=self._cycle_count,
@@ -2898,6 +2914,49 @@ class TelosV14Pipeline:
                 _json.dump(payload, f, indent=2)
         except OSError as e:
             logger.warning(f"memory_consumption artifact write failed: {e}")
+
+    # ── Decision Calibration (System One borrow) ─────────────────────────────
+    @property
+    def calibration_tracker(self) -> 'CalibrationTracker':
+        """The pipeline's honest-confidence ledger (Brier/ECE)."""
+        return self._calibration_tracker
+
+    def _record_calibration(self, ctx) -> None:
+        """Record (claimed confidence, realized outcome) for this cycle.
+
+        The realized outcome is a process-level success signal: 1.0 when the
+        cycle emitted an action that the council validated and the firewall did
+        not block, else 0.0. The claimed confidence is the selected intent's
+        confidence. The snapshot is attached to ctx.reflection so every trace
+        carries the calibration state (transparency, Λ1.2).
+
+        Args:
+            ctx: the phase context, read after all phases have run.
+        """
+        tracker = getattr(self, '_calibration_tracker', None)
+        if tracker is None:
+            return
+        intent = getattr(ctx, 'selected_intent', None)
+        if intent is None:
+            return
+        predicted = float(getattr(intent, 'confidence', 0.0) or 0.0)
+        verdict = getattr(ctx, 'verdict', None)
+        validated = bool(getattr(verdict, 'validated', False)) if verdict is not None else False
+        emitted = getattr(ctx, 'selected_action', None) is not None
+        blocked = bool(getattr(ctx, 'firewall_blocked', False))
+        realized = 1.0 if (emitted and validated and not blocked) else 0.0
+        tracker.record(predicted, realized)
+        if getattr(ctx, 'reflection', None) is not None:
+            ctx.reflection['calibration'] = tracker.to_dict()
+
+    def calibration_report(self) -> Dict[str, Any]:
+        """Return the current decision-calibration stats (Brier/ECE/bins).
+
+        Returns:
+            The CalibrationTracker snapshot dict (empty when unwired).
+        """
+        tracker = getattr(self, '_calibration_tracker', None)
+        return tracker.to_dict() if tracker is not None else {}
 
     def memory_report(self) -> Dict[str, Any]:
         """Return the current decision-memory stats (for dashboards/tools).
