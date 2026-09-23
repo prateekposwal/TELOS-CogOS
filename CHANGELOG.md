@@ -17,9 +17,15 @@ semantic versioning.
   `apply_reality_gap()` drives revalidation from the pipeline's own
   falsification state.
 - **`DecisionRecorder`** emits a record for **meaningful decisions only**
-  (governance events, or a new committed intent type) from the REFLECT phase —
-  observational, runs alongside `AGENTS.md`, never replaces it. Exposed via
-  `pipeline.decision_records()` / `pipeline.decision_recorder`.
+  (a new committed intent type, or a new governance signature) from the REFLECT
+  phase — observational, runs alongside `AGENTS.md`, never replaces it. Exposed
+  via `pipeline.decision_records()` / `pipeline.decision_recorder`.
+- **`DecisionStore` + `telos/tools/decision_records.py`** — the minimal
+  file-backed exchange: records persist as `decision_records/<id>.json`, any
+  context can list/search/read them, and `revalidate()` flips contradicted
+  decisions to `FALSIFIED` on disk. Opt-in via `TELOS_DECISION_STORE=<dir>`
+  (unset = in-memory only). Proves the exchange loop end-to-end without a
+  server.
 - **Decision Calibration (System One borrow)**: `CalibrationTracker`
   (`telos/core/calibration/`) records `(claimed confidence, realized outcome)`
   per cycle and reports Brier score, Expected Calibration Error, a reliability

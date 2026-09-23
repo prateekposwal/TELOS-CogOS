@@ -356,8 +356,13 @@ class TelosV14Pipeline:
         # MEANINGFUL decisions during REFLECT. Purely observational — never
         # changes the decision path (Λ1.2) and runs ALONGSIDE AGENTS.md, not
         # replacing it.
-        from telos.core.handoff import DecisionRecorder
-        self._decision_recorder = DecisionRecorder()
+        from telos.core.handoff import DecisionRecorder, DecisionStore
+        # File-backed exchange (opt-in): TELOS_DECISION_STORE names a directory;
+        # unset => in-memory only (byte-identical default).
+        _decision_store_root = os.environ.get("TELOS_DECISION_STORE") or None
+        _decision_store = (DecisionStore(_decision_store_root)
+                           if _decision_store_root else None)
+        self._decision_recorder = DecisionRecorder(store=_decision_store)
 
         self._sim_engine: Optional[CounterfactualEngine] = None
         self._planner: Optional[RepresentationPlanner] = None

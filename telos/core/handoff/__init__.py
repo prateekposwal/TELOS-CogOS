@@ -24,8 +24,10 @@ from telos.core.handoff.decision_record import (
     SCHEMA_VERSION,
 )
 from telos.core.handoff.recorder import DecisionRecorder
+from telos.core.handoff.store import DecisionStore
 
 __all__ = [
     "DecisionRecord", "EvidenceItem", "Assumption", "Alternative",
-    "RevalidationCondition", "RecordStatus", "SCHEMA_VERSION", "DecisionRecorder",
+    "RevalidationCondition", "RecordStatus", "SCHEMA_VERSION",
+    "DecisionRecorder", "DecisionStore",
 ]

@@ -29,6 +29,7 @@ from telos.core.handoff.decision_record import (
 )
 
 if TYPE_CHECKING:
+    from telos.core.handoff.store import DecisionStore
     from telos.core.phases.base import PhaseContext
 
 # System-derived default revalidation: the pipeline's OWN world-model check.
@@ -44,11 +45,15 @@ class DecisionRecorder:
     Args:
         max_records: bounded retention (Λ4.7); oldest records are dropped.
         enabled: when False, `observe` is a no-op (default on).
+        store: an optional DecisionStore; when given, each emitted record is
+            also persisted to disk (the file-backed exchange).
     """
 
-    def __init__(self, max_records: int = 200, enabled: bool = True):
+    def __init__(self, max_records: int = 200, enabled: bool = True,
+                 store: Optional["DecisionStore"] = None):
         self.max_records = max(1, int(max_records))
         self.enabled = bool(enabled)
+        self._store = store
         self._records: "deque[DecisionRecord]" = deque(maxlen=self.max_records)
         self._seen_types: set = set()
         self._seen_governance: set = set()
@@ -143,6 +148,13 @@ class DecisionRecorder:
         if sig is not None:
             self._seen_governance.add(sig)
         self._emitted += 1
+        # File-backed exchange: persist for other contexts (best-effort — a
+        # store failure must never break a cycle).
+        if self._store is not None:
+            try:
+                self._store.write(record)
+            except OSError:
+                pass
         return record
 
     # ── Access ───────────────────────────────────────────────────────────────
