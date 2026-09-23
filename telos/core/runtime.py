@@ -352,6 +352,12 @@ class TelosV14Pipeline:
         # observational — it never alters the decision path (Λ1.2).
         from telos.core.calibration import CalibrationTracker
         self._calibration_tracker = CalibrationTracker()
+        # Context Handoff (experiment): emits a portable DecisionRecord for
+        # MEANINGFUL decisions during REFLECT. Purely observational — never
+        # changes the decision path (Λ1.2) and runs ALONGSIDE AGENTS.md, not
+        # replacing it.
+        from telos.core.handoff import DecisionRecorder
+        self._decision_recorder = DecisionRecorder()
 
         self._sim_engine: Optional[CounterfactualEngine] = None
         self._planner: Optional[RepresentationPlanner] = None
@@ -2957,6 +2963,23 @@ class TelosV14Pipeline:
         """
         tracker = getattr(self, '_calibration_tracker', None)
         return tracker.to_dict() if tracker is not None else {}
+
+    # ── Context Handoff (experiment) ─────────────────────────────────────────
+    @property
+    def decision_recorder(self) -> 'DecisionRecorder':
+        """The portable DecisionRecord emitter (REFLECT-phase, meaningful only)."""
+        return self._decision_recorder
+
+    def decision_records(self) -> List[Dict[str, Any]]:
+        """Return the retained DecisionRecords as plain dicts.
+
+        Returns:
+            A list of DecisionRecord dicts (oldest first; empty when unwired).
+        """
+        recorder = getattr(self, '_decision_recorder', None)
+        if recorder is None:
+            return []
+        return [r.to_dict() for r in recorder.records]
 
     def memory_report(self) -> Dict[str, Any]:
         """Return the current decision-memory stats (for dashboards/tools).

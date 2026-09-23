@@ -8,23 +8,24 @@ them:
   * `telos.world.evidence.EvidenceInfo`  — source + validation status on every
     belief (the difference between ASSUMED and MEASURED).
   * `telos.intent_ir.IntentIR`           — the decision itself.
-  * `telos.core.types.DecisionTrace`     — the cycle provenance it is built from.
+  * `telos.core.types.DecisionTrace` / `PhaseContext` — the cycle provenance it
+    is built from.
   * `telos.core.knowledge.graph.ProjectNode` — the durable knowledge-graph node
     a record can be stamped into.
   * `telos.world.epistemic.ModelRealityGap` — the falsification state that turns
     a revalidation CONDITION from prose into something executable.
 
 Design rule (Λ1.2, process over outcomes): a record is *observed*, never
-invented. Every field that can be derived from a trace is derived; everything
-else is supplied explicitly and defaults to an honest "unknown/assumed", never
-a fabricated value.
+invented. Every field that can be derived from a trace/context is derived;
+everything else is supplied explicitly and defaults to an honest
+"unknown/unspecified", never a fabricated value. Caller-supplied fields that
+were not provided are named in `provenance['unspecified']`.
 """
 
 from __future__ import annotations
 
 import json
 import time
-import uuid
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
@@ -36,6 +37,7 @@ from telos.intent_ir import IntentIR
 
 if TYPE_CHECKING:
     from telos.core.types import DecisionTrace
+    from telos.core.phases.base import PhaseContext
     from telos.world.epistemic import ModelRealityGap
 
 # Bump when the wire format changes incompatibly.
@@ -225,7 +227,8 @@ class DecisionRecord:
     """The portable decision-context artifact.
 
     Args:
-        decision_id: stable id (trace id when derived, else a uuid).
+        decision_id: stable id (trace id when derived, else a deterministic
+            cycle-based id).
         objective: what the decision was trying to achieve.
         owner: who owns the decision (creator name, agent, team).
         timestamp: when it was made.
@@ -273,9 +276,6 @@ class DecisionRecord:
                    mission: Optional[str] = None) -> "DecisionRecord":
         """Build a record from a pipeline DecisionTrace.
 
-        Everything the trace knows is derived; everything else is supplied by
-        the caller and defaults to an honest empty/assumed value.
-
         Args:
             trace: the cycle's DecisionTrace.
             objective: the goal the decision serves (not in the trace).
@@ -284,90 +284,107 @@ class DecisionRecord:
             assumptions: beliefs the decision rests on.
             expected_consequences: expected outcomes.
             revalidation_conditions: what would invalidate the decision.
-            reality_gap: the model's falsification state, when available — used
-                to honestly stamp evidence as ASSUMED vs MEASURED and to seed
-                the record status.
+            reality_gap: the model's falsification state, when available.
             mission: the active mission name, when known.
 
         Returns:
             A DecisionRecord composed from the trace and the supplied context.
         """
-        intent = trace.selected_intent
-        action = trace.selected_action
-        decision: Dict[str, Any] = {}
-        confidence = 0.0
-        if intent is not None:
-            decision = {
-                "intent_type": intent.intent_type,
-                "confidence": intent.confidence,
-                "params": _json_safe(intent.params),
-                "action": action.tolist() if hasattr(action, "tolist") else action,
-            }
-            confidence = float(intent.confidence or 0.0)
-
-        # Evidence honesty: an untested simulation-derived decision is ASSUMED,
-        # not MEASURED. A tested model with a low reality gap is MEASURED.
-        source = EvidenceSource.SIMULATION
-        if reality_gap is not None and getattr(reality_gap, "tested", False):
-            source = EvidenceSource.MEASUREMENT
-            vstatus = (ValidationStatus.FALSIFIED if getattr(reality_gap, "is_falsified", False)
-                       else ValidationStatus.MEASURED)
-            fidelity = None
-        else:
-            vstatus = ValidationStatus.ASSUMED
-            fidelity = None
-        stamp = EvidenceInfo(source=source, validation_status=vstatus,
-                             confidence=confidence, fidelity=fidelity)
-        evidence: List[EvidenceItem] = []
-        if intent is not None:
-            evidence.append(EvidenceItem(
-                claim=f"action '{intent.intent_type}' selected",
-                evidence=stamp,
-                ref=getattr(trace, "produced_ctx_id", None),
-            ))
-
-        # Alternatives: derive from the trace's strategic options, marking the
-        # chosen intent. The rejection reason is the score gap to the winner.
-        alternatives = _alternatives_from_trace(trace)
-
-        # Validation verdict (council integrity / drift / dissent).
-        validation = {
-            "council_validated": bool(getattr(trace, "council_validated", True)),
-            "decision_integrity": getattr(trace, "decision_integrity", None),
-            "mission_drift": getattr(trace, "mission_drift", None),
-            "blocking_validator": getattr(trace, "blocking_validator", None),
-            "firewall_blocked": bool(getattr(trace, "firewall_blocked", False)),
-            "escalation_requested": bool(getattr(trace, "escalation_requested", False)),
-        }
-
-        status = RecordStatus.OPEN
-        if reality_gap is not None and getattr(reality_gap, "is_falsified", False):
-            status = RecordStatus.FALSIFIED
-
-        return cls(
+        return _compose(
             decision_id=(getattr(trace, "produced_ctx_id", None)
                          or f"cycle-{getattr(trace, 'cycle_id', '?')}"),
-            objective=objective,
-            owner=owner,
             timestamp=float(getattr(trace, "timestamp", time.time())),
-            decision=decision,
-            confidence=confidence,
-            state={"world_state": _json_safe(getattr(trace, "world_state_snapshot", None))},
-            evidence=evidence,
-            assumptions=list(assumptions or []),
-            constraints=list(constraints or []),
-            alternatives=alternatives,
-            expected_consequences=list(expected_consequences or []),
-            revalidation_conditions=list(revalidation_conditions or []),
-            validation=validation,
-            provenance={
-                "schema_version": SCHEMA_VERSION,
-                "cycle": getattr(trace, "cycle_id", None),
-                "representation": getattr(trace, "representation", None),
-                "mission": mission,
-                "domain": getattr(getattr(trace, "domain_facts", None), "domain", None),
-            },
-            status=status,
+            intent=getattr(trace, "selected_intent", None),
+            action=getattr(trace, "selected_action", None),
+            options=getattr(trace, "strategic_options", None) or [],
+            verdict=None,
+            council_validated=bool(getattr(trace, "council_validated", True)),
+            decision_integrity=getattr(trace, "decision_integrity", None),
+            mission_drift=getattr(trace, "mission_drift", None),
+            blocking_validator=getattr(trace, "blocking_validator", None),
+            firewall_blocked=bool(getattr(trace, "firewall_blocked", False)),
+            escalation_requested=bool(getattr(trace, "escalation_requested", False)),
+            world_state=getattr(trace, "world_state_snapshot", None),
+            representation=getattr(trace, "representation", None),
+            domain=getattr(getattr(trace, "domain_facts", None), "domain", None),
+            cycle=getattr(trace, "cycle_id", None),
+            reality_gap=reality_gap,
+            objective=objective, owner=owner,
+            constraints=constraints, assumptions=assumptions,
+            expected_consequences=expected_consequences,
+            revalidation_conditions=revalidation_conditions,
+            mission=mission,
+        )
+
+    @classmethod
+    def from_context(cls, ctx: "PhaseContext", *,
+                     objective: Optional[str] = None,
+                     owner: Optional[str] = None,
+                     constraints: Optional[List[str]] = None,
+                     assumptions: Optional[List[Assumption]] = None,
+                     expected_consequences: Optional[List[str]] = None,
+                     revalidation_conditions: Optional[List[RevalidationCondition]] = None,
+                     reality_gap: Optional["ModelRealityGap"] = None,
+                     mission: Optional[str] = None,
+                     decision_id: Optional[str] = None) -> "DecisionRecord":
+        """Build a record from a live PhaseContext (used by the REFLECT phase).
+
+        Only fields the context genuinely carries are derived; `objective`,
+        `assumptions`, `expected_consequences`, and `revalidation_conditions`
+        default to honest "unspecified"/empty and are named in provenance.
+
+        Args:
+            ctx: the pipeline PhaseContext (post-ACT).
+            objective: the goal, when declared (else mission, else "").
+            owner: the decision owner (else ctx.user_name).
+            constraints: active constraints (else derived from domain_facts).
+            assumptions: caller-supplied beliefs.
+            expected_consequences: caller-supplied expected outcomes.
+            revalidation_conditions: caller-supplied invalidation triggers.
+            reality_gap: the model's falsification state, when available.
+            mission: the active mission name.
+            decision_id: an explicit id (else a deterministic cycle-based id).
+
+        Returns:
+            A DecisionRecord composed from the context.
+        """
+        intent = getattr(ctx, "selected_intent", None)
+        domain_facts = getattr(ctx, "domain_facts", None)
+        derived_constraints = constraints
+        if derived_constraints is None:
+            derived_constraints = list(getattr(domain_facts, "constraints", None) or [])
+        resolved_objective = objective if objective is not None else (mission or "")
+        resolved_owner = owner if owner is not None else (getattr(ctx, "user_name", None) or "unknown")
+        resolved_id = decision_id or (
+            f"cycle-{getattr(ctx, 'cycle_count', '?')}-"
+            f"{intent.intent_type if intent is not None else 'none'}")
+        # Prefer the REAL candidate intents (the alternatives actually
+        # evaluated) over the raw simulation rollouts.
+        options = (getattr(ctx, "intents", None)
+                   or getattr(ctx, "strategic_options_data", None) or [])
+        return _compose(
+            decision_id=resolved_id,
+            timestamp=time.time(),
+            intent=intent,
+            action=getattr(ctx, "selected_action", None),
+            options=options,
+            verdict=getattr(ctx, "verdict", None),
+            council_validated=bool(getattr(getattr(ctx, "verdict", None), "validated", False)),
+            decision_integrity=getattr(getattr(ctx, "verdict", None), "decision_integrity", None),
+            mission_drift=getattr(getattr(ctx, "verdict", None), "mission_drift", None),
+            blocking_validator=getattr(getattr(ctx, "verdict", None), "blocking_validator", None),
+            firewall_blocked=bool(getattr(ctx, "firewall_blocked", False)),
+            escalation_requested=bool(getattr(getattr(ctx, "verdict", None), "escalation_requested", False)),
+            world_state=getattr(ctx, "state", None),
+            representation=getattr(ctx, "representation", None),
+            domain=getattr(domain_facts, "domain", None),
+            cycle=getattr(ctx, "cycle_count", None),
+            reality_gap=reality_gap,
+            objective=resolved_objective, owner=resolved_owner,
+            constraints=derived_constraints, assumptions=assumptions,
+            expected_consequences=expected_consequences,
+            revalidation_conditions=revalidation_conditions,
+            mission=mission,
         )
 
     # ── Revalidation (executable, not archival) ──────────────────────────────
@@ -429,7 +446,7 @@ class DecisionRecord:
     # ── Serialization ────────────────────────────────────────────────────────
 
     def to_dict(self) -> Dict[str, Any]:
-        """Return the record as a JSON-serializable dict.
+        """Return the record as a JSON-serializable dict (deterministic order).
 
         Returns:
             The full record dict.
@@ -485,7 +502,7 @@ class DecisionRecord:
         )
 
     def to_json(self, indent: int = 2) -> str:
-        """Serialize to JSON.
+        """Serialize to JSON (deterministic key order).
 
         Args:
             indent: JSON indentation.
@@ -555,6 +572,104 @@ class DecisionRecord:
         return "\n".join(lines) + "\n"
 
 
+# ── Composition core (shared by from_trace / from_context) ───────────────────
+
+def _compose(*, decision_id: str, timestamp: float,
+             intent: Optional[IntentIR], action: Any, options: List[Any],
+             verdict: Any,
+             council_validated: bool, decision_integrity: Optional[float],
+             mission_drift: Optional[float], blocking_validator: Optional[str],
+             firewall_blocked: bool, escalation_requested: bool,
+             world_state: Any, representation: Optional[str],
+             domain: Optional[str], cycle: Optional[int],
+             reality_gap: Optional["ModelRealityGap"],
+             objective: str, owner: str,
+             constraints: Optional[List[str]],
+             assumptions: Optional[List[Assumption]],
+             expected_consequences: Optional[List[str]],
+             revalidation_conditions: Optional[List[RevalidationCondition]],
+             mission: Optional[str]) -> DecisionRecord:
+    """Compose a DecisionRecord from already-extracted primitives.
+
+    Returns:
+        The composed record.
+    """
+    decision: Dict[str, Any] = {}
+    confidence = 0.0
+    if intent is not None:
+        decision = {
+            "intent_type": intent.intent_type,
+            "confidence": intent.confidence,
+            "params": _json_safe(intent.params),
+            "action": _json_safe(action),
+        }
+        confidence = float(intent.confidence or 0.0)
+
+    # Evidence honesty: an untested simulation-derived decision is ASSUMED, not
+    # MEASURED. A tested model with a low reality gap is MEASURED.
+    if reality_gap is not None and getattr(reality_gap, "tested", False):
+        source = EvidenceSource.MEASUREMENT
+        vstatus = (ValidationStatus.FALSIFIED if getattr(reality_gap, "is_falsified", False)
+                   else ValidationStatus.MEASURED)
+    else:
+        source = EvidenceSource.SIMULATION
+        vstatus = ValidationStatus.ASSUMED
+    stamp = EvidenceInfo(source=source, validation_status=vstatus, confidence=confidence)
+    evidence: List[EvidenceItem] = []
+    if intent is not None:
+        evidence.append(EvidenceItem(
+            claim=f"action '{intent.intent_type}' selected",
+            evidence=stamp, ref=decision_id))
+
+    # Caller-supplied fields that were not provided are named honestly.
+    unspecified: List[str] = []
+    if not objective:
+        unspecified.append("objective")
+    if not assumptions:
+        unspecified.append("assumptions")
+    if not expected_consequences:
+        unspecified.append("expected_consequences")
+    if not revalidation_conditions:
+        unspecified.append("revalidation_conditions")
+
+    status = RecordStatus.OPEN
+    if reality_gap is not None and getattr(reality_gap, "is_falsified", False):
+        status = RecordStatus.FALSIFIED
+
+    return DecisionRecord(
+        decision_id=decision_id,
+        objective=objective,
+        owner=owner,
+        timestamp=timestamp,
+        decision=decision,
+        confidence=confidence,
+        state={"world_state": _json_safe(world_state)},
+        evidence=evidence,
+        assumptions=list(assumptions or []),
+        constraints=list(constraints or []),
+        alternatives=_alternatives(options, intent.intent_type if intent is not None else None),
+        expected_consequences=list(expected_consequences or []),
+        revalidation_conditions=list(revalidation_conditions or []),
+        validation={
+            "council_validated": bool(council_validated),
+            "decision_integrity": decision_integrity,
+            "mission_drift": mission_drift,
+            "blocking_validator": blocking_validator,
+            "firewall_blocked": bool(firewall_blocked),
+            "escalation_requested": bool(escalation_requested),
+        },
+        provenance={
+            "schema_version": SCHEMA_VERSION,
+            "cycle": cycle,
+            "representation": representation,
+            "mission": mission,
+            "domain": domain,
+            "unspecified": unspecified,
+        },
+        status=status,
+    )
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _as_enum(enum_cls, value, default):
@@ -601,21 +716,29 @@ def _json_safe(value: Any) -> Any:
     return str(value)
 
 
-def _alternatives_from_trace(trace: "DecisionTrace") -> List[Alternative]:
-    """Derive the alternatives list from a trace's strategic options.
+def _alternatives(options: List[Any], selected_type: Optional[str],
+                  max_alternatives: int = 6) -> List[Alternative]:
+    """Derive the alternatives list from candidate options + the chosen type.
+
+    Accepts the context's real candidate intents (`(IntentIR, weight)` tuples)
+    or trace strategic-option dicts/objects. The result is capped so a record
+    stays high-signal: the chosen option plus the top-scoring alternatives.
 
     Args:
-        trace: the cycle's DecisionTrace.
+        options: candidate options (tuples, dicts, or objects).
+        selected_type: the chosen intent type.
+        max_alternatives: retention cap for the alternatives list.
 
     Returns:
-        Alternatives, with the selected intent marked chosen.
+        Alternatives (chosen first), with rejection reasons.
     """
-    selected_type = (trace.selected_intent.intent_type
-                     if trace.selected_intent is not None else None)
-    options = getattr(trace, "strategic_options", None) or []
     alts: List[Alternative] = []
     for opt in options:
-        if isinstance(opt, dict):
+        if isinstance(opt, tuple) and len(opt) == 2:
+            intent, weight = opt
+            label = getattr(intent, "intent_type", None) or str(intent)
+            score = weight if isinstance(weight, (int, float)) else None
+        elif isinstance(opt, dict):
             score = opt.get("score")
             label = (opt.get("metadata", {}) or {}).get("intent_type") \
                 or opt.get("intent_type") or opt.get("label") or f"option-{opt.get('rank', '?')}"
@@ -628,6 +751,14 @@ def _alternatives_from_trace(trace: "DecisionTrace") -> List[Alternative]:
     # If the chosen intent isn't among the options, prepend it explicitly.
     if selected_type is not None and not any(a.chosen for a in alts):
         alts.insert(0, Alternative(option=selected_type, score=None, chosen=True))
+    # Dedupe by intent label — a candidate set may hold several intents of the
+    # same type; keep the chosen, else the best-scoring one.
+    by_label: Dict[str, Alternative] = {}
+    for a in alts:
+        cur = by_label.get(a.option)
+        if cur is None or a.chosen or (a.score is not None and (cur.score is None or a.score > cur.score)):
+            by_label[a.option] = a
+    alts = list(by_label.values())
     # Rejection reasons: only claim "below chosen" when the chosen option's
     # score is actually known and greater; otherwise state the score honestly.
     chosen_score = next((a.score for a in alts if a.chosen and a.score is not None), None)
@@ -638,4 +769,9 @@ def _alternatives_from_trace(trace: "DecisionTrace") -> List[Alternative]:
             a.rejected_reason = f"scored {a.score:.3f}, below chosen {chosen_score:.3f}"
         else:
             a.rejected_reason = f"scored {a.score:.3f}; not selected"
-    return alts
+    # Keep the chosen option plus the top-scoring alternatives.
+    chosen = [a for a in alts if a.chosen]
+    rest = sorted((a for a in alts if not a.chosen),
+                  key=lambda a: (a.score if a.score is not None else float("-inf")),
+                  reverse=True)
+    return (chosen + rest)[:max_alternatives]

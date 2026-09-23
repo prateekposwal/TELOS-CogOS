@@ -195,6 +195,20 @@ class ReflectPhase(Phase):
             )),
         }
 
+        # 8. Context Handoff (experiment): emit a portable DecisionRecord for
+        #    MEANINGFUL decisions only (governance events / new committed
+        #    decisions). Observational — runs alongside AGENTS.md, not in place
+        #    of it. A failure here must never break the cycle.
+        recorder = getattr(pipeline, '_decision_recorder', None)
+        if recorder is not None:
+            try:
+                record = recorder.observe(pipeline, ctx)
+                if record is not None:
+                    ctx.reflection["decision_record"] = record.to_dict()
+            except Exception as e:
+                logger.warning(
+                    f"Cycle {ctx.cycle_count}: decision record emission failed: {e}")
+
     def _detect_stability(self) -> bool:
         """Check if the last N cycles show stable DI/MD."""
         if len(self._di_history) < 5:

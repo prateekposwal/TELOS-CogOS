@@ -7,6 +7,19 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Context Handoff (experiment)**: `DecisionRecord` (`telos/core/handoff/`) —
+  a portable, agent-agnostic decision artifact that preserves the *reasoning*
+  (objective, evidence with provenance, assumptions, constraints, alternatives
+  + rejection reasons, expected consequences, and executable revalidation
+  conditions), not just the answer. Composes existing types (`EvidenceInfo`,
+  `IntentIR`, `DecisionTrace`/`PhaseContext`, `ProjectNode`,
+  `ModelRealityGap`); serializes deterministically to JSON and markdown;
+  `apply_reality_gap()` drives revalidation from the pipeline's own
+  falsification state.
+- **`DecisionRecorder`** emits a record for **meaningful decisions only**
+  (governance events, or a new committed intent type) from the REFLECT phase —
+  observational, runs alongside `AGENTS.md`, never replaces it. Exposed via
+  `pipeline.decision_records()` / `pipeline.decision_recorder`.
 - **Decision Calibration (System One borrow)**: `CalibrationTracker`
   (`telos/core/calibration/`) records `(claimed confidence, realized outcome)`
   per cycle and reports Brier score, Expected Calibration Error, a reliability
