@@ -763,8 +763,13 @@ class DashboardProducer:
         # Total positive reward available in the world - the denominator of
         # the reward component of the System Score (a world constant, real).
         self._reward_available = float(sum(v for v in DEFAULT_REWARDS.values() if v and v > 0))
+        # Live demo: enable domain-side novelty-seeking so the visible loop
+        # varies (explores the grid) instead of repeating the same goal path
+        # every episode. Tunable via TELOS_GRID_NOVELTY; 0.0 = goal-only
+        # routing (the benchmark/default behavior). See research/EXPLORATION.md.
         self._pipeline = TelosV14Pipeline(PipelineConfig(
-            adapter=GridAdpt(), simulator=self._sim,
+            adapter=GridAdpt(novelty_weight=float(
+                os.environ.get("TELOS_GRID_NOVELTY", "8.0"))), simulator=self._sim,
             compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
             mission_name=MISSION_NAME, mission_description=MISSION_DESCRIPTION,
             checkpoint_path=CHECKPOINT_DIR,

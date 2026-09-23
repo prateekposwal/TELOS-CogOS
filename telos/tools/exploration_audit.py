@@ -41,12 +41,15 @@ def _distance_progress(before, after, goal) -> float:
             - float(np.linalg.norm(goal - after))) / diameter
 
 
-def run(prob: float, cycles: int) -> Dict[str, object]:
-    """Run the workload at a given curiosity-exploration probability.
+def run(prob: float, cycles: int, novelty: float = 0.0) -> Dict[str, object]:
+    """Run the workload with a curiosity-vector probability and/or novelty.
 
     Args:
-        prob: `curiosity_explore_probability` (0.0 = control).
+        prob: `curiosity_explore_probability` (0.0 = control). A seeded random
+            exploration vector attached with this probability.
         cycles: number of cycles.
+        novelty: GridAdpt novelty weight (0.0 = control). >0 enables
+            visit-count-weighted novelty-seeking for exploratory intents.
 
     Returns:
         A metrics dict.
@@ -57,6 +60,9 @@ def run(prob: float, cycles: int) -> Dict[str, object]:
     workdir = tempfile.mkdtemp(prefix="telos_explore_")
     pump, _ = _build(workdir)
     pump.config.curiosity_explore_probability = prob
+    if novelty > 0.0 and hasattr(pump.config.adapter, "set_novelty"):
+        pump.config.adapter.set_novelty(novelty)
+        pump.config.adapter.reset_visits()
     sim = pump.config.simulator
 
     positions = set()
@@ -96,6 +102,7 @@ def run(prob: float, cycles: int) -> Dict[str, object]:
     distinct_actions = len({a for a in actions if a is not None})
     return {
         "prob": prob,
+        "novelty": novelty,
         "cycles": n,
         "distinct_positions": len(positions),
         "distinct_actions": distinct_actions,
@@ -118,7 +125,7 @@ def _line(m: Dict[str, object]) -> str:
     Returns:
         A formatted row.
     """
-    return (f"p={m['prob']:.2f}     "
+    return (f"p={m['prob']:.2f} nov={m.get('novelty',0):.0f}  "
             f"positions={m['distinct_positions']:3d} "
             f"actions={m['distinct_actions']:2d} "
             f"transitions={m['action_transitions']:4d} "
@@ -143,11 +150,31 @@ def main(argv=None) -> int:
     parser.add_argument("--compare", action="store_true")
     parser.add_argument("--grid", default="0.0,0.15,0.3,0.5",
                         help="comma-separated probabilities to sweep")
+    parser.add_argument("--novelty", default=None,
+                        help="comma-separated novelty weights to sweep instead")
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
 
     print("\n            TELOS exploration audit")
     print("=" * 108)
-    if args.compare:
+    if args.novelty is not None and args.compare:
+        weights = [float(x) for x in args.novelty.split(",")]
+        results = [run(0.0, args.cycles, novelty=w) for w in weights]
+        control = results[0]
+        for m in results:
+            print(_line(m))
+        print("-" * 108)
+        for m in results[1:]:
+            variety = (m["distinct_positions"] > control["distinct_positions"]
+                       or m["action_transitions"] > control["action_transitions"])
+            prog = m["progress_per_cycle"] >= control["progress_per_cycle"] - 1e-9
+            eps = m["episodes"] >= control["episodes"] - 1
+            di = m["di_mean"] >= control["di_mean"] - 0.05
+            safe = m["blocks"] <= control["blocks"]
+            print(f"nov={m['novelty']:.0f}: variety={'Y' if variety else 'N'} "
+                  f"progress={'Y' if prog else 'N'} episodes={'Y' if eps else 'N'} "
+                  f"DI={'Y' if di else 'N'} safety={'Y' if safe else 'N'} => "
+                  f"{'ACCEPT' if all([variety, prog, eps, di, safe]) else 'REJECT'}")
+    elif args.compare:
         probs = [float(x) for x in args.grid.split(",")]
         results = [run(p, args.cycles) for p in probs]
         control = results[0]

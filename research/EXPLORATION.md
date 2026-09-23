@@ -54,9 +54,34 @@ efficiency (e.g., a demo/exploration mode): set
 `config.curiosity_explore_probability = 0.15–0.2` for modest variety at equal
 episode completion.
 
+## Novelty-seeking (domain-side) — implemented
+
+The random walk above lives in the **core** and ignores the domain. The
+mission-aware alternative is **domain-side**: `GridAdpt(novelty_weight=w)` picks
+the legal cardinal whose neighbor is **least visited**, tie-broken toward the
+goal. `w=0` is control (goal A*); `w>0` explores coverage while still drifting
+to the goal. Applies only to exploratory intents (`curiosity_explore` /
+`novelty_seeking` metadata) with no preferred vector.
+
+A/B (200 cycles, `telos/tools/exploration_audit.py --novelty 0,4,8,16`):
+
+| arm | positions | transitions | episodes | prog/cyc | DI | blocks |
+|---|---:|---:|---:|---:|---:|---:|
+| nov=0 (control) | 8 | 73 | 21 | +0.0041 | 1.000 | 23 |
+| nov=4/8/16 | **21** | **125** | 14 | +0.0030 | 1.000 | 25 |
+
+Weight saturates at 4. Novelty covers the **whole grid** (8→21 cells) with
+progress still positive (+0.0030, vs the random walk's +0.0006) — far better
+than a core random walk — but ~30% fewer episodes in the window.
+
+**Decision:** keep `novelty_weight=0.0` as the benchmark/gate default (mission
+efficiency), and **enable `8.0` for the live dashboard demo** (where coverage,
+not throughput, is the objective) via `TELOS_GRID_NOVELTY` (default 8.0 in the
+producer; `0.0` restores goal-only routing). This directly fixes the reported
+live loop: the agent now explores instead of repeating one path.
+
 ## LEFT
 
-- If genuine *novelty-seeking that also advances the mission* is wanted, it is a
-  domain feature (visit-count-weighted neighbor selection), not a core random
-  walk — a separate, domain-side change.
-- The deterministic loop remains the default live behavior.
+- `novelty_weight` stays 0.0 for benchmarks/gates (mission efficiency) and 8.0
+  for the live producer (coverage). Tune with `TELOS_GRID_NOVELTY`.
+- The deterministic loop remains the benchmark default by decision.

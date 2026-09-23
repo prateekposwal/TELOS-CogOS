@@ -486,8 +486,66 @@ class GridSim(DomainSimulator):
 
 
 class GridAdpt(DomainAdapter):
+    def __init__(self, novelty_weight: float = 0.0):
+        """GridWorld adapter.
+
+        Args:
+            novelty_weight: 0.0 = control (goal-directed routing for intents
+                with no preferred vector). >0 enables visit-count-weighted
+                novelty-seeking for exploratory intents (see `set_novelty`).
+        """
+        self._novelty_weight = float(novelty_weight)
+        self._visits: dict = {}
+        self._fallback = np.array([0.0, 0.0])
+
     def forward(self, x): return x
     def inverse(self, x): return x
+
+    def set_novelty(self, weight: float) -> None:
+        """Set the novelty weight (A/B knob).
+
+        Args:
+            weight: multiplier on a neighbor's visit count when scoring an
+                exploratory step; higher = stronger preference for unvisited
+                cells.
+        """
+        self._novelty_weight = float(weight)
+
+    def reset_visits(self) -> None:
+        """Clear the visit-count map (e.g., at an episode boundary)."""
+        self._visits = {}
+
+    def _novelty_step(self, state):
+        """Least-visited legal cardinal neighbor, tie-broken toward the goal.
+
+        Domain-side novelty-seeking: for an exploratory intent the adapter
+        prefers uncharted cells (coverage/variety) while still drifting toward
+        the goal, instead of always marching the shortest A* path.
+
+        Args:
+            state: current position (2-vector of floats).
+
+        Returns:
+            The chosen legal cardinal delta, or the no-op fallback when the
+            agent is genuinely immovable.
+        """
+        start = (int(round(state[0])), int(round(state[1])))
+        self._visits[start] = self._visits.get(start, 0) + 1
+        blocked_frozen = tuple(sorted(tuple(b) for b in DEFAULT_BLOCKED))
+        candidates = _legal_cardinal_candidates(start, blocked_frozen, GRID_SIZE)
+        if not candidates:
+            return self._fallback
+
+        def score(delta):
+            nxt = (start[0] + delta[0], start[1] + delta[1])
+            visits = self._visits.get(nxt, 0)
+            manh = abs(GOAL[0] - nxt[0]) + abs(GOAL[1] - nxt[1])
+            return -visits * self._novelty_weight - manh
+
+        best = max(candidates, key=score)
+        chosen = (start[0] + best[0], start[1] + best[1])
+        self._visits[chosen] = self._visits.get(chosen, 0) + 1
+        return np.array(best, dtype=float)
 
     def intent_to_action(self, intent, state, md):
         # The adapter is the executor: it must never emit a vector the real
@@ -501,6 +559,14 @@ class GridAdpt(DomainAdapter):
         blocked = getattr(getattr(intent, "metadata", None), "blocked", None)
         if blocked is None and isinstance(intent.params.get("blocked"), (set, list)):
             blocked = intent.params.get("blocked")
+        # Domain-side novelty-seeking (A/B): for an exploratory intent with no
+        # preferred vector, prefer least-visited legal cells instead of the A*
+        # goal step. Control (weight 0.0) is unchanged.
+        _meta = getattr(intent, "metadata", None) or {}
+        _exploratory = (getattr(intent, "intent_type", "") == "curiosity_explore"
+                        or bool(_meta.get("novelty_seeking")))
+        if self._novelty_weight > 0.0 and _exploratory and preferred is None:
+            return self._novelty_step(state)
         return legal_cardinal_action(
             state, blocked if blocked is not None else DEFAULT_BLOCKED,
             GOAL, GRID_SIZE,
