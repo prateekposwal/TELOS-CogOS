@@ -309,6 +309,17 @@ class KnowledgeManager:
         linked = 0
         for domain in domains:
             nodes = self.knowledge.search(domain, top_k=3, min_outcome=0.0)
+            if not nodes:
+                # A theory abstracts the pipeline's own experience (its domain
+                # is literally "pipeline"), while the recorder stamps every
+                # kernel outcome node with that same domain as a TAG even when
+                # the node's stored domain label differs (PipelineResult carries
+                # no domain, so the recorder defaults to "unknown"). Resolve the
+                # theory domain against the tag index so the theory -> knowledge
+                # link actually carries (Λ6.7) instead of silently linking zero
+                # nodes whenever the two vocabularies disagree.
+                nodes = self.knowledge.search(tags=[domain], top_k=3,
+                                              min_outcome=0.0)
             for node in nodes:
                 self.linker.link_node_to_theory(node.node_id, genealogy_id)
                 linked += 1
