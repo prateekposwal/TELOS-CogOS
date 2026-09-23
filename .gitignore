@@ -76,3 +76,6 @@ reports/data-engineering/daily-*.md
 
 # Quickstart example local state (regenerated on each run)
 examples/.quickstart_state/
+# Dashboard runtime artifacts (persistent logs/pid; were in /tmp and got purged)
+telos/audit/runtime/dashboard.log*
+telos/audit/runtime/dashboard.pid

@@ -15,8 +15,13 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PORT=8765
-PIDFILE="/tmp/telos_dashboard.pid"
-LOGFILE="/tmp/telos_dashboard.log"
+# Persistent runtime dir in the repo (NOT /tmp): macOS periodically purges
+# /tmp, which previously destroyed the pidfile AND the crash log, leaving a
+# dead dashboard with no diagnosable cause. Runtime artifacts are gitignored.
+RUNTIME_DIR="$HERE/audit/runtime"
+mkdir -p "$RUNTIME_DIR"
+PIDFILE="$RUNTIME_DIR/dashboard.pid"
+LOGFILE="$RUNTIME_DIR/dashboard.log"
 # Log retention (Defect 1): rotation must BOUND disk, not hoard a single
 # forever-growing uncompressed copy (observed: telos_dashboard.log.1 = 544MB,
 # plus a ~60MB live log — 1 rotated copy kept forever, never compressed).
