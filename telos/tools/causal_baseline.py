@@ -174,6 +174,60 @@ def _stats(vals: List[float]) -> Dict[str, Any]:
             "max": round(max(vals), 4)}
 
 
+def _learning_loop_report(pipe: Any) -> Dict[str, Any]:
+    """Read-only snapshot of the experience->theory->genealogy->KG chain.
+
+    Inspects the live components AFTER a run, so it can never change pipeline
+    behaviour. This is the Phase 4 measurement of the learning loop: the
+    counts are read from the real objects, never synthesized.
+
+    Args:
+        pipe: the pipeline that just ran.
+
+    Returns:
+        A JSON-ready dict of capability counts and evidence tallies, or
+        ``{"error": ...}`` when a component is unavailable.
+    """
+    try:
+        from telos.core.streams.implementations import TheoryStream
+        tb = getattr(pipe, "_theory_builder", None)
+        cur = getattr(pipe, "_curriculum", None)
+        gen = getattr(pipe, "_theory_genealogy", None)
+        km = getattr(getattr(pipe, "infra_manager", None), "knowledge_mgr", None)
+        ts = next((s for s in getattr(pipe, "streams", [])
+                   if isinstance(s, TheoryStream)), None)
+
+        hyps = list(getattr(tb, "_hypotheses", {}).values()) if tb is not None else []
+        tests_passed = [int(h.tests_passed) for h in hyps]
+        conf = [float(h.confidence) for h in hyps]
+        return {
+            "experiences": int(getattr(tb, "total_experiences", 0)),
+            "patterns": int(getattr(tb, "total_patterns", 0)),
+            "hypotheses": int(getattr(tb, "total_hypotheses", 0)),
+            "active_hypotheses": len(tb.get_active_hypotheses()) if tb is not None else 0,
+            "hypotheses_falsified": sum(1 for h in hyps if h.falsified),
+            "tests_passed_total": sum(tests_passed),
+            "tests_passed_max": max(tests_passed) if tests_passed else 0,
+            "hypothesis_confidence_max": round(max(conf), 4) if conf else 0.0,
+            "theories": int(getattr(tb, "total_theories", 0)),
+            "promotions": len(getattr(tb, "_promoted_hypothesis_ids", set())),
+            "genealogy_nodes": len(getattr(gen, "_nodes", {})),
+            "kg_linked_theories": (
+                km.stats.get("linked_theories", 0) if km is not None else 0
+            ),
+            "curriculum_tasks": (cur.stats()["total"] if cur is not None else None),
+            "curriculum_frontier": (cur.stats()["frontier"] if cur is not None else None),
+            "curriculum_tasks_attached": (
+                int(getattr(ts, "curriculum_tasks_attached", 0)) if ts is not None else None
+            ),
+            "promoted_theory_actions": sorted({
+                t.action for t in getattr(tb, "_theories", {}).values()
+            }) if tb is not None else [],
+        }
+    except Exception as exc:
+        return {"error": repr(exc)}
+
+
 def run(cycles: int = 120, seed: int = 42) -> Dict[str, Any]:
     """Run the causal baseline and aggregate its durable metrics.
 
@@ -282,7 +336,15 @@ def run(cycles: int = 120, seed: int = 42) -> Dict[str, Any]:
             edge_types[getattr(e, "edge_type", "unknown")] += 1
         for n in nodes.values():
             kg_node_approaches[getattr(n, "approach", "unknown")] += 1
+        dom_counts = Counter(getattr(n, "domain", "?") for n in nodes.values())
+        arch_dom_counts = Counter(
+            getattr(n, "domain", "?")
+            for n in dict(getattr(kg, "_archived_nodes", {})).values())
+        tag_pipeline = len(getattr(kg, "_tag_index", {}).get("pipeline", set()))
         kg_report = {
+            "domains": dict(dom_counts.most_common()),
+            "archived_domains": dict(arch_dom_counts.most_common()),
+            "tag_pipeline_nodes": tag_pipeline,
             "nodes": len(nodes),
             "archived_nodes": len(getattr(kg, "_archived_nodes", {})),
             "edges": len(edges),
@@ -358,6 +420,7 @@ def run(cycles: int = 120, seed: int = 42) -> Dict[str, Any]:
         "intents": dict(intents.most_common()),
         "stream_activations": dict(stream_activations.most_common()),
         "memory": memory_stats,
+        "learning_loop": _learning_loop_report(pipe),
         "reality_gap": rg,
         "knowledge_graph": kg_report,
         "axioms": {
@@ -405,6 +468,7 @@ def main(argv=None) -> int:
         print(f"  stream activations   : {report['stream_activations']}")
         print(f"  reality gap          : {report['reality_gap']}")
         print(f"  knowledge graph      : {report['knowledge_graph']}")
+        print(f"  learning loop        : {report['learning_loop']}")
         print(f"  axiom 4.11           : {report['axioms']['4.11_pass']} pass / "
               f"{report['axioms']['4.11_fail']} fail")
         print(f"  policy               : {report['policy']}")
