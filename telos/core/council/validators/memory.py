@@ -183,9 +183,10 @@ class MemoryAdvisor(Validator):
                 for fnode in failed:
                     if fnode.approach == current_approach:
                         if (fnode.failure_reason or "") in NOT_EVIDENCE_APPROACH_FAILURE_REASONS:
-                            # Suppression is not approach failure (mirrors the
-                            # failure-ledger filter above): a vetoed attempt was
-                            # never tested, so it cannot falsify the approach.
+                            # Suppression / resource-exhaustion is not approach
+                            # failure (mirrors the failure-ledger filter above):
+                            # a vetoed or starved attempt was never tested, so it
+                            # cannot falsify the approach.
                             continue
                         return ValidationSignal(
                             validator_name=self.name,
@@ -197,6 +198,9 @@ class MemoryAdvisor(Validator):
                             evidence_weight=0.7,
                             metadata={
                                 "failed_node": fnode.node_id,
+                                "failed_domain": domain,
+                                "failed_outcome": fnode.outcome,
+                                "failed_reason": fnode.failure_reason,
                                 "proven_alternatives": [n.approach for n in proven],
                             },
                         )

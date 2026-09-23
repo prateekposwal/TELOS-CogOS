@@ -47,4 +47,10 @@ GOVERNANCE_SUPPRESSION_REASONS = frozenset({
 #     governance suppression.
 NOT_EVIDENCE_APPROACH_FAILURE_REASONS = GOVERNANCE_SUPPRESSION_REASONS | frozenset({
     "unresolved_uncertainty",
+    # Resource exhaustion (budget_starvation: health_score < 0.3) is a COMPUTE
+    # condition, not an approach-quality falsification — the approach was never
+    # tested, it was starved of budget. Recorded as an approach failure it
+    # vetoes the approach forever (the live `blended_inquiry`/`goal_seek_recovery`
+    # KG veto). Same misattribution class as governance suppression.
+    "resource_exhaustion",
 })
