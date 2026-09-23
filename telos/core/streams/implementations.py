@@ -408,6 +408,13 @@ class TheoryStream(CognitiveStream):
             or 0
         )
 
+        # Restore the hypothesis -> experiment -> evidence arrow BEFORE
+        # abstraction: test active hypotheses against the newest real
+        # observation. Without this, observe_outcome only adds experiences and
+        # nothing ever calls test_hypotheses, so tests_passed stayed 0 and the
+        # promotion criterion (>= min_tests_for_theory) was unsatisfiable.
+        self._builder.test_latest_experience()
+
         # Cluster experiences into patterns
         patterns = self._builder.cluster()
         if patterns and len(patterns) > 0:

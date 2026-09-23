@@ -279,6 +279,28 @@ class TheoryBuilder:
                 )
                 del self._hypotheses[hid]
 
+    def test_latest_experience(self) -> List[Tuple[str, bool]]:
+        """Test active hypotheses against the most recently recorded experience.
+
+        The live pipeline records experiences through ``observe_outcome()``
+        (add-experience only) but never calls ``build()`` — the only caller of
+        ``test_hypotheses`` — so hypotheses accumulated ZERO evidence
+        (``tests_passed`` stayed 0) and could never satisfy the promotion
+        criterion. This restores the missing hypothesis -> test arrow on the
+        live path: the newest REAL observation is the experiment. It never
+        fabricates an outcome; with no experience recorded it is a no-op.
+
+        Returns:
+            The (hypothesis_id, survived) results, or [] when no experience
+            has been recorded yet.
+        """
+        if not self._experiences:
+            return []
+        latest = max(self._experiences.values(),
+                     key=lambda e: e.timestamp)
+        return self.test_hypotheses(latest.context, latest.action,
+                                    latest.outcome)
+
     def test_hypotheses(self, context: Dict[str, Any],
                         action: str, actual_outcome: float) -> List[Tuple[str, bool]]:
         """Test all active hypotheses against a new experience.
