@@ -1526,14 +1526,27 @@ class TelosV14Pipeline:
                 # Inject self-originating intent if curiosity is high enough
                 if self._curiosity_drive.should_generate_self_intent():
                     from telos.intent_ir import IntentIR
+                    _curiosity_params = {
+                        "curiosity_level": self._curiosity_drive.state.curiosity_level,
+                        "self_initiated": True,
+                        "reason": "curiosity_drive_intrinsic_inquiry",
+                    }
+                    # A/B (default 0.0 = control): with probability p attach a
+                    # real exploratory vector so the adapter walks its own
+                    # direction instead of goal-routing; otherwise leave it
+                    # absent (goal-directed fallback). The private RNG
+                    # advances across cycles/episodes so the walk varies;
+                    # deterministic under a fixed seed.
+                    _explore_p = float(getattr(
+                        self.config, 'curiosity_explore_probability', 0.0) or 0.0)
+                    if _explore_p > 0.0 and float(self._rng.uniform()) < _explore_p:
+                        _angle = float(self._rng.uniform(0.0, 2.0 * np.pi))
+                        _curiosity_params["action_vector"] = np.array(
+                            [np.cos(_angle), np.sin(_angle)], dtype=float)
                     curiosity_intent = IntentIR(
                         intent_type="curiosity_explore",
                         confidence=min(1.0, self._curiosity_drive.state.curiosity_level),
-                        params={
-                            "curiosity_level": self._curiosity_drive.state.curiosity_level,
-                            "self_initiated": True,
-                            "reason": "curiosity_drive_intrinsic_inquiry",
-                        },
+                        params=_curiosity_params,
                         metadata={
                             "stream": "curiosity",
                             "curiosity_level": self._curiosity_drive.state.curiosity_level,

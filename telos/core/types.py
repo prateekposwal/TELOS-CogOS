@@ -298,6 +298,14 @@ class PipelineConfig:
     stream_skip_threshold: float = 0.2
     adaptive_worlds_enabled: bool = True
     memory_fast_path_enabled: bool = True
+    # Curiosity exploration (A/B, default 0.0 = control). Probability with
+    # which a self-initiated `curiosity_explore` intent carries an exploratory
+    # `action_vector` (a seeded random unit vector). At 0.0 the adapter falls
+    # back to the goal-directed A* step (deterministic repeated path); at >0
+    # the walk varies. A full random walk (1.0) was A/B-REJECTED (variety up,
+    # mission progress down); a bounded probability trades the two. See
+    # research/EXPLORATION.md.
+    curiosity_explore_probability: float = 0.0
     budget_carryover_max_ratio: float = 0.5
     debug: bool = False
     checkpoint_path: Optional[str] = None
