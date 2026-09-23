@@ -26,17 +26,19 @@
       "passes": 1059,
       "reflex_short_circuits": 150,
       "non_reflex_evaluations": 909,
-      "distinct_intent_types": 10,
+      "distinct_intent_types": 12,
       "intent_type_counts": {
-        "curiosity_explore": 299,
+        "curiosity_explore": 327,
         "explore_unknown_unknown": 154,
         "reflex": 150,
-        "theory_idle": 150,
+        "propose_theory": 142,
         "explore_curiosity": 140,
-        "blended_inquiry": 128,
+        "blended_inquiry": 100,
         "inquiry": 22,
         "memory_miss": 10,
+        "theory_idle": 6,
         "perceive": 5,
+        "propose_hypothesis": 2,
         "plan_trajectory": 1
       },
       "fi_values": {
@@ -649,21 +651,21 @@
         },
         {
           "cycle": 83,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1002,
           "projected_out": []
         },
         {
           "cycle": 84,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0546,
           "projected_out": []
         },
         {
           "cycle": 85,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0674,
           "projected_out": []
@@ -677,35 +679,35 @@
         },
         {
           "cycle": 87,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1323,
           "projected_out": []
         },
         {
           "cycle": 88,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.1218,
           "projected_out": []
         },
         {
           "cycle": 89,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0622,
           "projected_out": []
         },
         {
           "cycle": 90,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0703,
           "projected_out": []
         },
         {
           "cycle": 91,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.103,
           "projected_out": []
@@ -719,35 +721,35 @@
         },
         {
           "cycle": 93,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0638,
           "projected_out": []
         },
         {
           "cycle": 94,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0687,
           "projected_out": []
         },
         {
           "cycle": 95,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0967,
           "projected_out": []
         },
         {
           "cycle": 96,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0625,
           "projected_out": []
         },
         {
           "cycle": 97,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.0787,
           "projected_out": []
@@ -803,28 +805,28 @@
         },
         {
           "cycle": 105,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0589,
           "projected_out": []
         },
         {
           "cycle": 106,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0527,
           "projected_out": []
         },
         {
           "cycle": 107,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0627,
           "projected_out": []
         },
         {
           "cycle": 108,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1115,
           "projected_out": []
@@ -845,7 +847,7 @@
         },
         {
           "cycle": 111,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0528,
           "projected_out": []
@@ -880,7 +882,7 @@
         },
         {
           "cycle": 116,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "goal_seek_recovery",
           "di": 1.0,
           "md": 0.1083,
           "projected_out": []
@@ -1117,7 +1119,7 @@
           "projected_out": []
         }
       ],
-      "selected_intent_sequence_hash": "27d9f73f905f83c6"
+      "selected_intent_sequence_hash": "2f825fa5951dd19c"
     },
     "without_mission": {
       "mission": false,
@@ -1127,17 +1129,19 @@
       "passes": 1059,
       "reflex_short_circuits": 150,
       "non_reflex_evaluations": 909,
-      "distinct_intent_types": 10,
+      "distinct_intent_types": 12,
       "intent_type_counts": {
-        "blended_inquiry": 275,
+        "curiosity_explore": 327,
         "explore_unknown_unknown": 154,
-        "curiosity_explore": 152,
         "reflex": 150,
-        "theory_idle": 150,
+        "propose_theory": 142,
         "explore_curiosity": 140,
+        "blended_inquiry": 100,
         "inquiry": 22,
         "memory_miss": 10,
+        "theory_idle": 6,
         "perceive": 5,
+        "propose_hypothesis": 2,
         "plan_trajectory": 1
       },
       "fi_values": {
@@ -1344,42 +1348,42 @@
         },
         {
           "cycle": 25,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0602,
           "projected_out": []
         },
         {
           "cycle": 26,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1015,
           "projected_out": []
         },
         {
           "cycle": 27,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0698,
           "projected_out": []
         },
         {
           "cycle": 28,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0544,
           "projected_out": []
         },
         {
           "cycle": 29,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0874,
           "projected_out": []
         },
         {
           "cycle": 30,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "goal_seek_recovery",
           "di": 1.0,
           "md": 0.0574,
           "projected_out": []
@@ -1393,28 +1397,28 @@
         },
         {
           "cycle": 32,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0521,
           "projected_out": []
         },
         {
           "cycle": 33,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0565,
           "projected_out": []
         },
         {
           "cycle": 34,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1035,
           "projected_out": []
         },
         {
           "cycle": 35,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0544,
           "projected_out": []
@@ -1435,121 +1439,121 @@
         },
         {
           "cycle": 38,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0508,
           "projected_out": []
         },
         {
           "cycle": 39,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0502,
+          "md": 0.0533,
           "projected_out": []
         },
         {
           "cycle": 40,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0553,
           "projected_out": []
         },
         {
           "cycle": 41,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0532,
           "projected_out": []
         },
         {
           "cycle": 42,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0838,
           "projected_out": []
         },
         {
           "cycle": 43,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "goal_seek_recovery",
           "di": 1.0,
           "md": 0.0741,
           "projected_out": []
         },
         {
           "cycle": 44,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0505,
           "projected_out": []
         },
         {
           "cycle": 45,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.1259,
+          "md": 0.1335,
           "projected_out": []
         },
         {
           "cycle": 46,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "goal_seek_recovery",
           "di": 1.0,
           "md": 0.0546,
           "projected_out": []
         },
         {
           "cycle": 47,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0571,
           "projected_out": []
         },
         {
           "cycle": 48,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0797,
           "projected_out": []
         },
         {
           "cycle": 49,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "goal_seek_recovery",
           "di": 1.0,
           "md": 0.0747,
           "projected_out": []
         },
         {
           "cycle": 50,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0514,
           "projected_out": []
         },
         {
           "cycle": 51,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0506,
+          "md": 0.0537,
           "projected_out": []
         },
         {
           "cycle": 52,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "goal_seek_recovery",
           "di": 1.0,
           "md": 0.0551,
           "projected_out": []
         },
         {
           "cycle": 53,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0771,
+          "md": 0.0564,
           "projected_out": []
         },
         {
           "cycle": 54,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0758,
+          "md": 0.0725,
           "projected_out": []
         },
         {
@@ -1561,126 +1565,126 @@
         },
         {
           "cycle": 56,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0896,
+          "md": 0.0845,
           "projected_out": []
         },
         {
           "cycle": 57,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0583,
+          "md": 0.0771,
           "projected_out": []
         },
         {
           "cycle": 58,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.057,
           "projected_out": []
         },
         {
           "cycle": 59,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.0829,
           "projected_out": []
         },
         {
           "cycle": 60,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0649,
+          "md": 0.0688,
           "projected_out": []
         },
         {
           "cycle": 61,
           "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0534,
+          "md": 0.0566,
           "projected_out": []
         },
         {
           "cycle": 62,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0509,
+          "md": 0.054,
           "projected_out": []
         },
         {
           "cycle": 63,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0888,
           "projected_out": []
         },
         {
           "cycle": 64,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0612,
           "projected_out": []
         },
         {
           "cycle": 65,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0998,
           "projected_out": []
         },
         {
           "cycle": 66,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0617,
           "projected_out": []
         },
         {
           "cycle": 67,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "goal_seek_recovery",
           "di": 1.0,
           "md": 0.0673,
           "projected_out": []
         },
         {
           "cycle": 68,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0599,
+          "md": 0.0554,
           "projected_out": []
         },
         {
           "cycle": 69,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0589,
           "projected_out": []
         },
         {
           "cycle": 70,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0881,
           "projected_out": []
         },
         {
           "cycle": 71,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0574,
           "projected_out": []
         },
         {
           "cycle": 72,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0719,
+          "md": 0.0735,
           "projected_out": []
         },
         {
           "cycle": 73,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0586,
           "projected_out": []
@@ -1696,40 +1700,40 @@
           "cycle": 75,
           "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.057,
+          "md": 0.0603,
           "projected_out": []
         },
         {
           "cycle": 76,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0553,
+          "md": 0.0522,
           "projected_out": []
         },
         {
           "cycle": 77,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0719,
           "projected_out": []
         },
         {
           "cycle": 78,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0589,
+          "md": 0.0556,
           "projected_out": []
         },
         {
           "cycle": 79,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0885,
           "projected_out": []
         },
         {
           "cycle": 80,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.1033,
           "projected_out": []
@@ -1738,47 +1742,47 @@
           "cycle": 81,
           "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0598,
+          "md": 0.0634,
           "projected_out": []
         },
         {
           "cycle": 82,
           "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.055,
+          "md": 0.0583,
           "projected_out": []
         },
         {
           "cycle": 83,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0945,
+          "md": 0.1002,
           "projected_out": []
         },
         {
           "cycle": 84,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0546,
           "projected_out": []
         },
         {
           "cycle": 85,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0674,
           "projected_out": []
         },
         {
           "cycle": 86,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.0676,
           "projected_out": []
         },
         {
           "cycle": 87,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1323,
           "projected_out": []
@@ -1792,58 +1796,58 @@
         },
         {
           "cycle": 89,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0587,
+          "md": 0.0622,
           "projected_out": []
         },
         {
           "cycle": 90,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0703,
           "projected_out": []
         },
         {
           "cycle": 91,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.103,
           "projected_out": []
         },
         {
           "cycle": 92,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.0532,
           "projected_out": []
         },
         {
           "cycle": 93,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0638,
           "projected_out": []
         },
         {
           "cycle": 94,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0687,
           "projected_out": []
         },
         {
           "cycle": 95,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0912,
+          "md": 0.0967,
           "projected_out": []
         },
         {
           "cycle": 96,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0589,
+          "md": 0.0625,
           "projected_out": []
         },
         {
@@ -1855,77 +1859,77 @@
         },
         {
           "cycle": 98,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.055,
           "projected_out": []
         },
         {
           "cycle": 99,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0659,
+          "md": 0.0621,
           "projected_out": []
         },
         {
           "cycle": 100,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0857,
+          "md": 0.0809,
           "projected_out": []
         },
         {
           "cycle": 101,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1158,
           "projected_out": []
         },
         {
           "cycle": 102,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.1181,
+          "md": 0.1252,
           "projected_out": []
         },
         {
           "cycle": 103,
           "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.1478,
+          "md": 0.0507,
           "projected_out": []
         },
         {
           "cycle": 104,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0874,
+          "md": 0.0927,
           "projected_out": []
         },
         {
           "cycle": 105,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0589,
           "projected_out": []
         },
         {
           "cycle": 106,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0527,
           "projected_out": []
         },
         {
           "cycle": 107,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0665,
+          "md": 0.0627,
           "projected_out": []
         },
         {
           "cycle": 108,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1115,
           "projected_out": []
@@ -1939,42 +1943,42 @@
         },
         {
           "cycle": 110,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.0785,
           "projected_out": []
         },
         {
           "cycle": 111,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0528,
           "projected_out": []
         },
         {
           "cycle": 112,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.1215,
+          "md": 0.1146,
           "projected_out": []
         },
         {
           "cycle": 113,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1008,
           "projected_out": []
         },
         {
           "cycle": 114,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.063,
+          "md": 0.1005,
           "projected_out": []
         },
         {
           "cycle": 115,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0652,
           "projected_out": []
@@ -1983,14 +1987,14 @@
           "cycle": 116,
           "selected_intent": "goal_seek_recovery",
           "di": 1.0,
-          "md": 0.1021,
+          "md": 0.1083,
           "projected_out": []
         },
         {
           "cycle": 117,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0837,
+          "md": 0.0522,
           "projected_out": []
         },
         {
@@ -2002,126 +2006,126 @@
         },
         {
           "cycle": 119,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0542,
           "projected_out": []
         },
         {
           "cycle": 120,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0696,
+          "md": 0.1444,
           "projected_out": []
         },
         {
           "cycle": 121,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0753,
+          "md": 0.071,
           "projected_out": []
         },
         {
           "cycle": 122,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.0925,
           "projected_out": []
         },
         {
           "cycle": 123,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0869,
+          "md": 0.0922,
           "projected_out": []
         },
         {
           "cycle": 124,
           "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0748,
+          "md": 0.0793,
           "projected_out": []
         },
         {
           "cycle": 125,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0519,
+          "md": 0.055,
           "projected_out": []
         },
         {
           "cycle": 126,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0574,
           "projected_out": []
         },
         {
           "cycle": 127,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0526,
           "projected_out": []
         },
         {
           "cycle": 128,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.074,
+          "md": 0.0698,
           "projected_out": []
         },
         {
           "cycle": 129,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0509,
           "projected_out": []
         },
         {
           "cycle": 130,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0543,
           "projected_out": []
         },
         {
           "cycle": 131,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1218,
           "projected_out": []
         },
         {
           "cycle": 132,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0552,
           "projected_out": []
         },
         {
           "cycle": 133,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0868,
+          "md": 0.0921,
           "projected_out": []
         },
         {
           "cycle": 134,
           "selected_intent": "goal_seek_recovery",
           "di": 1.0,
-          "md": 0.1351,
+          "md": 0.0711,
           "projected_out": []
         },
         {
           "cycle": 135,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.052,
+          "md": 0.0561,
           "projected_out": []
         },
         {
           "cycle": 136,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.0594,
           "projected_out": []
@@ -2130,14 +2134,14 @@
           "cycle": 137,
           "selected_intent": "goal_seek_recovery",
           "di": 1.0,
-          "md": 0.0612,
+          "md": 0.0648,
           "projected_out": []
         },
         {
           "cycle": 138,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0676,
+          "md": 0.0509,
           "projected_out": []
         },
         {
@@ -2149,88 +2153,88 @@
         },
         {
           "cycle": 140,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
           "md": 0.0584,
           "projected_out": []
         },
         {
           "cycle": 141,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0928,
+          "md": 0.0875,
           "projected_out": []
         },
         {
           "cycle": 142,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0922,
+          "md": 0.087,
           "projected_out": []
         },
         {
           "cycle": 143,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0667,
+          "md": 0.0629,
           "projected_out": []
         },
         {
           "cycle": 144,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0648,
+          "md": 0.0687,
           "projected_out": []
         },
         {
           "cycle": 145,
           "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0979,
+          "md": 0.0586,
           "projected_out": []
         },
         {
           "cycle": 146,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "blended_inquiry",
           "di": 1.0,
-          "md": 0.0531,
+          "md": 0.0563,
           "projected_out": []
         },
         {
           "cycle": 147,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.117,
+          "md": 0.1104,
           "projected_out": []
         },
         {
           "cycle": 148,
-          "selected_intent": "blended_inquiry",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
-          "md": 0.0823,
+          "md": 0.078,
           "projected_out": []
         },
         {
           "cycle": 149,
-          "selected_intent": "goal_seek_recovery",
+          "selected_intent": "curiosity_explore",
           "di": 1.0,
           "md": 0.1148,
           "projected_out": []
         }
       ],
-      "selected_intent_sequence_hash": "cb7c8bbaab9836da"
+      "selected_intent_sequence_hash": "2f825fa5951dd19c"
     }
   },
   "decision_neutrality": {
-    "recorder_fp": "32411a2779975aa5",
-    "plain_fp": "32411a2779975aa5",
+    "recorder_fp": "f99898ede4e726d6",
+    "plain_fp": "f99898ede4e726d6",
     "decision_neutral": true
   },
   "adversarial": {
     "mission_active": true,
     "mission_defined": true,
     "mission_ids": [
-      "mission_1789760841927_0"
+      "mission_1789860954630_0"
     ],
     "narrative_role": "agent",
     "normal": {

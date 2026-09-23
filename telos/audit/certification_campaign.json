@@ -57,7 +57,7 @@
         "gap": 0.0,
         "matched": true,
         "admitted": true,
-        "candidate_id": "cand_69c402dec3",
+        "candidate_id": "cand_834a03a59c",
         "fidelity_before": null,
         "fidelity_after": 1.0,
         "status_before": "UNKNOWN",
@@ -146,7 +146,7 @@
         "gap": 0.06382978723404253,
         "matched": false,
         "admitted": false,
-        "candidate_id": "cand_51fc1bb823",
+        "candidate_id": "cand_47a297ee1d",
         "fidelity_before": 1.0,
         "fidelity_after": 0.9680851063829787,
         "status_before": "PASS",
@@ -235,7 +235,7 @@
         "gap": 0.6666666666666667,
         "matched": false,
         "admitted": false,
-        "candidate_id": "cand_106c4af207",
+        "candidate_id": "cand_32b24478ee",
         "fidelity_before": 1.0,
         "fidelity_after": 0.6666666666666666,
         "status_before": "PASS",
@@ -326,7 +326,7 @@
         "gap": 0.7704918032786885,
         "matched": false,
         "admitted": false,
-        "candidate_id": "cand_6e13ca174b",
+        "candidate_id": "cand_46f3092250",
         "fidelity_before": 1.0,
         "fidelity_after": 0.6147540983606558,
         "status_before": "PASS",
@@ -418,7 +418,7 @@
       "measured": {
         "executed": false,
         "action_allowed": false,
-        "blocked_reason": "action invalid: write_file target is not an existing file: '/private/var/folders/gp/cdz5rt_s51l5531582d062kc0000gn/T/telos_cert_campaign_wu75sol4/notes.md'",
+        "blocked_reason": "action invalid: write_file target is not an existing file: '/private/var/folders/gp/cdz5rt_s51l5531582d062kc0000gn/T/telos_cert_campaign__uc6al77/notes.md'",
         "expected_result": "alpha\nbeta-edited\ngamma\n",
         "predicted": null,
         "observed": null,
@@ -472,7 +472,7 @@
         {
           "name": "blocked_reason",
           "ok": true,
-          "detail": "blocked_reason=\"action invalid: write_file target is not an existing file: '/private/var/folders/gp/cdz5rt_s51l5531582d062kc0000gn/T/telos_cert_campaign_wu75sol4/notes.md'\""
+          "detail": "blocked_reason=\"action invalid: write_file target is not an existing file: '/private/var/folders/gp/cdz5rt_s51l5531582d062kc0000gn/T/telos_cert_campaign__uc6al77/notes.md'\""
         },
         {
           "name": "gap_band",
@@ -511,7 +511,7 @@
         "gap": 0.6363636363636364,
         "matched": false,
         "admitted": false,
-        "candidate_id": "cand_e61969a0c2",
+        "candidate_id": "cand_f9f395a0c7",
         "fidelity_before": 1.0,
         "fidelity_after": 0.6818181818181819,
         "status_before": "PASS",
@@ -610,7 +610,7 @@
         "gap": 1.0,
         "matched": false,
         "admitted": false,
-        "candidate_id": "cand_bf23859e6c",
+        "candidate_id": "cand_558ebb7601",
         "fidelity_before": 1.0,
         "fidelity_after": 0.5,
         "status_before": "PASS",
@@ -699,7 +699,7 @@
         "gap": 0.04166666666666663,
         "matched": false,
         "admitted": false,
-        "candidate_id": "cand_ffecd6a473",
+        "candidate_id": "cand_4fae5e6213",
         "fidelity_before": 1.0,
         "fidelity_after": 0.9791666666666667,
         "status_before": "PASS",
@@ -1328,7 +1328,7 @@
     },
     "I6": {
       "held": true,
-      "detail": "mismatch gap=0.6666666666666667 candidate=cand_4b106869ed admitted=False acquired=0"
+      "detail": "mismatch gap=0.6666666666666667 candidate=cand_7525cc9740 admitted=False acquired=0"
     },
     "I7": {
       "held": true,

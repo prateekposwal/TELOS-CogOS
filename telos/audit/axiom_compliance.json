@@ -1,20 +1,27 @@
 {
-  "mode": "fast",
+  "mode": "standard",
   "seed": 42,
   "cycles": 40,
   "cycles_with_trace": 40,
   "cycles_measured": 40,
   "expected_axioms": 42,
-  "mean_compliance": 1.0,
-  "min_compliance": 1.0,
+  "mean_compliance": 0.997619,
+  "min_compliance": 0.97619,
   "p10_compliance": 1.0,
-  "mean_passed_axioms": 42.0,
-  "min_passed_axioms": 42,
-  "healthy_cycles": 40,
-  "degraded_cycles": 0,
-  "worst_failed_axioms": [],
-  "fail_count": 0,
-  "fingerprint": "7da71fe4790c126c",
+  "mean_passed_axioms": 41.9,
+  "min_passed_axioms": 41,
+  "healthy_cycles": 36,
+  "degraded_cycles": 4,
+  "worst_failed_axioms": [
+    {
+      "axiom": "4.11",
+      "failed_cycles": 4,
+      "fraction": 0.1,
+      "reason": ""
+    }
+  ],
+  "fail_count": 1,
+  "fingerprint": "a4eaace8d3b6c5ad",
   "criteria": {
     "cycles_measured": true,
     "traces_present": true,
@@ -31,9 +38,11 @@
       "4.11"
     ],
     "nonconditional_violations": [],
-    "conditional_failed_cycles": {},
-    "measured_mean": 1.0,
-    "measured_min": 1.0,
+    "conditional_failed_cycles": {
+      "4.11": 4
+    },
+    "measured_mean": 0.997619,
+    "measured_min": 0.97619,
     "passes": true,
     "enforced": true,
     "note": "Wired to --ci: --ci requires measurement well-formedness AND (a) every non-conditional axiom passes every cycle, (b) no non-conditional axiom appears in any failing set, and (c) a conditional axiom (\u039b4.11) still passes on at least one cycle (never always-false). High-diversity standard-mode cycles may legitimately fail 4.11; that is recorded, not smoothed."
@@ -49,11 +58,16 @@
       "axiom_set_complete"
     ]
   },
-  "diagnosis": {},
+  "diagnosis": {
+    "4.11": {
+      "category": "conditional_violation",
+      "evidence": "\u039b4.11's corrected reading matches its lens architecture: the DistributedCouncil crew re-scores ONE primary decision through N role lenses, so group_utility is a consensus (weighted mean \u2264 the best lens) \u2014 NOT a summable total and NOT strict superadditivity. Because mean \u2264 max and C_align \u2265 0, the strict predicate (group \u2212 C_align >= isolated) holds exactly at zero measured divergence; any divergence legitimately fails it. The live md-cap cycle is the signature \u2014 every role DI is 1.0, but one conservative validation-axis dissent gives diversity 0.4 (C_align 0.24), so group\u2212C_align = 0.76 < isolated = 1.0. This is a recorded conditional outcome, NOT a wiring gap: the not-applicable record for a skipped crew is unchanged and the axiom remains falsifiable (the 4.11 sabotager flips it)."
+    }
+  },
   "determinism": {
     "runs": 1,
     "fingerprints": [
-      "7da71fe4790c126c"
+      "a4eaace8d3b6c5ad"
     ],
     "identical": null,
     "note": "single run; pass --determinism to compare two identical-seed runs"

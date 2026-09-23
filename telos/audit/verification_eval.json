@@ -96,10 +96,10 @@
       {
         "id": "T8-identity-projection",
         "name": "Identity Projection (F(I))",
-        "statement": "An intent outside the identity projection F(I) is structurally inadmissible: the real IdentityProjectionGate admits only trajectories consistent with Core values, narrative role, and an active mission.",
+        "statement": "An intent outside the identity projection F(I) is structurally inadmissible: the canonical IdentityProjectionGate admits only trajectories consistent with Core values, narrative role, and an active mission scope (the caller passes the REAL objective signal \u2014 genuine bootstrap only when no objective was ever defined), AND the SELECT phase enforces it end-to-end \u2014 an inadmissible SELECTED trajectory is projected out and replaced by the next-best admissible one (not merely logged).",
         "null": "An identity-inadmissible intent (core-value violator, role-incompatible, or mission-less) survives F(I) projection.",
         "null_reachable": "component_injection",
-        "measured": "projected_out=2/3, mission_block=True, value_block=True, role_block=True, reflex_admitted=True",
+        "measured": "projected_out=2/3, mission_block=True, value_block=True, role_block=True, reflex_admitted=True, select_enforced=True, missionless_enforced=True",
         "passed": true
       },
       {
