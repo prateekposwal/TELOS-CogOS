@@ -79,3 +79,12 @@ examples/.quickstart_state/
 # Dashboard runtime artifacts (persistent logs/pid; were in /tmp and got purged)
 telos/audit/runtime/dashboard.log*
 telos/audit/runtime/dashboard.pid
+
+# ── Personal / private-project docs — NEVER publish (see CONTRIBUTING) ──
+# Keep personal working docs out of this public repo: real people's names,
+# client/business info, and private project state. Untracked on purpose — the
+# files may exist locally, but they must not be committed.
+REDACTED-LEARNING-PLAN.md
+*_PROJECT_STATE.md
+telos/the_thread.md
+mealdrama_v71_result.json
