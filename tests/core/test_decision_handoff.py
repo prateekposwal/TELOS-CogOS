@@ -51,25 +51,27 @@ def _pipeline_stub(mission="gridworld navigation"):
 # ── Policy ───────────────────────────────────────────────────────────────────
 
 def test_meaningful_on_new_committed_decision():
-    assert DecisionRecorder.is_meaningful(_ctx("reflex"), last_intent_type=None) is True
-    # same intent again -> not meaningful
-    assert DecisionRecorder.is_meaningful(_ctx("reflex"), last_intent_type="reflex") is False
-    # a different intent -> meaningful
-    assert DecisionRecorder.is_meaningful(_ctx("explore"), last_intent_type="reflex") is True
+    rec = DecisionRecorder()
+    assert rec.is_meaningful(_ctx("reflex")) is True
+    rec.observe(_pipeline_stub(), _ctx("reflex"))          # record it
+    assert rec.is_meaningful(_ctx("reflex")) is False      # same type -> not new
+    assert rec.is_meaningful(_ctx("explore")) is True      # new type -> new decision
 
 
-def test_meaningful_on_governance_event():
-    assert DecisionRecorder.is_meaningful(
-        _ctx("reflex", validated=False, action=False), last_intent_type="reflex") is True
-    assert DecisionRecorder.is_meaningful(
-        _ctx("reflex", escalation=True), last_intent_type="reflex") is True
-    assert DecisionRecorder.is_meaningful(
-        _ctx("reflex", firewall=True), last_intent_type="reflex") is True
+def test_meaningful_on_new_governance_signature_only():
+    rec = DecisionRecorder()
+    blocked = _ctx("reflex", validated=False, action=False)
+    assert rec.is_meaningful(blocked) is True
+    rec.observe(_pipeline_stub(), blocked)
+    # same refusal signature again -> not a new decision
+    assert rec.is_meaningful(_ctx("reflex", validated=False, action=False)) is False
+    # a different governance signature -> meaningful
+    assert rec.is_meaningful(_ctx("reflex", escalation=True)) is True
 
 
 def test_not_meaningful_when_no_intent_and_no_event():
     ctx = _ctx("reflex"); ctx.selected_intent = None; ctx.selected_action = None
-    assert DecisionRecorder.is_meaningful(ctx, last_intent_type="reflex") is False
+    assert DecisionRecorder().is_meaningful(ctx) is False
 
 
 # ── Recorder ─────────────────────────────────────────────────────────────────

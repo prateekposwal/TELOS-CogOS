@@ -5,11 +5,13 @@ Wired into the REFLECT phase, but deliberately NOT one record per cycle: an
 internal cycle that repeats the same committed intent is not a decision worth
 handing off. A record is emitted when either
 
-  * a **governance event** occurs — the council did not validate, escalation was
-    requested, or the firewall blocked (a meaningful "we refused/flagged" event
-    even when no action was taken), or
-  * a **new committed decision** occurs — an action was emitted whose intent
-    type differs from the last recorded one (a genuine change of course).
+  * a **new governance event** occurs — the council did not validate, escalation
+    was requested, or the firewall blocked, AND that event signature (the
+    blocking validator / escalation / firewall reason) has not been recorded
+    yet. A repeated refusal with the same cause is the same decision.
+  * a **new committed decision** occurs — an action was emitted for an intent
+    type not already recorded. This deliberately does NOT re-record a type that
+    merely oscillates (A/B/A/B); only a genuinely new course is a decision.
 
 This keeps the artifact high-signal and bounded (Λ4.7). The recorder holds the
 records in memory (a cross-agent store is deliberately out of scope) and
@@ -48,35 +50,49 @@ class DecisionRecorder:
         self.max_records = max(1, int(max_records))
         self.enabled = bool(enabled)
         self._records: "deque[DecisionRecord]" = deque(maxlen=self.max_records)
-        self._last_intent_type: Optional[str] = None
+        self._seen_types: set = set()
+        self._seen_governance: set = set()
         self._emitted = 0
         self._skipped = 0
 
     # ── Policy ───────────────────────────────────────────────────────────────
 
     @staticmethod
-    def is_meaningful(ctx: "PhaseContext", last_intent_type: Optional[str]) -> bool:
-        """Whether the cycle is a decision worth handing off.
+    def _governance_signature(ctx: "PhaseContext") -> Optional[str]:
+        """A stable signature for a governance event, or None.
 
         Args:
             ctx: the post-ACT phase context.
-            last_intent_type: the intent type of the last emitted record.
 
         Returns:
-            True for a governance event or a new committed decision.
+            "block:<validator>" / "firewall:<reason>" / "escalation", or None.
         """
         verdict = getattr(ctx, "verdict", None)
-        validated = bool(getattr(verdict, "validated", False)) if verdict is not None else False
-        escalation = bool(getattr(verdict, "escalation_requested", False)) if verdict is not None else False
-        firewall_blocked = bool(getattr(ctx, "firewall_blocked", False))
-        governance_event = (not validated) or escalation or firewall_blocked
-        if governance_event:
-            return True
+        if verdict is not None and not getattr(verdict, "validated", True):
+            return f"block:{getattr(verdict, 'blocking_validator', None) or 'unknown'}"
+        if bool(getattr(ctx, "firewall_blocked", False)):
+            fv = getattr(ctx, "firewall_verdict", None)
+            return f"firewall:{getattr(fv, 'blocked_by', None) or 'unknown'}"
+        if verdict is not None and getattr(verdict, "escalation_requested", False):
+            return "escalation"
+        return None
+
+    def is_meaningful(self, ctx: "PhaseContext") -> bool:
+        """Whether the cycle is a DISTINCT decision worth handing off.
+
+        Args:
+            ctx: the post-ACT phase context.
+
+        Returns:
+            True for a new committed intent type or a new governance signature.
+        """
         intent = getattr(ctx, "selected_intent", None)
-        if intent is None:
-            return False
         action_emitted = getattr(ctx, "selected_action", None) is not None
-        return action_emitted and intent.intent_type != last_intent_type
+        new_type = (intent is not None and action_emitted
+                    and intent.intent_type not in self._seen_types)
+        sig = self._governance_signature(ctx)
+        new_governance = sig is not None and sig not in self._seen_governance
+        return new_type or new_governance
 
     # ── Emission ─────────────────────────────────────────────────────────────
 
@@ -95,7 +111,7 @@ class DecisionRecorder:
         """
         if not self.enabled:
             return None
-        if not self.is_meaningful(ctx, self._last_intent_type):
+        if not self.is_meaningful(ctx):
             self._skipped += 1
             return None
 
@@ -121,8 +137,11 @@ class DecisionRecorder:
             reality_gap=extras.pop("reality_gap", None),
         )
         self._records.append(record)
-        self._last_intent_type = (
-            ctx.selected_intent.intent_type if getattr(ctx, "selected_intent", None) else None)
+        if getattr(ctx, "selected_intent", None) is not None:
+            self._seen_types.add(ctx.selected_intent.intent_type)
+        sig = self._governance_signature(ctx)
+        if sig is not None:
+            self._seen_governance.add(sig)
         self._emitted += 1
         return record
 
@@ -168,6 +187,7 @@ class DecisionRecorder:
     def reset(self) -> None:
         """Clear retained records and the emission cursor."""
         self._records.clear()
-        self._last_intent_type = None
+        self._seen_types.clear()
+        self._seen_governance.clear()
         self._emitted = 0
         self._skipped = 0
