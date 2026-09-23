@@ -1543,6 +1543,14 @@ class TelosV14Pipeline:
                         _angle = float(self._rng.uniform(0.0, 2.0 * np.pi))
                         _curiosity_params["action_vector"] = np.array(
                             [np.cos(_angle), np.sin(_angle)], dtype=float)
+                    # Domain-side novelty (GridAdpt visit-count): flag the intent
+                    # so the firewall exempts it from same-TYPE loop detection —
+                    # the adapter will emit a VARYING action, so a repeated type
+                    # is not a loop. Only when the adapter actually has novelty
+                    # enabled, so control behavior is unchanged.
+                    _adp = getattr(self.config, 'adapter', None)
+                    if float(getattr(_adp, '_novelty_weight', 0.0) or 0.0) > 0.0:
+                        _curiosity_params["novelty_action"] = True
                     curiosity_intent = IntentIR(
                         intent_type="curiosity_explore",
                         confidence=min(1.0, self._curiosity_drive.state.curiosity_level),

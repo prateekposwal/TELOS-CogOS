@@ -194,11 +194,18 @@ class DecisionFirewall:
             # type is auto-exempt. They still pass every OTHER firewall check
             # + the council, so a genuinely invalid recovery is still blocked.
             from telos.core.governance.recovery_types import STAGNATION_EXEMPT_RECOVERY_TYPES
-            if loop_type in STAGNATION_EXEMPT_RECOVERY_TYPES:
+            # Novelty-varying actions (domain adapter visit-count exploration):
+            # the intent TYPE repeats but the emitted ACTION varies, so a
+            # repeated type is NOT a same-action loop. Exempt only when the
+            # runtime flagged it (adapter novelty active) — control unchanged.
+            _novelty_action = bool((getattr(intent, 'params', None) or {}).get('novelty_action'))
+            if loop_type in STAGNATION_EXEMPT_RECOVERY_TYPES or _novelty_action:
                 signals.append({
                     "check": "loop_detection",
                     "passed": True,
-                    "reason": f"'{loop_type}' is a designed escape type — exempt from loop detection (Λ3.1)",
+                    "reason": (f"'{loop_type}' is a designed escape type — exempt from loop detection (Λ3.1)"
+                               if loop_type in STAGNATION_EXEMPT_RECOVERY_TYPES
+                               else f"'{loop_type}' carries a novelty-varying action — repeated type is not a loop"),
                     "action": loop_type,
                 })
             else:
