@@ -217,6 +217,9 @@ class KnowledgeManager:
             params = {}
             if hasattr(failure, 'blocked_by') and failure.blocked_by:
                 params["blocking_validator"] = failure.blocked_by
+            # Cycle stamp (Λ6.5): lets MemoryAdvisor treat a STALE approach
+            # failure as not-current falsification (recency window).
+            params["cycle"] = getattr(dt, 'cycle_id', None)
             self.recorder.failure(domain, approach_name, failure.root_cause or "unknown", tags=[domain, failure.failure_type], params=params)
 
         if self.policy is not None:

@@ -13,6 +13,7 @@ when reality contradicts it.
 
 from __future__ import annotations
 
+import os
 import numpy as np
 import logging
 from enum import Enum
@@ -37,6 +38,12 @@ from telos.core.governance.recovery_types import (  # noqa: F401
     GOVERNANCE_SUPPRESSION_REASONS,
     NOT_EVIDENCE_APPROACH_FAILURE_REASONS,
 )
+
+# Stale validation is not current falsification (Λ6.5): a KnowledgeGraph
+# approach-failure older than this many cycles no longer vetoes. A node with no
+# cycle stamp keeps the legacy behavior (veto) so nothing silently weakens
+# until it is re-recorded with a stamp. Env-overridable.
+KG_VETO_STALE_CYCLES = int(os.environ.get("TELOS_KG_VETO_STALE_CYCLES", "1000"))
 
 # Type alias for constraint check functions
 CheckFn = Callable[[Any, Any, Any], tuple]
@@ -85,7 +92,8 @@ class MemoryAdvisor(Validator):
 
     def validate(self, world: World, intent: Optional[IntentIR],
                  domain_facts: Optional[Any] = None,
-                 omega_vector: Optional[dict] = None) -> ValidationSignal:
+                 omega_vector: Optional[dict] = None,
+                 context: Optional[Dict[str, Any]] = None) -> ValidationSignal:
         # If omega_vector has high Ω_O (other-uncertainty), lower evidence threshold
         # to be more tolerant during uncertainty investigation
         evidence_tolerance = 1.0
@@ -178,6 +186,7 @@ class MemoryAdvisor(Validator):
             domain = getattr(world, 'domain', 'unknown')
             proven = self.knowledge_graph.search(domain, top_k=3, min_outcome=0.51)
             failed = self.knowledge_graph.search_failures(domain, top_k=3)
+            _now_cycle = (context or {}).get("cycle_count") if isinstance(context, dict) else None
             if intent is not None and intent.params:
                 current_approach = intent.intent_type or "unknown"
                 for fnode in failed:
@@ -187,6 +196,20 @@ class MemoryAdvisor(Validator):
                             # failure (mirrors the failure-ledger filter above):
                             # a vetoed or starved attempt was never tested, so it
                             # cannot falsify the approach.
+                            continue
+                        # Recency (Λ6.5): a stale approach-failure is not current
+                        # falsification. Only enforced when both the node's cycle
+                        # and the current cycle are known; an unstamped node
+                        # keeps legacy behavior (veto).
+                        _node_cycle = None
+                        try:
+                            _node_cycle = (fnode.params or {}).get("cycle")
+                            if _node_cycle is None:
+                                _node_cycle = (fnode.provenance or {}).get("cycle")
+                        except Exception:
+                            _node_cycle = None
+                        if (_now_cycle is not None and _node_cycle is not None
+                                and (int(_now_cycle) - int(_node_cycle)) > KG_VETO_STALE_CYCLES):
                             continue
                         return ValidationSignal(
                             validator_name=self.name,
