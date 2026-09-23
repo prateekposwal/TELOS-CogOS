@@ -55,9 +55,9 @@ shows it reliably detects a real failure.
 
 ## Getting Started
 
-Clone to a **local, non-iCloud-synced path** (e.g. `~/dev/telos`). On macOS,
-"Optimize Mac Storage" evicts files under iCloud-synced `Desktop`/`Documents`,
-which breaks git reads and the test suite — so avoid those locations.
+Clone to a local, non-iCloud-synced path — see
+[CONTRIBUTING.md](CONTRIBUTING.md#local-development-environment) for why, and
+for the interpreter setup.
 
 ```bash
 # One-time: local interpreter with numpy/pytest/flask/websockets
@@ -92,4 +92,4 @@ The [Bitcoin State Pricing research](https://github.com/prateekposwal/block-spac
 
 ## License
 
-Research use. See [CONTRIBUTING.md](telos/CONTRIBUTING.md) for details.
+Research use. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
