@@ -118,8 +118,8 @@ def test_to_dict_emits_decision_telemetry_fields():
 
 
 def test_transparency_monitor_log_carries_decision_telemetry(tmp_path):
-    """The persisted decision log (the artifact REDACTED reads) must carry the
-    WHY for non-acting cycles."""
+    """The persisted decision log (the artifact the creator reads) must carry
+    the WHY for non-acting cycles."""
     cfg = MonitorConfig(output_dir=str(tmp_path))
     mon = TransparencyMonitor(cfg)
     defer = _make_trace(with_action=False)

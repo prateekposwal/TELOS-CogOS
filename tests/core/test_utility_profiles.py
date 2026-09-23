@@ -5,7 +5,7 @@ import pytest
 
 from telos.core.identity.utility_profiles import (
     UtilityProfile, UtilityDimension, IdentityUtilityEngine,
-    REDACTED_PROFILE, TELOS_PROFILE,
+    COLLABORATIVE_PROFILE, TELOS_PROFILE,
 )
 
 
@@ -30,11 +30,11 @@ class TestUtilityProfile:
         u = p.compute({UtilityDimension.EXPLORATION: 1.0})
         assert u == pytest.approx(0.5)  # default when no matching weight
 
-    def test_REDACTED_profile_prioritizes_collaboration(self):
+    def test_collaborative_profile_prioritizes_collaboration(self):
         # The real collaborative profile favors being helpful over being
         # strictly correct (per its own description + weights).
-        assert REDACTED_PROFILE.weights[UtilityDimension.COLLABORATION] > \
-            REDACTED_PROFILE.weights[UtilityDimension.CORRECTNESS]
+        assert COLLABORATIVE_PROFILE.weights[UtilityDimension.COLLABORATION] > \
+            COLLABORATIVE_PROFILE.weights[UtilityDimension.CORRECTNESS]
 
     def test_telos_profile_prioritizes_correctness(self):
         assert TELOS_PROFILE.weights[UtilityDimension.CORRECTNESS] > \
@@ -48,9 +48,9 @@ class TestIdentityUtilityEngine:
         assert engine.select_profile([]) is BALANCED_PROFILE
 
     def test_selection_with_correctness_marker(self):
-        from telos.core.identity.utility_profiles import REDACTED_PROFILE
+        from telos.core.identity.utility_profiles import COLLABORATIVE_PROFILE
         engine = IdentityUtilityEngine()
-        profile = engine.select_profile(REDACTED_PROFILE.identity_markers)
+        profile = engine.select_profile(COLLABORATIVE_PROFILE.identity_markers)
         assert profile is not None
 
     def test_register_profile_adds_custom(self):

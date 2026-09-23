@@ -262,7 +262,7 @@ function renderBrain(timestamp) {
     }
   });
 
-  // ── 7. Central REDACTED label + rotating rings + spiral ──
+  // ── 7. Central TELOS label + rotating rings + spiral ──
   drawCenterLabel(ctx, cx, cy);
 
   // ── 8. Orbiting particles with motion trails ──
@@ -327,7 +327,7 @@ function drawGridFloor(ctx, cx, cy, radius) {
   ctx.restore();
 }
 
-// ─── Central REDACTED label with rotating rings and spiral ───
+// ─── Central TELOS label with rotating rings and spiral ───
 function drawCenterLabel(ctx, cx, cy) {
   // Inner rotating ring (clockwise) — 2x larger, brighter, glowing
   const innerDots = 24;
@@ -394,14 +394,14 @@ function drawCenterLabel(ctx, cx, cy) {
   ctx.arc(cx, cy + 6, 64, 0, Math.PI * 2);
   ctx.fill();
 
-  // REDACTED text — with pulsing glow
+  // TELOS text — with pulsing glow
   ctx.shadowColor = 'rgba(130,170,255,0.8)';
   ctx.shadowBlur = 20 + Math.sin(brainTime * 1.5) * 10;
   ctx.fillStyle = `rgba(200,200,240,${0.5 * labelPulse})`;
   ctx.font = 'bold 28px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('REDACTED', cx, cy + 6);
+  ctx.fillText('TELOS', cx, cy + 6);
   ctx.shadowBlur = 0;
 
   // Subtle underline glow — scaled

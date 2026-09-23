@@ -10,10 +10,18 @@ def _anchor():
     return GenesisAnchor()
 
 
-def test_recognizes_creator_names():
-    a = _anchor()
+def test_recognizes_creator_names(monkeypatch):
+    monkeypatch.setenv("TELOS_CREATOR_NAME", "private-phrase")
+    a = GenesisAnchor()
     assert a.recognize("Prateek") is True
-    assert a.recognize("REDACTED") is True  # case-insensitive private name
+    assert a.recognize("private-phrase") is True   # case-insensitive
+    assert a.recognize("PRIVATE-PHRASE") is True
+
+
+def test_private_name_is_read_from_env_not_hardcoded():
+    # No secret lives in the source; without the env it is empty.
+    a = GenesisAnchor()
+    assert a.creator_name_for_me == ""
 
 
 def test_recognizes_others_as_not_creator():

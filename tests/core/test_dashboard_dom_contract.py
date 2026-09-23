@@ -364,12 +364,12 @@ def test_v5_memory_modes_draw_real_edges_and_canonical_palette():
 
 def test_v5_mind_modes_real_signals_and_no_fabrication():
     """v5 Mind redesign: stream activations / DI history / meta mode drive
-    the canvases; the fabricated 'REDACTED' label and the rainbow phase palette
-    are gone; no fake timer-driven 'active phase' claim survives."""
+    the canvases; the fabricated personal-name label and the rainbow phase
+    palette are gone; no fake timer-driven 'active phase' claim survives."""
     brain = open(os.path.join(JS_DIR, "brain-viz.js")).read()
     for marker in ("ACTIVATION AURORA", "SYNAPSE RHIZOME"):
         assert marker in brain, "v5 mind marker missing: " + marker
-    assert "REDACTED" not in brain, "fabricated core label must be gone"
+    assert "TELOS" in brain, "the public core label must be rendered"
     assert "Math.random(" not in brain, "Mind modes must not fabricate data"
     # Real data accessors drive the canvases.
     assert "_latestStreams" in brain, "must read real stream_activations"

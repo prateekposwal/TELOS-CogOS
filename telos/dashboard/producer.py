@@ -596,7 +596,7 @@ class DashboardProducer:
             "position": trace.get("world_state"),
             "blocking_validator": trace.get("blocking_validator"),
             "firewall_blocked_by": trace.get("firewall_blocked_by"),
-            # Audit Item 1: the WHY (an REDACTED observer sees "DEFER —
+            # Audit Item 1: the WHY (a creator observer sees "DEFER —
             # model_fidelity" instead of a silent no-op).
             "decision_mode": trace.get("decision_mode"),
             "blocked_by_gate": trace.get("blocked_by_gate"),

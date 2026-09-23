@@ -26,10 +26,11 @@ PYTHONPATH=. ./.venv/bin/python -m pytest tests/ -q
 
 This repository is **public**. Do not commit personal documents (learning
 plans, journals, poems), client/business names, or private project state.
-Such files are gitignored on purpose (`REDACTED-LEARNING-PLAN.md`,
+Such files are gitignored on purpose (`*-LEARNING-PLAN.md`,
 `*_PROJECT_STATE.md`, `telos/the_thread.md`, `learnings.json`, and similar) —
-keep them local. The genesis creator recognition phrase is a secret; never
-echo it into code, docs, or tests.
+keep them local. The genesis creator recognition phrase is a secret read from
+the `TELOS_CREATOR_NAME` environment variable; never commit it or echo it into
+code, docs, or tests.
 
 ## Workflow
 1. **Feature/Fix Branching**: Use descriptive branch names (e.g., `feature/manifold-clipping` or `fix/cfr-normalization`).

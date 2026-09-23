@@ -80,7 +80,7 @@ class UtilityProfile:
 
 # ── Built-in Profiles ────────────────────────────────────────────
 
-REDACTED_PROFILE = UtilityProfile(
+COLLABORATIVE_PROFILE = UtilityProfile(
     name="collaborative",
     description="Maximize collaboration and user satisfaction. "
                 "Prioritizes being helpful over being technically correct.",
@@ -171,7 +171,7 @@ class IdentityUtilityEngine:
 
     def __init__(self):
         self._profiles: Dict[str, UtilityProfile] = {
-            "collaborative": REDACTED_PROFILE,
+            "collaborative": COLLABORATIVE_PROFILE,
             "telos": TELOS_PROFILE,
             "explorer": EXPLORER_PROFILE,
             "guardian": GUARDIAN_PROFILE,

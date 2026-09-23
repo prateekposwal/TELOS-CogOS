@@ -30,7 +30,7 @@ literal copies of the reference:
   = measured priority), the ring carries the REAL meta_cognition.mode; phases
   are honest structure. Rhizome: trunk growth rings = real diHistory, roots =
   real streams grown to their measured mean priority, canopy tinted by real
-  system mood. The fabricated core label and the static 'REDACTED' text are gone.
+  system mood. The fabricated core label and the static personal-name text are gone.
 Honesty hardening in v5: ONE canonical domain palette (window._DOMAIN_COLORS_STORY
 in story.js — knowledge-graph.js reads it, never defines a copy); real edges are
 drawn (never isolated dots for a graph that has connections); phases are never
