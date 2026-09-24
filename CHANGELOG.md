@@ -6,6 +6,18 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Added
+- **Adaptive experiment sequences (V4)** (`telos/core/discovery/adaptive.py`):
+  `AdaptiveExperimentPlanner` wraps the canonical selector in an adaptive loop —
+  each next experiment is chosen from the UPDATED state (never precomputed), with
+  an explicit stopping policy (resolution / confidence / no-value / contradictory
+  / experiment-budget / cost-budget) and hard budget bounds. New evidence changes
+  the next experiment (same initial state, observation 0 → `[H1,H2]`; observation
+  1 → `[H1]`); a previously-valuable experiment is not run once falsified; a large
+  Reality Gap re-routes selection. Reuses CanonicalExperimentSelector,
+  RealityGapTracker, TheoryBuilder, KnowledgeGraph. Benchmark
+  `experiments/assumption_discovery_v4/` (multi-seed).
+
 ### Changed
 - **Canonical counterfactual value (V3)**: experiment selection now flows through
   ONE authoritative mechanism — `CanonicalExperimentSelector`
