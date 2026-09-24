@@ -7,6 +7,17 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Blind cross-domain transfer (V10)** (`telos/core/discovery/model_class.py`):
+  a README-level question — does the V3–V9 stack transfer to unseen domains with
+  **no domain-specific hypothesis vocabulary**? `assess` uses only generic
+  primitives (correlation, lag, intervention effects, autocorrelation) and emits
+  SUFFICIENT / ADDITIONAL_STRUCTURE_REQUIRED / UNRESOLVED / **MODEL_CLASS_INSUFFICIENT**.
+  Across 8 synthetic hidden domains (dev/holdout split) × 5 seeds → verdict
+  accuracy **1.0**; feedback (`X↔Y`) is correctly flagged MODEL_CLASS_INSUFFICIENT
+  (distinct from UNRESOLVED on noise); delayed-direct/nonlinear/noise invent
+  nothing. The acyclic model class is the demonstrated boundary.
+
+### Added
 - **Hypothesis-space expansion under bounded search (V9)**
   (`telos/core/discovery/structure_invention.py`): `StructureInventor` invents
   previously-absent structural candidates (including an *unnamed* intermediate)

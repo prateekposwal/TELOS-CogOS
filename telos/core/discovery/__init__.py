@@ -23,6 +23,7 @@ from telos.core.discovery.hypothesis_generation import (
 from telos.core.discovery.structure_invention import (
     StructureInventor, StructuralHypothesis, VariableStatus,
 )
+from telos.core.discovery.model_class import assess, ModelClassVerdict
 
 __all__ = [
     "DiscoveryOrchestrator",
@@ -32,4 +33,5 @@ __all__ = [
     "PlannerAwareSelector", "PlannerMode", "Plan", "CausalPlanner",
     "HypothesisGenerator", "HypothesisCandidate",
     "StructureInventor", "StructuralHypothesis", "VariableStatus",
+    "assess", "ModelClassVerdict",
 ]
