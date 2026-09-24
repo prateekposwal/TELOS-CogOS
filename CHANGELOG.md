@@ -7,6 +7,14 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Executable decision graph** (`telos/core/handoff/graph.py`): `DecisionRecord`
+  gains typed `assumption_refs` / `depends_on` / `guarded_deps`, plus
+  `AssumptionRegistry` (stable IDs → text) and `DecisionGraph` with
+  `affected_decisions(G)` — the exact set to revisit when an assumption changes,
+  by graph traversal (guarded, non-propagating edges excluded). Wired into
+  `DecisionStore` (`write_registry`/`load_registry`/`graph`) and the CLI
+  (`decision_records.py affected <G>`). Turns the scale-experiment result into a
+  native TELOS capability.
 - **Context Handoff (experiment)**: `DecisionRecord` (`telos/core/handoff/`) —
   a portable, agent-agnostic decision artifact that preserves the *reasoning*
   (objective, evidence with provenance, assumptions, constraints, alternatives

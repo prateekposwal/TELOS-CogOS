@@ -24,6 +24,7 @@ import re
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from telos.core.handoff.decision_record import DecisionRecord, RecordStatus
+from telos.core.handoff.graph import AssumptionRegistry, DecisionGraph, REGISTRY_FILE
 
 if TYPE_CHECKING:
     from telos.world.epistemic import ModelRealityGap
@@ -107,7 +108,7 @@ class DecisionStore:
         """
         records: List[DecisionRecord] = []
         for name in sorted(os.listdir(self.root)):
-            if not name.endswith(".json"):
+            if not name.endswith(".json") or name == REGISTRY_FILE:
                 continue
             try:
                 with open(os.path.join(self.root, name), encoding="utf-8") as f:
@@ -220,18 +221,50 @@ class DecisionStore:
         self.write(r)
         return True
 
+    # ── Assumption graph ─────────────────────────────────────────────────────
+
+    def write_registry(self, registry: AssumptionRegistry) -> str:
+        """Persist the shared assumption registry alongside the records.
+
+        Args:
+            registry: the assumption registry.
+
+        Returns:
+            The path written.
+        """
+        path = os.path.join(self.root, REGISTRY_FILE)
+        registry.save(path)
+        return path
+
+    def load_registry(self) -> AssumptionRegistry:
+        """Load the shared assumption registry (empty when absent).
+
+        Returns:
+            The registry.
+        """
+        return AssumptionRegistry.load(os.path.join(self.root, REGISTRY_FILE))
+
+    def graph(self) -> DecisionGraph:
+        """Build the executable decision graph over this store.
+
+        Returns:
+            A DecisionGraph (records + assumption registry).
+        """
+        return DecisionGraph.from_store(self)
+
     def count(self) -> int:
         """Number of stored records.
 
         Returns:
-            The count of ``*.json`` files in the store.
+            The count of ``*.json`` files in the store (excludes the registry).
         """
-        return sum(1 for n in os.listdir(self.root) if n.endswith(".json"))
+        return sum(1 for n in os.listdir(self.root)
+                   if n.endswith(".json") and n != REGISTRY_FILE)
 
     def clear(self) -> None:
-        """Remove every record file from the store."""
+        """Remove every record file from the store (keeps the registry)."""
         for name in os.listdir(self.root):
-            if name.endswith(".json"):
+            if name.endswith(".json") and name != REGISTRY_FILE:
                 try:
                     os.remove(os.path.join(self.root, name))
                 except OSError:

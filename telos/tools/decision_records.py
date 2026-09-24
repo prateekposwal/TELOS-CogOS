@@ -65,6 +65,30 @@ def _cmd_show(store: DecisionStore, args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_affected(store: DecisionStore, args: argparse.Namespace) -> int:
+    """Print the decisions a changed assumption affects (graph traversal).
+
+    Args:
+        store: the decision store.
+        args: parsed CLI args (assumption_id).
+
+    Returns:
+        Process exit code.
+    """
+    info = store.graph().explain(args.assumption_id)
+    if info["text"] is None and not info["affected"]:
+        print(f"Assumption '{args.assumption_id}' not found in the registry.",
+              file=sys.stderr)
+        return 1
+    print(f"Assuming {info['assumption']} changed: {info['text'] or '(unknown)'}")
+    print(f"  affected_decisions -> {info['affected']}")
+    if args.explain:
+        print(f"  direct     : {info['direct']}")
+        print(f"  transitive : {info['transitive']}")
+        print(f"  guarded    : {info['guarded_excluded']}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     """Entry point.
 
@@ -89,11 +113,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_show = sub.add_parser("show", help="Show one record's reasoning")
     p_show.add_argument("decision_id")
 
+    p_aff = sub.add_parser("affected",
+                           help="Which decisions does an assumption change affect?")
+    p_aff.add_argument("assumption_id", help="e.g. G17")
+    p_aff.add_argument("--explain", action="store_true",
+                       help="also print direct / transitive / guarded breakdown")
+
     args = parser.parse_args(argv)
     store = DecisionStore(args.root)
 
     if args.command == "show":
         return _cmd_show(store, args)
+    if args.command == "affected":
+        return _cmd_affected(store, args)
     return _cmd_list(store, args)
 
 

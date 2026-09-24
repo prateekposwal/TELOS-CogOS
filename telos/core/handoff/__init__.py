@@ -25,9 +25,11 @@ from telos.core.handoff.decision_record import (
 )
 from telos.core.handoff.recorder import DecisionRecorder
 from telos.core.handoff.store import DecisionStore
+from telos.core.handoff.graph import AssumptionRegistry, DecisionGraph
 
 __all__ = [
     "DecisionRecord", "EvidenceItem", "Assumption", "Alternative",
     "RevalidationCondition", "RecordStatus", "SCHEMA_VERSION",
     "DecisionRecorder", "DecisionStore",
+    "AssumptionRegistry", "DecisionGraph",
 ]

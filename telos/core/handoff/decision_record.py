@@ -261,6 +261,15 @@ class DecisionRecord:
     validation: Dict[str, Any] = field(default_factory=dict)
     provenance: Dict[str, Any] = field(default_factory=dict)
     status: RecordStatus = RecordStatus.OPEN
+    # ── Typed graph references (the EXECUTABLE layer) ────────────────────────
+    # These turn free text into a queryable graph:
+    #   assumption_refs: IDs in an AssumptionRegistry (the premises this rests on)
+    #   depends_on:      decision IDs this decision depends on
+    #   guarded_deps:    subset of depends_on whose change does NOT propagate
+    # `affected_decisions(G)` is then a graph traversal, not a text search.
+    assumption_refs: List[str] = field(default_factory=list)
+    depends_on: List[str] = field(default_factory=list)
+    guarded_deps: List[str] = field(default_factory=list)
 
     # ── Construction from existing types ─────────────────────────────────────
 
@@ -474,6 +483,9 @@ class DecisionRecord:
             "alternatives": [a.to_dict() for a in self.alternatives],
             "expected_consequences": list(self.expected_consequences),
             "revalidation_conditions": [c.to_dict() for c in self.revalidation_conditions],
+            "assumption_refs": list(self.assumption_refs),
+            "depends_on": list(self.depends_on),
+            "guarded_deps": list(self.guarded_deps),
             "validation": self.validation,
             "provenance": self.provenance,
             "status": self.status.value,
@@ -504,6 +516,9 @@ class DecisionRecord:
             expected_consequences=list(d.get("expected_consequences", [])),
             revalidation_conditions=[RevalidationCondition.from_dict(c)
                                      for c in d.get("revalidation_conditions", [])],
+            assumption_refs=list(d.get("assumption_refs", [])),
+            depends_on=list(d.get("depends_on", [])),
+            guarded_deps=list(d.get("guarded_deps", [])),
             validation=d.get("validation", {}),
             provenance=d.get("provenance", {}),
             status=_as_enum(RecordStatus, d.get("status"), RecordStatus.OPEN),
