@@ -170,6 +170,17 @@ class DecisionRecorder:
             except OSError:
                 pass
 
+        # Jev habit: attach the EMPIRICALLY recalibrated confidence (the honest
+        # number), not just the raw claim, from the pipeline's CalibrationTracker.
+        calibrated = None
+        tracker = getattr(pipeline, "_calibration_tracker", None)
+        if tracker is not None and getattr(ctx, "selected_intent", None) is not None:
+            try:
+                calibrated = tracker.calibrated_confidence(
+                    float(getattr(ctx.selected_intent, "confidence", 0.0) or 0.0))
+            except Exception:
+                calibrated = None
+
         record = DecisionRecord.from_context(
             ctx,
             mission=mission,
@@ -183,6 +194,7 @@ class DecisionRecorder:
             assumption_refs=refs,
             depends_on=extras.pop("depends_on", None),
             guarded_deps=extras.pop("guarded_deps", None),
+            calibrated_confidence=calibrated,
         )
         self._records.append(record)
         if getattr(ctx, "selected_intent", None) is not None:

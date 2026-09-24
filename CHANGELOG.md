@@ -20,6 +20,13 @@ semantic versioning.
     `assumption_refs` automatically, and persists the registry beside the store.
     Opt-in via `TELOS_DECISION_STORE` + `TELOS_DECISION_ASSUMPTIONS` (default
     off → no refs, byte-identical).
+- **Jev habits wired** (`telos/core/handoff/schema.py` + record):
+  **calibrated confidence** (`DecisionRecord.calibrated_confidence` — the honest
+  empirical number, attached by the recorder from the `CalibrationTracker`);
+  **typed/closed outputs** (`validate_record` / `is_valid` / `assert_valid` /
+  `schema_dict`, with closed enums for status/evidence source/validation);
+  **no malformed results** (`DecisionStore.write` refuses to persist a record
+  that fails the schema, unless `validate=False`).
 - **Context Handoff (experiment)**: `DecisionRecord` (`telos/core/handoff/`) —
   a portable, agent-agnostic decision artifact that preserves the *reasoning*
   (objective, evidence with provenance, assumptions, constraints, alternatives

@@ -251,6 +251,10 @@ class DecisionRecord:
     timestamp: float = field(default_factory=time.time)
     decision: Dict[str, Any] = field(default_factory=dict)
     confidence: float = 0.0
+    # Jev habit: the CLAIMED confidence is not the honest one. This carries the
+    # empirically recalibrated confidence (CalibrationTracker map). None when the
+    # tracker is unwired.
+    calibrated_confidence: Optional[float] = None
     state: Dict[str, Any] = field(default_factory=dict)
     evidence: List[EvidenceItem] = field(default_factory=list)
     assumptions: List[Assumption] = field(default_factory=list)
@@ -338,7 +342,8 @@ class DecisionRecord:
                      decision_id: Optional[str] = None,
                      assumption_refs: Optional[List[str]] = None,
                      depends_on: Optional[List[str]] = None,
-                     guarded_deps: Optional[List[str]] = None) -> "DecisionRecord":
+                     guarded_deps: Optional[List[str]] = None,
+                     calibrated_confidence: Optional[float] = None) -> "DecisionRecord":
         """Build a record from a live PhaseContext (used by the REFLECT phase).
 
         Only fields the context genuinely carries are derived; `objective`,
@@ -400,6 +405,7 @@ class DecisionRecord:
             assumption_refs=assumption_refs,
             depends_on=depends_on,
             guarded_deps=guarded_deps,
+            calibrated_confidence=calibrated_confidence,
         )
 
     # ── Revalidation (executable, not archival) ──────────────────────────────
@@ -482,6 +488,7 @@ class DecisionRecord:
             "timestamp": self.timestamp,
             "decision": self.decision,
             "confidence": self.confidence,
+            "calibrated_confidence": self.calibrated_confidence,
             "state": self.state,
             "evidence": [e.to_dict() for e in self.evidence],
             "assumptions": [a.to_dict() for a in self.assumptions],
@@ -514,6 +521,7 @@ class DecisionRecord:
             timestamp=d.get("timestamp", time.time()),
             decision=d.get("decision", {}),
             confidence=d.get("confidence", 0.0),
+            calibrated_confidence=d.get("calibrated_confidence"),
             state=d.get("state", {}),
             evidence=[EvidenceItem.from_dict(e) for e in d.get("evidence", [])],
             assumptions=[Assumption.from_dict(a) for a in d.get("assumptions", [])],
@@ -553,7 +561,9 @@ class DecisionRecord:
             f"- **Objective:** {self.objective or '_(unspecified)_'}",
             f"- **Owner:** {self.owner}",
             f"- **Status:** {self.status.value}",
-            f"- **Confidence:** {self.confidence:.2f}",
+            f"- **Confidence:** {self.confidence:.2f}"
+            + (f"  ·  **Calibrated:** {self.calibrated_confidence:.2f}"
+               if self.calibrated_confidence is not None else ""),
             f"- **Cycle:** {self.provenance.get('cycle')}  ·  "
             f"**Domain:** {self.provenance.get('domain')}",
             "",
@@ -618,7 +628,8 @@ def _compose(*, decision_id: str, timestamp: float,
              mission: Optional[str],
              assumption_refs: Optional[List[str]] = None,
              depends_on: Optional[List[str]] = None,
-             guarded_deps: Optional[List[str]] = None) -> DecisionRecord:
+             guarded_deps: Optional[List[str]] = None,
+             calibrated_confidence: Optional[float] = None) -> DecisionRecord:
     """Compose a DecisionRecord from already-extracted primitives.
 
     Returns:
@@ -673,6 +684,7 @@ def _compose(*, decision_id: str, timestamp: float,
         timestamp=timestamp,
         decision=decision,
         confidence=confidence,
+        calibrated_confidence=calibrated_confidence,
         state={"world_state": _json_safe(world_state)},
         evidence=evidence,
         assumptions=list(assumptions or []),

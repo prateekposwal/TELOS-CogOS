@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from telos.core.handoff.decision_record import DecisionRecord, RecordStatus
 from telos.core.handoff.graph import AssumptionRegistry, DecisionGraph, REGISTRY_FILE
+from telos.core.handoff.schema import assert_valid
 
 if TYPE_CHECKING:
     from telos.world.epistemic import ModelRealityGap
@@ -69,15 +70,24 @@ class DecisionStore:
 
     # ── Write / read ─────────────────────────────────────────────────────────
 
-    def write(self, record: DecisionRecord) -> str:
+    def write(self, record: DecisionRecord, validate: bool = True) -> str:
         """Persist a record atomically (temp file + rename).
+
+        Jev habit: the store refuses to persist a MALFORMED record — a typed,
+        closed schema is enforced at the boundary (no malformed results).
 
         Args:
             record: the record to store.
+            validate: run the schema check first (default True).
 
         Returns:
             The path written.
+
+        Raises:
+            SchemaError: when `validate` and the record is malformed.
         """
+        if validate:
+            assert_valid(record)
         path = self._path(record.decision_id)
         tmp = f"{path}.tmp"
         with open(tmp, "w", encoding="utf-8") as f:
