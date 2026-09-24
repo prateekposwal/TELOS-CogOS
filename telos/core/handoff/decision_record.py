@@ -390,7 +390,8 @@ class DecisionRecord:
     # ── Revalidation (executable, not archival) ──────────────────────────────
 
     def apply_reality_gap(self, reality_gap: "ModelRealityGap",
-                          cycle: Optional[int] = None) -> "DecisionRecord":
+                          cycle: Optional[int] = None,
+                          only: Optional[Any] = None) -> "DecisionRecord":
         """Update the record's validity from the model's falsification state.
 
         This is the point of the schema: a revalidation condition is not prose
@@ -400,6 +401,11 @@ class DecisionRecord:
         Args:
             reality_gap: the model's reality-gap state.
             cycle: the cycle at which this check ran (for the audit trail).
+            only: an optional predicate selecting WHICH conditions to update
+                (e.g. ``lambda c: "write volume" in c.condition``). None (the
+                default) updates every condition — the model-granular behaviour.
+                A predicate lets one violated trigger be marked without
+                falsifying the others.
 
         Returns:
             self (mutated), for chaining.
@@ -410,6 +416,8 @@ class DecisionRecord:
                       else ValidationStatus.MEASURED if tested
                       else ValidationStatus.UNVALIDATED)
         for cond in self.revalidation_conditions:
+            if only is not None and not only(cond):
+                continue
             cond.status = new_status
             cond.last_checked_cycle = cycle
         if falsified:
@@ -529,9 +537,7 @@ class DecisionRecord:
             f"**Domain:** {self.provenance.get('domain')}",
             "",
             "## Decision",
-            f"- **{self.decision.get('intent_type', 'unknown')}**"
-            + (f" → action `{self.decision.get('action')}`"
-               if self.decision.get("action") is not None else ""),
+            _decision_line(self.decision),
         ]
         if self.evidence:
             lines += ["", "## Evidence"]
@@ -671,6 +677,32 @@ def _compose(*, decision_id: str, timestamp: float,
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _decision_line(decision: Dict[str, Any]) -> str:
+    """Render the decision line, preferring the human-legible `choice`.
+
+    A domain-neutral record carries `decision["choice"]` (e.g. "PostgreSQL")
+    and `decision["intent_type"]` (e.g. "adopt_postgres"). The rendered markdown
+    must show the CHOICE explicitly — a reader should not have to infer it from
+    the alternatives list.
+
+    Args:
+        decision: the record's decision dict.
+
+    Returns:
+        A markdown bullet for the decision.
+    """
+    choice = decision.get("choice")
+    intent_type = decision.get("intent_type")
+    label = choice or intent_type or "unknown"
+    line = f"- **{label}**"
+    if choice and intent_type and choice != intent_type:
+        line += f" (`{intent_type}`)"
+    action = decision.get("action")
+    if action is not None:
+        line += f" → action `{action}`"
+    return line
+
 
 def _as_enum(enum_cls, value, default):
     """Coerce a value into an enum member, falling back to a default.

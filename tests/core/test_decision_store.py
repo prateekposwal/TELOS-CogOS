@@ -103,6 +103,20 @@ def test_revalidate_no_change_returns_empty(tmp_path):
     assert store.revalidate(_falsified_gap(), cycle=9) == []
 
 
+def test_revalidate_only_marks_selected_condition(tmp_path):
+    store = DecisionStore(str(tmp_path))
+    r = _record("a")
+    r.revalidation_conditions.append(
+        RevalidationCondition(condition="multi-region writes required", watches="roadmap"))
+    store.write(r)
+    changed = store.revalidate(_falsified_gap(), cycle=7,
+                               only=lambda c: "prediction" in c.condition)
+    assert changed == ["a"]
+    reloaded = store.load("a")
+    assert reloaded.revalidation_conditions[0].status == ValidationStatus.FALSIFIED
+    assert reloaded.revalidation_conditions[1].status == ValidationStatus.UNVALIDATED
+
+
 # ── Lifecycle ────────────────────────────────────────────────────────────────
 
 def test_supersede_links_replacement(tmp_path):

@@ -175,7 +175,8 @@ class DecisionStore:
     # ── Revalidation / lifecycle ─────────────────────────────────────────────
 
     def revalidate(self, reality_gap: "ModelRealityGap",
-                   cycle: Optional[int] = None) -> List[str]:
+                   cycle: Optional[int] = None,
+                   only: Optional[Any] = None) -> List[str]:
         """Revalidate every record against reality; persist the changes.
 
         This is the loop that keeps the exchange CURRENT: a record that reality
@@ -185,6 +186,8 @@ class DecisionStore:
         Args:
             reality_gap: the model's reality-gap state.
             cycle: the cycle at which this check ran.
+            only: an optional predicate selecting which conditions to update
+                (see `DecisionRecord.apply_reality_gap`). None = all.
 
         Returns:
             The ids of records whose status or conditions changed.
@@ -192,7 +195,7 @@ class DecisionStore:
         changed: List[str] = []
         for r in self.all():
             before = (r.status, [c.status for c in r.revalidation_conditions])
-            r.apply_reality_gap(reality_gap, cycle=cycle)
+            r.apply_reality_gap(reality_gap, cycle=cycle, only=only)
             after = (r.status, [c.status for c in r.revalidation_conditions])
             if before != after:
                 self.write(r)

@@ -145,3 +145,38 @@ def test_builds_from_a_real_pipeline_trace():
     assert rec.validation["decision_integrity"] is not None
     # Round-trips from a real trace too.
     assert DecisionRecord.from_dict(rec.to_dict()).decision_id == rec.decision_id
+
+
+def test_markdown_shows_the_choice_explicitly():
+    rec = DecisionRecord(
+        decision_id="d",
+        decision={"choice": "PostgreSQL", "intent_type": "adopt_postgres"},
+    )
+    md = rec.to_markdown()
+    assert "**PostgreSQL**" in md            # the choice is the headline
+    assert "(`adopt_postgres`)" in md        # the intent type is shown alongside
+    assert "**adopt_postgres**" not in md    # not the other way round
+
+
+def test_markdown_falls_back_to_intent_type_without_choice():
+    rec = DecisionRecord(decision_id="d", decision={"intent_type": "reflex"})
+    assert "**reflex**" in rec.to_markdown()
+
+
+def test_apply_reality_gap_can_target_a_single_condition():
+    tr = RealityGapTracker()
+    for _ in range(5):
+        tr.record("m", np.array([0.0, 0.0]), np.array([10.0, 10.0]))
+    gap = tr.model("m")
+    rec = DecisionRecord.from_trace(
+        _trace(),
+        revalidation_conditions=[
+            RevalidationCondition(condition="write volume exceeds 10k events/s"),
+            RevalidationCondition(condition="multi-region writes required"),
+        ],
+    )
+    rec.apply_reality_gap(gap, cycle=42, only=lambda c: "write volume" in c.condition)
+    assert rec.revalidation_conditions[0].status == ValidationStatus.FALSIFIED
+    assert rec.revalidation_conditions[1].status == ValidationStatus.UNVALIDATED
+    assert rec.status == RecordStatus.FALSIFIED
+    assert rec.revalidation_conditions[0].last_checked_cycle == 42
