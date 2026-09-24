@@ -7,6 +7,19 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Causal planner integration (V7)** (`telos/core/discovery/causal_planner.py`):
+  `CausalPlanner` builds the planner model from the REAL stack — immediate values
+  from `CanonicalExperimentSelector` → `CounterfactualEngine`, successors from the
+  hypotheses' own predicted outcomes, evidence-gated candidate generation — with
+  no second valuation mechanism (`PlannerAwareSelector` supplies lookahead only).
+  Honest result: the real integration does **not** reproduce V6's synthetic
+  divergence, because the "unlocking" experiment has **zero** canonical decision
+  sensitivity; planner-aware selection collapses to greedy. Planning is provably
+  **pure** (never mutates RealityGapTracker/Evidence/TheoryBuilder/KnowledgeGraph).
+  Adds the **safe-write guard** (`telos/tools/safe_write.py`: `safe_create` refuses
+  to clobber, `safe_modify` requires existing) against accidental file overwrites.
+
+### Added
 - **Planner-aware Value of Information (V6)** (`telos/core/discovery/planner.py`):
   `PlannerAwareSelector` EXTENDS the canonical immediate VoI (V3) with expectimax
   lookahead, exposing two modes `GREEDY` and `PLANNER_AWARE`. At horizon 1 the
