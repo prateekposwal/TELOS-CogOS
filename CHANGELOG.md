@@ -7,6 +7,21 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Scaled causal-discovery failure surface (V5)**
+  (`experiments/assumption_discovery_v5/`): hidden SCMs with opaque variable names
+  across 5/7/10 variables, 9 families (chain/fork/collider/confounders/latent/
+  nonlinear/stochastic/mixed/decoy), noise tiers, and 10 seeds. Reuses
+  `CausalProbe` (no second engine). Result: as variables grow, **graph-frame
+  precision degrades** (0.735 → 0.645) and the **false-causal rate rises**
+  (0.265 → 0.355) — the intervention probe measures *total* (mediated) effects —
+  while **decision-frame recovery stays ≈1.0**. A **false-certainty test** shows a
+  latent-induced association stays `OBSERVED_CORRELATION` (UNRESOLVED) until one
+  discriminating intervention moves it to `SUPPORTED`. A **decoy** with higher
+  correlation than the true cause is correctly avoided by the canonical
+  (effect-based) selection. Leakage audit passes (opaque names, sample-only
+  surface, truth/latent hidden). Adds a false-certainty transition test.
+
+### Added
 - **Adaptive experiment sequences (V4)** (`telos/core/discovery/adaptive.py`):
   `AdaptiveExperimentPlanner` wraps the canonical selector in an adaptive loop —
   each next experiment is chosen from the UPDATED state (never precomputed), with

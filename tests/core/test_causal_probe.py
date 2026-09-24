@@ -92,6 +92,21 @@ def test_independent_pair_is_unresolved():
     assert r.status == CausalStatus.UNRESOLVED_RELATION
 
 
+def test_false_certainty_resolves_only_with_a_discriminating_intervention():
+    # A latent common cause: v1,v2 correlate but neither causes the other.
+    latent = MiniWorld(["v1", "v2"], ["H", "v1", "v2"],
+                       {"v1": lambda d, r, n: d["H"] + _nz(r, n),
+                        "v2": lambda d, r, n: d["H"] + _nz(r, n)})
+    # A discriminating world: v1 truly causes v2.
+    direct = MiniWorld(["v1", "v2"], ["v1", "v2"],
+                       {"v2": lambda d, r, n: d["v1"] + _nz(r, n)})
+    p = CausalProbe(seed=0)
+    assert p.classify(latent, "v1", "v2").status in (
+        CausalStatus.OBSERVED_CORRELATION, CausalStatus.UNRESOLVED_RELATION)
+    # One discriminating intervention moves UNRESOLVED -> SUPPORTED.
+    assert p.classify(direct, "v1", "v2").status == CausalStatus.SUPPORTED_CAUSAL_RELATION
+
+
 def test_decision_sensitivity_has_one_canonical_home():
     # V3: the local probe calculation was removed; counterfactual decision
     # sensitivity now lives ONLY in the canonical selector.
