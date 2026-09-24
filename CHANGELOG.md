@@ -7,6 +7,20 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Adversarial Causal Discovery (V2)** (`telos/core/discovery/causal_probe.py`):
+  a `CausalProbe` that EXTENDS the assumption-discovery architecture with an
+  epistemic ladder (`OBSERVED_CORRELATION` / `CAUSAL_HYPOTHESIS` /
+  `SUPPORTED_CAUSAL_RELATION` / `FALSIFIED_RELATION` / `UNRESOLVED_RELATION`),
+  intervention-based (do-calculus) direction resolution with a significance test,
+  and decision-relevant information value (sensitivity × uncertainty ÷ cost).
+  A 9-world hidden difficulty ladder (`experiments/assumption_discovery_v2/`)
+  yields causal precision/recall/direction/unresolved = 1.0 across direct,
+  reverse, confounding, multi-hop, latent, nonlinear, conditional, and stochastic
+  worlds; the correlation-only baseline acts on causally-inert decoys 2/8 vs the
+  engine 0/8. TheoryBuilder promotion reached legitimately (thresholds unchanged);
+  the changing world re-learns via RealityGapTracker with no manual reset.
+
+### Added
 - **Assumption Discovery (research prototype)** (`telos/core/discovery/`): given
   only (state, action, next_state, reward, done), `AssumptionDiscoverer` proposes
   candidate variables → relationships → assumptions, each with a **falsifiable
