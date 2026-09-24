@@ -7,6 +7,19 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Assumption Discovery (research prototype)** (`telos/core/discovery/`): given
+  only (state, action, next_state, reward, done), `AssumptionDiscoverer` proposes
+  candidate variables → relationships → assumptions, each with a **falsifiable
+  test**, an information value (relevance × uncertainty × falsifiability ÷ cost),
+  and evidence-gated promotion. Reuses `EvidenceInfo`, `RealityGapTracker`,
+  `KnowledgeGraph`, `TheoryBuilder`; declared vs discovered assumptions are kept
+  structurally distinct (no silent promotion). Benchmark
+  (`experiments/assumption_discovery/`) recovers a hidden 2×2 control map
+  (recall/precision/sign-accuracy 1.00), falsifies stale assumptions after a
+  domain flip, transfers to an unseen domain, and beats random/identity baselines
+  on decision quality.
+
+### Added
 - **Executable decision graph** (`telos/core/handoff/graph.py`): `DecisionRecord`
   gains typed `assumption_refs` / `depends_on` / `guarded_deps`, plus
   `AssumptionRegistry` (stable IDs → text) and `DecisionGraph` with
