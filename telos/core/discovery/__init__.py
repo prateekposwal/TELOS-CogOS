@@ -17,6 +17,9 @@ from telos.core.discovery.planner import (
     PlannerAwareSelector, PlannerMode, Plan,
 )
 from telos.core.discovery.causal_planner import CausalPlanner
+from telos.core.discovery.hypothesis_generation import (
+    HypothesisGenerator, HypothesisCandidate,
+)
 
 __all__ = [
     "DiscoveryOrchestrator",
@@ -24,4 +27,5 @@ __all__ = [
     "CausalProbe", "CausalStatus", "DiscoveredRelation",
     "CanonicalExperimentSelector", "Hypothesis", "ExperimentOption",
     "PlannerAwareSelector", "PlannerMode", "Plan", "CausalPlanner",
+    "HypothesisGenerator", "HypothesisCandidate",
 ]

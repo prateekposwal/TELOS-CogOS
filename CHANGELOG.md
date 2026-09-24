@@ -7,6 +7,18 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Hypothesis generation from unexplained evidence (V8)**
+  (`telos/core/discovery/hypothesis_generation.py`): `HypothesisGenerator` turns
+  an unexplained residual (a significant, repeatable lag) into CANDIDATE
+  explanations (delayed-direct vs mediated) that enter as **UNVALIDATED** — never
+  believed. It refuses to generate on noise or lagless correlation, discriminates
+  the two candidates with an experiment (one eliminated), and never emits a hidden
+  variable name. Benchmark `experiments/assumption_discovery_v8/`: hidden `X→M→Y`
+  (M hidden) with a 2-step lag is detected from a 0.05 contemporaneous
+  correlation; the mechanism is recovered; the hidden mediator is never named.
+  Hypothesis-space EXPANSION (inventing the latent variable) remains open.
+
+### Added
 - **Causal planner integration (V7)** (`telos/core/discovery/causal_planner.py`):
   `CausalPlanner` builds the planner model from the REAL stack — immediate values
   from `CanonicalExperimentSelector` → `CounterfactualEngine`, successors from the
