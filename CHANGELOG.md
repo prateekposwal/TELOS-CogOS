@@ -6,6 +6,18 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Changed
+- **Canonical counterfactual value (V3)**: experiment selection now flows through
+  ONE authoritative mechanism — `CanonicalExperimentSelector`
+  (`telos/core/discovery/experiment_selection.py`) →
+  `CounterfactualEngine.compute_value_of_information()`. The duplicated
+  `CausalProbe.decision_sensitivity` was removed; `CausalProbe` is now purely
+  discovery/classification. Unvaluable hypotheses are reported as UNKNOWN (never
+  zero-value), and if every candidate is unvaluable the selector returns None.
+  Ablation (`experiments/assumption_discovery_v3/`) shows the canonical engine
+  changes the selected experiment (decisive arm B vs uncertainty-only arm A), and
+  an unvaluable candidate is never selected.
+
 ### Added
 - **Adversarial Causal Discovery (V2)** (`telos/core/discovery/causal_probe.py`):
   a `CausalProbe` that EXTENDS the assumption-discovery architecture with an

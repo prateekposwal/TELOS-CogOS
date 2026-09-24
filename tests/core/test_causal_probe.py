@@ -92,8 +92,10 @@ def test_independent_pair_is_unresolved():
     assert r.status == CausalStatus.UNRESOLVED_RELATION
 
 
-def test_decision_sensitivity_high_for_real_cause():
-    w = MiniWorld(["X", "Y"], ["X", "Y"], {"Y": lambda d, r, n: d["X"] + _nz(r, n)})
-    probe = CausalProbe(seed=7)
-    rel = probe.classify(w, "X", "Y")
-    assert probe.decision_sensitivity(w, rel, "Y") > 0.0
+def test_decision_sensitivity_has_one_canonical_home():
+    # V3: the local probe calculation was removed; counterfactual decision
+    # sensitivity now lives ONLY in the canonical selector.
+    from telos.core.discovery import CausalProbe as _CP
+    assert not hasattr(_CP, "decision_sensitivity")
+    from telos.core.discovery.experiment_selection import CanonicalExperimentSelector
+    assert hasattr(CanonicalExperimentSelector, "select")

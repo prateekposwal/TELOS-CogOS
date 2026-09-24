@@ -251,39 +251,12 @@ class CausalProbe:
             pairs = [(a, b) for a in vs for b in vs if a != b]
         return [self.classify(world, a, b) for a, b in pairs]
 
-    # ── Counterfactual / decision-relevance (Phase 3) ────────────────────────
-
-    def decision_sensitivity(self, world: SamplableWorld, relation: DiscoveredRelation,
-                             goal: str, action_cost: float = 1.0) -> float:
-        """Would the chosen ACTION change if this relation were true vs false?
-
-        The decision is "which observed variable to intervene on to move `goal`".
-        Sensitivity = |effect| if this relation is the unique best actionable
-        cause, else reduced by the margin to the runner-up. This is the
-        decision-relevant quantity (not entropy reduction).
-
-        Args:
-            world: the world.
-            relation: the candidate relation.
-            goal: the outcome to improve.
-            action_cost: cost of the intervention.
-
-        Returns:
-            Sensitivity in [0,1].
-        """
-        # effects of every observed variable on the goal (interventional)
-        effects = {}
-        for v in world.variables:
-            if v == goal:
-                continue
-            effects[v] = self._do_effect(world, v, goal)
-        if not effects:
-            return 0.0
-        ranked = sorted(effects.items(), key=lambda kv: -kv[1])
-        top_v, top_e = ranked[0]
-        runner = ranked[1][1] if len(ranked) > 1 else 0.0
-        # sensitivity is high when the top cause is decisive but close to runner
-        if top_e <= self.tau_effect:
-            return 0.0
-        margin = (top_e - runner) / (top_e + 1e-9)
-        return float(min(1.0, top_e / action_cost) * (1.0 - 0.5 * max(0.0, margin)))
+    # ── Counterfactual decision relevance — MOVED (V3) ───────────────────────
+    #
+    # The local `decision_sensitivity` calculation that lived here has been
+    # REMOVED. Counterfactual decision sensitivity now has exactly ONE
+    # authoritative implementation:
+    #     telos.core.discovery.experiment_selection.CanonicalExperimentSelector
+    # which delegates to the canonical
+    #     CounterfactualEngine.compute_value_of_information().
+    # CausalProbe is now purely a discovery/classification surface.

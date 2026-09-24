@@ -10,9 +10,13 @@ from telos.core.discovery.assumption_discovery import (
 from telos.core.discovery.causal_probe import (
     CausalProbe, CausalStatus, DiscoveredRelation,
 )
+from telos.core.discovery.experiment_selection import (
+    CanonicalExperimentSelector, Hypothesis, ExperimentOption,
+)
 
 __all__ = [
     "DiscoveryOrchestrator",
     "AssumptionDiscoverer", "DiscoveredAssumption", "Transition",
     "CausalProbe", "CausalStatus", "DiscoveredRelation",
+    "CanonicalExperimentSelector", "Hypothesis", "ExperimentOption",
 ]
