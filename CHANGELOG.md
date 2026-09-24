@@ -6,6 +6,23 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Fixed
+- **Observational-only structure fabrication (V12).** `StatefulModel` could emit a
+  `shared_state` CANDIDATE from association + autocorrelation without any
+  intervention. It now requires an observed intervention before asserting ANY
+  structure; observational ambiguity remains `UNRESOLVED`. Found by the V12
+  compositional/adversarial transfer campaign (Outcome C: fix discrimination
+  semantics, not add a model class).
+
+### Added
+- **Compositional + adversarial transfer campaign (V12)**
+  (`experiments/assumption_discovery_v12_transfer/`): unseen composed structures,
+  adversarial near-neighbors, intervention-sufficiency, 10 seeds × 3 noise.
+  Held: `delay ≠ feedback`, genuine feedback, state persistence, adversarial
+  distinction. Failure surface: **pairwise representation collapses composed /
+  N-ary / deep recurrence** (feedback+delay and feedback+shared-state → `feedback`;
+  3-node loop read as 2-node; `multiple_loops` misclassified). No new architecture.
+
 ### Added
 - **Stateful / feedback model-class extension (V11)**
   (`telos/core/discovery/model_class.py`): one `ModelClass` contract

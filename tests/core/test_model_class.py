@@ -123,3 +123,12 @@ def test_model_class_insufficient_is_preserved_not_absorbed():
     # the acyclic verdict is authoritative for the acyclic class
     assert AcyclicModel().represent(x, y, do_xy=1.0, do_yx=1.0)["verdict"] == \
         ModelClassVerdict.MODEL_CLASS_INSUFFICIENT.value
+
+
+def test_observational_only_never_fabricates_a_structure():
+    # V12 semantics fix: without an intervention, the stateful class must NOT
+    # invent a feedback/shared_state structure from association + autocorrelation.
+    x, y = _feedback_series()
+    r = StatefulModel().represent(x, y)      # no do_xy / do_yx
+    assert r["verdict"] == ModelClassVerdict.UNRESOLVED.value
+    assert r["structure"] is None

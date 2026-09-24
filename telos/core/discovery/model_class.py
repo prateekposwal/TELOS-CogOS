@@ -175,6 +175,12 @@ class StatefulModel(ModelClass):
     def represent(self, x: np.ndarray, y: np.ndarray, **evidence: Any) -> Dict[str, Any]:
         r = assess(x, y, **evidence)
         dx, dy = r["do_xy"], r["do_yx"]
+        # MUST observe an intervention before asserting any structure — never
+        # fabricate recurrence/state from association + autocorrelation alone.
+        if dx is None or dy is None:
+            return {"verdict": ModelClassVerdict.UNRESOLVED.value, "structure": None,
+                    "status": "NA", "detail": r,
+                    "required_test": "intervene on both variables to test recurrence"}
         sx = dx is not None and abs(dx) > 0.15
         sy = dy is not None and abs(dy) > 0.15
 
