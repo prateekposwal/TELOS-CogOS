@@ -7,6 +7,20 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Hypothesis-space expansion under bounded search (V9)**
+  (`telos/core/discovery/structure_invention.py`): `StructureInventor` invents
+  previously-absent structural candidates (including an *unnamed* intermediate)
+  from a bounded vocabulary {direct, direct_delay, mediated, common_cause},
+  distinguishing three hidden worlds (direct-delay / mediation / common-cause).
+  An invented entity enters as **HYPOTHESIZED** (never OBSERVED; `VariableStatus`);
+  a **complexity cost** gives Occam preference so a latent is added only when the
+  evidence requires it; equal-complexity ambiguity stays **UNRESOLVED** (no
+  promotion); noise/direct/delayed-direct invent nothing; the hidden variable name
+  is never emitted. Links to V6 (the invented structure creates a future
+  experiment the planner then values). Benchmark
+  `experiments/assumption_discovery_v9/`.
+
+### Added
 - **Hypothesis generation from unexplained evidence (V8)**
   (`telos/core/discovery/hypothesis_generation.py`): `HypothesisGenerator` turns
   an unexplained residual (a significant, repeatable lag) into CANDIDATE
