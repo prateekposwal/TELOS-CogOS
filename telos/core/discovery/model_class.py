@@ -19,8 +19,9 @@ is a witness gap, the latter is a model-class failure.
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set
 
 import numpy as np
 
@@ -95,3 +96,103 @@ def assess(x: np.ndarray, y: np.ndarray, *, do_xy: Optional[float] = None,
                    if abs(autocorr) > 0.6 else ModelClassVerdict.UNRESOLVED)
     return {"verdict": verdict, "corr": round(corr, 3), "lag": round(lag, 3),
             "do_xy": do_xy, "do_yx": do_yx, "autocorr": round(autocorr, 3)}
+
+
+# ── ModelClass contract (V11) ────────────────────────────────────────────────
+#
+# ONE abstraction. A model class declares the STRUCTURES it can represent and
+# gives a verdict for an observation pair using the SAME `assess` primitives.
+# AcyclicModel (V10 behavior, preserved) and StatefulModel are representations
+# under the same discovery/planning/Evidence machinery — no new engine.
+
+class ModelClass(ABC):
+    """Contract every model class implements."""
+
+    @abstractmethod
+    def admissible_structure(self) -> Set[str]:
+        """The structural vocabulary this class can represent."""
+        ...
+
+    @abstractmethod
+    def admissible_verdicts(self) -> Set[str]:
+        """The epistemic verdicts this class can emit."""
+        ...
+
+    @abstractmethod
+    def represent(self, x: np.ndarray, y: np.ndarray, **evidence: Any) -> Dict[str, Any]:
+        """Represent an observation pair: {verdict, structure, status, ...}."""
+        ...
+
+    def explain(self, result: Dict[str, Any]) -> str:
+        """A short explanation of a representation result."""
+        return (f"{self.__class__.__name__}: verdict={result.get('verdict')} "
+                f"structure={result.get('structure')} status={result.get('status')}")
+
+    def falsify(self, result: Dict[str, Any], contradiction: Dict[str, Any]) -> bool:
+        """Whether a new observation refutes a represented structure.
+
+        A structure is falsified when a discriminating intervention contradicts
+        its required test (e.g. a feedback claim is refuted if do(cause) does not
+        move the effect).
+        """
+        struct = result.get("structure")
+        if struct == "feedback":
+            dx = contradiction.get("do_xy")
+            dy = contradiction.get("do_yx")
+            return not (dx and abs(dx) > 0.15 and dy and abs(dy) > 0.15)
+        if struct == "shared_state":
+            # contradicted if a bare cause DOES move the effect (then not shared)
+            dx = contradiction.get("do_xy")
+            return bool(dx and abs(dx) > 0.15)
+        return False
+
+
+class AcyclicModel(ModelClass):
+    """Acyclic (DAG) model class — the V10 behavior, PRESERVED."""
+
+    def admissible_structure(self) -> Set[str]:
+        return {"direct", "delayed"}
+
+    def admissible_verdicts(self) -> Set[str]:
+        return {v.value for v in ModelClassVerdict}
+
+    def represent(self, x: np.ndarray, y: np.ndarray, **evidence: Any) -> Dict[str, Any]:
+        r = assess(x, y, **evidence)
+        return {"verdict": r["verdict"].value,
+                "structure": r["verdict"].value,
+                "status": "NA", "detail": r}
+
+
+class StatefulModel(ModelClass):
+    """Stateful / feedback model class — represents recurrence and hidden state."""
+
+    def admissible_structure(self) -> Set[str]:
+        return {"direct", "delayed", "feedback", "shared_state"}
+
+    def admissible_verdicts(self) -> Set[str]:
+        return {v.value for v in ModelClassVerdict} | {"STRUCTURE_CANDIDATE"}
+
+    def represent(self, x: np.ndarray, y: np.ndarray, **evidence: Any) -> Dict[str, Any]:
+        r = assess(x, y, **evidence)
+        dx, dy = r["do_xy"], r["do_yx"]
+        sx = dx is not None and abs(dx) > 0.15
+        sy = dy is not None and abs(dy) > 0.15
+
+        # genuine RECURRENCE: BOTH directions move under intervention
+        if sx and sy:
+            return {"verdict": "STRUCTURE_CANDIDATE", "structure": "feedback",
+                    "status": "UNVALIDATED", "detail": r,
+                    "required_test": "intervene on both variables; confirm mutual effect"}
+
+        # association + persistence but NO intervention effect => a SHARED HIDDEN
+        # STATE, not feedback (distinguished precisely by the null interventions).
+        assoc = abs(r["corr"]) >= 0.3 or r["lag"] >= 0.4
+        if assoc and not sx and not sy and abs(r["autocorr"]) > 0.6:
+            return {"verdict": "STRUCTURE_CANDIDATE", "structure": "shared_state",
+                    "status": "UNVALIDATED", "detail": r,
+                    "required_test": "do(cause) does NOT move effect => shared state"}
+
+        # otherwise the stateful class agrees with the acyclic verdict — and the
+        # V10 MODEL_CLASS_INSUFFICIENT is NOT absorbed (kept first-class).
+        return {"verdict": r["verdict"].value, "structure": r["verdict"].value,
+                "status": "NA", "detail": r}

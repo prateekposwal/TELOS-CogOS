@@ -7,6 +7,18 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Stateful / feedback model-class extension (V11)**
+  (`telos/core/discovery/model_class.py`): one `ModelClass` contract
+  (`represent/predict/intervene/explain/falsify/admissible_structure`) with
+  `AcyclicModel` (V10 behavior preserved) and `StatefulModel` — an extension, not
+  a new engine. `StatefulModel` represents genuine `feedback` (both interventions
+  move) and `shared_state` (association + persistence but null interventions),
+  keeping `MODEL_CLASS_INSUFFICIENT` first-class for the acyclic class. Critical
+  falsifier: **`delay ≠ feedback`** (delayed-direct stays SUFFICIENT). The exact
+  V10 transfer suite is unchanged (no false feedback). Generated structures stay
+  `UNVALIDATED`. Benchmark `experiments/assumption_discovery_v11/`.
+
+### Added
 - **Blind cross-domain transfer (V10)** (`telos/core/discovery/model_class.py`):
   a README-level question — does the V3–V9 stack transfer to unseen domains with
   **no domain-specific hypothesis vocabulary**? `assess` uses only generic
