@@ -20,8 +20,9 @@ is a witness gap, the latter is a model-class failure.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Tuple
 
 import numpy as np
 
@@ -202,3 +203,159 @@ class StatefulModel(ModelClass):
         # V10 MODEL_CLASS_INSUFFICIENT is NOT absorbed (kept first-class).
         return {"verdict": r["verdict"].value, "structure": r["verdict"].value,
                 "status": "NA", "detail": r}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# V13 — Compositional causal representation (bounded).  This is a STRUCTURE
+# OBJECT, not an engine: AcyclicModel/StatefulModel above operate over exactly
+# the same Evidence.  Bound is a benchmark constraint, not an architectural
+# claim.  representation != belief: a structure can be representable while its
+# confidence stays UNRESOLVED.
+# ─────────────────────────────────────────────────────────────────────────────
+
+MAX_NODES = 5
+MAX_EDGES = 8
+MAX_DEPTH = 3
+_EFFECT_EPS = 0.15
+
+
+@dataclass(frozen=True)
+class CausalRelation:
+    source: str
+    target: str
+    kind: str                      # "direct" | "temporal" | "recurrent"
+    lag: int = 1
+    status: str = "CANDIDATE"      # never SUPPORTED from representation alone
+
+
+@dataclass(frozen=True)
+class CausalStructure:
+    nodes: Tuple[str, ...]
+    relations: Tuple[CausalRelation, ...] = ()
+    state_variables: Tuple[str, ...] = ()
+    components: Tuple[Tuple[str, ...], ...] = ()
+    confidence: str = "UNRESOLVED"
+    required_intervention: Optional[str] = None
+
+    def recurrent_edges(self) -> Tuple[CausalRelation, ...]:
+        return tuple(r for r in self.relations if r.kind == "recurrent")
+
+    def temporal_edges(self) -> Tuple[CausalRelation, ...]:
+        return tuple(r for r in self.relations if r.kind == "temporal")
+
+    def recurrent_components(self) -> Tuple[Tuple[str, ...], ...]:
+        return tuple(c for c in self.components if len(c) >= 2)
+
+
+def _lag_strength(x: np.ndarray, y: np.ndarray, lag: int) -> float:
+    x = np.asarray(x, float) - float(np.mean(x))
+    y = np.asarray(y, float) - float(np.mean(y))
+    a, b = x[:-lag], y[lag:]
+    if a.size < 8:
+        return 0.0
+    denom = (np.linalg.norm(a) * np.linalg.norm(b)) or 1.0
+    return abs(float(np.dot(a, b) / denom))
+
+
+def _best_lag(x: np.ndarray, y: np.ndarray) -> int:
+    best, bl = -1.0, 1
+    for lag in range(1, MAX_DEPTH + 1):
+        c = _lag_strength(x, y, lag)
+        if c > best:
+            best, bl = c, lag
+    return bl
+
+
+def _delayed_lag(x: np.ndarray, y: np.ndarray, eps: float = 0.3) -> int:
+    """A genuine multi-step delay: a lag>=2 with non-trivial cross-correlation
+    (under mutual coupling the lag-1 peak can mask it)."""
+    best, bl = eps, 0
+    for lag in range(2, MAX_DEPTH + 1):
+        c = _lag_strength(x, y, lag)
+        if c > best:
+            best, bl = c, lag
+    return bl
+
+
+def discover_structure(observations: Dict[str, np.ndarray],
+                       interventions: Dict[Tuple[str, str], Optional[float]],
+                       ) -> CausalStructure:
+    """Bounded compositional structure from Evidence. No engine, no planner.
+
+    observations: {var: series}.  interventions: {(cause, effect): effect or None}
+    where None means "not yet observed" (leaves confidence UNRESOLVED).
+    """
+    nodes = tuple(sorted(observations)[:MAX_NODES])
+    missing = [f"do({a})->{b}" for a in nodes for b in nodes if a != b
+               and interventions.get((a, b)) is None]
+
+    # significant directed edges from interventions
+    edges: Set[Tuple[str, str]] = set()
+    for a in nodes:
+        for b in nodes:
+            if a != b:
+                eff = interventions.get((a, b))
+                if eff is not None and abs(eff) > _EFFECT_EPS:
+                    edges.add((a, b))
+
+    relations: list = []
+    for a, b in sorted(edges):
+        if len(relations) < MAX_EDGES:
+            relations.append(CausalRelation(a, b, "recurrent" if (b, a) in edges else "direct"))
+    for a, b in sorted(edges):
+        if len(relations) < MAX_EDGES:
+            lag = _delayed_lag(observations[a], observations[b])
+            if lag > 1:      # delay is recorded compositionally, alongside recurrence
+                relations.append(CausalRelation(a, b, "temporal", lag=lag))
+
+    # connected components over undirected connectivity
+    adj: Dict[str, Set[str]] = {a: set() for a in nodes}
+    for a, b in edges:
+        adj[a].add(b)
+        adj[b].add(a)
+    seen: Set[str] = set()
+    components: list = []
+    for a in nodes:
+        if a in seen or not adj[a]:
+            continue
+        stack, comp = [a], []
+        while stack:
+            u = stack.pop()
+            if u in seen:
+                continue
+            seen.add(u)
+            comp.append(u)
+            stack.extend(adj[u])
+        components.append(tuple(sorted(comp)))
+
+    # recurrence = a DIRECTED CYCLE within the component (not mutual pairs only;
+    # a 3-cycle v0->v1->v2->v0 has no a<->b pair but is recurrent).
+    def _has_cycle(comp: Tuple[str, ...]) -> bool:
+        cs = set(comp)
+        sub = {(a, b) for (a, b) in edges if a in cs and b in cs}
+        color = {u: 0 for u in comp}
+
+        def dfs(u: str) -> bool:
+            color[u] = 1
+            for w in comp:
+                if (u, w) in sub:
+                    if color[w] == 1:
+                        return True
+                    if color[w] == 0 and dfs(w):
+                        return True
+            color[u] = 2
+            return False
+
+        return any(color[u] == 0 and dfs(u) for u in comp)
+
+    recurrent_components = [c for c in components if len(c) >= 2 and _has_cycle(c)]
+    connected = {x for c in components for x in c}
+    state_vars = tuple(a for a in nodes
+                       if not any(e[0] == a for e in edges)   # no causal output
+                       and a not in connected)
+    return CausalStructure(
+        nodes=nodes, relations=tuple(relations), state_variables=state_vars,
+        components=tuple(sorted(recurrent_components)),
+        confidence="UNRESOLVED" if missing else "CANDIDATE",
+        required_intervention=missing[0] if missing else None,
+    )

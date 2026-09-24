@@ -132,3 +132,73 @@ def test_observational_only_never_fabricates_a_structure():
     r = StatefulModel().represent(x, y)      # no do_xy / do_yx
     assert r["verdict"] == ModelClassVerdict.UNRESOLVED.value
     assert r["structure"] is None
+
+
+# ── V13: compositional representation ───────────────────────────────────────
+
+def _cycle3(n=600, seed=0, noise=0.3):
+    import numpy as np
+    rng = np.random.RandomState(seed)
+    v = {k: np.zeros(n) for k in ("v0", "v1", "v2")}
+    for t in range(1, n):
+        v["v0"][t] = 0.5 * v["v0"][t-1] + 0.5 * v["v2"][t-1] + rng.normal(0, noise)
+        v["v1"][t] = 0.5 * v["v1"][t-1] + 0.5 * v["v0"][t-1] + rng.normal(0, noise)
+        v["v2"][t] = 0.5 * v["v2"][t-1] + 0.5 * v["v1"][t-1] + rng.normal(0, noise)
+    return v
+
+
+def test_three_node_cycle_is_represented_as_depth_three():
+    from telos.core.discovery.model_class import discover_structure
+    v = _cycle3()
+    iv = {("v0", "v1"): 1.0, ("v1", "v2"): 1.0, ("v2", "v0"): 1.0,
+          ("v1", "v0"): 0.0, ("v2", "v1"): 0.0, ("v0", "v2"): 0.0}
+    st = discover_structure(v, iv)
+    comps = st.recurrent_components()
+    assert len(comps) == 1 and len(comps[0]) == 3      # depth preserved, not "2"
+
+
+def test_two_independent_loops_are_two_components():
+    import numpy as np
+    from telos.core.discovery.model_class import discover_structure
+    n, rng = 600, np.random.RandomState(0)
+    v = {k: np.zeros(n) for k in ("v0", "v1", "v2", "v3")}
+    for t in range(1, n):
+        v["v0"][t] = 0.6 * v["v0"][t-1] + 0.5 * v["v1"][t-1] + rng.normal(0, .3)
+        v["v1"][t] = 0.6 * v["v1"][t-1] + 0.5 * v["v0"][t-1] + rng.normal(0, .3)
+        v["v2"][t] = 0.6 * v["v2"][t-1] + 0.5 * v["v3"][t-1] + rng.normal(0, .3)
+        v["v3"][t] = 0.6 * v["v3"][t-1] + 0.5 * v["v2"][t-1] + rng.normal(0, .3)
+    iv = {("v0", "v1"): 1.0, ("v1", "v0"): 1.0, ("v2", "v3"): 1.0, ("v3", "v2"): 1.0,
+          ("v0", "v2"): 0.0, ("v2", "v0"): 0.0, ("v0", "v3"): 0.0, ("v3", "v0"): 0.0,
+          ("v1", "v2"): 0.0, ("v2", "v1"): 0.0, ("v1", "v3"): 0.0, ("v3", "v1"): 0.0}
+    comps = discover_structure(v, iv).recurrent_components()
+    assert len(comps) == 2 and all(len(c) == 2 for c in comps)
+
+
+def test_feedback_plus_delay_preserves_both():
+    import numpy as np
+    from telos.core.discovery.model_class import discover_structure
+    n, rng = 600, np.random.RandomState(0)
+    v0, v1 = np.zeros(n), np.zeros(n)
+    for t in range(2, n):
+        v0[t] = 0.6 * v0[t-1] + 0.5 * v1[t-1] + rng.normal(0, .3)   # v1 -> v0 (lag1)
+        v1[t] = 0.6 * v1[t-1] + 0.5 * v0[t-2] + rng.normal(0, .3)   # v0 -> v1 (lag2)
+    st = discover_structure({"v0": v0, "v1": v1},
+                            {("v0", "v1"): 1.0, ("v1", "v0"): 1.0})
+    assert len(st.recurrent_edges()) >= 2      # feedback preserved
+    assert len(st.temporal_edges()) >= 1       # delay preserved, not collapsed
+
+
+def test_delay_is_not_recurrent_and_observation_stays_unresolved():
+    import numpy as np
+    from telos.core.discovery.model_class import discover_structure
+    n, rng = 600, np.random.RandomState(0)
+    x = rng.normal(0, 1, n)
+    y = np.zeros(n)
+    for t in range(2, n):
+        y[t] = x[t-2] + rng.normal(0, .3)
+    # delay: no cycle even with interventions
+    st = discover_structure({"v0": x, "v1": y}, {("v0", "v1"): 1.0, ("v1", "v0"): 0.0})
+    assert len(st.recurrent_components()) == 0
+    # no intervention observed => representable but NOT supported
+    st2 = discover_structure({"v0": x, "v1": y}, {("v0", "v1"): None, ("v1", "v0"): None})
+    assert st2.confidence == "UNRESOLVED" and st2.required_intervention is not None

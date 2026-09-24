@@ -25,6 +25,7 @@ from telos.core.discovery.structure_invention import (
 )
 from telos.core.discovery.model_class import (
     assess, ModelClassVerdict, ModelClass, AcyclicModel, StatefulModel,
+    CausalStructure, CausalRelation, discover_structure,
 )
 
 __all__ = [
@@ -36,4 +37,5 @@ __all__ = [
     "HypothesisGenerator", "HypothesisCandidate",
     "StructureInventor", "StructuralHypothesis", "VariableStatus",
     "assess", "ModelClassVerdict", "ModelClass", "AcyclicModel", "StatefulModel",
+    "CausalStructure", "CausalRelation", "discover_structure",
 ]

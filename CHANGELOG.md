@@ -6,6 +6,19 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Added
+- **Compositional causal representation (V13)**
+  (`telos/core/discovery/model_class.py`): bounded `CausalStructure` /
+  `CausalRelation` / `discover_structure` — a *representation*, not an engine.
+  Recurrence is a **directed cycle** (so a 3-cycle is depth-3, not "feedback"),
+  components are connected subgraphs, and delay is a `temporal` relation (lag
+  profile) preserved **alongside** recurrence. Bounded: `nodes ≤ 5`, `edges ≤ 8`,
+  `depth ≤ 3`. `AcyclicModel`/`StatefulModel` operate over the same evidence.
+  Falsifiers (3-cycle, two loops, feedback+delay), held-out compositional
+  transfer, `delay ≠ feedback`, and observational-only `UNRESOLVED` all pass;
+  V10/V11/V12 regressions clean. Benchmark:
+  `experiments/assumption_discovery_v13_compositional/`.
+
 ### Fixed
 - **Observational-only structure fabrication (V12).** `StatefulModel` could emit a
   `shared_state` CANDIDATE from association + autocorrelation without any
