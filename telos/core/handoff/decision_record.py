@@ -335,7 +335,10 @@ class DecisionRecord:
                      revalidation_conditions: Optional[List[RevalidationCondition]] = None,
                      reality_gap: Optional["ModelRealityGap"] = None,
                      mission: Optional[str] = None,
-                     decision_id: Optional[str] = None) -> "DecisionRecord":
+                     decision_id: Optional[str] = None,
+                     assumption_refs: Optional[List[str]] = None,
+                     depends_on: Optional[List[str]] = None,
+                     guarded_deps: Optional[List[str]] = None) -> "DecisionRecord":
         """Build a record from a live PhaseContext (used by the REFLECT phase).
 
         Only fields the context genuinely carries are derived; `objective`,
@@ -394,6 +397,9 @@ class DecisionRecord:
             expected_consequences=expected_consequences,
             revalidation_conditions=revalidation_conditions,
             mission=mission,
+            assumption_refs=assumption_refs,
+            depends_on=depends_on,
+            guarded_deps=guarded_deps,
         )
 
     # ── Revalidation (executable, not archival) ──────────────────────────────
@@ -609,7 +615,10 @@ def _compose(*, decision_id: str, timestamp: float,
              assumptions: Optional[List[Assumption]],
              expected_consequences: Optional[List[str]],
              revalidation_conditions: Optional[List[RevalidationCondition]],
-             mission: Optional[str]) -> DecisionRecord:
+             mission: Optional[str],
+             assumption_refs: Optional[List[str]] = None,
+             depends_on: Optional[List[str]] = None,
+             guarded_deps: Optional[List[str]] = None) -> DecisionRecord:
     """Compose a DecisionRecord from already-extracted primitives.
 
     Returns:
@@ -688,6 +697,9 @@ def _compose(*, decision_id: str, timestamp: float,
             "unspecified": unspecified,
         },
         status=status,
+        assumption_refs=list(assumption_refs or []),
+        depends_on=list(depends_on or []),
+        guarded_deps=list(guarded_deps or []),
     )
 
 

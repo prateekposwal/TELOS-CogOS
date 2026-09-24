@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import json
 from collections import deque
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
 from telos.core.handoff.decision_record import (
     DecisionRecord, RevalidationCondition,
@@ -30,6 +30,7 @@ from telos.core.handoff.decision_record import (
 
 if TYPE_CHECKING:
     from telos.core.handoff.store import DecisionStore
+    from telos.core.handoff.graph import AssumptionRegistry
     from telos.core.phases.base import PhaseContext
 
 # System-derived default revalidation: the pipeline's OWN world-model check.
@@ -50,15 +51,40 @@ class DecisionRecorder:
     """
 
     def __init__(self, max_records: int = 200, enabled: bool = True,
-                 store: Optional["DecisionStore"] = None):
+                 store: Optional["DecisionStore"] = None,
+                 registry: Optional["AssumptionRegistry"] = None,
+                 bind: Optional[Callable[[Optional[str], Optional[str]], List[str]]] = None):
         self.max_records = max(1, int(max_records))
         self.enabled = bool(enabled)
         self._store = store
+        self._registry = registry
+        self._bind = bind
+        self._registry_persisted = False
         self._records: "deque[DecisionRecord]" = deque(maxlen=self.max_records)
         self._seen_types: set = set()
         self._seen_governance: set = set()
         self._emitted = 0
         self._skipped = 0
+
+    def _bind_refs(self, intent_type: Optional[str],
+                   domain: Optional[str]) -> List[str]:
+        """Resolve the assumption IDs a live decision rests on.
+
+        Args:
+            intent_type: the selected intent type.
+            domain: the decision domain (from domain_facts / adapter).
+
+        Returns:
+            Assumption IDs (empty when no registry/binder is configured).
+        """
+        if self._bind is not None:
+            try:
+                return list(self._bind(intent_type, domain) or [])
+            except Exception:
+                return []
+        if self._registry is not None:
+            return self._registry.refs_for(intent_type, domain)
+        return []
 
     # ── Policy ───────────────────────────────────────────────────────────────
 
@@ -130,6 +156,20 @@ class DecisionRecorder:
                 watches=_WORLD_MODEL_CONDITION.watches,
             )]
 
+        # Bind typed assumption IDs from the registry (so live cycles feed the
+        # executable graph). Empty when no registry/binder is configured.
+        intent_type = (ctx.selected_intent.intent_type
+                       if getattr(ctx, "selected_intent", None) else None)
+        domain = getattr(getattr(ctx, "domain_facts", None), "domain", None)
+        refs = self._bind_refs(intent_type, domain)
+        if (self._store is not None and self._registry is not None
+                and not self._registry_persisted):
+            try:
+                self._store.write_registry(self._registry)
+                self._registry_persisted = True
+            except OSError:
+                pass
+
         record = DecisionRecord.from_context(
             ctx,
             mission=mission,
@@ -140,6 +180,9 @@ class DecisionRecorder:
             expected_consequences=extras.pop("expected_consequences", None),
             revalidation_conditions=conditions,
             reality_gap=extras.pop("reality_gap", None),
+            assumption_refs=refs,
+            depends_on=extras.pop("depends_on", None),
+            guarded_deps=extras.pop("guarded_deps", None),
         )
         self._records.append(record)
         if getattr(ctx, "selected_intent", None) is not None:

@@ -356,13 +356,28 @@ class TelosV14Pipeline:
         # MEANINGFUL decisions during REFLECT. Purely observational — never
         # changes the decision path (Λ1.2) and runs ALONGSIDE AGENTS.md, not
         # replacing it.
-        from telos.core.handoff import DecisionRecorder, DecisionStore
+        from telos.core.handoff import (
+            DecisionRecorder, DecisionStore, AssumptionRegistry,
+        )
         # File-backed exchange (opt-in): TELOS_DECISION_STORE names a directory;
         # unset => in-memory only (byte-identical default).
         _decision_store_root = os.environ.get("TELOS_DECISION_STORE") or None
         _decision_store = (DecisionStore(_decision_store_root)
                            if _decision_store_root else None)
-        self._decision_recorder = DecisionRecorder(store=_decision_store)
+        # Assumption registry (opt-in): TELOS_DECISION_ASSUMPTIONS names a JSON
+        # file; else the store's assumptions.json. Its bindings (intent type /
+        # domain → assumption IDs) let live cycles populate assumption_refs so
+        # the executable graph is fed automatically. No registry => no refs.
+        _registry = None
+        _reg_path = os.environ.get("TELOS_DECISION_ASSUMPTIONS") or None
+        if _reg_path:
+            _registry = AssumptionRegistry.load(_reg_path)
+        elif _decision_store is not None:
+            _registry = _decision_store.load_registry()
+        if _registry is not None and len(_registry) == 0 and not _registry.bindings():
+            _registry = None
+        self._decision_recorder = DecisionRecorder(store=_decision_store,
+                                                   registry=_registry)
 
         self._sim_engine: Optional[CounterfactualEngine] = None
         self._planner: Optional[RepresentationPlanner] = None

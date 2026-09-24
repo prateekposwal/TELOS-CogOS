@@ -18,6 +18,7 @@ import pytest
 
 from telos.core.handoff import (
     DecisionRecorder, DecisionRecord, RecordStatus,
+    DecisionStore, AssumptionRegistry,
 )
 from telos.world.evidence import ValidationStatus
 from telos.world.epistemic import RealityGapTracker
@@ -158,6 +159,36 @@ def test_end_to_end_handoff_and_revalidation(tmp_path):
     assert handed.status == RecordStatus.FALSIFIED
     assert handed.revalidation_conditions[0].status == ValidationStatus.FALSIFIED
     assert handed.revalidation_conditions[0].last_checked_cycle == 99
+
+
+def test_recorder_binds_assumption_refs_from_registry():
+    reg = AssumptionRegistry({"G1": "peak writes < 10k/s"})
+    reg.bind("reflex", ["G1"])
+    rec = DecisionRecorder(registry=reg)
+    record = rec.observe(_pipeline_stub(), _ctx("reflex"))
+    assert record.assumption_refs == ["G1"]
+    # an unbound intent type yields no refs
+    assert rec.observe(_pipeline_stub(), _ctx("explore")).assumption_refs == []
+
+
+def test_recorder_bind_callable_overrides_registry():
+    reg = AssumptionRegistry({"G1": "a", "G2": "b"})
+    reg.bind("reflex", ["G1"])
+    rec = DecisionRecorder(registry=reg,
+                           bind=lambda it, dom: ["G2"] if it == "reflex" else [])
+    assert rec.observe(_pipeline_stub(), _ctx("reflex")).assumption_refs == ["G2"]
+
+
+def test_recorder_persists_registry_and_feeds_graph(tmp_path):
+    store = DecisionStore(str(tmp_path))
+    reg = AssumptionRegistry({"G1": "peak writes < 10k/s"})
+    reg.bind("reflex", ["G1"])
+    rec = DecisionRecorder(store=store, registry=reg)
+    rec.observe(_pipeline_stub(), _ctx("reflex", cycle=1))
+    # registry persisted alongside the records
+    assert store.load_registry().refs_for("reflex") == ["G1"]
+    # the live record feeds the executable graph
+    assert store.graph().affected_decisions("G1") == ["cycle-1-reflex"]
 
 
 def test_pipeline_exposes_records_and_reflection(tmp_path):

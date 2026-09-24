@@ -55,12 +55,20 @@ class AssumptionNode:
 class AssumptionRegistry:
     """A stable ID → assumption-text registry (shared across decisions).
 
+    Also carries **bindings**: a map from a decision key (intent type or domain)
+    to the assumption IDs that key rests on. This is what lets live cycles
+    populate `assumption_refs` automatically.
+
     Args:
         assumptions: optional {id: text} seed.
+        bindings: optional {key: [assumption_id, ...]} seed.
     """
 
-    def __init__(self, assumptions: Optional[Dict[str, str]] = None):
+    def __init__(self, assumptions: Optional[Dict[str, str]] = None,
+                 bindings: Optional[Dict[str, List[str]]] = None):
         self._by_id: Dict[str, str] = dict(assumptions or {})
+        self._bindings: Dict[str, List[str]] = {
+            str(k): list(v) for k, v in (bindings or {}).items()}
 
     def add(self, assumption_id: str, text: str) -> None:
         """Register or update an assumption.
@@ -70,6 +78,41 @@ class AssumptionRegistry:
             text: the statement.
         """
         self._by_id[assumption_id] = text
+
+    def bind(self, key: str, assumption_ids: List[str]) -> None:
+        """Bind a decision key (intent type / domain) to assumption IDs.
+
+        Args:
+            key: the intent type or domain.
+            assumption_ids: the assumption IDs the key rests on.
+        """
+        self._bindings[str(key)] = list(assumption_ids)
+
+    def bindings(self) -> Dict[str, List[str]]:
+        """All bindings as a plain dict.
+
+        Returns:
+            {key: [assumption_id, ...]}.
+        """
+        return {k: list(v) for k, v in self._bindings.items()}
+
+    def refs_for(self, *keys: Optional[str]) -> List[str]:
+        """The assumption IDs bound to any of the given keys (order-preserving).
+
+        Args:
+            *keys: intent type / domain (None values ignored).
+
+        Returns:
+            A de-duplicated, order-preserving list of assumption IDs.
+        """
+        out: List[str] = []
+        for k in keys:
+            if not k:
+                continue
+            for a in self._bindings.get(str(k), []):
+                if a not in out:
+                    out.append(a)
+        return out
 
     def get(self, assumption_id: str) -> Optional[str]:
         """Text for an assumption ID, or None.
@@ -97,16 +140,24 @@ class AssumptionRegistry:
         return len(self._by_id)
 
     def to_dict(self) -> Dict[str, str]:
-        """Return the registry as a plain dict.
+        """Return the assumptions as a plain dict.
 
         Returns:
             {id: text}.
         """
         return dict(self._by_id)
 
+    def to_config(self) -> Dict[str, Any]:
+        """Return the full config (assumptions + bindings).
+
+        Returns:
+            {"assumptions": {id: text}, "bindings": {key: [ids]}}.
+        """
+        return {"assumptions": dict(self._by_id), "bindings": self.bindings()}
+
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "AssumptionRegistry":
-        """Rebuild from a dict.
+        """Rebuild from a flat {id: text} dict.
 
         Args:
             d: {id: text}.
@@ -116,18 +167,32 @@ class AssumptionRegistry:
         """
         return cls({str(k): str(v) for k, v in (d or {}).items()})
 
+    @classmethod
+    def from_config(cls, c: Dict[str, Any]) -> "AssumptionRegistry":
+        """Rebuild from either the wrapped config or a legacy flat dict.
+
+        Args:
+            c: {"assumptions": ..., "bindings": ...} or a flat {id: text}.
+
+        Returns:
+            The registry.
+        """
+        if isinstance(c, dict) and "assumptions" in c:
+            return cls(c.get("assumptions") or {}, c.get("bindings") or {})
+        return cls.from_dict(c or {})
+
     def save(self, path: str) -> None:
-        """Persist to JSON.
+        """Persist to JSON (wrapped config; backward-compatible on load).
 
         Args:
             path: file path.
         """
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(self._by_id, f, indent=2, sort_keys=True)
+            json.dump(self.to_config(), f, indent=2, sort_keys=True)
 
     @classmethod
     def load(cls, path: str) -> "AssumptionRegistry":
-        """Load from JSON (empty registry when absent).
+        """Load from JSON (empty registry when absent; accepts legacy flat form).
 
         Args:
             path: file path.
@@ -138,7 +203,7 @@ class AssumptionRegistry:
         if not os.path.isfile(path):
             return cls()
         with open(path, encoding="utf-8") as f:
-            return cls.from_dict(json.load(f))
+            return cls.from_config(json.load(f))
 
 
 class DecisionGraph:

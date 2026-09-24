@@ -15,6 +15,11 @@ semantic versioning.
   `DecisionStore` (`write_registry`/`load_registry`/`graph`) and the CLI
   (`decision_records.py affected <G>`). Turns the scale-experiment result into a
   native TELOS capability.
+  - **Live feed:** `AssumptionRegistry` carries *bindings* (intent type / domain
+    → assumption IDs); `DecisionRecorder` resolves them so live cycles populate
+    `assumption_refs` automatically, and persists the registry beside the store.
+    Opt-in via `TELOS_DECISION_STORE` + `TELOS_DECISION_ASSUMPTIONS` (default
+    off → no refs, byte-identical).
 - **Context Handoff (experiment)**: `DecisionRecord` (`telos/core/handoff/`) —
   a portable, agent-agnostic decision artifact that preserves the *reasoning*
   (objective, evidence with provenance, assumptions, constraints, alternatives
