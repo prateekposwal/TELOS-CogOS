@@ -13,10 +13,14 @@ from telos.core.discovery.causal_probe import (
 from telos.core.discovery.experiment_selection import (
     CanonicalExperimentSelector, Hypothesis, ExperimentOption,
 )
+from telos.core.discovery.planner import (
+    PlannerAwareSelector, PlannerMode, Plan,
+)
 
 __all__ = [
     "DiscoveryOrchestrator",
     "AssumptionDiscoverer", "DiscoveredAssumption", "Transition",
     "CausalProbe", "CausalStatus", "DiscoveredRelation",
     "CanonicalExperimentSelector", "Hypothesis", "ExperimentOption",
+    "PlannerAwareSelector", "PlannerMode", "Plan",
 ]

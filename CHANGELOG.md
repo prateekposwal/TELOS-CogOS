@@ -7,6 +7,18 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Planner-aware Value of Information (V6)** (`telos/core/discovery/planner.py`):
+  `PlannerAwareSelector` EXTENDS the canonical immediate VoI (V3) with expectimax
+  lookahead, exposing two modes `GREEDY` and `PLANNER_AWARE`. At horizon 1 the
+  planner is identical to greedy; at H>1 it diverges where an experiment's value
+  lies in the future experiments it unlocks. Adversarial benchmark
+  (`experiments/assumption_discovery_v6/`): unlocking (greedy A=4.0 vs planner
+  B=9.0), bottleneck (Z=2.0 vs X=5.0), budget trap (A=5.0 vs B=7.0); the
+  decisive falsifier — same initial state, different observation ⇒ different next
+  plan; an unaffordable decisive experiment yields UNRESOLVED (never forced
+  confidence); the planning model carries no ground truth. 7 falsifier tests.
+
+### Added
 - **Scaled causal-discovery failure surface (V5)**
   (`experiments/assumption_discovery_v5/`): hidden SCMs with opaque variable names
   across 5/7/10 variables, 9 families (chain/fork/collider/confounders/latent/
