@@ -100,7 +100,10 @@ class StructuralExperimentOption:
         return {"experiment": self.experiment,
                 "decision_voi": self.decision_voi,
                 "structural_discrimination": self.structural_discrimination,
-                "predictions": {k: round(v, 4) for k, v in self.predictions.items()},
+                "predictions": {k: (round(v, 4) if isinstance(v, float)
+                                    else [round(x, 4) for x in v] if isinstance(v, (list, tuple))
+                                    else v)
+                                for k, v in self.predictions.items()},
                 "supported": self.supported}
 
 
@@ -211,7 +214,7 @@ class CanonicalExperimentSelector:
         every hypothesis predicts the SAME outcome (the experiment cannot
         distinguish them), else max - min of the predictions.
         """
-        preds: List[float] = []
+        preds: List[Any] = []
         for h in hypotheses:
             p = getattr(h, "predictor", None)
             if p is None:
@@ -219,10 +222,21 @@ class CanonicalExperimentSelector:
             v = p(experiment)
             if v is None:
                 return None
-            preds.append(float(v))
+            preds.append(v)
         if len(preds) < 2:
             return 0.0
-        return max(preds) - min(preds)
+        # V14b: predictions may be scalars (single outcome) OR trajectories
+        # (a temporal/state probe).  The spread is the same max-min rule, taken
+        # per time-step and maxed — the policy is unchanged.
+        if any(isinstance(v, (list, tuple)) for v in preds):
+            m = max(len(v) for v in preds if isinstance(v, (list, tuple)))
+            def _vec(v: Any) -> List[float]:
+                if isinstance(v, (list, tuple)):
+                    return [float(x) for x in v] + [0.0] * (m - len(v))
+                return [float(v)] * m
+            mat = [_vec(v) for v in preds]
+            return max(max(col) - min(col) for col in zip(*mat))
+        return max(float(v) for v in preds) - min(float(v) for v in preds)
 
     def evaluate_structural(self, state, hypotheses: List[Hypothesis],
                             experiments: List[str],
@@ -238,7 +252,7 @@ class CanonicalExperimentSelector:
             if e in attempted:
                 out.append(StructuralExperimentOption(e, dvoi, None, {}, False))
                 continue
-            preds = {h.id: float(h.predictor(e)) for h in hypotheses
+            preds = {h.id: h.predictor(e) for h in hypotheses
                      if getattr(h, "predictor", None) is not None}
             disc = self.structural_discrimination(hypotheses, e)
             supported = disc is not None and len(preds) == len(hypotheses)

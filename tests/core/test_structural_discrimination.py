@@ -87,6 +87,15 @@ def test_attempted_experiment_is_never_reselected():
     assert c2 is None and r2 == "EXHAUSTED"
 
 
+def test_trajectory_predictions_are_supported():
+    # V14b: a temporal probe returns a response TRAJECTORY; the same max-min
+    # spread rule applies per step.  Identical trajectories => zero.
+    diff = [_hyp("a", {"t": (1.0, 0.0, 0.0)}), _hyp("b", {"t": (0.0, 1.0, 0.0)})]
+    assert _sel().structural_discrimination(diff, "t") == 1.0
+    same = [_hyp("a", {"t": (1.0, 1.0)}), _hyp("b", {"t": (1.0, 1.0)})]
+    assert _sel().structural_discrimination(same, "t") == 0.0
+
+
 def test_v3_decision_selector_is_unchanged():
     # the canonical select() path still works (V3 semantics preserved)
     hs = [_hyp("a", {"e": 1.0}), _hyp("b", {"e": 0.0})]

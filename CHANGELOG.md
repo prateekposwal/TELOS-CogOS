@@ -7,6 +7,18 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Temporal/state experiment primitive support (V14b).**
+  `CanonicalExperimentSelector.structural_discrimination` now accepts
+  **trajectory** predictions (a temporal/multi-step probe) as well as scalars,
+  applying the SAME max-min spread per time-step — the selection policy and
+  decision VoI are unchanged. This lets a domain-neutral temporal probe be
+  expressed as an experiment via a hypothesis predictor. The blind campaign shows
+  this is necessary but **not sufficient**: normalized one-step-pulse response
+  shapes remain too similar to separate `feedback` from `feedback_delay`, so
+  those cases still terminate `NO_VALUE` (no oracle created; delay≠feedback,
+  shared-state≠feedback, and identical-hypothesis negatives all hold).
+
+### Added
 - **Structural discrimination in experiment selection (V14)**
   (`telos/core/discovery/experiment_selection.py`, extension — no new engine):
   `Hypothesis` gains an independent `structure` + `predictor` (its own predictive
