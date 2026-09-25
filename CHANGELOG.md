@@ -7,6 +7,21 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Uncertainty-aware structural discrimination (Σe resolution).**
+  `Hypothesis` gains an optional `predictor_se` (standard error of the
+  prediction) and `CanonicalExperimentSelector` gains `z_threshold` (default 3):
+  when every live hypothesis provides an SE, structural discrimination becomes a
+  **significance test** (`spread / pooled_SE > z_threshold`); a non-significant
+  difference returns `0.0` so the selector abstains (`NO_VALUE`) instead of
+  choosing on noise. Without SEs the legacy raw-spread behavior is unchanged
+  (fully backward compatible). This implements the RESOLVED finding that
+  `feedback_shared` vs `persistence_feedback` are identifiable from the
+  **continuous observational Σe statistic** (lag-8 autocorrelation averaged over
+  episodes) — the prior `NO_VALUE` was a `{0,1}`-threshold artifact. Verified:
+  continuous discrimination 0.132, z=4.3, selector picks the observational
+  experiment and resolves; thresholded control 0.0.
+
+### Added
 - **Temporal/state experiment primitive support (V14b).**
   `CanonicalExperimentSelector.structural_discrimination` now accepts
   **trajectory** predictions (a temporal/multi-step probe) as well as scalars,

@@ -96,6 +96,20 @@ def test_trajectory_predictions_are_supported():
     assert _sel().structural_discrimination(same, "t") == 0.0
 
 
+def test_uncertainty_aware_discrimination_is_a_significance_test():
+    # When every hypothesis provides a standard error, a distinction is only
+    # reported if spread/pooled-SE exceeds z_threshold (default 3).
+    def mk(v, se):
+        return Hypothesis(id=f"h{v}", simulator=Sim(ID), uncertainty=0.5, test_cost=0.2,
+                          structure="s", predictor=lambda e, v=v: v,
+                          predictor_se=lambda e, se=se: se)
+
+    sig = [mk(0.648, 0.02), mk(0.782, 0.02)]      # spread 0.134, z ~ 4.7
+    assert _sel().structural_discrimination(sig, "e") > 0.1
+    non = [mk(0.60, 0.05), mk(0.65, 0.05)]        # spread 0.05, z ~ 0.7
+    assert _sel().structural_discrimination(non, "e") == 0.0
+
+
 def test_v3_decision_selector_is_unchanged():
     # the canonical select() path still works (V3 semantics preserved)
     hs = [_hyp("a", {"e": 1.0}), _hyp("b", {"e": 0.0})]

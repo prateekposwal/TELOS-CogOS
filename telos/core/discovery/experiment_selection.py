@@ -23,6 +23,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+import numpy as np
+
 from telos.core.simulation import CounterfactualEngine
 from telos.core.contracts.domain_model import DomainSimulator
 
@@ -47,6 +49,11 @@ class Hypothesis:
     # (that would be circular).  `structure` is an optional human-readable label.
     structure: Optional[str] = None
     predictor: Optional[Any] = None
+    # Optional uncertainty model: `predictor_se(experiment) -> standard error` of
+    # the prediction.  When every live hypothesis provides one, structural
+    # discrimination becomes a SIGNIFICANCE TEST (spread / pooled SE) instead of a
+    # raw magnitude (see CanonicalExperimentSelector.z_threshold).
+    predictor_se: Optional[Any] = None
 
 
 @dataclass
@@ -118,10 +125,12 @@ class CanonicalExperimentSelector:
     """
 
     def __init__(self, engine: CounterfactualEngine, horizon: int = 3,
-                 n_worlds: int = 8):
+                 n_worlds: int = 8, z_threshold: float = 3.0):
         self.engine = engine
         self.horizon = horizon
         self.n_worlds = n_worlds
+        # significance gate for uncertainty-aware structural discrimination
+        self.z_threshold = z_threshold
 
     def _options_for(self, simulator: DomainSimulator, state):
         """Generate options under a hypothesis's simulator.
@@ -215,6 +224,7 @@ class CanonicalExperimentSelector:
         distinguish them), else max - min of the predictions.
         """
         preds: List[Any] = []
+        ses: List[Optional[float]] = []
         for h in hypotheses:
             p = getattr(h, "predictor", None)
             if p is None:
@@ -223,6 +233,9 @@ class CanonicalExperimentSelector:
             if v is None:
                 return None
             preds.append(v)
+            se_fn = getattr(h, "predictor_se", None)
+            ses.append(float(se_fn(experiment)) if se_fn is not None
+                       and se_fn(experiment) is not None else None)
         if len(preds) < 2:
             return 0.0
         # V14b: predictions may be scalars (single outcome) OR trajectories
@@ -236,7 +249,18 @@ class CanonicalExperimentSelector:
                 return [float(v)] * m
             mat = [_vec(v) for v in preds]
             return max(max(col) - min(col) for col in zip(*mat))
-        return max(float(v) for v in preds) - min(float(v) for v in preds)
+        spread = max(float(v) for v in preds) - min(float(v) for v in preds)
+        # Σe fix: when every live hypothesis provides a standard error, the
+        # distinction is only reportable if it is SIGNIFICANT (spread / pooled
+        # SE > z_threshold).  A non-significant difference returns 0.0, so the
+        # selector abstains (NO_VALUE) rather than choosing on noise.  No SEs
+        # => legacy raw-spread behaviour is preserved.
+        if all(s is not None and s > 0 for s in ses):
+            pooled = float(np.sqrt(sum(s * s for s in ses)))
+            if pooled > 0:
+                z = spread / pooled
+                return spread if z > self.z_threshold else 0.0
+        return spread
 
     def evaluate_structural(self, state, hypotheses: List[Hypothesis],
                             experiments: List[str],
