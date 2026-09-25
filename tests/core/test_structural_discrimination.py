@@ -110,6 +110,28 @@ def test_uncertainty_aware_discrimination_is_a_significance_test():
     assert _sel().structural_discrimination(non, "e") == 0.0
 
 
+def test_common_feature_family_required_for_comparison():
+    # V17: two hypotheses are comparable only on a COMMON evidence family.
+    def mk(v, fam):
+        return Hypothesis(id=f"h{v}{fam}", simulator=Sim(ID), uncertainty=0.5, test_cost=0.2,
+                          structure="s", predictor=lambda e, v=v: v,
+                          predictor_se=lambda e: 0.05, feature_family=fam)
+    diff = [mk(0.0, "second_order"), mk(0.5, "higher_order")]
+    assert _sel().structural_discrimination(diff, "e") == 0.0     # not comparable
+    same = [mk(0.0, "higher_order"), mk(0.5, "higher_order")]
+    assert _sel().structural_discrimination(same, "e") > 0.4      # comparable
+
+
+def test_trajectory_predictions_use_legacy_spread_regression():
+    # Documents current behavior: vector predictions take the legacy spread path
+    # and DO NOT pass through the uncertainty (significance) gate.
+    def mk(v):
+        return Hypothesis(id=f"h{len(v)}", simulator=Sim(ID), uncertainty=0.5,
+                          test_cost=0.2, structure="s", predictor=lambda e, v=v: v)
+    hs = [mk((0.0, 0.0)), mk((0.2, 0.1))]
+    assert _sel().structural_discrimination(hs, "e") == 0.2
+
+
 def test_finite_df_widens_the_critical_value():
     # spread .5 with se .1 each -> ratio 3.54: passes the normal z=3 reference,
     # but at small df the Welch/Satterthwaite t critical value is larger.

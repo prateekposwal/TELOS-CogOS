@@ -6,6 +6,22 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Added
+- **Distributional evidence provenance (V17).** `Hypothesis` gains optional
+  `feature_family` and `distributional_order`, and `structural_discrimination`
+  enforces a **comparability guard**: two hypotheses are only discriminated on a
+  **common** evidence family (a 2nd-order vs a higher-order statistic are never
+  compared as the same evidence). Generic — not moment-specific / no LiNGAM
+  machinery; TELOS reasons over evidence order, not named moments. Motivated by
+  the reconnaissance result that a theoretically distinguishable non-Gaussian
+  pair (identical mean+cov, different higher-order structure) is invisible when
+  only 2nd-order evidence is supplied. Acceptance (`experiments/
+  distributional_evidence_v17/`): 2nd-only → ABSTAIN, higher-order → RESOLVED,
+  2nd+higher → RESOLVED; controls identical/near-null/bad-SE/different-provenance
+  → ABSTAIN. A regression test documents that trajectory/vector predictions still
+  use the legacy spread path (uncertainty gate is scalar-only) — deferred as a
+  separate, evidence-backed correction.
+
 ### Fixed
 - **Small-sample significance gate was anti-conservative (V15.1).** When an SE is
   estimated from a finite number of episodes, comparing `spread/SE` to a fixed

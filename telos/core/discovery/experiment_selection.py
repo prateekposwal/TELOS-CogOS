@@ -83,6 +83,13 @@ class Hypothesis:
     # When provided, the significance gate uses a finite-df (Welch/Satterthwaite)
     # t critical value instead of the normal z_threshold.
     predictor_df: Optional[Any] = None
+    # V17 — distributional evidence provenance.  A statistic carries the FAMILY
+    # it belongs to and its DISTRIBUTIONAL ORDER (not moment-specific names):
+    # two hypotheses are only comparable on a COMMON feature family.  Different
+    # families (e.g. a 2nd-order vs a higher-order statistic) must never be
+    # compared as if they were the same evidence.
+    feature_family: Optional[str] = None
+    distributional_order: Optional[int] = None
 
 
 @dataclass
@@ -282,6 +289,12 @@ class CanonicalExperimentSelector:
                 return [float(v)] * m
             mat = [_vec(v) for v in preds]
             return max(max(col) - min(col) for col in zip(*mat))
+        lo_f = min(range(len(preds)), key=lambda j: preds[j])
+        hi_f = max(range(len(preds)), key=lambda j: preds[j])
+        fams = [getattr(h, "feature_family", None) for h in hypotheses]
+        if (fams[lo_f] is not None and fams[hi_f] is not None
+                and fams[lo_f] != fams[hi_f]):
+            return 0.0                     # not comparable across evidence families
         spread = max(float(v) for v in preds) - min(float(v) for v in preds)
         # Numerical floor: floating-point noise is not evidence of a distinction
         # (and would otherwise pass the significance gate when SE ~ 0).
