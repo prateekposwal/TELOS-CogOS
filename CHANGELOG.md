@@ -12,11 +12,14 @@ semantic versioning.
   **trajectory** predictions (a temporal/multi-step probe) as well as scalars,
   applying the SAME max-min spread per time-step — the selection policy and
   decision VoI are unchanged. This lets a domain-neutral temporal probe be
-  expressed as an experiment via a hypothesis predictor. The blind campaign shows
-  this is necessary but **not sufficient**: normalized one-step-pulse response
-  shapes remain too similar to separate `feedback` from `feedback_delay`, so
-  those cases still terminate `NO_VALUE` (no oracle created; delay≠feedback,
-  shared-state≠feedback, and identical-hypothesis negatives all hold).
+  expressed as an experiment via a hypothesis predictor. Blind campaign: with
+  intervention/noise sampling **aligned** (the pulse harness had drawn noise only
+  on the non-intervened branch, desynchronizing the A/B RNG streams and
+  contaminating trajectories), the temporal probe **resolves** `feedback` (1.0)
+  and `feedback_delay` (→ `RESOLVED`); raw pulse separation 0.30, normalized-mean
+  0.49. `feedback_shared` vs `persistence_feedback` remain `NO_VALUE` (genuine
+  confounding). No oracle: delay≠feedback, shared-state≠feedback, and
+  identical-hypothesis negatives all hold.
 
 ### Added
 - **Structural discrimination in experiment selection (V14)**
