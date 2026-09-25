@@ -20,8 +20,8 @@ world, no transition) is reported as UNKNOWN — never silently zero-valued.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, List, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 from telos.core.simulation import CounterfactualEngine
 from telos.core.contracts.domain_model import DomainSimulator
@@ -41,6 +41,12 @@ class Hypothesis:
     simulator: DomainSimulator
     uncertainty: float = 0.5
     test_cost: float = 1.0
+    # V14: an independent PREDICTIVE model per structural hypothesis.  `predictor`
+    # maps an experiment id -> predicted outcome (a scalar).  It must be derived
+    # from the hypothesis' own structure, NEVER from the discovered structure
+    # (that would be circular).  `structure` is an optional human-readable label.
+    structure: Optional[str] = None
+    predictor: Optional[Any] = None
 
 
 @dataclass
@@ -67,6 +73,35 @@ class ExperimentOption:
                 "sensitivity": None if self.sensitivity is None else round(self.sensitivity, 4),
                 "uncertainty": round(self.uncertainty, 4), "cost": round(self.cost, 4),
                 "value": None if self.value is None else round(self.value, 4)}
+
+
+@dataclass
+class StructuralExperimentOption:
+    """V14: an experiment scored for STRUCTURAL discrimination, separately from
+    canonical decision VoI.
+
+    Args:
+        experiment: experiment id.
+        decision_voi: canonical decision VoI (unchanged V3 semantics), shared
+            across experiments (it values the hypothesis, not the experiment).
+        structural_discrimination: spread of predicted outcomes across the live
+            hypotheses (0 == all hypotheses predict the same result).  None when
+            unsupported (a hypothesis has no predictor).
+        predictions: {hypothesis_id: predicted outcome}.
+        supported: whether every live hypothesis could predict this experiment.
+    """
+    experiment: str
+    decision_voi: Optional[float]
+    structural_discrimination: Optional[float]
+    predictions: Dict[str, float] = field(default_factory=dict)
+    supported: bool = False
+
+    def to_dict(self) -> dict:
+        return {"experiment": self.experiment,
+                "decision_voi": self.decision_voi,
+                "structural_discrimination": self.structural_discrimination,
+                "predictions": {k: round(v, 4) for k, v in self.predictions.items()},
+                "supported": self.supported}
 
 
 class CanonicalExperimentSelector:
@@ -165,3 +200,79 @@ class CanonicalExperimentSelector:
         if not valued:
             return None
         return max(valued, key=lambda o: o.value)
+
+    # ── V14: structural discrimination (extends, does not replace, V3) ──────
+
+    def structural_discrimination(self, hypotheses: List[Hypothesis],
+                                  experiment: str) -> Optional[float]:
+        """Spread of predicted outcomes across live hypotheses for an experiment.
+
+        Returns None when any hypothesis cannot predict (unsupported), 0.0 when
+        every hypothesis predicts the SAME outcome (the experiment cannot
+        distinguish them), else max - min of the predictions.
+        """
+        preds: List[float] = []
+        for h in hypotheses:
+            p = getattr(h, "predictor", None)
+            if p is None:
+                return None
+            v = p(experiment)
+            if v is None:
+                return None
+            preds.append(float(v))
+        if len(preds) < 2:
+            return 0.0
+        return max(preds) - min(preds)
+
+    def evaluate_structural(self, state, hypotheses: List[Hypothesis],
+                            experiments: List[str],
+                            attempted: Optional[set] = None,
+                            ) -> List[StructuralExperimentOption]:
+        """Score every candidate experiment for structural discrimination.
+        `attempted` experiments are reported as unsupported (never re-run)."""
+        attempted = set(attempted or [])
+        canon = self.select(state, hypotheses)
+        dvoi = None if canon is None else canon.value
+        out: List[StructuralExperimentOption] = []
+        for e in experiments:
+            if e in attempted:
+                out.append(StructuralExperimentOption(e, dvoi, None, {}, False))
+                continue
+            preds = {h.id: float(h.predictor(e)) for h in hypotheses
+                     if getattr(h, "predictor", None) is not None}
+            disc = self.structural_discrimination(hypotheses, e)
+            supported = disc is not None and len(preds) == len(hypotheses)
+            out.append(StructuralExperimentOption(e, dvoi, disc, preds, supported))
+        return out
+
+    def select_experiment(self, state, hypotheses: List[Hypothesis],
+                          experiments: List[str],
+                          attempted: Optional[set] = None,
+                          ) -> "tuple":
+        """EXPLICIT selection policy (no weighted coefficients):
+
+        1. reject unsupported/impossible (or already-attempted) experiments;
+        2. prefer canonical decision VoI when it is decision-relevant AND the
+           structural discriminations are tied;
+        3. when structural discrimination is available (>0), prefer the
+           experiment that best distinguishes the live hypotheses;
+        4. otherwise terminate with NO_VALUE (all predictions identical).
+
+        Returns (choice|None, reason, options).
+        """
+        opts = self.evaluate_structural(state, hypotheses, experiments, attempted)
+        avail = [o for o in opts if o.supported]
+        if not avail:
+            return None, "EXHAUSTED", opts
+        best_struct = max(o.structural_discrimination for o in avail)
+        dvoi = avail[0].decision_voi
+        if best_struct is not None and best_struct > 0 and dvoi in (None, 0.0):
+            best = max(avail, key=lambda o: o.structural_discrimination)
+            return best, "STRUCTURAL_DISCRIMINATION", opts
+        if best_struct is not None and best_struct > 0:
+            # decision VoI is tied/zero across experiments -> break by structure
+            best = max(avail, key=lambda o: o.structural_discrimination)
+            return best, "STRUCTURAL_DISCRIMINATION", opts
+        if dvoi is not None and dvoi > 0:
+            return avail[0], "DECISION_VOI", opts
+        return None, "NO_VALUE", opts

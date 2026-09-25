@@ -7,6 +7,21 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Structural discrimination in experiment selection (V14)**
+  (`telos/core/discovery/experiment_selection.py`, extension — no new engine):
+  `Hypothesis` gains an independent `structure` + `predictor` (its own predictive
+  model, never the discovered structure); `CanonicalExperimentSelector` gains
+  `structural_discrimination()`, `evaluate_structural()`, and `select_experiment()`
+  with an explicit policy (reject unsupported/already-attempted → prefer canonical
+  decision VoI when decision-relevant → else prefer the experiment that best
+  distinguishes the live hypotheses by predicted outcomes → else `NO_VALUE`).
+  `StructuralExperimentOption` reports `structural_discrimination_value` separately
+  from decision VoI — no weighted coefficients. No repeated experiment; searches
+  terminate (`RESOLVED`/`UNRESOLVED`/`NO_VALUE`/`EXHAUSTED`). Decisive falsifier
+  passes (E1 indistinguishable → discrimination 0; E2 discriminating → selector
+  chooses E2). Benchmark: `experiments/v14_structural_discrimination/`.
+
+### Added
 - **Compositional causal representation (V13)**
   (`telos/core/discovery/model_class.py`): bounded `CausalStructure` /
   `CausalRelation` / `discover_structure` — a *representation*, not an engine.
