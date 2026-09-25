@@ -110,6 +110,17 @@ def test_uncertainty_aware_discrimination_is_a_significance_test():
     assert _sel().structural_discrimination(non, "e") == 0.0
 
 
+def test_floating_point_noise_is_not_treated_as_significant():
+    # Identifiability-challenge finding: a spread of ~1e-16 with SE ~1e-17 gave
+    # z ~ 8 -> false STRUCTURAL_DISCRIMINATION.  Numerical noise must not pass.
+    def mk(v, se):
+        return Hypothesis(id=f"h{v}", simulator=Sim(ID), uncertainty=0.5, test_cost=0.2,
+                          structure="s", predictor=lambda e, v=v: v,
+                          predictor_se=lambda e, se=se: se)
+    hs = [mk(0.5, 1e-17), mk(0.5 + 1e-16, 1e-17)]
+    assert _sel().structural_discrimination(hs, "e") == 0.0
+
+
 def test_v3_decision_selector_is_unchanged():
     # the canonical select() path still works (V3 semantics preserved)
     hs = [_hyp("a", {"e": 1.0}), _hyp("b", {"e": 0.0})]

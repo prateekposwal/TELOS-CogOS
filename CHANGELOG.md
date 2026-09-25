@@ -6,6 +6,16 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Fixed
+- **Floating-point noise passed the significance gate.** With uncertainty-aware
+  discrimination, a spread of ~1e-16 and an estimated SE of ~1e-17 produced a
+  z-score ~8 → a false `STRUCTURAL_DISCRIMINATION`. Numerical noise is now
+  floored (`spread <= 1e-9 → 0.0`) before the significance test. Found by the
+  Identifiability Challenge (`experiments/identifiability_challenge/`), which
+  compares TELOS's RESOLVED/ABSTAIN boundary against the Eberhardt/Hoyer/Scheines
+  model-identifiability oracle (B identified by the interventional pair
+  condition; Σe by a both-observed experiment). After the fix, agreement is 5/5.
+
 ### Added
 - **Uncertainty-aware structural discrimination (Σe resolution).**
   `Hypothesis` gains an optional `predictor_se` (standard error of the

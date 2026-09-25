@@ -250,6 +250,10 @@ class CanonicalExperimentSelector:
             mat = [_vec(v) for v in preds]
             return max(max(col) - min(col) for col in zip(*mat))
         spread = max(float(v) for v in preds) - min(float(v) for v in preds)
+        # Numerical floor: floating-point noise is not evidence of a distinction
+        # (and would otherwise pass the significance gate when SE ~ 0).
+        if spread <= 1e-9:
+            return 0.0
         # Σe fix: when every live hypothesis provides a standard error, the
         # distinction is only reportable if it is SIGNIFICANT (spread / pooled
         # SE > z_threshold).  A non-significant difference returns 0.0, so the
