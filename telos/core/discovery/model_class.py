@@ -242,6 +242,13 @@ class CausalStructure:
     #   UNRESOLVED     = envelope can express it, but evidence cannot identify it
     bound_exceeded: bool = False
     n_observed: int = 0
+    # R2: recurrence membership is EXPLICIT.  `cycles` are directed cycles (SCCs
+    # of size>=2); `cycle_members` participate in a cycle; `downstream` nodes are
+    # merely reachable from a cycle — NEVER members of it.  `components` keeps its
+    # own explicit meaning: undirected connectedness (not recurrence).
+    cycles: Tuple[Tuple[str, ...], ...] = ()
+    cycle_members: Tuple[str, ...] = ()
+    downstream: Tuple[str, ...] = ()
 
     @property
     def status(self) -> str:
@@ -260,7 +267,8 @@ class CausalStructure:
         return tuple(r for r in self.relations if r.kind == "temporal")
 
     def recurrent_components(self) -> Tuple[Tuple[str, ...], ...]:
-        return tuple(c for c in self.components if len(c) >= 2)
+        # recurrence == participation in a directed cycle (SCC of size>=2)
+        return self.cycles
 
 
 def _lag_strength(x: np.ndarray, y: np.ndarray, lag: int) -> float:
@@ -337,11 +345,14 @@ def discover_structure(observations: Dict[str, np.ndarray],
             if lag > 1:      # delay is recorded compositionally, alongside recurrence
                 relations.append(CausalRelation(a, b, "temporal", lag=lag))
 
-    # connected components over undirected connectivity
+    # connected components (undirected connectivity).  EXPLICIT: this is
+    # connectivity, NOT recurrence.
     adj: Dict[str, Set[str]] = {a: set() for a in nodes}
+    dadjs: Dict[str, Set[str]] = {a: set() for a in nodes}   # directed (for SCC)
     for a, b in edges:
         adj[a].add(b)
         adj[b].add(a)
+        dadjs[a].add(b)
     seen: Set[str] = set()
     components: list = []
     for a in nodes:
@@ -357,35 +368,63 @@ def discover_structure(observations: Dict[str, np.ndarray],
             stack.extend(adj[u])
         components.append(tuple(sorted(comp)))
 
-    # recurrence = a DIRECTED CYCLE within the component (not mutual pairs only;
-    # a 3-cycle v0->v1->v2->v0 has no a<->b pair but is recurrent).
-    def _has_cycle(comp: Tuple[str, ...]) -> bool:
-        cs = set(comp)
-        sub = {(a, b) for (a, b) in edges if a in cs and b in cs}
-        color = {u: 0 for u in comp}
+    # cycles = strongly connected components of size>=2.  A node is a cycle
+    # member iff it participates in a directed cycle — NOT merely reachable from
+    # one (R2: this separates cycle membership from downstream branches).
+    def _sccs() -> list:
+        index: Dict[str, int] = {}
+        low: Dict[str, int] = {}
+        on: Set[str] = set()
+        stack: list = []
+        out: list = []
+        counter = [0]
 
-        def dfs(u: str) -> bool:
-            color[u] = 1
-            for w in comp:
-                if (u, w) in sub:
-                    if color[w] == 1:
-                        return True
-                    if color[w] == 0 and dfs(w):
-                        return True
-            color[u] = 2
-            return False
+        def strong(v: str) -> None:
+            index[v] = low[v] = counter[0]
+            counter[0] += 1
+            stack.append(v)
+            on.add(v)
+            for w in sorted(dadjs[v]):
+                if w not in index:
+                    strong(w)
+                    low[v] = min(low[v], low[w])
+                elif w in on:
+                    low[v] = min(low[v], index[w])
+            if low[v] == index[v]:
+                comp = []
+                while True:
+                    w = stack.pop()
+                    on.discard(w)
+                    comp.append(w)
+                    if w == v:
+                        break
+                out.append(comp)
 
-        return any(color[u] == 0 and dfs(u) for u in comp)
+        for v in nodes:
+            if v not in index and dadjs[v]:
+                strong(v)
+        return out
 
-    recurrent_components = [c for c in components if len(c) >= 2 and _has_cycle(c)]
+    cycles = tuple(sorted(tuple(sorted(c)) for c in _sccs() if len(c) >= 2))
+    cycle_members = tuple(sorted({x for c in cycles for x in c}))
+    downstream: Set[str] = set()
+    frontier = list(cycle_members)
+    while frontier:
+        u = frontier.pop()
+        for w in dadjs[u]:          # reachability is DIRECTED
+            if w not in cycle_members and w not in downstream:
+                downstream.add(w)
+                frontier.append(w)
+
     connected = {x for c in components for x in c}
     state_vars = tuple(a for a in nodes
                        if not any(e[0] == a for e in edges)   # no causal output
                        and a not in connected)
     return CausalStructure(
         nodes=nodes, relations=tuple(relations), state_variables=state_vars,
-        components=tuple(sorted(recurrent_components)),
+        components=tuple(sorted(components)),
         confidence="UNRESOLVED" if missing else "CANDIDATE",
         required_intervention=missing[0] if missing else None,
         bound_exceeded=False, n_observed=n_observed,
+        cycles=cycles, cycle_members=cycle_members, downstream=tuple(sorted(downstream)),
     )

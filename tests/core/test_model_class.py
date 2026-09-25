@@ -245,3 +245,31 @@ def test_three_components_has_no_silent_component_loss():
     st = discover_structure(v, {})
     assert st.bound_exceeded is True
     assert st.recurrent_components() == ()          # never a truncated (2,2)
+
+
+# ── R2: cycle membership vs downstream branch ───────────────────────────────
+
+def _obs4():
+    import numpy as np
+    n, rng = 300, np.random.RandomState(0)
+    return {f"v{i}": rng.normal(0, 1, n) for i in range(4)}
+
+
+def test_cycle_with_branch_separates_members_from_downstream():
+    from telos.core.discovery.model_class import discover_structure
+    v = _obs4()
+    iv = {("v0", "v1"): 1.0, ("v1", "v2"): 1.0, ("v2", "v0"): 1.0, ("v2", "v3"): 1.0}
+    st = discover_structure(v, iv)
+    assert st.cycles == (("v0", "v1", "v2"),)
+    assert st.cycle_members == ("v0", "v1", "v2")   # v3 is NOT a member
+    assert st.downstream == ("v3",)                 # v3 is downstream only
+
+
+def test_pure_chain_has_no_cycles_and_error_semantics_unchanged():
+    from telos.core.discovery.model_class import discover_structure
+    v = _obs4()
+    st = discover_structure(v, {("v0", "v1"): 1.0, ("v1", "v2"): 1.0})
+    assert st.cycles == ()                          # chain is not recurrent
+    assert st.cycle_members == ()
+    # representable != identified, BOUND_EXCEEDED != UNRESOLVED
+    assert st.representable is True and st.status == "UNRESOLVED"

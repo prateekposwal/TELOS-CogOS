@@ -20,6 +20,17 @@ semantic versioning.
   `experiments/assumption_discovery_v13_compositional/`.
 
 ### Fixed
+- **Cycle membership conflated with downstream branches (R2).** `CausalStructure`
+  now exposes `cycles` (directed cycles = SCCs of size≥2), `cycle_members`, and
+  `downstream` (reachable from a cycle but not a member); `components` retains its
+  explicit meaning (undirected connectedness). A node reachable from a recurrent
+  cycle is no longer counted as a member unless it participates in a directed
+  cycle. Required a separate *directed* adjacency (connectivity is undirected).
+  3-cycle → `{v0,v1,v2}`; 3-cycle+branch → `v3` downstream only; two loops → two
+  cycles; pure chain → no cycles. Bounds unchanged; no new engine/planner/model
+  class; `BOUND_EXCEEDED ≠ UNRESOLVED` and `representable ≠ identified` preserved.
+
+### Fixed
 - **Silent bound truncation in bounded causal representation (R1).** The bounded
   representation (`nodes ≤ 5`) silently truncated structures above the bound,
   reporting `representable=true` despite discarding information. Exceeding the
