@@ -202,3 +202,46 @@ def test_delay_is_not_recurrent_and_observation_stays_unresolved():
     # no intervention observed => representable but NOT supported
     st2 = discover_structure({"v0": x, "v1": y}, {("v0", "v1"): None, ("v1", "v0"): None})
     assert st2.confidence == "UNRESOLVED" and st2.required_intervention is not None
+
+
+# ── R1: explicit bounded-representation semantics ───────────────────────────
+
+def _kcycle_obs(k, n=200, seed=0):
+    import numpy as np
+    rng = np.random.RandomState(seed)
+    V = {f"v{i}": np.zeros(n) for i in range(k)}
+    for t in range(1, n):
+        for i in range(k):
+            V[f"v{i}"][t] = (0.5 * V[f"v{i}"][t-1]
+                             + 0.5 * V[f"v{(i-1) % k}"][t-1] + rng.normal(0, .3))
+    return V
+
+
+def test_within_node_bound_represents_normally():
+    from telos.core.discovery.model_class import discover_structure
+    v = _kcycle_obs(5)
+    iv = {(f"v{i}", f"v{(i+1) % 5}"): 1.0 for i in range(5)}
+    st = discover_structure(v, iv)
+    assert st.bound_exceeded is False
+    assert st.representable is True
+    assert len(st.nodes) == 5                      # reported == represented
+
+
+def test_exceeding_node_bound_is_explicit_not_silent():
+    from telos.core.discovery.model_class import discover_structure
+    for k in (6, 7, 10):
+        st = discover_structure(_kcycle_obs(k), {})
+        assert st.bound_exceeded is True
+        assert st.representable is False
+        assert st.nodes == ()                      # no partial graph presented
+        assert st.confidence == "UNRESOLVED"       # BOUND_EXCEEDED != epistemic
+        assert st.status == "BOUND_EXCEEDED"
+        assert st.n_observed == k
+
+
+def test_three_components_has_no_silent_component_loss():
+    from telos.core.discovery.model_class import discover_structure
+    v = _kcycle_obs(6)                              # 6 nodes => exceeds bound
+    st = discover_structure(v, {})
+    assert st.bound_exceeded is True
+    assert st.recurrent_components() == ()          # never a truncated (2,2)

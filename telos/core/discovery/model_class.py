@@ -236,6 +236,22 @@ class CausalStructure:
     components: Tuple[Tuple[str, ...], ...] = ()
     confidence: str = "UNRESOLVED"
     required_intervention: Optional[str] = None
+    # R1: the representation envelope is bounded.  Exceeding a structural bound
+    # must be EXPLICIT — never present a silently truncated graph as complete.
+    #   bound_exceeded = envelope cannot express the requested structure
+    #   UNRESOLVED     = envelope can express it, but evidence cannot identify it
+    bound_exceeded: bool = False
+    n_observed: int = 0
+
+    @property
+    def status(self) -> str:
+        if self.bound_exceeded:
+            return "BOUND_EXCEEDED"
+        return self.confidence
+
+    @property
+    def representable(self) -> bool:
+        return not self.bound_exceeded and bool(self.nodes)
 
     def recurrent_edges(self) -> Tuple[CausalRelation, ...]:
         return tuple(r for r in self.relations if r.kind == "recurrent")
@@ -285,18 +301,31 @@ def discover_structure(observations: Dict[str, np.ndarray],
     observations: {var: series}.  interventions: {(cause, effect): effect or None}
     where None means "not yet observed" (leaves confidence UNRESOLVED).
     """
-    nodes = tuple(sorted(observations)[:MAX_NODES])
-    missing = [f"do({a})->{b}" for a in nodes for b in nodes if a != b
+    all_nodes = tuple(sorted(observations))
+    n_observed = len(all_nodes)
+    missing = [f"do({a})->{b}" for a in all_nodes for b in all_nodes if a != b
                and interventions.get((a, b)) is None]
 
     # significant directed edges from interventions
     edges: Set[Tuple[str, str]] = set()
-    for a in nodes:
-        for b in nodes:
+    for a in all_nodes:
+        for b in all_nodes:
             if a != b:
                 eff = interventions.get((a, b))
                 if eff is not None and abs(eff) > _EFFECT_EPS:
                     edges.add((a, b))
+
+    # R1: bounded envelope.  If the requested structure exceeds the node bound,
+    # return an EXPLICIT BOUND_EXCEEDED result with NO truncated graph — never a
+    # partial structure presented as complete.
+    if n_observed > MAX_NODES:
+        return CausalStructure(
+            nodes=(), relations=(), state_variables=(), components=(),
+            confidence="UNRESOLVED", required_intervention=None,
+            bound_exceeded=True, n_observed=n_observed,
+        )
+
+    nodes = all_nodes
 
     relations: list = []
     for a, b in sorted(edges):
@@ -358,4 +387,5 @@ def discover_structure(observations: Dict[str, np.ndarray],
         components=tuple(sorted(recurrent_components)),
         confidence="UNRESOLVED" if missing else "CANDIDATE",
         required_intervention=missing[0] if missing else None,
+        bound_exceeded=False, n_observed=n_observed,
     )

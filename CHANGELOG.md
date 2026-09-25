@@ -20,6 +20,17 @@ semantic versioning.
   `experiments/assumption_discovery_v13_compositional/`.
 
 ### Fixed
+- **Silent bound truncation in bounded causal representation (R1).** The bounded
+  representation (`nodes ≤ 5`) silently truncated structures above the bound,
+  reporting `representable=true` despite discarding information. Exceeding the
+  node bound now returns an explicit `BOUND_EXCEEDED` status with an empty
+  (non-misleading) graph and `representable=false`, while `UNRESOLVED` is kept
+  strictly for epistemic uncertainty (representable but not identifiable).
+  New `CausalStructure.bound_exceeded` / `.status` / `.representable` /
+  `.n_observed`; `reported_nodes == represented_nodes` always. R2 (cycle vs
+  acyclic branch) deliberately left as a known limitation.
+
+### Fixed
 - **Observational-only structure fabrication (V12).** `StatefulModel` could emit a
   `shared_state` CANDIDATE from association + autocorrelation without any
   intervention. It now requires an observed intervention before asserting ANY
