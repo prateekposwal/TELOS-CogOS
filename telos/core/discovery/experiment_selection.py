@@ -288,7 +288,33 @@ class CanonicalExperimentSelector:
                     return [float(x) for x in v] + [0.0] * (m - len(v))
                 return [float(v)] * m
             mat = [_vec(v) for v in preds]
-            return max(max(col) - min(col) for col in zip(*mat))
+            spreads = [max(col) - min(col) for col in zip(*mat)]   # per component
+            # V17-B: vector/trajectory evidence gets the SAME uncertainty
+            # semantics as scalar evidence — a component counts only if its
+            # difference is significant at finite df.  No SEs => legacy spread.
+            if all(s is not None and s > 0 for s in ses):
+                alpha = math.erfc(self.z_threshold / math.sqrt(2.0))
+                best = 0.0
+                for c, sp in enumerate(spreads):
+                    if sp <= 1e-9:
+                        continue
+                    col = [row[c] for row in mat]
+                    lo = min(range(len(col)), key=lambda j: col[j])
+                    hi = max(range(len(col)), key=lambda j: col[j])
+                    pooled = float(np.sqrt(ses[lo] ** 2 + ses[hi] ** 2))
+                    if pooled <= 0:
+                        continue
+                    if (dfs[lo] is not None and dfs[hi] is not None
+                            and dfs[lo] > 0 and dfs[hi] > 0):
+                        v1, v2 = ses[lo] ** 2, ses[hi] ** 2
+                        df = (v1 + v2) ** 2 / (v1 ** 2 / dfs[lo] + v2 ** 2 / dfs[hi])
+                        crit = _t_critical(alpha, df)
+                    else:
+                        crit = self.z_threshold
+                    if sp / pooled > crit:
+                        best = max(best, sp)
+                return best
+            return max(spreads)
         lo_f = min(range(len(preds)), key=lambda j: preds[j])
         hi_f = max(range(len(preds)), key=lambda j: preds[j])
         fams = [getattr(h, "feature_family", None) for h in hypotheses]

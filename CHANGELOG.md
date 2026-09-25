@@ -6,6 +6,17 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Fixed
+- **Vector/trajectory evidence bypassed the uncertainty gate (V17-B).**
+  `structural_discrimination` applied the finite-df significance test to scalar
+  predictions but returned the raw per-component spread for vector/trajectory
+  predictions, so a trajectory whose per-component difference was within noise
+  still produced `STRUCTURAL_DISCRIMINATION`. Demonstrated adversarially (scalar
+  equivalent ABSTAIN, vector RESOLVED on the same tiny difference). Vector
+  predictions now receive the SAME uncertainty semantics (per-component,
+  Welch/Satterthwaite df); with no SEs the legacy spread path is preserved.
+  After the fix both scalar and vector ABSTAIN on the adversarial case.
+
 ### Added
 - **Distributional evidence provenance (V17).** `Hypothesis` gains optional
   `feature_family` and `distributional_order`, and `structural_discrimination`

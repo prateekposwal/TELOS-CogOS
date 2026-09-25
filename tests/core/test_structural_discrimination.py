@@ -122,6 +122,19 @@ def test_common_feature_family_required_for_comparison():
     assert _sel().structural_discrimination(same, "e") > 0.4      # comparable
 
 
+def test_vector_prediction_with_uncertainty_is_gated():
+    # V17-B: a trajectory whose per-component difference is not significant is
+    # NOT discrimination; the uncertainty gate now applies to vectors too.
+    def mk(t, se):
+        return Hypothesis(id=f"h{len(t)}", simulator=Sim(ID), uncertainty=0.5,
+                          test_cost=0.2, structure="s", predictor=lambda e, t=t: t,
+                          predictor_se=lambda e, se=se: se, predictor_df=lambda e: 7)
+    weak = [mk((0.0,) * 6, 0.10), mk((0.05,) * 6, 0.10)]      # diff .05, SE .10
+    assert _sel().structural_discrimination(weak, "e") == 0.0
+    strong = [mk((0.0,) * 6, 0.10), mk((1.0,) * 6, 0.10)]    # diff 1.0
+    assert _sel().structural_discrimination(strong, "e") > 0.9
+
+
 def test_trajectory_predictions_use_legacy_spread_regression():
     # Documents current behavior: vector predictions take the legacy spread path
     # and DO NOT pass through the uncertainty (significance) gate.
