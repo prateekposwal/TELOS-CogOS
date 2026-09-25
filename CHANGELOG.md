@@ -7,6 +7,21 @@ semantic versioning.
 ## [Unreleased]
 
 ### Fixed
+- **Small-sample significance gate was anti-conservative (V15.1).** When an SE is
+  estimated from a finite number of episodes, comparing `spread/SE` to a fixed
+  normal `z_threshold` (3) overclaims at small samples (its SE underestimates
+  true variability: ratio ≈ 0.57 at 5 episodes). `Hypothesis` gains an optional
+  `predictor_df`, and `structural_discrimination` now applies a finite-df
+  **Welch/Satterthwaite t** critical value, with the intended normal level read
+  off the existing `z_threshold` (no threshold tuning). scipy is used when
+  importable but is NOT a core dependency (stdlib Cornish-Fisher fallback; at
+  large df the value → the normal critical value, so existing behavior holds).
+  Null false-positive rate drops to 0.0 at 3–5 episodes (was 1.25–3.75%); at
+  ≥10 episodes unchanged; clear→RESOLVED, near-null→ABSTAIN, identical→ABSTAIN;
+  V16 regression unchanged (21/21 identifiable→RESOLVED, 6/6 →ABSTAIN, 0 FP/0 FN).
+  Legacy raw-spread path when no SE is unchanged.
+
+### Fixed
 - **Floating-point noise passed the significance gate.** With uncertainty-aware
   discrimination, a spread of ~1e-16 and an estimated SE of ~1e-17 produced a
   z-score ~8 → a false `STRUCTURAL_DISCRIMINATION`. Numerical noise is now

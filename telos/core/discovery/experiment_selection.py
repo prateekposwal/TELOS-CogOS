@@ -20,10 +20,35 @@ world, no transition) is reported as UNKNOWN — never silently zero-valued.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
+from statistics import NormalDist
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+
+
+def _t_critical(alpha: float, df: float) -> float:
+    """Two-sided Student-t critical value: P(|T_df| > t) = alpha.
+
+    Uses scipy when available (core does NOT depend on it); otherwise a stdlib
+    Cornish-Fisher expansion around the normal quantile.  At large df this -> the
+    normal critical value, so existing behavior at adequate sample sizes holds.
+    """
+    try:                                        # optional, not a core dependency
+        from scipy import stats
+        return float(stats.t.ppf(1.0 - alpha / 2.0, df))
+    except Exception:
+        pass
+
+    def _norm_ppf(p: float) -> float:
+        return NormalDist().inv_cdf(p)
+    z = _norm_ppf(1.0 - alpha / 2.0)
+    z2 = z * z
+    return (z
+            + (z ** 3 + z) / (4.0 * df)
+            + (5.0 * z ** 5 + 16.0 * z ** 3 + 3.0 * z) / (96.0 * df ** 2)
+            + (3.0 * z ** 7 + 19.0 * z ** 5 + 17.0 * z ** 3 - 15.0 * z) / (384.0 * df ** 3))
 
 from telos.core.simulation import CounterfactualEngine
 from telos.core.contracts.domain_model import DomainSimulator
@@ -54,6 +79,10 @@ class Hypothesis:
     # discrimination becomes a SIGNIFICANCE TEST (spread / pooled SE) instead of a
     # raw magnitude (see CanonicalExperimentSelector.z_threshold).
     predictor_se: Optional[Any] = None
+    # Optional degrees of freedom of the SE (`predictor_df(experiment) -> df`).
+    # When provided, the significance gate uses a finite-df (Welch/Satterthwaite)
+    # t critical value instead of the normal z_threshold.
+    predictor_df: Optional[Any] = None
 
 
 @dataclass
@@ -225,6 +254,7 @@ class CanonicalExperimentSelector:
         """
         preds: List[Any] = []
         ses: List[Optional[float]] = []
+        dfs: List[Optional[float]] = []
         for h in hypotheses:
             p = getattr(h, "predictor", None)
             if p is None:
@@ -236,6 +266,9 @@ class CanonicalExperimentSelector:
             se_fn = getattr(h, "predictor_se", None)
             ses.append(float(se_fn(experiment)) if se_fn is not None
                        and se_fn(experiment) is not None else None)
+            df_fn = getattr(h, "predictor_df", None)
+            dfs.append(float(df_fn(experiment)) if df_fn is not None
+                       and df_fn(experiment) is not None else None)
         if len(preds) < 2:
             return 0.0
         # V14b: predictions may be scalars (single outcome) OR trajectories
@@ -260,10 +293,22 @@ class CanonicalExperimentSelector:
         # selector abstains (NO_VALUE) rather than choosing on noise.  No SEs
         # => legacy raw-spread behaviour is preserved.
         if all(s is not None and s > 0 for s in ses):
-            pooled = float(np.sqrt(sum(s * s for s in ses)))
+            lo, hi = min(range(len(preds)), key=lambda j: preds[j]), \
+                max(range(len(preds)), key=lambda j: preds[j])
+            pooled = float(np.sqrt(ses[lo] ** 2 + ses[hi] ** 2))
             if pooled > 0:
-                z = spread / pooled
-                return spread if z > self.z_threshold else 0.0
+                # z_threshold defines the intended NORMAL-reference level; at
+                # finite df use the corresponding t critical value (Welch /
+                # Satterthwaite df from the two compared predictions).
+                alpha = math.erfc(self.z_threshold / math.sqrt(2.0))
+                if (dfs[lo] is not None and dfs[hi] is not None
+                        and dfs[lo] > 0 and dfs[hi] > 0):
+                    v1, v2 = ses[lo] ** 2, ses[hi] ** 2
+                    df = (v1 + v2) ** 2 / (v1 ** 2 / dfs[lo] + v2 ** 2 / dfs[hi])
+                    crit = _t_critical(alpha, df)
+                else:
+                    crit = self.z_threshold        # legacy normal reference
+                return spread if spread / pooled > crit else 0.0
         return spread
 
     def evaluate_structural(self, state, hypotheses: List[Hypothesis],

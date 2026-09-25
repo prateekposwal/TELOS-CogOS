@@ -110,6 +110,20 @@ def test_uncertainty_aware_discrimination_is_a_significance_test():
     assert _sel().structural_discrimination(non, "e") == 0.0
 
 
+def test_finite_df_widens_the_critical_value():
+    # spread .5 with se .1 each -> ratio 3.54: passes the normal z=3 reference,
+    # but at small df the Welch/Satterthwaite t critical value is larger.
+    def mk(v, se, df):
+        return Hypothesis(id=f"h{v}", simulator=Sim(ID), uncertainty=0.5, test_cost=0.2,
+                          structure="s", predictor=lambda e, v=v: v,
+                          predictor_se=lambda e, se=se: se,
+                          predictor_df=lambda e, df=df: df)
+    large = [mk(0.0, 0.1, 1000), mk(0.5, 0.1, 1000)]     # ~ normal
+    assert _sel().structural_discrimination(large, "e") > 0.4
+    small = [mk(0.0, 0.1, 2), mk(0.5, 0.1, 2)]           # df ~ 4 -> wider
+    assert _sel().structural_discrimination(small, "e") == 0.0
+
+
 def test_floating_point_noise_is_not_treated_as_significant():
     # Identifiability-challenge finding: a spread of ~1e-16 with SE ~1e-17 gave
     # z ~ 8 -> false STRUCTURAL_DISCRIMINATION.  Numerical noise must not pass.
