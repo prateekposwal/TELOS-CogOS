@@ -6,6 +6,21 @@ semantic versioning.
 
 ## [Unreleased]
 
+### Added
+- **First-class `Experiment` (action) distinct from `Hypothesis` (belief) (V19.4).**
+  Adds `Experiment` (id - cost - `predict(hypothesis) -> outcome` - outcome_space)
+  and `CausalPlanner.build_experiment_model` / `plan_experiments`, building the
+  SAME model shape the existing `PlannerAwareSelector` consumes but with
+  experiments as an action set separate from the hypothesis belief state.
+  Outcomes may be scalar, categorical, or vector (reasoned by identity; local
+  `_ekey`; shared `_key`/`_round` and `build_model` untouched). Spent experiments
+  are eliminated. Fixes the V19.3a representation gap (planner's experiment space
+  WAS the hypothesis set). No planner algorithm change; existing planner tests
+  pass unchanged (suite 3671). Acceptance: categorical/vector outcomes -> zero
+  regret; but on cost-separated envs the existing planner STILL has regret
+  (env1 11 vs oracle 2) -> an algorithmic (lookahead/cost) defect is now
+  isolated (representation is no longer the blocker).
+
 ### Fixed
 - **Vector/trajectory evidence bypassed the uncertainty gate (V17-B).**
   `structural_discrimination` applied the finite-df significance test to scalar

@@ -16,7 +16,7 @@ from telos.core.discovery.experiment_selection import (
 from telos.core.discovery.planner import (
     PlannerAwareSelector, PlannerMode, Plan,
 )
-from telos.core.discovery.causal_planner import CausalPlanner
+from telos.core.discovery.causal_planner import CausalPlanner, Experiment
 from telos.core.discovery.hypothesis_generation import (
     HypothesisGenerator, HypothesisCandidate,
 )
@@ -33,7 +33,7 @@ __all__ = [
     "AssumptionDiscoverer", "DiscoveredAssumption", "Transition",
     "CausalProbe", "CausalStatus", "DiscoveredRelation",
     "CanonicalExperimentSelector", "Hypothesis", "ExperimentOption",
-    "PlannerAwareSelector", "PlannerMode", "Plan", "CausalPlanner",
+    "PlannerAwareSelector", "PlannerMode", "Plan", "CausalPlanner", "Experiment",
     "HypothesisGenerator", "HypothesisCandidate",
     "StructureInventor", "StructuralHypothesis", "VariableStatus",
     "assess", "ModelClassVerdict", "ModelClass", "AcyclicModel", "StatefulModel",
