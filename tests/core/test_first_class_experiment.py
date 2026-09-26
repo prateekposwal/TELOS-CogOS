@@ -99,3 +99,39 @@ def test_spent_experiment_is_eliminated():
     succ = next(k for (e, o), k in model[key]["transitions"].items() if e == "E1")
     assert "E1" not in model[succ]["experiments"]             # never repeated
     assert "E2" in model[succ]["experiments"]
+
+
+# ── V19.6: explicit planning objective ──────────────────────────────────────
+def _exp_env(outcomes):
+    return [Experiment(eid, cost=c, predict=lambda h, eid=eid, o=o: o[HYP.index(h.id)])
+            for eid, (c, o) in outcomes.items()]
+
+
+def test_min_cost_objective_picks_cheap_path():
+    from telos.core.discovery.planner import PlanningObjective
+    env = {"E1": (1, (0, 0, 1, 1)), "E2": (1, (0, 1, 0, 1)), "E3": (10, (0, 1, 2, 3))}
+    p = _planner().plan_experiments(np.zeros(2), [H(x) for x in HYP], _exp_env(env),
+                                    mode=__import__("telos.core.discovery.planner",
+                                                    fromlist=["PlannerMode"]).PlannerMode.PLANNER_AWARE,
+                                    horizon=4, objective=PlanningObjective.MIN_COST_TO_RESOLUTION)
+    assert p.experiment == "E1"                       # cheap path, not expensive E3
+
+
+def test_min_cost_objective_picks_cheap_when_partitions_identical():
+    from telos.core.discovery.planner import PlanningObjective
+    env = {"Echeap": (1, (0, 1, 2, 3)), "Eexpensive": (9, (0, 1, 2, 3))}
+    p = _planner().plan_experiments(np.zeros(2), [H(x) for x in HYP], _exp_env(env),
+                                    horizon=4, objective=PlanningObjective.MIN_COST_TO_RESOLUTION)
+    assert p.experiment == "Echeap"
+
+
+def test_objectives_separate_selection():
+    from telos.core.discovery.planner import PlanningObjective
+    env = {"E1": (1, (0, 0, 1, 1)), "E2": (1, (0, 1, 0, 1)), "E3": (10, (0, 1, 2, 3))}
+    hs = [H(x) for x in HYP]
+    mc = _planner().plan_experiments(np.zeros(2), hs, _exp_env(env), horizon=4,
+                                     objective=PlanningObjective.MIN_COST_TO_RESOLUTION)
+    dv = _planner().plan_experiments(np.zeros(2), hs, _exp_env(env), horizon=4,
+                                     objective=PlanningObjective.DECISION_VALUE)
+    assert mc.experiment == "E1"                      # min cost -> cheap path
+    assert dv.experiment is not None and dv.experiment != mc.experiment  # objective changes selection

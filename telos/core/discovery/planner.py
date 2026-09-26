@@ -27,6 +27,18 @@ from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
 
+class PlanningObjective(str, Enum):
+    """V19.6 — explicit planning objective (the planner does not define 'good').
+
+    DECISION_VALUE          legacy V6/V7: maximize accumulated discrimination
+                            (imm + gamma*future); cost is a feasibility gate only.
+    MIN_COST_TO_RESOLUTION  resource-optimal: minimize expected acquisition cost
+                            to reach a justified terminal (resolved) state.
+    """
+    DECISION_VALUE = "DECISION_VALUE"
+    MIN_COST_TO_RESOLUTION = "MIN_COST_TO_RESOLUTION"
+
+
 class PlannerMode(str, Enum):
     GREEDY = "GREEDY"
     PLANNER_AWARE = "PLANNER_AWARE"
@@ -148,6 +160,84 @@ class PlannerAwareSelector:
             return Plan(None, mode.value, h, 0.0, 0.0, 0.0, considered)
         return Plan(best_exp, mode.value, h, round(best_total, 4),
                     round(best_imm, 4), round(best_fut, 4), considered)
+
+    # ── V19.6: MIN_COST_TO_RESOLUTION objective (independent of decision value) ─
+
+    def cost_value(self, state: str, horizon: int, cost_left: float,
+                   count_left: int) -> float:
+        """Minimum expected acquisition cost to reach a RESOLVED state, or inf.
+
+        Resolved states (marked in the model) cost 0.  A branch that cannot be
+        resolved within horizon/count/budget is infeasible (inf) — never a silent 0.
+        """
+        node = self.model.get(state, {})
+        if node.get("resolved"):
+            return 0.0
+        if horizon <= 0 or count_left <= 0 or cost_left <= 0:
+            return float("inf")
+        key = (state, horizon, round(cost_left, 4), count_left)
+        memo = getattr(self, "_cmemo", None)
+        if memo is None:
+            memo = self._cmemo = {}
+        if key in memo:
+            return memo[key]
+        exps = node.get("experiments", {})
+        trans = node.get("transitions", {})
+        probs = node.get("obs_prob", {})
+        best = float("inf")
+        for exp, spec in exps.items():
+            cost = float(spec.get("cost", 0.0))
+            if cost > cost_left + 1e-9:
+                continue
+            fut, ok = 0.0, True
+            for (e, o), nxt in trans.items():
+                if e != exp:
+                    continue
+                v = self.cost_value(nxt, horizon - 1, cost_left - cost, count_left - 1)
+                if v == float("inf"):
+                    ok = False
+                    break
+                fut += float(probs.get((exp, o), 0.0)) * v
+            if ok:
+                best = min(best, cost + fut)
+        memo[key] = best
+        return best
+
+    def select_cost(self, state: str, *, horizon: int = 1, cost_budget: float = 1e9,
+                    count_budget: int = 10) -> Plan:
+        """Select the experiment minimizing expected cost-to-resolution."""
+        self._cmemo = {}
+        node = self.model.get(state, {})
+        exps = node.get("experiments", {})
+        trans = node.get("transitions", {})
+        probs = node.get("obs_prob", {})
+        considered: Dict[str, float] = {}
+        best_exp, best_cost = None, float("inf")
+        h = max(1, horizon)
+        for exp, spec in exps.items():
+            cost = float(spec.get("cost", 0.0))
+            if cost > cost_budget + 1e-9 or count_budget <= 0:
+                continue
+            fut, ok = 0.0, True
+            for (e, o), nxt in trans.items():
+                if e != exp:
+                    continue
+                v = self.cost_value(nxt, h - 1, cost_budget - cost, count_budget - 1)
+                if v == float("inf"):
+                    ok = False
+                    break
+                fut += float(probs.get((exp, o), 0.0)) * v
+            if not ok:
+                continue
+            total = cost + fut
+            considered[exp] = round(total, 4)
+            if total < best_cost:
+                best_exp, best_cost = exp, total
+        if best_exp is None:
+            return Plan(None, PlanningObjective.MIN_COST_TO_RESOLUTION.value, h,
+                        float("inf"), 0.0, 0.0, considered)
+        return Plan(best_exp, PlanningObjective.MIN_COST_TO_RESOLUTION.value, h,
+                    round(best_cost, 4), 0.0, 0.0, considered)
 
     def replan(self, state_after_observation: str, **kwargs) -> Plan:
         """Recompute the plan from the observed successor state (no precompute).

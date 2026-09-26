@@ -7,6 +7,21 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Explicit planning objective contract (V19.6).** Adds `PlanningObjective`
+  (`DECISION_VALUE` | `MIN_COST_TO_RESOLUTION`) and, on the existing
+  `PlannerAwareSelector`, `cost_value` / `select_cost` implementing
+  `V(state) = 0 if resolved else min_e [ cost(e) + sum_o P(o) V(successor) ]`
+  (unresolvable branches are inf, never a silent 0). `CausalPlanner.plan_experiments`
+  takes `objective=` and dispatches to the existing search — **no new planner**,
+  and `DECISION_VALUE` is the default so legacy V6/V7 behavior is unchanged
+  (existing planner tests green). Result: the V19.2b env1 trap is fixed
+  (min-cost picks the cheap E1->E2 path, cost 2, vs legacy 11); the cost-only
+  falsifier picks the cheap experiment; no fake resolution. env2 residual is an
+  oracle-definition gap (clairvoyant per-truth vs belief-expected), not a planner
+  defect. Tests: `test_first_class_experiment.py` (9).
+
+
+### Added
 - **First-class `Experiment` (action) distinct from `Hypothesis` (belief) (V19.4).**
   Adds `Experiment` (id - cost - `predict(hypothesis) -> outcome` - outcome_space)
   and `CausalPlanner.build_experiment_model` / `plan_experiments`, building the

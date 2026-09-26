@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from telos.core.discovery.experiment_selection import (
     CanonicalExperimentSelector, Hypothesis,
 )
-from telos.core.discovery.planner import PlannerAwareSelector, PlannerMode, Plan
+from telos.core.discovery.planner import PlannerAwareSelector, PlannerMode, PlanningObjective, Plan
 
 
 def _round(v: float) -> float:
@@ -227,17 +227,22 @@ class CausalPlanner:
                         if succ not in seen:
                             seen.add(succ)
                             nxt.append(succ)
-                model[key] = {"experiments": exps, "transitions": trans, "obs_prob": probs}
+                model[key] = {"experiments": exps, "transitions": trans, "obs_prob": probs,
+                              "resolved": len(S) == 1}
             frontier = nxt
         return model
 
     def plan_experiments(self, state, hypotheses: List[Any], experiments: List[Any], *,
                          mode: PlannerMode = PlannerMode.PLANNER_AWARE, horizon: int = 1,
-                         cost_budget: float = 1e9, count_budget: int = 10) -> Plan:
-        """Plan over EXPERIMENTS using the EXISTING search (unchanged algorithm)."""
+                         cost_budget: float = 1e9, count_budget: int = 10,
+                         objective: "PlanningObjective" = PlanningObjective.DECISION_VALUE) -> Plan:
+        """Plan over EXPERIMENTS using the EXISTING search, under an explicit objective."""
         model = self.build_experiment_model(state, hypotheses, experiments)
         full = _ekey(tuple(sorted(h.id for h in hypotheses)), frozenset())
         sel = PlannerAwareSelector(model, gamma=self.gamma)
+        if objective == PlanningObjective.MIN_COST_TO_RESOLUTION:
+            return sel.select_cost(full, horizon=max(horizon, 1),
+                                   cost_budget=cost_budget, count_budget=count_budget)
         return sel.select(full, mode=mode, horizon=horizon,
                           cost_budget=cost_budget, count_budget=count_budget)
 
