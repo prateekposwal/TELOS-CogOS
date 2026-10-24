@@ -40,6 +40,9 @@ from telos.core.contracts.domain_model import DomainSimulator, DomainAdapter, Ev
 from telos.world.facts import DomainFacts
 from telos.world.world import World
 from telos.intent_ir import IntentIR
+from telos.adapters.logistics_simulator import (
+    LogisticsDomainSimulator, LogisticsDomainAdapter, HEALTHY,
+)
 
 # ─── New optimization imports ──────────────────────────────────────────────
 from telos.core.attention.token_budget import TokenBudgetManager
@@ -759,14 +762,32 @@ class BenchmarkMetrics:
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main():
-    sim = GridSim()
-    print(f"🧱 Obstacles at: {sorted(DEFAULT_BLOCKED)}")
-    print(f"⭐ Rewards at:    {dict((str(k), v) for k, v in DEFAULT_REWARDS.items())}")
+    # Domain selection via environment variable: TELOS_DOMAIN=gridworld|logistics
+    domain = os.environ.get("TELOS_DOMAIN", "gridworld").lower()
+    
+    if domain == "logistics":
+        print("🏭 TELOS Domain: Logistics (v6.2 — partial observability, delayed consequences, discrete primitives)")
+        sim = LogisticsDomainSimulator(seed=42)
+        adapter = LogisticsDomainAdapter()
+        state_dim = 12
+        action_dim = 6
+        mission_name = "Logistics Operations"
+        mission_description = "Manage inventory, dispatch shipments, and maintain service levels under uncertainty."
+    else:
+        print("🧱 TELOS Domain: GridWorld (obstacles + rewards)")
+        sim = GridSim()
+        print(f"🧱 Obstacles at: {sorted(DEFAULT_BLOCKED)}")
+        print(f"⭐ Rewards at:    {dict((str(k), v) for k, v in DEFAULT_REWARDS.items())}")
+        adapter = GridAdpt()
+        state_dim = 2
+        action_dim = 2
+        mission_name = "GridWorld Navigation"
+        mission_description = "Navigate the GridWorld agent to the goal cell."
 
     pipeline = TelosV14Pipeline(PipelineConfig(
-        adapter=GridAdpt(), simulator=sim,
-        compute_budget_ms=100.0, state_dim=2, n_worlds=10, horizon=5,
-        mission_name=MISSION_NAME, mission_description=MISSION_DESCRIPTION,
+        adapter=adapter, simulator=sim,
+        compute_budget_ms=100.0, state_dim=state_dim, n_worlds=10, horizon=5,
+        mission_name=mission_name, mission_description=mission_description,
         checkpoint_path=CHECKPOINT_DIR,
         knowledge_path=KNOWLEDGE_PATH,
         ledger_path="/tmp/telos_ledger.json",
@@ -846,18 +867,30 @@ def main():
 
     metrics = BenchmarkMetrics()
 
-    # ─── Initialize second agent (upgrade 5) ───────────────────────────────
-    agent2 = GridAgent(start_pos=(4, 0), blocked=sim.blocked, rewards=sim.rewards)
-    print(f"🔵 Second Agent starts at (4,0) — moves toward nearest unvisited reward")
+    # ─── Domain-specific initialization ────────────────────────────────────────
+    if domain == "logistics":
+        print("\nTELOS is performing a task: Logistics operations management")
+        print("Manage inventory, dispatch shipments, maintain SLAs under uncertainty.")
+        print("State dim=12, Action dim=6 (discrete primitives: dispatch, hold, reroute, consolidate, allocate, cancel)")
+        print("Optimizations: TokenBudget ℹ️ | ContextSummarizer 📝 | KG Ingestion 🧠\n")
+        # Initial logistics state (observed view)
+        state = sim.observe(HEALTHY.copy()) if hasattr(sim, 'observe') else np.zeros(state_dim)
+        # No second agent or grid rendering for logistics
+        agent2 = None
+        render_fn = None
+    else:
+        # ─── Initialize second agent (upgrade 5) ───────────────────────────────
+        agent2 = GridAgent(start_pos=(4, 0), blocked=sim.blocked, rewards=sim.rewards)
+        print(f"🔵 Second Agent starts at (4,0) — moves toward nearest unvisited reward")
 
-
-    print("\nTELOS is performing a task: Navigate from (0,0) to (4,4)")
-    print("Avoid obstacles (█), collect rewards (⭐), reach the goal (G).")
-    print("TELOS now remembers who you are across cycles.")
-    print("Optimizations: TokenBudget ℹ️ | ContextSummarizer 📝 | KG Ingestion 🧠\n")
+        print("\nTELOS is performing a task: Navigate from (0,0) to (4,4)")
+        print("Avoid obstacles (█), collect rewards (⭐), reach the goal (G).")
+        print("TELOS now remembers who you are across cycles.")
+        print("Optimizations: TokenBudget ℹ️ | ContextSummarizer 📝 | KG Ingestion 🧠\n")
+        state = np.array([0., 0.])
+        render_fn = lambda s: render_grid(s, sim.blocked, sim.rewards, agent2.position)
 
     USER_NAME = "Prateek"
-    state = np.array([0., 0.])
     step_count = 0
     chat_history: List[Dict] = []
     trace_history: Dict[int, Dict] = {}  # msg_index → trace dict for token scoring
@@ -871,9 +904,10 @@ def main():
         # ─── Pre-cycle: Query KG for past context ────────────────────────────
         kg_context = kg_ingestion.pre_cycle(USER_NAME, step_count)
 
-        # Render the grid
-        grid = render_grid(state, sim.blocked, sim.rewards, agent2.position)
-        print(grid)
+        # Render the grid (GridWorld only)
+        if render_fn:
+            grid = render_fn(state)
+            print(grid)
 
         try:
             user = input(f"[Step {step_count}] {known} > ")
@@ -888,8 +922,8 @@ def main():
         trace = result.decision_trace
         # metrics.record_step now called after reward collection
         step_count += 1
-        # Dynamic Terrain: shift 2 cells every 3 cycles (upgrade 1)
-        terrain_changes = sim.maybe_shift_terrain()
+        # Dynamic Terrain: shift 2 cells every 3 cycles (upgrade 1) - GridWorld only
+        terrain_changes = sim.maybe_shift_terrain() if hasattr(sim, 'maybe_shift_terrain') else 0
 
 
         # Broadcast trace to live dashboard via WebSocket
@@ -899,10 +933,11 @@ def main():
                 trace_dict = trace.to_dict() if hasattr(trace, 'to_dict') else trace
                 # Augment trace with dashboard extras (upgrades 1,4,5)
                 if isinstance(trace_dict, dict):
-                    trace_dict['agent2_pos'] = agent2.position.tolist()
-                    trace_dict['agent2_reward'] = agent2.total_reward
+                    if agent2:
+                        trace_dict['agent2_pos'] = agent2.position.tolist()
+                        trace_dict['agent2_reward'] = agent2.total_reward
                     trace_dict['score'] = metrics.total_score
-                    trace_dict['terrain_changes'] = sim.terrain_changes
+                    trace_dict['terrain_changes'] = terrain_changes
                 broadcast_trace_sync(trace_dict)
         except (ImportError, Exception):
             pass
@@ -910,19 +945,33 @@ def main():
         intent = trace.selected_intent.intent_type if trace and trace.selected_intent else "none"
         status = "APPROVED" if not (result.firewall_blocked or result.council_blocked) else "BLOCKED"
         scores = [round(o.get("score", 0), 3) for o in trace.strategic_options[:3]] if trace else []
-        dist = float(np.linalg.norm(GOAL - state))
 
-        profile = pipeline.ledger.get_user_profile(USER_NAME)
-        rel = profile.relationship_summary if profile else "unknown"
-
-        reasoning = json.dumps({
-            "position": state.tolist(), "goal": GOAL.tolist(),
-            "distance_to_goal": round(dist, 2),
-            "intent": intent, "council": status,
-            "di": round(trace.decision_integrity, 3) if trace else 0,
-            "worlds_simulated": trace.worlds_simulated if trace else 0,
-            "top_futures": scores,
-        })
+        # Domain-specific state info
+        if domain == "logistics":
+            # Logistics: show observed state metrics
+            obs_state = state if hasattr(sim, 'observe') else state
+            inventory = obs_state[0] if len(obs_state) > 0 else 0
+            cash = obs_state[1] if len(obs_state) > 1 else 0
+            sla = obs_state[5] if len(obs_state) > 5 else 0
+            dist = 0.0  # No spatial goal in logistics
+            reasoning = json.dumps({
+                "inventory": round(inventory, 2), "cash": round(cash, 2),
+                "sla_health": round(sla, 2),
+                "intent": intent, "council": status,
+                "di": round(trace.decision_integrity, 3) if trace else 0,
+                "worlds_simulated": trace.worlds_simulated if trace else 0,
+                "top_futures": scores,
+            })
+        else:
+            dist = float(np.linalg.norm(GOAL - state))
+            reasoning = json.dumps({
+                "position": state.tolist(), "goal": GOAL.tolist(),
+                "distance_to_goal": round(dist, 2),
+                "intent": intent, "council": status,
+                "di": round(trace.decision_integrity, 3) if trace else 0,
+                "worlds_simulated": trace.worlds_simulated if trace else 0,
+                "top_futures": scores,
+            })
 
         # ─── Build system prompt with KG context and session essence ──────────
         essence_block = summarizer.get_context_block()
@@ -932,14 +981,22 @@ def main():
             if prefs:
                 kg_summary = f"Known preferences: {'; '.join(prefs[:3])}"
 
-        system_prompt = (
-            f"You are TELOS navigating from (0,0) to (4,4). "
-            f"Obstacles at {sorted(DEFAULT_BLOCKED)}. "
-            f"Rewards at {DEFAULT_REWARDS}. "
-            f"Current state: {reasoning}. "
-            f"Your relationship with the user is: {rel}. "
-            f"{kg_summary} "
-        )
+        if domain == "logistics":
+            system_prompt = (
+                f"You are TELOS managing logistics operations. "
+                f"Current state: {reasoning}. "
+                f"Your relationship with the user is: {rel}. "
+                f"{kg_summary} "
+            )
+        else:
+            system_prompt = (
+                f"You are TELOS navigating from (0,0) to (4,4). "
+                f"Obstacles at {sorted(DEFAULT_BLOCKED)}. "
+                f"Rewards at {DEFAULT_REWARDS}. "
+                f"Current state: {reasoning}. "
+                f"Your relationship with the user is: {rel}. "
+                f"{kg_summary} "
+            )
         if essence_block.get("session_essence", {}).get("key_decisions"):
             essence = essence_block["session_essence"]
             system_prompt += (
@@ -1001,43 +1058,60 @@ def main():
         if trace and trace.selected_action is not None and not result.firewall_blocked:
             state = sim.transition(state, trace.selected_action)
 
-        # ─── Move second agent (upgrade 5) ────────────────────────────────────
-        agent2_key = agent2.step()
-        print(f"  🔵 Agent2 moves to ({agent2.position[0]:.0f},{agent2.position[1]:.0f})")
+        # ─── Move second agent (upgrade 5) - GridWorld only ────────────────────────
+        if agent2:
+            agent2_key = agent2.step()
+            print(f"  🔵 Agent2 moves to ({agent2.position[0]:.0f},{agent2.position[1]:.0f})")
 
-        # ─── Reward collection (upgrade 3, 5) ────────────────────────────────
-        telos_key = (int(round(state[0])), int(round(state[1])))
+        # ─── Reward collection (upgrade 3, 5) - GridWorld only ──────────────────
         reward_collected = 0.0
-        if telos_key in sim.rewards and sim.rewards[telos_key] > 0:
-            # Check if both agents on same cell → split reward
-            if telos_key == agent2_key:
-                split_reward = sim.rewards[telos_key] / 2.0
-                reward_collected = split_reward
-                agent2.total_reward += split_reward
-                print(f"  🤝 Both agents on {telos_key}: reward split! TELOS gets {split_reward:.1f}, Agent2 gets {split_reward:.1f}")
-            else:
-                reward_collected = sim.rewards[telos_key]
-                print(f"  ⭐ TELOS collected reward at {telos_key}: +{reward_collected:.1f}!")
-            # Remove collected reward
-            sim.rewards[telos_key] = 0.0
+        telos_key = None
+        if domain != "logistics":
+            telos_key = (int(round(state[0])), int(round(state[1])))
+            if telos_key in sim.rewards and sim.rewards[telos_key] > 0:
+                # Check if both agents on same cell → split reward
+                if telos_key == agent2_key:
+                    split_reward = sim.rewards[telos_key] / 2.0
+                    reward_collected = split_reward
+                    agent2.total_reward += split_reward
+                    print(f"  🤝 Both agents on {telos_key}: reward split! TELOS gets {split_reward:.1f}, Agent2 gets {split_reward:.1f}")
+                else:
+                    reward_collected = sim.rewards[telos_key]
+                    print(f"  ⭐ TELOS collected reward at {telos_key}: +{reward_collected:.1f}!")
+                # Remove collected reward
+                sim.rewards[telos_key] = 0.0
 
-        # Also check if agent2 collected a reward alone
-        if agent2_key in sim.rewards and sim.rewards[agent2_key] > 0 and agent2_key != telos_key:
-            agent2_reward = sim.rewards[agent2_key]
-            agent2.total_reward += agent2_reward
-            print(f"  🔵 Agent2 collected reward at {agent2_key}: +{agent2_reward:.1f}!")
-            sim.rewards[agent2_key] = 0.0
+            # Also check if agent2 collected a reward alone
+            if agent2_key in sim.rewards and sim.rewards[agent2_key] > 0 and agent2_key != telos_key:
+                agent2_reward = sim.rewards[agent2_key]
+                agent2.total_reward += agent2_reward
+                print(f"  🔵 Agent2 collected reward at {agent2_key}: +{agent2_reward:.1f}!")
+                sim.rewards[agent2_key] = 0.0
 
         # ─── Time pressure score update (upgrade 4) ──────────────────────────
         metrics.record_step(result, trace, reward_collected=reward_collected)
 
-        dist = np.linalg.norm(GOAL - state)
-        print(f"  📊 Score: {metrics.total_score:.1f} (time cost: {metrics.time_cost:.0f}, rewards: {metrics.reward_collected:.1f})")
-        if dist < 0.5:
-            print(f"\n✅ GOAL REACHED in {step_count} steps!")
-            print(render_grid(state, sim.blocked, sim.rewards, agent2.position))
-            metrics.mark_goal()
-            break
+        # Domain-specific goal check and status display
+        if domain == "logistics":
+            # Logistics: check if terminal state reached
+            if sim.terminal(state):
+                print(f"\n✅ LOGISTICS TERMINAL STATE REACHED in {step_count} steps!")
+                print(f"  Inventory: {state[0]:.2f}, Cash: {state[1]:.2f}, SLA: {state[5]:.2f}")
+                metrics.mark_goal()
+                break
+            # Show logistics metrics
+            inv = state[0] if len(state) > 0 else 0
+            cash = state[1] if len(state) > 1 else 0
+            sla = state[5] if len(state) > 5 else 0
+            print(f"  📊 Score: {metrics.total_score:.1f} | Inv: {inv:.2f} Cash: {cash:.2f} SLA: {sla:.2f}")
+        else:
+            dist = np.linalg.norm(GOAL - state)
+            print(f"  📊 Score: {metrics.total_score:.1f} (time cost: {metrics.time_cost:.0f}, rewards: {metrics.reward_collected:.1f})")
+            if dist < 0.5:
+                print(f"\n✅ GOAL REACHED in {step_count} steps!")
+                print(render_grid(state, sim.blocked, sim.rewards, agent2.position))
+                metrics.mark_goal()
+                break
 
     print(metrics.report())
 

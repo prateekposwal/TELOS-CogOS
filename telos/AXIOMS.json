@@ -1,0 +1,505 @@
+{
+  "schema_version": "1.0",
+  "title": "TELOS — 42 Axioms of Systemic Intelligence",
+  "version": "2.0",
+  "generated_from": "telos/AXIOMS.md",
+  "description": "Machine-readable formalization of the TELOS axiom constitution. Each axiom carries a formal predicate suitable for automated verification.",
+  "layers": [
+    {"id": 1, "name": "Architectural Invariance"},
+    {"id": 2, "name": "Feedback & Memory"},
+    {"id": 3, "name": "Adaptive Capacity"},
+    {"id": 4, "name": "Emergent Intelligence"},
+    {"id": 5, "name": "Commitment Theory"},
+    {"id": 6, "name": "Cognitive Dynamics"}
+  ],
+  "axioms": [
+    {
+      "id": "1.1",
+      "name": "Architecture Produces Outcomes",
+      "layer": 1,
+      "layer_name": "Architectural Invariance",
+      "formal": "—",
+      "predicate": "∀ s ∈ States: Out(s) = f(PipelineArch(s))",
+      "meaning": "The pipeline is a pure structural engine; outputs determined by architecture, not heuristics.",
+      "implementation": "runtime.py — 7-phase pipeline",
+      "status": "implemented"
+    },
+    {
+      "id": "1.2",
+      "name": "Process over Outcomes",
+      "layer": 1,
+      "layer_name": "Architectural Invariance",
+      "formal": "—",
+      "predicate": "∀ d: DecisionTrace captures integrity, not just results",
+      "meaning": "DecisionTrace captures integrity, not just results.",
+      "implementation": "DecisionTrace — DI, MD, council signals",
+      "status": "implemented"
+    },
+    {
+      "id": "1.3",
+      "name": "Multi-Level Governance",
+      "layer": 1,
+      "layer_name": "Architectural Invariance",
+      "formal": "—",
+      "predicate": "TrustManager authorizes streams at mission context level",
+      "meaning": "TrustManager authorizes streams at mission context level.",
+      "implementation": "trust_manager.py — authorize_knowledge_release()",
+      "status": "implemented"
+    },
+    {
+      "id": "1.4",
+      "name": "Computational Conservation",
+      "layer": 1,
+      "layer_name": "Architectural Invariance",
+      "formal": "ΣR_i ≤ R_max",
+      "predicate": "Σ_{i} R_i ≤ R_max",
+      "meaning": "Every cognitive process consumes finite computational resources; sum of all resource usage is bounded.",
+      "implementation": "BudgetManager caps per-cycle compute; ResourceGradientTracker tracks per-dimension utilization",
+      "status": "implemented"
+    },
+    {
+      "id": "2.1",
+      "name": "Governance First",
+      "layer": 2,
+      "layer_name": "Feedback & Memory",
+      "formal": "—",
+      "predicate": "ReadinessEngine ∧ ConstraintValidator check-before-action",
+      "meaning": "ReadinessEngine and ConstraintValidator check before action.",
+      "implementation": "timing.py, validators.py — InformationReadinessEngine",
+      "status": "implemented"
+    },
+    {
+      "id": "2.2",
+      "name": "Feedback Loops",
+      "layer": 2,
+      "layer_name": "Feedback & Memory",
+      "formal": "—",
+      "predicate": "InfraManager.observe() → calibration",
+      "meaning": "InfraManager observes results and adjusts parameters.",
+      "implementation": "infrastructure_manager.py — observe() → calibration",
+      "status": "implemented"
+    },
+    {
+      "id": "2.3",
+      "name": "Kintsugi",
+      "layer": 2,
+      "layer_name": "Feedback & Memory",
+      "formal": "—",
+      "predicate": "∀ f ∈ Failures: f ∈ FailureLedger (recorded as asset, not discarded)",
+      "meaning": "Failures are recorded as structural assets, not discarded.",
+      "implementation": "failure_ledger.py — FailureRecord + root-cause tracking",
+      "status": "implemented"
+    },
+    {
+      "id": "2.4",
+      "name": "Path Dependency",
+      "layer": 2,
+      "layer_name": "Feedback & Memory",
+      "formal": "—",
+      "predicate": "∀ D: D is history-aware",
+      "meaning": "All decision functions are history-aware.",
+      "implementation": "world_ledger.py, planning_horizon.py",
+      "status": "implemented"
+    },
+    {
+      "id": "2.5",
+      "name": "Delayed Causality",
+      "layer": 2,
+      "layer_name": "Feedback & Memory",
+      "formal": "—",
+      "predicate": "adaptive_horizon adjusts simulation depth based on stability",
+      "meaning": "Adaptive horizon adjusts simulation depth based on stability.",
+      "implementation": "infrastructure_manager.py — adaptive_horizon",
+      "status": "implemented"
+    },
+    {
+      "id": "2.6",
+      "name": "Reflection Is Episodic",
+      "layer": 2,
+      "layer_name": "Feedback & Memory",
+      "formal": "τ_reflect > τ_decision",
+      "predicate": "τ_reflect > τ_decision",
+      "meaning": "Reflection operates on a slower timescale than action; structurally separated as post-action phase.",
+      "implementation": "ReflectPhase runs after Act; IntrospectionScheduler provides cycle/100/1000 cadence",
+      "status": "implemented"
+    },
+    {
+      "id": "2.7",
+      "name": "Meta-Error Attribution",
+      "layer": 2,
+      "layer_name": "Feedback & Memory",
+      "formal": "Error → Subsystem → Update",
+      "predicate": "∀ e ∈ Errors: attr(e, subsystem) ∧ update(subsystem)",
+      "meaning": "Every failure identifies the subsystem responsible, enabling targeted correction.",
+      "implementation": "ErrorAttributionEngine — subsystem-level attribution with health tracking",
+      "status": "implemented"
+    },
+    {
+      "id": "3.1",
+      "name": "Maintenance vs Recovery",
+      "layer": 3,
+      "layer_name": "Adaptive Capacity",
+      "formal": "M_t > M_min before E_{t+1}",
+      "predicate": "M_t > M_min → E_{t+1}",
+      "meaning": "System preserves integrity before increasing capability; recovery mode tightens policy on failure.",
+      "implementation": "infrastructure_manager.py — enter_recovery()/exit_recovery()",
+      "status": "implemented"
+    },
+    {
+      "id": "3.2",
+      "name": "State Maintenance",
+      "layer": 3,
+      "layer_name": "Adaptive Capacity",
+      "formal": "—",
+      "predicate": "BudgetManager reserves slices for lower-priority streams",
+      "meaning": "BudgetManager reserves slices for lower-priority streams.",
+      "implementation": "attention.py — reserve()/check_budget()",
+      "status": "implemented"
+    },
+    {
+      "id": "3.3",
+      "name": "Option Decay",
+      "layer": 3,
+      "layer_name": "Adaptive Capacity",
+      "formal": "—",
+      "predicate": "∀ s: skill_not_matched(s) ∧ age(s) > prune_age → archive(s)",
+      "meaning": "Skills not matched within prune_age_cycles are archived.",
+      "implementation": "skill_library.py — prune()",
+      "status": "implemented"
+    },
+    {
+      "id": "3.4",
+      "name": "Exploration vs Exploitation",
+      "layer": 3,
+      "layer_name": "Adaptive Capacity",
+      "formal": "—",
+      "predicate": "UCB ∧ Thompson sampling for domain exploration",
+      "meaning": "UCB + Thompson sampling for domain exploration.",
+      "implementation": "mission_policy.py — exploration_bonus(), thompson_sample()",
+      "status": "implemented"
+    },
+    {
+      "id": "3.5",
+      "name": "Structural Inertia",
+      "layer": 3,
+      "layer_name": "Adaptive Capacity",
+      "formal": "—",
+      "predicate": "∀ s: not_selected(s) → influence_weight(s) *= 1.08",
+      "meaning": "Non-selected streams get influence boost to compete.",
+      "implementation": "stream_calibrator.py — influence_weight *= 1.08 on non-selection",
+      "status": "implemented"
+    },
+    {
+      "id": "3.6",
+      "name": "Curiosity Seeks Broken Models",
+      "layer": 3,
+      "layer_name": "Adaptive Capacity",
+      "formal": "C = αN + βS + γPE",
+      "predicate": "C = α·Novelty + β·Surprise + γ·PredictionError",
+      "meaning": "Curiosity is driven by novelty, surprise, and prediction error; the system seeks situations where its model is wrong.",
+      "implementation": "UnknownUnknownDetector finds blind spots; CuriosityDrive rewards learning rate; AssumptionAuditor questions held beliefs",
+      "status": "implemented"
+    },
+    {
+      "id": "4.1",
+      "name": "Identity Shapes Decisions",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "I_{t+1} = I_t + ΔI_t, |ΔI_t| ≤ ε",
+      "predicate": "I_{t+1} = I_t + ΔI_t ∧ |ΔI_t| ≤ ε",
+      "meaning": "Identity is maintained through continuous structural consistency; SemanticDepth 4-layer ladder; bounded updates.",
+      "implementation": "system_self.py — ψ operator; world_ledger.py — SemanticDepth",
+      "status": "implemented"
+    },
+    {
+      "id": "4.2",
+      "name": "Exploration/Comfort Trade-off",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "—",
+      "predicate": "balance(known-safe, novel)",
+      "meaning": "System balances known-safe vs novel actions.",
+      "implementation": "mission_policy.py — risk/exploration params",
+      "status": "implemented"
+    },
+    {
+      "id": "4.3",
+      "name": "Possibility Preservation",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "—",
+      "predicate": "|F_t| ≥ 1",
+      "meaning": "CounterfactualEngine always generates alternatives.",
+      "implementation": "simulation.py — |F_t| ≥ 1",
+      "status": "implemented"
+    },
+    {
+      "id": "4.4",
+      "name": "Structural Resilience",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "—",
+      "predicate": "DecisionFirewall.inspect() pre-execution reality audit",
+      "meaning": "DecisionFirewall provides pre-execution reality audit.",
+      "implementation": "firewall.py — inspect()",
+      "status": "implemented"
+    },
+    {
+      "id": "4.5",
+      "name": "Local vs Global Optima",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "—",
+      "predicate": "StreamCalibrator.detects(dominant-stream lock-in)",
+      "meaning": "StreamCalibrator detects dominant-stream lock-in.",
+      "implementation": "stream_calibrator.py — is_stuck(), forced_exploration_stream()",
+      "status": "implemented"
+    },
+    {
+      "id": "4.6",
+      "name": "Emergent Intelligence",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "—",
+      "predicate": "¬∃ single_stream: stream ≡ I; coordination = intelligence",
+      "meaning": "No single stream is 'I'; coordination = intelligence.",
+      "implementation": "synthesize.py — SynthesisPhase merges intents",
+      "status": "implemented"
+    },
+    {
+      "id": "4.7",
+      "name": "Law of Attention and Trajectory",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "—",
+      "predicate": "Attention allocation → counterfactual generation → trajectory shape",
+      "meaning": "Attention allocation → counterfactual generation → trajectory shape.",
+      "implementation": "core/attention/projection.py",
+      "status": "implemented"
+    },
+    {
+      "id": "4.8",
+      "name": "Models Compete",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "ΣP(M_i) = 1",
+      "predicate": "Σ_{i} P(M_i) = 1",
+      "meaning": "Multiple explanations coexist until evidence resolves uncertainty; no model is ever fully killed.",
+      "implementation": "ModelCompetition — Bayesian posterior updates, probability normalization",
+      "status": "implemented"
+    },
+    {
+      "id": "4.9",
+      "name": "Relational Optimization",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "A_i = (U_i, Θ_i)",
+      "predicate": "∀ i: Agent_i = (Utility_i, Params_i)",
+      "meaning": "Other agents are modeled as optimizers with utility functions and internal parameters.",
+      "implementation": "RelationalContext (scaffold) — trust/authority/collaboration fields",
+      "status": "scaffold"
+    },
+    {
+      "id": "4.10",
+      "name": "Recursive World Models",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "M_A(B), M_A(M_B(A)), depth ≤ 3",
+      "predicate": "depth(M_A(M_B(M_A(...)))) ≤ 3",
+      "meaning": "Agents recursively model one another's models, bounded at third order.",
+      "implementation": "SystemSelf (self-model), TheoryBuilder (world-model), RelationalContext (other-model scaffold)",
+      "status": "implemented"
+    },
+    {
+      "id": "4.11",
+      "name": "Cooperative Intelligence",
+      "layer": 4,
+      "layer_name": "Emergent Intelligence",
+      "formal": "U_group − C_align ≥ max_i U_i",
+      "predicate": "U_group − C_align ≥ max_i U_i",
+      "meaning": "Cooperative aggregation justified only when crew consensus utility net of alignment cost ≥ best single agent.",
+      "implementation": "coordination/cooperative.py — CooperativeCouncil evaluates per-agent verdicts against inequality",
+      "status": "implemented"
+    },
+    {
+      "id": "5.1",
+      "name": "TELOS Commitment (Unified Cognitive Functional)",
+      "layer": 5,
+      "layer_name": "Commitment Theory",
+      "formal": "J(τ) = αU − βC_m − γC_r − δC_i − εC_align + ζG_theory + ηI_gain − θE_interpret + OP + CF − PE − C_o",
+      "predicate": "C* = argmax[J(τ)] where J(τ) = αU − βC_m − γC_r − δC_i − εC_align + ζG_theory + ηI_gain − θE_interpret + OP + CF − PE − C_o",
+      "meaning": "Every decision optimizes the Unified Cognitive Functional: utility minus maintenance/recovery/identity/alignment/opportunity costs plus theory/information/uncertainty gains minus interpretation/conflict energy.",
+      "implementation": "CommitmentScore in commitment_optimizer.py — 16-term optimization objective evaluated every cycle",
+      "status": "implemented"
+    },
+    {
+      "id": "5.2",
+      "name": "Axiom Evolution",
+      "layer": 5,
+      "layer_name": "Commitment Theory",
+      "formal": "A → Proposal → Human → Update",
+      "predicate": "∀ A: ∃ proposal: A' = HumanApproves(Proposal(A))",
+      "meaning": "Axioms are not self-modified; they generate candidate revisions for human approval.",
+      "implementation": "AxiomEvolutionEngine — observes cycles, formulates proposals, routes through HumanGateway",
+      "status": "implemented"
+    },
+    {
+      "id": "5.3",
+      "name": "Identity Coupling",
+      "layer": 5,
+      "layer_name": "Commitment Theory",
+      "formal": "C_align = λD(I_A, I_B)",
+      "predicate": "C_align = λ · D(Identity_A, Identity_B)",
+      "meaning": "Interaction cost between agents depends on identity divergence; alignment cost scales with distance.",
+      "implementation": "CommitmentScore.alignment_cost (constitutional); inter-agent coupling requires multi-agent (see 4.11)",
+      "status": "implemented"
+    },
+    {
+      "id": "6.1",
+      "name": "Cognitive Potential",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "Ψ_c = C_available − C_used",
+      "predicate": "Ψ_c = C_available − C_used",
+      "meaning": "An agent has measurable unused capacity; saturation indicates learning ceiling.",
+      "implementation": "ResourceGradientTracker tracks per-dimension utilization",
+      "status": "implemented"
+    },
+    {
+      "id": "6.2",
+      "name": "Cognitive Momentum",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "M_c = Σ w_i · a_i",
+      "predicate": "M_c = Σ_i w_i · a_i",
+      "meaning": "Decisions carry inertia; high momentum → hard to change policy.",
+      "implementation": "CognitiveMomentum — momentum, is_locked_in, recommend_unstick()",
+      "status": "implemented"
+    },
+    {
+      "id": "6.3",
+      "name": "Interpretation Energy",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "E_I = D(P_i, P_j) · C",
+      "predicate": "E_I = D(P_i, P_j) · C",
+      "meaning": "Axiom conflicts have computational cost; interpretation is not free.",
+      "implementation": "InterpretationEngine estimates trade-offs and archives rationale",
+      "status": "implemented"
+    },
+    {
+      "id": "6.4",
+      "name": "Identity Compression",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "I = Φ(E_{1:n}), ρ = |History| / |Identity|",
+      "predicate": "I = Φ(E_{1:n}) ∧ ρ = |History| / |Identity|",
+      "meaning": "Identity is the compressed representation of accumulated experience; higher ratio = more abstraction.",
+      "implementation": "IdentityCompression — overall_compression_rate, get_identity_markers()",
+      "status": "implemented"
+    },
+    {
+      "id": "6.5",
+      "name": "Theory Formation",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "Experience → Pattern → Hypothesis → Test → Theory",
+      "predicate": "∀ e: abstract(e) → pattern → hypothesis → test → theory",
+      "meaning": "Experience is continuously abstracted into reusable theories via a formal abstraction pipeline.",
+      "implementation": "TheoryBuilder + TheoryStream — first-class cognitive stream",
+      "status": "implemented"
+    },
+    {
+      "id": "6.6",
+      "name": "Every Theory Remains Revisable",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "P(T|E) ∝ P(E|T)P(T)",
+      "predicate": "P(T|E) ∝ P(E|T) · P(T)",
+      "meaning": "No internal model is permanently correct; confidence evolves with evidence via Bayesian revision.",
+      "implementation": "ModelCompetition maintains P(M|E); TheoryBuilder tests and falsifies hypotheses",
+      "status": "implemented"
+    },
+    {
+      "id": "6.7",
+      "name": "Knowledge is Compressed Experience",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "—",
+      "predicate": "Knowledge = compressed_structure(repeated_experience)",
+      "meaning": "Knowledge is not accumulated data; it is compressed structure extracted from repeated experience.",
+      "implementation": "ExplanationCompression distills rules; IdentityCompression abstracts principles",
+      "status": "implemented"
+    },
+    {
+      "id": "6.8",
+      "name": "Intelligence is Recursive",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "M_A(B), M_A(M_B(A))",
+      "predicate": "∀ A,B: M_A(B) ∧ M_A(M_B(A))",
+      "meaning": "Intelligent systems construct models of themselves, their environment, and other systems simultaneously.",
+      "implementation": "SystemSelf, TheoryBuilder, RelationalContext",
+      "status": "implemented"
+    },
+    {
+      "id": "6.9",
+      "name": "Curiosity is a Gradient",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "∇U_knowledge",
+      "predicate": "curiosity = argmax ∇U_knowledge",
+      "meaning": "Curiosity climbs the steepest expected information gain, not just novelty.",
+      "implementation": "CuriosityDrive computes learning rate; UnknownUnknownDetector finds blind spots",
+      "status": "implemented"
+    },
+    {
+      "id": "6.10",
+      "name": "Unknown Unknown Discovery",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "R_u = f(PE, Novelty)",
+      "predicate": "R_u = f(PredictionError, Novelty)",
+      "meaning": "The system allocates resources to unexplained residuals; prediction error in novel contexts signals missing concepts.",
+      "implementation": "UnknownUnknownDetector — residual classification, novelty clustering, question formation",
+      "status": "implemented"
+    },
+    {
+      "id": "6.11",
+      "name": "Opportunity Cost Exists",
+      "layer": 6,
+      "layer_name": "Cognitive Dynamics",
+      "formal": "C_o = max(U_i) − U_chosen",
+      "predicate": "C_o = max_i U_i − U_chosen",
+      "meaning": "Every action carries the value of abandoned alternatives; the best foregone option is an explicit cost.",
+      "implementation": "CommitmentScore.opportunity_cost — computed from intent ranking",
+      "status": "implemented"
+    }
+  ],
+  "index": {
+    "by_id": {},
+    "by_layer": {},
+    "by_name": {}
+  },
+  "counts": {
+    "total": 42,
+    "implemented": 40,
+    "scaffold": 2
+  },
+  "extensions": {
+    "p1_0_scale_invariance": {
+      "short_name": "Scale Invariance (Deliberate Recursion)",
+      "layer": 1,
+      "extension_of": "1.1",
+      "formal": "∀ s ∈ Scales: Law(P_s) = Law(P_meta)",
+      "implementation": "core/scale/principle.py, core/scale/factory.py, core/scale/ledger.py, core/scale/verifier.py, core/coordination/coordinator.py"
+    },
+    "p2_0_learning_persistence": {
+      "short_name": "Learning Persistence",
+      "layer": 2,
+      "extension_of": ["2.3", "4.1"],
+      "formal": "∀ lesson ℓ: Persist(ℓ) ⟺ ℓ ∈ LessonsLedger",
+      "implementation": "lessons/README.md, lessons/*.json, tracking/gap-tracker.json, learnings.json"
+    }
+  }
+}

@@ -7,7 +7,7 @@
 PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
 export PYTHONPATH := .
 
-.PHONY: test test-core test-fallback test-all lint run audit coverage health check check-fast capabilities memory-consume behavioral endurance endurance-full clean
+.PHONY: test test-core test-fallback test-all lint run audit coverage health check check-fast capabilities memory-consume behavioral endurance endurance-full bench clean
 
 test: test-core test-fallback
 
@@ -77,6 +77,10 @@ endurance:
 # Full-duration stability gate (nightly workflow; ~2-4 min).
 endurance-full:
 	$(PYTHON) telos/tools/endurance.py --cycles 10000 --strict
+
+# Regression benchmark: 1000 cycles, assert mean<35ms, p95<65ms, RSS<150MB
+bench:
+	$(PYTHON) -m telos.benchmarks.bench --cycles 1000 --ci --mean-threshold 35 --p95-threshold 65 --rss-threshold 150
 
 # Release gate (periodic / CI): full suite + every invariant gate at full
 # duration. ~3 min. Use check-fast for a per-commit loop.
